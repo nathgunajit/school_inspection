@@ -18,7 +18,25 @@ class LoginController extends Controller
 {
     public function show(Request $request)
     {
-        return view('auth.login', ['needsCaptcha' => $this->needsCaptcha($request)]);
+        return view('auth.login', ['needsCaptcha' => $this->needsCaptcha($request), 'demoUsers' => $this->demoUsers()]);
+    }
+
+    /**
+     * Active demo officers from DemoUserSeeder (mobile 90000000xx), for the login page helper.
+     * Empty in production or when DEMO_LOGINS=false.
+     */
+    private function demoUsers()
+    {
+        if (app()->isProduction() || ! config('inspection.demo_logins')) {
+            return collect();
+        }
+
+        return User::with('designation')
+            ->where('mobile', 'like', '90000000%')
+            ->where('status', UserStatus::Active)
+            ->orderBy('mobile')
+            ->get(['id', 'name', 'mobile', 'level', 'designation_id'])
+            ->groupBy(fn ($u) => $u->level->label());
     }
 
     public function login(Request $request)

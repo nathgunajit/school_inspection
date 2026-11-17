@@ -115,6 +115,22 @@ class RegistrationAndLoginTest extends TestCase
         $this->assertSame(2, RegistrationRequest::where('user_id', $user->id)->count());
     }
 
+    public function test_login_page_lists_active_demo_accounts_outside_production_only(): void
+    {
+        User::factory()->create(['name' => 'Demo Active Officer', 'mobile' => '9000000031', 'status' => UserStatus::Active]);
+        User::factory()->status(UserStatus::Pending)->create(['name' => 'Demo Pending Officer', 'mobile' => '9000000041']);
+
+        $this->get(route('login'))->assertOk()
+            ->assertSee('Demo accounts')->assertSee('Demo Active Officer')->assertDontSee('Demo Pending Officer');
+
+        config(['inspection.demo_logins' => false]);
+        $this->get(route('login'))->assertOk()->assertDontSee('Demo Active Officer');
+
+        config(['inspection.demo_logins' => true]);
+        $this->app['env'] = 'production';
+        $this->get(route('login'))->assertOk()->assertDontSee('Demo Active Officer');
+    }
+
     public function test_pending_user_cannot_log_in(): void
     {
         $user = User::factory()->status(UserStatus::Pending)->create();

@@ -561,3 +561,23 @@ h2, .h2 { letter-spacing: -.015em; }
     background: rgba($primary, .06); color: $primary; text-decoration: none; font-variant-numeric: tabular-nums;
     &:hover { background: rgba($primary, .12); }
     &.is-empty { background: $light; color: #94a3b8; } }
+
+// ---------- Login: demo accounts panel (non-production) ----------
+.demo-panel { border-top: 3px solid $warning; }
+.demo-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.demo-pass { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; color: #475569; background: rgba($warning, .08);
+    border: 1px dashed rgba($warning, .45); border-radius: 999px; padding: .35rem .8rem;
+    code { color: #b45309; font-size: .8rem; } }
+.demo-groups { display: grid; grid-template-columns: 1fr; gap: 1rem;
+    @include media-breakpoint-up(md) { grid-template-columns: repeat(2, 1fr); }
+    @include media-breakpoint-up(xl) { grid-template-columns: repeat(4, 1fr); } }
+.demo-level { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: #64748b; font-weight: 500;
+    margin-bottom: .4rem; padding-bottom: .3rem; border-bottom: 1px solid $border-color; }
+.demo-user { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: .5rem; min-height: 44px;
+    padding: .4rem .6rem; margin-bottom: .3rem; border: 1px solid transparent; border-radius: .5rem; background: transparent; text-align: left;
+    transition: background .15s, border-color .15s;
+    .n { display: block; font-size: .8rem; font-weight: 500; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .r { display: block; font-size: .68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .m { font-size: .74rem; color: $primary; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    &:hover { background: rgba($primary, .05); }
+    &.is-picked { background: rgba($primary, .08); border-color: rgba($primary, .3); } }

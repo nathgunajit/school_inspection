@@ -23,7 +23,7 @@ php artisan inspections:expire-drafts   # cancels drafts older than config('insp
 ```
 Default State Admin login: mobile `9999999999` / `Admin@12345` (from `.env` ADMIN_*; password change is forced on first login).
 
-Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all; re-run safely with `php artisan db:seed --class=DemoUserSeeder`):
+Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all; re-run safely with `php artisan db:seed --class=DemoUserSeeder`). Active demo officers are listed on the login page (tap to fill) unless `APP_ENV=production` or `DEMO_LOGINS=false`:
 
 | Mobile | Name | Level / jurisdiction | Notes |
 |---|---|---|---|

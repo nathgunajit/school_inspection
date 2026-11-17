@@ -70,4 +70,47 @@
             <div class="login-help"><i class="bi bi-headset"></i>Need help? Contact your Block or District office, or the State Administrator.</div>
         </div>
     </div>
+
+    {{-- Demo accounts (non-production only, see LoginController::demoUsers) --}}
+    @if ($demoUsers->isNotEmpty())
+        <section class="reg-card demo-panel mt-3" aria-labelledby="demo-title">
+            <div class="demo-head">
+                <div class="reg-block-head">
+                    <span class="reg-icon tone-warning"><i class="bi bi-people"></i></span>
+                    <div><h2 id="demo-title">Demo accounts</h2><p>Testing only. Tap an officer to fill the sign-in form.</p></div>
+                </div>
+                <span class="demo-pass"><i class="bi bi-key"></i>Password for all: <code>Demo@1234</code></span>
+            </div>
+            <div class="demo-groups">
+                @foreach ($demoUsers as $level => $users)
+                    <div class="demo-group">
+                        <div class="demo-level">{{ $level }}</div>
+                        @foreach ($users as $d)
+                            <button type="button" class="demo-user" data-demo-mobile="{{ $d->mobile }}" title="Use {{ $d->name }}">
+                                <span class="min-w-0">
+                                    <span class="n">{{ $d->name }}</span>
+                                    <span class="r">{{ $d->designation?->label }}</span>
+                                </span>
+                                <span class="m">{{ $d->mobile }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        @push('scripts')
+            <script>
+                document.querySelectorAll('[data-demo-mobile]').forEach((b) => b.addEventListener('click', () => {
+                    document.getElementById('mobile').value = b.dataset.demoMobile;
+                    document.getElementById('password').value = 'Demo@1234';
+                    document.querySelectorAll('.demo-user.is-picked').forEach((x) => x.classList.remove('is-picked'));
+                    b.classList.add('is-picked');
+                    const form = document.getElementById('mobile').closest('form');
+                    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    (form.querySelector('.captcha-input') || form.querySelector('button[type=submit]')).focus({ preventScroll: true });
+                }));
+            </script>
+        @endpush
+    @endif
 </x-layouts.portal>

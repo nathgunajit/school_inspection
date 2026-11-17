@@ -262,3 +262,10 @@ Plan approved by the user. Decisions:
 - Background: removed the glow/dot-grid pattern; body and registration page now use a plain light grey (#f5f7fa) with a faint blue wash at the top (`resources/scss/app.scss`).
 - Test: `test_district_and_block_coordinates_via_form_and_excel`.
 - Verified: build OK, view:cache OK, tests 35 passed.
+
+## 32. Demo accounts panel on the login page (2026-11-17)
+- `LoginController::show` passes active demo officers (mobile `90000000xx`, status Active) grouped by level; empty when `APP_ENV=production` or `DEMO_LOGINS=false` (new `config('inspection.demo_logins')`).
+- `auth/login.blade.php`: "Demo accounts" card under the sign-in cards: password note (`Demo@1234`), officers grouped State / District / Block / Cluster with name, designation, mobile; tapping one fills mobile + password and focuses Sign in (or CAPTCHA). State Admin is not listed.
+- Styles `.demo-*` in `resources/scss/app.scss`; `DEMO_LOGINS` added to `.env.example`; CLAUDE.md note.
+- Test: `test_login_page_lists_active_demo_accounts_outside_production_only`.
+- Verified: build OK, tests 36 passed; live `/login` lists 15 active demo officers.

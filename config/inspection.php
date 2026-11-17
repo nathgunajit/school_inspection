@@ -43,6 +43,9 @@ return [
 
     'captcha_enabled' => (bool) env('CAPTCHA_ENABLED', true),
 
+    // Demo accounts panel on the login page (DemoUserSeeder). Never shown when APP_ENV=production.
+    'demo_logins' => (bool) env('DEMO_LOGINS', true),
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,
