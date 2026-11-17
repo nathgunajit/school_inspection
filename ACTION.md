@@ -193,3 +193,11 @@ Plan approved by the user. Decisions:
   - `npm run build` OK on the second run (the first run failed once, most likely a temporary file lock while replacing the old build; no code changes between runs).
   - Views compile; `/login`, `/register`, `/forgot-password` → 200.
   - `php artisan test` → 32 passed.
+
+### 21. 2026-11-17 · ROLLED BACK: standard portal login
+- At the user's request, `git revert` of commit `9235b16` ("Redesign login as a standard portal login"). Login is back to the entry-19 design (banner + Sign in card + New officer card); the portal layout's banner is mandatory again; the `.portal-*` styles were removed. Registration and the password pages are unchanged.
+- History is kept (the change can be restored by reverting the revert commit).
+- **Verification:**
+  - Build OK; views compile.
+  - `/login`, `/register`, `/forgot-password` → 200 with the banner, and no portal-login card on `/login`.
+  - `php artisan test` → 32 passed.
