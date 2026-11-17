@@ -18,9 +18,7 @@
             <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam" class="reg-logo-govt">
             <div class="reg-topbar-title">
                 <div class="t0 d-none d-sm-block">Government of Assam · Samagra Shiksha, Assam</div>
-                <div class="t1"><i class="bi bi-clipboard2-check"></i>School Inspection <span class="d-none d-sm-inline">Management System</span></div>
-                <div class="t2 d-none d-md-block">Online portal for inspection of schools by State, District, Block &amp; Cluster officers</div>
-            </div>
+                <div class="t1"><i class="bi bi-clipboard2-check"></i>School Inspection <span class="d-none d-sm-inline">Management System</span></div>            </div>
             <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" class="reg-logo-ss ms-auto">
         </div>
     </header>

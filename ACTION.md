@@ -206,3 +206,8 @@ Plan approved by the user. Decisions:
 - **What:** Enlarged header logos on all public pages (Govt. of Assam 52→76 px, Samagra Shiksha 34→58 px; 52/40 px on phones). Header title now reads **"School Inspection Management System"** in bold blue with a clipboard icon, with a small green "Government of Assam · Samagra Shiksha, Assam" line above and a one-line purpose line below (desktop). Title is now visible on phones too (short form "School Inspection").
 - **Files:** `resources/views/components/layouts/portal.blade.php`, `resources/scss/app.scss` (`.reg-topbar`)
 - **Verify:** `npm run build` OK, `view:cache` OK; /login, /register, /forgot-password return 200 with the new title.
+
+### 23. 2026-11-17 · Removed portal header sub-line
+- **What:** Removed the line "Online portal for inspection of schools by State, District, Block & Cluster officers" from the public portal header (user request).
+- **Files:** `resources/views/components/layouts/portal.blade.php`
+- **Verify:** `view:cache` OK; /login no longer contains the line.
