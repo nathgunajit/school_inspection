@@ -184,3 +184,12 @@ Plan approved by the user. Decisions:
   - `php artisan test` → 32 passed (337 assertions).
   - Live login as demo officer 9000000031 → dashboard.
   - Visual check left to the user.
+
+### 20. 2026-11-17 · ROLLED BACK: login & registration spacing/alignment change
+- At the user's request, `git revert` of commit `765bceb` ("Tighten spacing and standardise field alignment"). The revert commit restores the login, registration and password pages to the design of entry 19.
+- Files restored: `resources/scss/app.scss`, `auth/login.blade.php`, `auth/register.blade.php`, `auth/forgot-password.blade.php`, `auth/reset-password.blade.php`, `partials/captcha.blade.php` (and the entry for that change was removed from this log).
+- History is kept; the change can be re-applied with `git revert <revert-commit>` if wanted later.
+- **Verification:**
+  - `npm run build` OK on the second run (the first run failed once, most likely a temporary file lock while replacing the old build; no code changes between runs).
+  - Views compile; `/login`, `/register`, `/forgot-password` → 200.
+  - `php artisan test` → 32 passed.
