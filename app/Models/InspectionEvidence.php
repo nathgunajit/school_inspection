@@ -40,4 +40,23 @@ class InspectionEvidence extends Model
     {
         return $this->latitude !== null && $this->longitude !== null;
     }
+
+    /** Shape sent to the browser (no storage path). */
+    public function toClientArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'evidence_uid' => $this->evidence_uid,
+            'kind' => $this->kind,
+            'category' => $this->category?->code,
+            'category_label' => $this->category?->label,
+            'question_code' => $this->question_code,
+            'caption' => $this->caption,
+            'status' => $this->status->value,
+            'has_location' => $this->hasLocation(),
+            'url' => route('evidence.show', $this),
+            'delete_url' => route('evidence.destroy', $this),
+            'original_name' => $this->original_name,
+        ];
+    }
 }

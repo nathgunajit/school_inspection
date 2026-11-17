@@ -15,7 +15,7 @@ Guidance for Claude Code (and developers) working in this repository.
 
 ## Commands
 ```bash
-php artisan serve                 # http://127.0.0.1:8000
+php artisan serve --port=8010     # http://127.0.0.1:8010 (port 8000 is used by another local project)
 npm run dev                       # Vite dev server (or: npm run build)
 php artisan migrate --seed        # schema + roles, permissions, masters, State Admin, demo data
 php artisan test                  # feature tests (use sqlite in-memory, see phpunit.xml)

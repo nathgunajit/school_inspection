@@ -36,6 +36,8 @@ return [
         'kitchen_mdm' => 1,
     ],
 
+    'captcha_enabled' => (bool) env('CAPTCHA_ENABLED', true),
+
     'max_suggestions' => 5,
     'per_page' => 25,
     'retention_years' => 5,

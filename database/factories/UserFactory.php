@@ -2,43 +2,40 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserLevel;
+use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<\App\Models\User>
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
             'name' => fake()->name(),
+            'employee_id' => 'EMP'.Str::upper(Str::random(8)),
+            'mobile' => (string) fake()->unique()->numberBetween(6000000000, 9999999998),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('Secret@123'),
+            'level' => UserLevel::Cluster,
+            'status' => UserStatus::Active,
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    public function level(UserLevel $level): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
+        return $this->state(fn () => ['level' => $level]);
+    }
+
+    public function status(UserStatus $status): static
+    {
+        return $this->state(fn () => ['status' => $status]);
     }
 }
