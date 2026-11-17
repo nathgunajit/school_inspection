@@ -62,7 +62,8 @@ function applyProgress(d) {
         if (!link.classList.contains('active')) dot.innerHTML = s.complete ? '<i class="bi bi-check-lg"></i>' : n;
     }
     const miss = (d.missing || {})[SI.step] || [];
-    $('#step-missing') && ($('#step-missing').textContent = miss.length ? `${miss.length} item(s) pending in this step` : 'Step complete');
+    const sm = $('#step-missing');
+    if (sm) { sm.textContent = miss.length ? `${miss.length} left in this step` : 'Step complete'; sm.classList.toggle('is-done', !miss.length); }
     const warn = (d.warnings || {})[SI.step] || [];
     const box = $('#step-warnings');
     if (box) box.innerHTML = warn.map((w) => `<div class="alert alert-warning text-sm py-2 mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>${esc(w)}</div>`).join('');
@@ -103,6 +104,7 @@ function refreshRules() {
         if (!block) continue;
         const v = SI.answers[q.code];
         block.classList.toggle('d-none', !isVisible(q));
+        block.classList.toggle('is-answered', filled(v));
         block.querySelector('.q-req')?.classList.toggle('d-none', !isRequired(q));
         const rem = block.querySelector('.q-remarks');
         if (rem) rem.classList.toggle('d-none', !(filled(v) && matches(v, q.remarks_if || [])));
@@ -151,6 +153,16 @@ $$('.q-block').forEach((block) => {
         remarks.addEventListener('input', () => { clearTimeout(timers[k]); timers[k] = setTimeout(send, 800); });
         remarks.addEventListener('blur', () => { if (timers[k]) { clearTimeout(timers[k]); timers[k] = null; send(); } });
     }
+});
+
+/* ---------------- Number steppers (− / +) ---------------- */
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-num-step]');
+    if (!b) return;
+    const input = b.parentElement.querySelector('input[type=number]');
+    const next = Math.max(0, Math.min(100000, (parseInt(input.value, 10) || 0) + Number(b.dataset.numStep)));
+    input.value = next;
+    input.dispatchEvent(new Event('input', { bubbles: true })); // debounced auto-save
 });
 
 /* ---------------- Repeating sections (absentee, classroom, fund) ---------------- */

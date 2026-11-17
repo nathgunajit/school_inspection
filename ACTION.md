@@ -269,3 +269,13 @@ Plan approved by the user. Decisions:
 - Styles `.demo-*` in `resources/scss/app.scss`; `DEMO_LOGINS` added to `.env.example`; CLAUDE.md note.
 - Test: `test_login_page_lists_active_demo_accounts_outside_production_only`.
 - Verified: build OK, tests 36 passed; live `/login` lists 15 active demo officers.
+
+## 33. Inspection form redesign: cleaner, friendlier, mobile-first (2026-11-17)
+- Step card: new header (step icon, "Step X of 7", title, one-line guidance per step).
+- Questions (`partials/question.blade.php`): numbered circle turns into a green tick once answered; short choice lists (Yes/No, Satisfactory/Unsatisfactory, ≤3 options) sit beside the question on tablet/desktop and become an equal-width segmented control on phones; number questions get − / + buttons (44 px) with auto-save; inline `style` widths replaced by classes.
+- Visual group headings (presentation only, codes unchanged): Step 1 Person met / Building & basic facilities / Electricity & classrooms / Digital learning & labs; Step 2 Students / Teachers & tutors / Trained-untrained; Step 6 Teaching & SMC / Assembly & entitlements / Cleanliness, MDM & health / Safety & sports / Records & administration; Suggestions.
+- Repeating sections (absentee, classroom, fund): list heading, titled add-form panel, full-width primary button on phones, segmented TLM/participation choices.
+- Photos step: info note, cleaner required-photo slots (title + "Required · at least N"), Camera/Gallery buttons full-width on phones.
+- Stepper: lighter pill track; on phones only step numbers show, with the label for the current step; thinner progress bar. Action bar: compact status ("N left in this step" / "Step complete").
+- Files: `inspections/step.blade.php`, `inspections/partials/{question,stepper}.blade.php`, `resources/js/wizard.js` (answered state, − / + steppers, status text), `resources/scss/app.scss`.
+- Verified: build OK, view:cache OK, tests 36 passed; live MySQL: all 7 steps of a draft return 200 as demo inspector 9000000031.
