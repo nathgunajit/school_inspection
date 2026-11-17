@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class School extends Model
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'udise_code', 'name', 'state_id', 'district_id', 'block_id', 'cluster_id',
+        'management_id', 'category_id', 'address', 'latitude', 'longitude', 'status',
+    ];
+
+    protected $casts = ['latitude' => 'float', 'longitude' => 'float'];
+
+    public function state() { return $this->belongsTo(State::class); }
+    public function district() { return $this->belongsTo(District::class); }
+    public function block() { return $this->belongsTo(Block::class); }
+    public function cluster() { return $this->belongsTo(Cluster::class); }
+    public function management() { return $this->belongsTo(MasterValue::class, 'management_id'); }
+    public function category() { return $this->belongsTo(MasterValue::class, 'category_id'); }
+    public function inspections() { return $this->hasMany(Inspection::class); }
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+}

@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\EvidenceStatus;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class InspectionEvidence extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'inspection_evidence';
+
+    protected $fillable = [
+        'evidence_uid', 'inspection_id', 'kind', 'category_id', 'question_code', 'caption',
+        'taken_at', 'received_at', 'latitude', 'longitude', 'accuracy', 'no_location_reason',
+        'original_name', 'mime', 'size_bytes', 'storage_path', 'sha256', 'status', 'uploaded_by',
+    ];
+
+    protected $hidden = ['storage_path'];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => EvidenceStatus::class,
+            'taken_at' => 'datetime',
+            'received_at' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'accuracy' => 'float',
+        ];
+    }
+
+    public function inspection() { return $this->belongsTo(Inspection::class); }
+    public function category() { return $this->belongsTo(MasterValue::class, 'category_id'); }
+    public function uploader() { return $this->belongsTo(User::class, 'uploaded_by'); }
+
+    public function hasLocation(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+}
