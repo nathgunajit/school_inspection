@@ -6,7 +6,7 @@
     </x-slot:hero>
 
     <div class="reg-card login-card mx-auto">
-        <div class="reg-block-head mb-4">
+        <div class="reg-block-head mb-3">
             <span class="reg-icon tone-primary"><i class="bi bi-shield-lock"></i></span>
             <div><h2>New password</h2><p>At least 8 characters with A–Z, a–z, 0–9 and a symbol.</p></div>
         </div>

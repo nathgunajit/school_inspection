@@ -18,7 +18,7 @@
 
     <div class="reg-card">
         @if ($errors->any())
-            <div class="alert alert-danger border-0 d-flex gap-2 align-items-center mb-4"><i class="bi bi-exclamation-octagon"></i>Please correct the highlighted fields below.</div>
+            <div class="alert alert-danger border-0 d-flex gap-2 align-items-center py-2 mb-3"><i class="bi bi-exclamation-octagon"></i>Please correct the highlighted fields below.</div>
         @endif
 
         <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data" id="register-form" novalidate>
@@ -31,7 +31,7 @@
                     <div><h2>Personal &amp; official details</h2><p>As recorded in your posting order or departmental ID card.</p></div>
                 </div>
                 <div class="reg-block-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-6">
                             <label class="form-label" for="name">Full name <span class="req">*</span></label>
                             <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required maxlength="120" autocomplete="name" placeholder="e.g. Ananya Sharma">
@@ -81,7 +81,7 @@
                     </div>
                     @error('level')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
 
-                    <div class="row g-3 mt-1">
+                    <div class="row g-2 mt-1">
                         <div class="col-md-6">
                             <label class="form-label" for="state_id">State <span class="req">*</span></label>
                             <select id="state_id" name="state_id" class="form-select @error('state_id') is-invalid @enderror" required
@@ -119,7 +119,7 @@
                     <div><h2>Sign-in details</h2><p>Your mobile number is your login ID. Keep your password private.</p></div>
                 </div>
                 <div class="reg-block-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-6">
                             <label class="form-label" for="mobile">Mobile number <span class="req">*</span></label>
                             <div class="input-group">

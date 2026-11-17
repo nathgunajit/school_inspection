@@ -6,7 +6,7 @@
     </x-slot:hero>
 
     <div class="reg-card login-card mx-auto">
-        <div class="reg-block-head mb-4">
+        <div class="reg-block-head mb-3">
             <span class="reg-icon tone-warning"><i class="bi bi-envelope"></i></span>
             <div><h2>Forgot password</h2><p>Enter your registered mobile number.</p></div>
         </div>

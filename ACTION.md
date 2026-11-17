@@ -184,3 +184,25 @@ Plan approved by the user. Decisions:
   - `php artisan test` → 32 passed (337 assertions).
   - Live login as demo officer 9000000031 → dashboard.
   - Visual check left to the user.
+
+### 20. 2026-11-17 · Login & registration: smaller gaps, standard alignment
+- **Spacing reduced (`app.scss`, portal pages):**
+  - Header logos 52→44 px / 34→30 px.
+  - Banner padding 1.75/4.75rem → 1/3rem; banner title 1.85→1.5rem.
+  - Card overlap −3.25→−2.25rem; card padding 2→1.25/1.5rem.
+  - Section gap 2→1.25rem; left column 260→220 px; section separators 1.5→0.9rem.
+  - Section icons 40→32 px; level cards more compact; footer tighter.
+  - Login cards gap 1→0.75rem; max width 960→880 px.
+- **Grids:** registration field grids `g-3` → `g-2`; login field spacing `mb-3` → `mb-2` (+`mt-2` above Sign in); section headers `mb-4` → `mb-3` on login and password pages.
+- **Standard alignment** (`.reg-block-body`):
+  - one label size and height (0.76rem);
+  - one control height (40 px on desktop, 44 px on phones for touch);
+  - same font size in inputs and selects;
+  - hints and errors directly under their field with a fixed small gap;
+  - matching +91 prefix box.
+- CAPTCHA block no longer adds an extra bottom margin (`.captcha-field`).
+- **Verification:**
+  - `npm run build` OK; views compile.
+  - `/login`, `/register`, `/forgot-password`, `/reset-password/{token}` → 200.
+  - `php artisan test` → 32 passed (337 assertions).
+  - Visual check left to the user.
