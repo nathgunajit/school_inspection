@@ -124,6 +124,25 @@ class InspectionController extends Controller
     }
 
     /** Auto-save of a single answer (PRD 8.2: saved automatically after every answer). */
+    /** Friendly field names / messages for the repeating rows (shown next to each field in the form). */
+    private const ROW_ATTRIBUTES = [
+        'teacher_name' => "teacher's name", 'teacher_type' => "teacher's type", 'reason' => 'reason for absence',
+        'class' => 'class', 'subject' => 'subject', 'tlm_used' => 'use of TLM', 'participation' => 'participation of students',
+        'remarks' => 'remarks',
+    ];
+
+    private const ROW_MESSAGES = [
+        'required' => 'Please enter the :attribute.',
+        'teacher_type.required' => "Please select the teacher's type.",
+        'reason.required' => 'Please select the reason for absence.',
+        'class.required' => 'Please select the class.',
+        'tlm_used.required' => 'Please choose Yes or No for use of TLM.',
+        'participation.required' => 'Please choose the participation of students.',
+        'in' => 'Please choose a valid :attribute from the list.',
+        'min' => 'The :attribute is too short.',
+        'max' => 'The :attribute is too long (max :max characters).',
+    ];
+
     public function saveAnswer(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
@@ -158,11 +177,11 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         $data = $request->validate([
-            'teacher_name' => ['required', 'string', 'max:120'],
+            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
             'teacher_type' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::TYPES))],
             'reason' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::REASONS))],
             'remarks' => ['nullable', 'string', 'max:500'],
-        ]);
+        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
         $inspection->absentTeachers()->create($data);
 
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
@@ -188,7 +207,7 @@ class InspectionController extends Controller
             'tlm_used' => ['required', 'in:yes,no'],
             'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
             'remarks' => ['nullable', 'string', 'max:500'],
-        ]);
+        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
         $data['tlm_used'] = $data['tlm_used'] === 'yes';
         $inspection->classroomObservations()->create($data);
 
@@ -208,12 +227,23 @@ class InspectionController extends Controller
     public function addFund(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $amount = ['nullable', 'numeric', 'min:0', 'max:99999999'];
+        $amount = ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999'];
         $data = $request->validate(
             ['financial_year' => ['required', Rule::in(InspectionFundPosition::financialYears())]]
             + array_fill_keys(InspectionFundPosition::AMOUNT_COLUMNS, $amount),
-            ['financial_year.in' => 'Select a financial year from the list.']
+            [
+                'financial_year.required' => 'Select the financial year first.',
+                'financial_year.in' => 'Select a financial year from the list.',
+                '*.numeric' => 'Enter the amount as a number, e.g. 1.25.',
+                '*.decimal' => 'Use at most 2 decimal places (lakh).',
+                '*.min' => 'The amount cannot be negative.',
+                '*.max' => 'The amount looks too large. Enter it in lakh.',
+            ]
         );
+        $filled = collect(InspectionFundPosition::AMOUNT_COLUMNS)->filter(fn ($c) => ($data[$c] ?? null) !== null && $data[$c] !== '');
+        if ($filled->isEmpty()) {
+            throw ValidationException::withMessages(['asg_received' => 'Enter at least one amount for '.str_replace('FY-', 'FY ', $data['financial_year']).'.']);
+        }
         $values = collect(InspectionFundPosition::AMOUNT_COLUMNS)->mapWithKeys(fn ($c) => [$c => (float) ($data[$c] ?? 0)])->all();
 
         $inspection->fundPositions()->updateOrCreate(['financial_year' => $data['financial_year']], $values);
@@ -265,6 +295,8 @@ class InspectionController extends Controller
         return view('inspections.review', [
             'inspection' => $inspection,
             'steps' => Q::steps(),
+            'questions' => Q::questions(),
+            'answers' => $inspection->answers->pluck('value', 'question_code')->all(),
             'progress' => (new InspectionValidator($inspection))->progress(),
         ]);
     }

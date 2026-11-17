@@ -205,6 +205,23 @@ class InspectionFlowTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'funds')->assertJsonPath('funds.0.balance', '2.30');
         $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy, 'asg_received' => 3])->assertOk()->assertJsonCount(1, 'funds');
         $this->assertSame(3.0, (float) $i->fundPositions()->first()->asg_received);
+
+        // Friendly validation messages for the forms
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy])
+            ->assertStatus(422)->assertJsonPath('errors.asg_received.0', 'Enter at least one amount for '.str_replace('FY-', 'FY ', $fy).'.');
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy, 'mdm_received' => '1.234'])
+            ->assertStatus(422)->assertJsonPath('errors.mdm_received.0', 'Use at most 2 decimal places (lakh).');
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy, 'govt_received' => -1])
+            ->assertStatus(422)->assertJsonPath('errors.govt_received.0', 'The amount cannot be negative.');
+        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => '', 'teacher_type' => '', 'reason' => 'CL'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.teacher_name.0', "Please enter the teacher's name.")
+            ->assertJsonPath('errors.teacher_type.0', "Please select the teacher's type.");
+        $this->classroom($i, ['tlm_used' => null])->assertStatus(422)->assertJsonPath('errors.tlm_used.0', 'Please choose Yes or No for use of TLM.');
+
+        // Review page: status, missing items with direct links, answers per step
+        $this->get(route('inspections.review', $i))->assertOk()
+            ->assertSee('still to complete')->assertSee('Your answers')->assertSee('B. Devi')->assertSee('Fix');
     }
 
     public function test_submission_blocked_without_mandatory_photos(): void

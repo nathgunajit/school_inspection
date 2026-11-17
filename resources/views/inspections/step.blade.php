@@ -48,6 +48,7 @@
         'teachers' => $teacherRows,
         'classrooms' => $classroomRows,
         'funds' => $fundRows,
+        'missing' => $progress['missing'],
         'mandatory' => $mandatory,
         'maxPhotos' => config('inspection.evidence.max_photos'),
         'maxSide' => config('inspection.evidence.photo_max_side_px'),
@@ -59,7 +60,7 @@
 
     <div class="row justify-content-center">
         <div class="col-xl-10">
-            <div class="card wizard-card">
+            <div class="card wizard-card" data-enhance-selects>
                 <div class="wizard-head">
                     <span class="step-icon"><i class="bi {{ $meta['icon'] }}"></i></span>
                     <div class="min-w-0 flex-grow-1">
@@ -109,16 +110,17 @@
                     @if ($step === 3)
                         <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
                         <div id="teacher-list" class="row-list mb-3"></div>
-                        <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}">
+                        <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
                             <div class="row-form-title"><i class="bi bi-plus-circle"></i>Add an absent teacher</div>
                             <div class="row g-2">
-                                <div class="col-md-6"><label class="form-label text-sm">Teacher's name</label><input name="teacher_name" class="form-control" maxlength="120" required></div>
-                                <div class="col-md-6"><label class="form-label text-sm">Teacher's type</label>
-                                    <select name="teacher_type" class="form-select" required><option value="">Select</option>@foreach (AT::TYPES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
-                                <div class="col-md-6"><label class="form-label text-sm">Reason for absence</label>
-                                    <select name="reason" class="form-select" required><option value="">Select</option>@foreach (AT::REASONS as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="t_name">Teacher's name <span class="req">*</span></label><input id="t_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="t_type">Teacher's type <span class="req">*</span></label>
+                                    <select id="t_type" name="teacher_type" class="form-select" required><option value="">Select</option>@foreach (AT::TYPES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="t_reason">Reason for absence <span class="req">*</span></label>
+                                    <select id="t_reason" name="reason" class="form-select" required><option value="">Select</option>@foreach (AT::REASONS as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                                 <div class="col-md-6"><label class="form-label text-sm">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
                             </div>
+                            <div class="form-error d-none" data-form-error></div>
                             <button class="btn btn-primary row-form-btn"><i class="bi bi-plus-lg"></i>Add teacher</button>
                         </form>
                     @endif
@@ -127,51 +129,72 @@
                     @if ($step === 4)
                         <div class="q-group"><span class="q-group-icon"><i class="bi bi-easel"></i></span><span>Classrooms observed</span></div>
                         <div id="classroom-list" class="row-list mb-3"></div>
-                        <form id="classroom-form" class="row-form" data-url="{{ route('inspections.classrooms.store', $inspection) }}">
+                        <form id="classroom-form" class="row-form" data-url="{{ route('inspections.classrooms.store', $inspection) }}" novalidate>
                             <div class="row-form-title"><i class="bi bi-plus-circle"></i>Add a classroom observation</div>
                             <div class="row g-2">
-                                <div class="col-md-6"><label class="form-label text-sm">Name of the teacher</label><input name="teacher_name" class="form-control" maxlength="120" required></div>
-                                <div class="col-6 col-md-3"><label class="form-label text-sm">Class</label>
-                                    <select name="class" class="form-select" required><option value="">Select</option>@foreach (CO::CLASSES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
-                                <div class="col-6 col-md-3"><label class="form-label text-sm">Subject</label><input name="subject" class="form-control" maxlength="100" required></div>
-                                <div class="col-md-6"><label class="form-label text-sm d-block">Use of TLM by teacher</label>
-                                    <div class="choice-group seg"><input type="radio" name="tlm_used" id="tlm_yes" value="yes" required><label for="tlm_yes" class="tone-good">Yes</label>
+                                <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
+                                <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_class">Class <span class="req">*</span></label>
+                                    <select id="c_class" name="class" class="form-select" required><option value="">Select</option>@foreach (CO::CLASSES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
+                                <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_subject">Subject <span class="req">*</span></label><input id="c_subject" name="subject" class="form-control" maxlength="100" placeholder="e.g. Mathematics" required></div>
+                                <div class="col-md-6"><label class="form-label text-sm d-block">Use of TLM by teacher <span class="req">*</span></label>
+                                    <div class="choice-group seg" data-field="tlm_used"><input type="radio" name="tlm_used" id="tlm_yes" value="yes" required><label for="tlm_yes" class="tone-good">Yes</label>
                                         <input type="radio" name="tlm_used" id="tlm_no" value="no"><label for="tlm_no" class="tone-bad">No</label></div></div>
-                                <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students</label>
-                                    <div class="choice-group seg">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>
+                                <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students <span class="req">*</span></label>
+                                    <div class="choice-group seg" data-field="participation">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>
                                 <div class="col-12"><label class="form-label text-sm">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
                             </div>
+                            <div class="form-error d-none" data-form-error></div>
                             <button class="btn btn-primary row-form-btn"><i class="bi bi-plus-lg"></i>Add classroom record</button>
                         </form>
                     @endif
 
                     {{-- ============ STEP 5: Fund received by year ============ --}}
                     @if ($step === 5)
-                        <div class="q-group"><span class="q-group-icon"><i class="bi bi-cash-coin"></i></span><span>Saved years</span></div>
-                        <div id="fund-list" class="row-list mb-3"></div>
-                        <form id="fund-form" class="row-form" data-url="{{ route('inspections.funds.store', $inspection) }}">
-                            <div class="row-form-title"><i class="bi bi-plus-circle"></i>Add or update a year <span class="text-secondary fw-normal">· amounts in lakh</span></div>
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-4"><label class="form-label text-sm">Year of fund received</label>
-                                    <select name="financial_year" class="form-select" required><option value="">Select year</option>@foreach ($financialYears as $fy)<option value="{{ $fy }}">{{ $fy }}</option>@endforeach</select></div>
-                            </div>
-                            <fieldset id="fund-amounts" disabled>
-                                @foreach ([['Fund received & expenditure (SSA)', [['asg_received', 'Annual School Grant received'], ['mdm_received', 'MDM fund received'], ['asg_expenditure', 'Annual School Grant expenditure'], ['mdm_expenditure', 'MDM fund expenditure']]],
-                                           ['Fund received & expenditure (Government)', [['govt_received', 'Fund received'], ['govt_expenditure', 'Expenditure of fund']]],
-                                           ['Fund received & expenditure (Other source)', [['other_received', 'Fund received'], ['other_expenditure', 'Expenditure of fund']]]] as [$title, $fields])
-                                    <div class="fund-group">
-                                        <div class="fund-group-title">{{ $title }}</div>
-                                        <div class="row g-2">
-                                            @foreach ($fields as [$name, $label])
-                                                <div class="col-6 col-md-3"><label class="form-label text-xs">{{ $label }}</label>
-                                                    <div class="input-group input-group-sm"><input name="{{ $name }}" type="number" min="0" step="0.01" inputmode="decimal" class="form-control" placeholder="0.00"><span class="input-group-text">lakh</span></div></div>
-                                            @endforeach
-                                        </div>
-                                    </div>
+                        <form id="fund-form" class="fund-form" data-url="{{ route('inspections.funds.store', $inspection) }}" novalidate>
+                            <div class="fund-step"><span class="fund-step-no">1</span><span>Choose the financial year</span></div>
+                            <div class="fy-chips" role="radiogroup" aria-label="Financial year" data-field="financial_year">
+                                @foreach ($financialYears as $fy)
+                                    <input type="radio" name="financial_year" id="fy_{{ $fy }}" value="{{ $fy }}">
+                                    <label for="fy_{{ $fy }}" data-fy="{{ $fy }}"><span>{{ str_replace('FY-', '', $fy) }}</span><i class="bi bi-check-circle-fill" title="Saved"></i></label>
                                 @endforeach
-                                <button class="btn btn-primary row-form-btn"><i class="bi bi-check2"></i>Save year</button>
+                            </div>
+
+                            <div class="fund-step"><span class="fund-step-no">2</span><span>Enter the amounts <small>in lakh · e.g. 1.25 = ₹1,25,000 · leave blank if nil</small></span></div>
+                            <div id="fund-empty-hint" class="fund-hint"><i class="bi bi-hand-index-thumb"></i>Select a year above to enter its amounts.</div>
+                            <fieldset id="fund-amounts" class="d-none" disabled>
+                                <div class="fund-table">
+                                    <div class="fund-row fund-row-head" aria-hidden="true"><span>Fund head</span><span>Received</span><span>Expenditure</span><span>Balance</span></div>
+                                    @foreach (FP::HEADS as $key => [$headLabel, $rc, $ec])
+                                        <div class="fund-row" data-head="{{ $key }}">
+                                            <span class="fund-head">{{ $headLabel }}</span>
+                                            @foreach ([[$rc, 'Received'], [$ec, 'Expenditure']] as [$col, $what])
+                                                <div class="fund-cell">
+                                                    <label class="fund-cell-lbl" for="f_{{ $col }}">{{ $what }}</label>
+                                                    <div class="fund-input"><input id="f_{{ $col }}" name="{{ $col }}" type="number" min="0" max="99999" step="0.01" inputmode="decimal" placeholder="0.00"
+                                                        class="form-control" data-label="{{ $headLabel }} {{ strtolower($what) }}"><span>L</span></div>
+                                                </div>
+                                            @endforeach
+                                            <span class="fund-bal"><span class="fund-cell-lbl">Balance</span><span data-bal>0.00</span></span>
+                                        </div>
+                                    @endforeach
+                                    <div class="fund-row fund-row-total">
+                                        <span class="fund-head">Total (lakh)</span>
+                                        <span><span class="fund-cell-lbl">Received</span><span data-total="r">0.00</span></span>
+                                        <span><span class="fund-cell-lbl">Expenditure</span><span data-total="e">0.00</span></span>
+                                        <span><span class="fund-cell-lbl">Balance</span><span data-total="b">0.00</span></span>
+                                    </div>
+                                </div>
+                                <div id="fund-warn" class="fund-warn d-none"><i class="bi bi-exclamation-triangle"></i><span></span></div>
+                                <div class="form-error d-none" data-form-error></div>
+                                <div class="fund-actions">
+                                    <button type="button" class="btn btn-light" data-fund-clear><i class="bi bi-eraser"></i>Clear</button>
+                                    <button class="btn btn-primary" id="fund-save"><i class="bi bi-check2"></i><span>Save year</span></button>
+                                </div>
                             </fieldset>
                         </form>
+
+                        <div class="q-group mt-4"><span class="q-group-icon"><i class="bi bi-cash-coin"></i></span><span>Saved years</span></div>
+                        <div id="fund-list" class="row-list"></div>
                     @endif
 
                     {{-- ============ STEP 6: suggestions after governance questions ============ --}}
@@ -241,6 +264,22 @@
                 </div>
             @endif
         </div>
+    </div>
+
+    {{-- Unanswered items when leaving a step --}}
+    <div class="modal fade" id="missingModal" tabindex="-1" aria-labelledby="missing-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm-wide"><div class="modal-content missing-modal">
+            <div class="modal-body">
+                <div class="missing-icon"><i class="bi bi-list-check"></i></div>
+                <h5 class="modal-title text-center mb-1" id="missing-title"><span id="missing-count">0</span> item(s) still to fill</h5>
+                <p class="text-center text-secondary text-sm mb-2">You can continue and come back later. All items are needed before you submit.</p>
+                <ul class="missing-list" id="missing-list"></ul>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light flex-fill" data-missing-continue>Continue anyway</button>
+                <button type="button" class="btn btn-primary flex-fill" data-missing-show><i class="bi bi-search"></i>Show me</button>
+            </div>
+        </div></div>
     </div>
 
     {{-- Cancel draft modal --}}
