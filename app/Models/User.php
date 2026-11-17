@@ -15,11 +15,11 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'designation_id', 'employee_id', 'mobile', 'email', 'password', 'level', 'status',
-        'id_proof_path', 'id_proof_original_name', 'failed_login_attempts', 'locked_until',
+        'id_proof_path', 'id_proof_original_name', 'photo_path', 'failed_login_attempts', 'locked_until',
         'must_change_password', 'last_login_at',
     ];
 
-    protected $hidden = ['password', 'remember_token', 'id_proof_path'];
+    protected $hidden = ['password', 'remember_token', 'id_proof_path', 'photo_path'];
 
     protected function casts(): array
     {

@@ -9,7 +9,7 @@
             @forelse ($requests as $r)
                 @php $u = $r->user; $jur = $u->currentJurisdiction; @endphp
                 <a href="{{ route('admin.approvals.show', $r) }}" class="list-item text-decoration-none">
-                    <span class="avatar">{{ $u->initials() }}</span>
+                    <x-user-avatar :user="$u" />
                     <div class="flex-grow-1 min-w-0">
                         <div class="fw-semibold text-truncate">{{ $u->name }} <span class="text-secondary fw-normal text-sm">· {{ $u->designation?->label }}</span></div>
                         <div class="text-xs text-secondary text-truncate">

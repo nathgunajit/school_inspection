@@ -47,6 +47,7 @@ class RegisterRequest extends FormRequest
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
             'employee_id' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
             'id_proof' => ['required', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
+            'photo' => ['required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
             'level' => ['required', new Enum(UserLevel::class), Rule::in(array_map(fn ($l) => $l->value, UserLevel::registrable()))],
             'state_id' => ['required', Rule::exists('states', 'id')->where('is_active', true)],
             'district_id' => [$level?->needsDistrict() ? 'required' : 'nullable', 'integer'],
@@ -71,6 +72,9 @@ class RegisterRequest extends FormRequest
             'mobile.unique' => 'This mobile number is already registered.',
             'employee_id.unique' => 'This Employee ID is already registered.',
             'id_proof.max' => 'Identity proof must be 2 MB or smaller.',
+            'photo.required' => 'Please upload your photograph.',
+            'photo.max' => 'Photograph must be 1 MB or smaller.',
+            'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
             'captcha.captcha' => 'The CAPTCHA code is incorrect.',
             'privacy.accepted' => 'Please accept the privacy notice.',
         ];

@@ -86,6 +86,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/approvals/{registration}/reject', [Admin\ApprovalController::class, 'reject'])->name('approvals.reject');
             });
             Route::get('/users/{user}/id-proof', [Admin\ApprovalController::class, 'idProof'])->name('users.id-proof');
+            Route::get('/users/{user}/photo', [Admin\ApprovalController::class, 'photo'])->name('users.photo');
 
             Route::middleware('can:manage_users')->group(function () {
                 Route::get('/users', [Admin\UserController::class, 'index'])->name('users.index');

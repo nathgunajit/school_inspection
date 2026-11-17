@@ -4,7 +4,7 @@
         <div class="col-lg-5">
             <div class="card card-elevated">
                 <div class="card-body d-flex align-items-center gap-3">
-                    <span class="avatar avatar-lg">{{ $u->initials() }}</span>
+                    <x-user-avatar :user="$u" size="xl" />
                     <div>
                         <h2 class="h5 mb-0">{{ $u->name }}</h2>
                         <div class="text-secondary text-sm">{{ $u->designation?->label }}</div>

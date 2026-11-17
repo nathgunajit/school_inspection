@@ -3,7 +3,7 @@
         <div class="list-card">
             @forelse ($requests as $r)
                 <div class="list-item flex-wrap">
-                    <span class="avatar">{{ $r->user->initials() }}</span>
+                    <x-user-avatar :user="$r->user" />
                     <div class="flex-grow-1 min-w-0">
                         <div class="fw-semibold">{{ $r->user->name }} <span class="text-secondary fw-normal text-sm">· {{ $r->user->designation?->label }}</span></div>
                         <div class="text-sm"><span class="text-secondary">{{ $r->old_mobile }}</span> <i class="bi bi-arrow-right mx-1"></i> <strong>{{ $r->new_mobile }}</strong></div>

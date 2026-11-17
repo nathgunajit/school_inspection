@@ -17,6 +17,11 @@ return [
         'mimes' => ['pdf', 'jpg', 'jpeg', 'png'],
     ],
 
+    'employee_photo' => [
+        'max_kb' => 1024,
+        'mimes' => ['jpg', 'jpeg', 'png'],
+    ],
+
     'evidence' => [
         'max_photos' => 20,              // total incl. mandatory set
         'photo_max_kb' => 1024,          // after processing on phone

@@ -63,7 +63,8 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 6. **Evidence lives on the `private` disk** under random names. It is served only through a controller that checks permission. Photos come from the in-app camera **or the phone gallery** (Modification V1). Both go through the same browser pipeline: resize to ≤1600 px, JPEG, stamp strip, SHA-256. Gallery photos are stored with `source = gallery` and labelled "From gallery" in the report and PDF. An upload with the same `evidence_uid` is idempotent.
 7. **The audit log is append-only.** Use `AuditLogger::log()`; never update or delete rows.
 8. **Server time** is the source of truth for inspection date and time.
-9. Phase 1 has **no OTP**. `OtpService` exists with a log driver, ready for Phase 2.
+9. **Employee photo** (`users.photo_path`, required at registration, JPG/PNG ≤ 1 MB) and the identity proof live on the `private` disk. The photo is served only via `admin.users.photo` (self, approver or user manager in jurisdiction); render it with `<x-user-avatar :user="..." />`.
+10. Phase 1 has **no OTP**. `OtpService` exists with a log driver, ready for Phase 2.
 
 ## Conventions
 - Validate with Form Requests and authorize with policies/gates; keep controllers thin and put logic in services.

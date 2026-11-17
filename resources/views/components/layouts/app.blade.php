@@ -60,7 +60,7 @@
         <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha">
     </div>
     <div class="sidebar-foot d-flex align-items-center gap-2">
-        <span class="avatar" style="background:rgba(255,255,255,.15);color:#fff">{{ $u->initials() }}</span>
+        <x-user-avatar :user="$u" style="background:rgba(255,255,255,.15);color:#fff" />
         <div class="flex-grow-1 min-w-0 foot-text">
             <div class="text-white text-sm fw-550 text-truncate">{{ $u->name }}</div>
             <div class="text-xs text-truncate" style="color:#9fb6dd">{{ $u->level->label() }}</div>
@@ -81,7 +81,7 @@
         {{ $actions ?? '' }}
         <div class="dropdown">
             <button class="btn btn-light d-flex align-items-center gap-2 px-2" data-bs-toggle="dropdown" aria-label="Account menu">
-                <span class="avatar" style="width:32px;height:32px">{{ $u->initials() }}</span>
+                <x-user-avatar :user="$u" style="width:32px;height:32px" />
                 <i class="bi bi-chevron-down text-xs d-none d-sm-inline"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="min-width:240px">

@@ -46,7 +46,7 @@
                 <tbody>
                 @forelse ($users as $u)
                     <tr>
-                        <td><div class="d-flex align-items-center gap-2"><span class="avatar">{{ $u->initials() }}</span><div><div class="fw-semibold">{{ $u->name }}</div><div class="text-xs text-secondary">{{ $u->designation?->label }} · {{ $u->employee_id }}</div></div></div></td>
+                        <td><div class="d-flex align-items-center gap-2"><x-user-avatar :user="$u" /><div><div class="fw-semibold">{{ $u->name }}</div><div class="text-xs text-secondary">{{ $u->designation?->label }} · {{ $u->employee_id }}</div></div></div></td>
                         <td class="text-sm">{{ $u->level->label() }}</td>
                         <td class="text-sm">{{ $u->currentJurisdiction?->label() }}</td>
                         <td class="text-sm">{{ $u->mobile }}</td>
@@ -62,7 +62,7 @@
         <div class="list-card d-md-none">
             @forelse ($users as $u)
                 <a href="{{ route('admin.users.show', $u) }}" class="list-item text-decoration-none">
-                    <span class="avatar">{{ $u->initials() }}</span>
+                    <x-user-avatar :user="$u" />
                     <div class="flex-grow-1 min-w-0">
                         <div class="fw-semibold text-truncate">{{ $u->name }}</div>
                         <div class="text-xs text-secondary text-truncate">{{ $u->level->label() }} · {{ $u->currentJurisdiction?->label() }}</div>

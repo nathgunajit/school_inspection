@@ -79,6 +79,22 @@ class ApprovalController extends Controller
         ]);
     }
 
+    /** Stream an employee photograph to the user, their approver or a user manager. */
+    public function photo(Request $request, User $user, JurisdictionService $j)
+    {
+        $viewer = $request->user();
+        $allowed = $viewer->is($user)
+            || $this->resolver->canApprove($viewer, $user)
+            || ($viewer->can('manage_users') && $j->contains($viewer, $user->currentJurisdiction()->first()));
+        abort_unless($allowed && $user->photo_path && Storage::disk('private')->exists($user->photo_path), 404);
+
+        return Storage::disk('private')->response($user->photo_path, null, [
+            'Content-Disposition' => 'inline',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
     private function authorizeAct(User $approver, RegistrationRequest $registration): void
     {
         abort_unless($registration->status === 'pending' && $this->resolver->canApprove($approver, $registration->user), 403);

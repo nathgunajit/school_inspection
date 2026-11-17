@@ -39,6 +39,8 @@ class RegisterController extends Controller
         $user = DB::transaction(function () use ($request, $data, $level, $existing) {
             $file = $request->file('id_proof');
             $path = $file->storeAs('id-proofs', Str::random(40).'.'.$file->extension(), 'private');
+            $photo = $request->file('photo');
+            $photoPath = $photo->storeAs('employee-photos', Str::random(40).'.'.$photo->extension(), 'private');
 
             $attrs = [
                 'name' => $data['name'],
@@ -51,12 +53,16 @@ class RegisterController extends Controller
                 'status' => UserStatus::Pending,
                 'id_proof_path' => $path,
                 'id_proof_original_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+                'photo_path' => $photoPath,
             ];
 
             if ($existing) {
                 // Re-application after rejection (PRD 5.3 step 8)
                 if ($existing->id_proof_path) {
                     Storage::disk('private')->delete($existing->id_proof_path);
+                }
+                if ($existing->photo_path) {
+                    Storage::disk('private')->delete($existing->photo_path);
                 }
                 $existing->update($attrs);
                 $existing->jurisdictions()->whereNull('end_date')->update(['end_date' => now()->toDateString()]);

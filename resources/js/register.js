@@ -45,16 +45,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         meter.style.background = score < 3 ? '#dc2626' : score < 5 ? '#d97706' : '#059669';
     });
 
-    // Identity proof upload zone: preview, size/type check, remove
-    const zone = document.getElementById('id-proof-zone');
-    if (zone) {
+    // Upload zones (employee photo, identity proof): preview, size/type check, remove
+    form.querySelectorAll('.upload-zone').forEach((zone) => {
         const input = zone.querySelector('input[type=file]');
         const empty = zone.querySelector('.upload-empty');
         const done = zone.querySelector('.upload-done');
         const img = done.querySelector('img');
         const pdfIcon = done.querySelector('.bi-file-earmark-pdf-fill');
         const err = zone.parentElement.querySelector('.upload-error');
-        const MAX = 2 * 1024 * 1024;
+        const exts = (zone.dataset.exts || 'pdf,jpg,jpeg,png').split(',');
+        const maxKb = Number(zone.dataset.maxKb || 2048);
+        const MAX = maxKb * 1024;
+        const limit = maxKb >= 1024 ? `${maxKb / 1024} MB` : `${maxKb} KB`;
         let url = null;
         const fmt = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
         const reset = (msg = '') => {
@@ -72,8 +74,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const f = input.files[0];
             if (!f) return reset();
             const ext = f.name.split('.').pop().toLowerCase();
-            if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext)) return reset('Only PDF, JPG or PNG files are allowed.');
-            if (f.size > MAX) return reset(`This file is ${fmt(f.size)}. Please choose a file of 2 MB or less.`);
+            if (!exts.includes(ext)) return reset(`Only ${exts.filter((e) => e !== 'jpeg').map((e) => e.toUpperCase()).join(', ')} files are allowed.`);
+            if (f.size > MAX) return reset(`This file is ${fmt(f.size)}. Please choose a file of ${limit} or less.`);
             err.classList.add('d-none');
             zone.classList.remove('is-invalid');
             const isPdf = ext === 'pdf';
@@ -91,7 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         done.querySelector('.upload-remove').addEventListener('click', (e) => { e.preventDefault(); reset(); });
         ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.add('is-drag')));
         ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('is-drag')));
-    }
+    });
 
     // Mobile: digits only
     form.querySelector('#mobile').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); });

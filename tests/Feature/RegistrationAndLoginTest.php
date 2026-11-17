@@ -26,6 +26,7 @@ class RegistrationAndLoginTest extends TestCase
             'designation_id' => MasterValue::idFor('designation', 'cluster_resource_coordinator'),
             'employee_id' => 'EMP-1001',
             'id_proof' => UploadedFile::fake()->create('posting-order.pdf', 300, 'application/pdf'),
+            'photo' => UploadedFile::fake()->image('photo.jpg', 300, 400),
             'level' => 'cluster',
             'state_id' => State::first()->id,
             'district_id' => $cluster->block->district_id,
@@ -50,7 +51,32 @@ class RegistrationAndLoginTest extends TestCase
         $this->assertNotNull($user->currentJurisdiction->cluster_id);
         $this->assertDatabaseHas('registration_requests', ['user_id' => $user->id, 'status' => 'pending']);
         Storage::disk('private')->assertExists($user->id_proof_path);
+        Storage::disk('private')->assertExists($user->photo_path);
         $this->assertTrue(AuditLog::where('action', 'registration_submitted')->exists());
+    }
+
+    public function test_employee_photo_is_required_and_served_only_to_permitted_users(): void
+    {
+        Storage::fake('private');
+        $this->post(route('register'), $this->payload(['photo' => null]))->assertSessionHasErrors('photo');
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->create('photo.pdf', 100, 'application/pdf')]))
+            ->assertSessionHasErrors('photo');
+
+        $this->post(route('register'), $this->payload())->assertRedirect(route('login'));
+        $user = User::where('mobile', '9876543210')->firstOrFail();
+        $user->update(['status' => UserStatus::Active]);
+
+        // The officer can see their own photo
+        $this->actingAs($user)->get(route('admin.users.photo', $user))->assertOk();
+
+        // An unrelated officer in another district cannot
+        $otherCluster = Cluster::whereHas('block', fn ($q) => $q->where('district_id', '!=', $user->currentJurisdiction->district_id))->first();
+        $other = User::factory()->create(['level' => UserLevel::Cluster, 'status' => UserStatus::Active, 'mobile' => '9876500000', 'employee_id' => 'EMP-OTHER']);
+        $other->jurisdictions()->create([
+            'state_id' => $otherCluster->block->district->state_id, 'district_id' => $otherCluster->block->district_id,
+            'block_id' => $otherCluster->block_id, 'cluster_id' => $otherCluster->id, 'start_date' => now()->toDateString(),
+        ]);
+        $this->actingAs($other)->get(route('admin.users.photo', $user))->assertNotFound();
     }
 
     public function test_location_hierarchy_is_checked_on_the_server(): void

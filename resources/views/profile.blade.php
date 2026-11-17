@@ -3,7 +3,7 @@
         <div class="col-lg-5">
             <div class="card card-elevated mb-4">
                 <div class="card-body text-center p-4">
-                    <span class="avatar avatar-lg mb-3">{{ $user->initials() }}</span>
+                    <x-user-avatar :user="$user" size="xl" class="mb-3" />
                     <h2 class="h5 mb-0">{{ $user->name }}</h2>
                     <div class="text-secondary text-sm mb-2">{{ $user->designation?->label }}</div>
                     <x-status-badge :status="$user->status" />
