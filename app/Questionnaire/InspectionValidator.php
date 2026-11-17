@@ -50,9 +50,20 @@ class InspectionValidator
         return self::matches($answers[$code] ?? null, $values);
     }
 
+    /** enable_if: the question is always shown, but greyed out (no answer, not required) unless the parent matches. */
+    public static function enabled(array $q, array $answers): bool
+    {
+        if (empty($q['enable_if'])) {
+            return true;
+        }
+        [$code, $values] = $q['enable_if'];
+
+        return self::matches($answers[$code] ?? null, $values);
+    }
+
     public static function required(array $q, array $answers): bool
     {
-        if (! self::visible($q, $answers)) {
+        if (! self::visible($q, $answers) || ! self::enabled($q, $answers)) {
             return false;
         }
         if (! empty($q['required'])) {
@@ -122,7 +133,7 @@ class InspectionValidator
 
         foreach (QuestionnaireDefinition::questions() as $step => $qs) {
             foreach ($qs as $q) {
-                if (! self::visible($q, $this->answers)) {
+                if (! self::visible($q, $this->answers) || ! self::enabled($q, $this->answers)) {
                     continue;
                 }
                 $value = $this->answers[$q['code']] ?? null;

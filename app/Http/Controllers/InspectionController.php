@@ -153,6 +153,14 @@ class InspectionController extends Controller
         $value = $this->cleanValue($q, $request->input('value'));
         $remarks = $request->has('remarks') ? mb_substr(trim((string) $request->input('remarks')), 0, 2000) : null;
 
+        // A greyed-out question (enable_if parent not matched) cannot hold an answer
+        if (! empty($q['enable_if'])) {
+            $parent = $inspection->answers()->where('question_code', $q['enable_if'][0])->first()?->value;
+            if (! InspectionValidator::enabled($q, [$q['enable_if'][0] => $parent])) {
+                $value = null;
+            }
+        }
+
         $answer = InspectionAnswer::firstOrNew(['inspection_id' => $inspection->id, 'question_code' => $code]);
         $answer->step = $q['step'];
         if ($request->has('value')) {
@@ -162,6 +170,15 @@ class InspectionController extends Controller
             $answer->remarks = $remarks ?: null;
         }
         $answer->save();
+
+        // Parent changed (e.g. Internet Facility = No): clear the answers of questions it now disables
+        if ($request->has('value')) {
+            foreach (Q::all() as $child) {
+                if (($child['enable_if'][0] ?? null) === $code && ! InspectionValidator::enabled($child, [$code => $value])) {
+                    $inspection->answers()->where('question_code', $child['code'])->update(['value' => null]);
+                }
+            }
+        }
 
         if ($code === 'BAS_PERSON_NAME') {
             $inspection->person_met_name = is_string($value) ? mb_substr($value, 0, 120) : null;

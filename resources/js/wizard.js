@@ -116,8 +116,9 @@ const filled = (v) => !(v === null || v === undefined || v === '' || (Array.isAr
 const matches = (v, list) => [].concat(v ?? []).some((x) => list.includes(String(x)));
 
 function isVisible(q) { return !q.show_if || matches(SI.answers[q.show_if[0]], q.show_if[1]); }
+function isEnabled(q) { return !q.enable_if || matches(SI.answers[q.enable_if[0]], q.enable_if[1]); }
 function isRequired(q) {
-    if (!isVisible(q)) return false;
+    if (!isVisible(q) || !isEnabled(q)) return false;
     if (q.required) return true;
     if (q.required_if) return matches(SI.answers[q.required_if[0]], q.required_if[1]);
     if (q.required_unless) { const v = SI.answers[q.required_unless[0]]; return filled(v) && !matches(v, q.required_unless[1]); }
@@ -144,8 +145,22 @@ function refreshRules() {
     for (const q of Object.values(SI.questions)) {
         const block = document.getElementById(`q-${q.code}`);
         if (!block) continue;
-        const v = SI.answers[q.code];
+        let v = SI.answers[q.code];
         block.classList.toggle('d-none', !isVisible(q));
+        if (q.enable_if) {
+            const on = isEnabled(q);
+            block.classList.toggle('is-disabled', !on);
+            block.toggleAttribute('aria-disabled', !on);
+            const fs = block.querySelector('fieldset.q-input');
+            if (fs) fs.disabled = !on;
+            if (!on && filled(v)) {
+                // parent changed to No: the server clears this answer; mirror it on screen
+                SI.answers[q.code] = v = null;
+                block.querySelectorAll('[data-answer]').forEach((el) => { if (el.type === 'radio' || el.type === 'checkbox') el.checked = false; else el.value = ''; });
+                block.classList.remove('is-answered');
+                clearQuestionError(block);
+            }
+        }
         block.classList.toggle('is-answered', filled(v) && !block.classList.contains('has-error'));
         block.querySelector('.q-req')?.classList.toggle('d-none', !isRequired(q));
         const rem = block.querySelector('.q-remarks');

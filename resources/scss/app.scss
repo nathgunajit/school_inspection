@@ -1010,3 +1010,7 @@ nav[role="navigation"] p.small, .pagination + * { font-size: .74rem; }
 .form-control::placeholder { color: #94a3b8; }
 .form-control:disabled, .form-select:disabled, .form-control[readonly] { background-color: #f6f8fb; }
 .num-btn { background: #fff; }
+
+// Greyed-out question (enable_if parent not "Yes"): visible, not answerable, not required
+.q-block.is-disabled { .q-text { color: #94a3b8; } .q-no { background: #f1f5f9; color: #cbd5e1; }
+    .q-input { opacity: .45; pointer-events: none; } .q-input label { cursor: not-allowed; } }

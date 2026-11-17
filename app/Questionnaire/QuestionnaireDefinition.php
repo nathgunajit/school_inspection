@@ -12,7 +12,7 @@ namespace App\Questionnaire;
  * Question keys:
  *  code, label, type (radio|multi|select|text|textarea|number|date),
  *  options [value => label], required (bool),
- *  show_if [code, [values]], required_if [code, [values]], required_unless [code, [values]],
+ *  show_if [code, [values]], enable_if [code, [values]] (shown but disabled otherwise), required_if [code, [values]], required_unless [code, [values]],
  *  remarks_if [values], photo 'required'|'optional'|['required_if' => [values]], photo_category
  *
  * Steps 3–5 and 7 are repeating sections / evidence handled outside the question list.
@@ -73,9 +73,9 @@ class QuestionnaireDefinition
                 $yn('CND_15', 'School Sign Board'),
                 $yn('CND_16', 'Does the School have Ramp with Rails'),
                 $yn('CND_17', 'Internet Facility'),
-                $yn('CND_18', 'Internet is Functional', ['show_if' => ['CND_17', ['yes']], 'required' => false, 'required_if' => ['CND_17', ['yes']]]),
+                $yn('CND_18', 'Internet is Functional', ['enable_if' => ['CND_17', ['yes']], 'required' => false, 'required_if' => ['CND_17', ['yes']]]),
                 $yn('CND_19', 'ICT Lab'),
-                $yn('CND_20', 'ICT Lab is Functional', ['show_if' => ['CND_19', ['yes']], 'required' => false, 'required_if' => ['CND_19', ['yes']]]),
+                $yn('CND_20', 'ICT Lab is Functional', ['enable_if' => ['CND_19', ['yes']], 'required' => false, 'required_if' => ['CND_19', ['yes']]]),
                 $yn('CND_21', 'Vocational Education'),
                 $yn('CND_22', 'Smart Classroom'),
                 $yn('CND_23', 'Tele Education'),

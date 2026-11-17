@@ -3,6 +3,7 @@
     $code = $q['code'];
     $val = $answers[$code] ?? null;
     $visible = V::visible($q, $answers);
+    $enabled = V::enabled($q, $answers);
     $required = V::required($q, $answers);
     $remarksOn = V::isFilled($val) && V::remarksRequired($q, $val);
     $photoRule = $q['photo'] ?? null;
@@ -19,14 +20,14 @@
     // and become an equal-width segmented control on phones.
     $inline = $q['type'] === 'radio' && count($opts) <= 3 && collect($opts)->every(fn ($l) => mb_strlen($l) <= 16);
 @endphp
-<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ $inline && count($opts) === 2 ? 'q-inline-2' : '' }} {{ $q['type'] === 'number' ? 'q-num' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }}"
-     id="q-{{ $code }}" data-code="{{ $code }}" data-type="{{ $q['type'] }}">
+<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ $inline && count($opts) === 2 ? 'q-inline-2' : '' }} {{ $q['type'] === 'number' ? 'q-num' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }} {{ $enabled ? '' : 'is-disabled' }}"
+     id="q-{{ $code }}" data-code="{{ $code }}" data-type="{{ $q['type'] }}" @unless($enabled) aria-disabled="true" @endunless>
     <div class="q-label">
         <span class="q-no" aria-hidden="true"><span class="n">{{ $n }}</span><i class="bi bi-check-lg"></i></span>
         <span class="q-text">{{ $q['label'] }} <span class="q-req {{ $required ? '' : 'd-none' }}" title="Required">*</span></span>
     </div>
 
-    <div class="q-input">
+    <fieldset class="q-input" @disabled(! $enabled)>
         @switch($q['type'])
             @case('radio')
                 <div class="choice-group {{ $inline ? 'seg' : (count($opts) > 3 ? 'stack-sm' : '') }}" role="radiogroup" aria-label="{{ $q['label'] }}">
@@ -67,7 +68,7 @@
             @default
                 <input type="text" name="{{ $code }}" value="{{ $val }}" maxlength="200" class="form-control q-w-lg" data-answer aria-label="{{ $q['label'] }}" placeholder="Type here">
         @endswitch
-    </div>
+    </fieldset>
 
     {{-- Remarks (mandatory for some answers) --}}
     @if (! empty($q['remarks_if']))

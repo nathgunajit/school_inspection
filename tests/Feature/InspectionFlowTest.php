@@ -150,6 +150,16 @@ class InspectionFlowTest extends TestCase
         $this->answer($i, 'CND_19', 'yes')->assertOk();
         $this->assertContains('CND_20', $this->missingCodes($i, 1));
 
+        // ICT functional is greyed out (shown, disabled) when ICT lab = No: answer cleared, refused, not required
+        $this->answer($i, 'CND_20', 'yes')->assertOk();
+        $this->answer($i, 'CND_19', 'no')->assertOk();
+        $this->assertNull($i->answers()->where('question_code', 'CND_20')->first()->value);
+        $this->answer($i, 'CND_20', 'yes')->assertOk();
+        $this->assertNull($i->answers()->where('question_code', 'CND_20')->first()->value);
+        $this->assertNotContains('CND_20', $this->missingCodes($i, 1));
+        $this->get(route('inspections.step', [$i, 1]))->assertOk()
+            ->assertSee('is-disabled', false)->assertSee('aria-disabled="true"', false);
+
         // Tinkering lab: agency + functional when Yes
         $this->answer($i, 'CND_24', 'yes')->assertOk();
         $this->assertContains('CND_25', $this->missingCodes($i, 1));

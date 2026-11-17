@@ -311,3 +311,10 @@ Plan approved by the user. Decisions:
 - Inputs and selects: white with a clear grey border, darker border on hover, soft blue focus ring; disabled/read-only fields light grey. Info hints keep their light blue tint.
 - Files: `resources/scss/app.scss`.
 - Verification: `npm run build` OK.
+
+## 38. Internet / ICT "is Functional" greyed out when the facility is No (2026-11-17)
+- New questionnaire rule `enable_if`: the question stays visible but is disabled (greyed out, not answerable, not required) unless its parent answer matches. Applied to CND_18 "Internet is Functional" (needs CND_17 Internet Facility = Yes) and CND_20 "ICT Lab is Functional" (needs CND_19 ICT Lab = Yes). Codes unchanged.
+- Server: `InspectionValidator::enabled()`; disabled questions are never required or listed as missing; `saveAnswer` stores no value for a disabled question and clears the child answer when the parent changes to No.
+- Screen: question partial wraps the input in a `fieldset` disabled by default rendering; `wizard.js` toggles it live and clears the shown answer; SCSS `.q-block.is-disabled`.
+- Files: `app/Questionnaire/{QuestionnaireDefinition,InspectionValidator}.php`, `app/Http/Controllers/InspectionController.php`, `resources/views/inspections/partials/question.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 37 passed (413 assertions).
