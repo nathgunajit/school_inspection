@@ -64,3 +64,14 @@ Format: **#. Date · Action**, then files touched and the result.
 - HTTP smoke test on MySQL (`schoolinspection`): admin login, forced password change, every admin, master and report page → 200. Inspection start, steps 1–6, auto-save, bad option → 422, JPEG upload → 201, same evidence ID → 200 (no duplicate), PNG as photo → 422, missing location reason → 422, bad fingerprint → 422, image view → 200 image/jpeg, PDF → 200 application/pdf, incomplete submit → redirected to review.
 - `php artisan test`: **30 passed (280 assertions)**, run on SQLite in-memory with CAPTCHA disabled in `phpunit.xml`. Covers registration, hierarchy check, re-apply, lockout, approval chain, user management scoping, full submit with ID format and locking, same-day duplicate block, conditional rules, attendance arithmetic, mandatory photos, evidence checks, jurisdiction isolation, unlock (State Admin only) and resubmission, draft expiry, Excel export, school import with error list, append-only audit.
 - Not yet verified: visual check in a real browser and on an Android phone (camera and GPS need a device).
+
+### 10. 2026-11-17 · Demo user seed
+- Added `database/seeders/DemoUserSeeder.php`, called from `DatabaseSeeder` (skipped in production). It creates 20 officers with password `Demo@1234`:
+  - 1 State, 2 District, 4 Block and 8 Cluster officers, one per demo location.
+  - 3 pending registrations (cluster, block, district), 1 rejected and 1 inactive account.
+  - "If permitted" grants: State → approve; North District → approve + manage users; Riverside Block → approve.
+  - Each account gets its jurisdiction, a registration request record and a placeholder ID-proof image on the private disk.
+- Ran it on `schoolinspection` twice: no duplicates (idempotent, upserts by mobile).
+- Verified the approval queues match PRD 3.3: State Admin sees all 3 pending; the State officer sees the District applicant; North District sees the Block applicant (Hillview has no approver); Riverside Block sees the Cluster applicant. School scope: state 24, district 12, block 6, cluster 3. Cluster officer login → dashboard 200.
+- Note: the State Admin mobile in the database is `8287619163` (changed after seeding); left as is.
+- Demo credentials table added to `CLAUDE.md`.

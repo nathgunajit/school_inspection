@@ -14,5 +14,10 @@ class DatabaseSeeder extends Seeder
             DemoLocationSchoolSeeder::class,
             StateAdminSeeder::class,
         ]);
+
+        // Demo officers for development and training only
+        if (! app()->isProduction()) {
+            $this->call(DemoUserSeeder::class);
+        }
     }
 }

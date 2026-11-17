@@ -23,6 +23,20 @@ php artisan inspections:expire-drafts   # cancels drafts older than config('insp
 ```
 Default State Admin login: mobile `9999999999` / `Admin@12345` (from `.env` ADMIN_*; password change is forced on first login).
 
+Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all; re-run safely with `php artisan db:seed --class=DemoUserSeeder`):
+
+| Mobile | Name | Level / jurisdiction | Notes |
+|---|---|---|---|
+| 9000000001 | Ananya Sharma | State | can approve District registrations |
+| 9000000011 | Rakesh Baruah | District · North District (1801) | approve + manage users |
+| 9000000012 | Meera Kalita | District · South District (1802) | |
+| 9000000021 | Sanjay Das | Block · Riverside (180101) | can approve Cluster registrations |
+| 9000000022–24 | Priya Gogoi, Imran Hussain, Deepa Bora | Block · Hillview, Lakeside, Greenfield | |
+| 9000000031–38 | Arjun Saikia … Pooja Medhi | Cluster · one per cluster (18010101 … 18020202) | inspectors |
+| 9000000041–43 | Amit Phukan, Rina Bhuyan, Suresh Kakoti | Cluster / Block / District | **Pending** approval |
+| 9000000044 | Gita Barman | Cluster | Rejected (can re-apply) |
+| 9000000045 | Hemant Dutta | Cluster | Inactive |
+
 ## Layout
 - `app/Enums/`: UserLevel, UserStatus, InspectionStatus, EvidenceStatus
 - `app/Services/`: JurisdictionService, ApproverResolver, PermissionService, AuditLogger, InspectionNumberGenerator, EvidenceStorage, Otp/*
