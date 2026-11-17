@@ -201,3 +201,8 @@ Plan approved by the user. Decisions:
   - Build OK; views compile.
   - `/login`, `/register`, `/forgot-password` → 200 with the banner, and no portal-login card on `/login`.
   - `php artisan test` → 32 passed.
+
+### 22. 2026-11-17 · Portal header: bigger logos, clear "School Inspection" identity
+- **What:** Enlarged header logos on all public pages (Govt. of Assam 52→76 px, Samagra Shiksha 34→58 px; 52/40 px on phones). Header title now reads **"School Inspection Management System"** in bold blue with a clipboard icon, with a small green "Government of Assam · Samagra Shiksha, Assam" line above and a one-line purpose line below (desktop). Title is now visible on phones too (short form "School Inspection").
+- **Files:** `resources/views/components/layouts/portal.blade.php`, `resources/scss/app.scss` (`.reg-topbar`)
+- **Verify:** `npm run build` OK, `view:cache` OK; /login, /register, /forgot-password return 200 with the new title.
