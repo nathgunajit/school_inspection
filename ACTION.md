@@ -305,3 +305,9 @@ Plan approved by the user. Decisions:
 - Results (`schools/_results.blade.php`, shared by page and AJAX): school cards with the matched text highlighted, UDISE chip, cluster/block, category, "Your inspection today", "Last inspected dd Mon yyyy" / "Not inspected yet", "Closed".
 - `SchoolController::index`: AJAX returns `{html, total}` (no redirect); adds `mine_today` (withExists) and `last_inspected_on` (withMax). Still scoped by `JurisdictionService`.
 - Test: `test_find_school_live_search_returns_scoped_results`. Verified: build OK, view:cache OK, tests 37 passed (404 assertions); live: /schools 200, AJAX by name and UDISE prefix return results, exact UDISE redirects to the school.
+
+## 37. White form surfaces (2026-11-17)
+- All cards, forms, filter boxes, the wizard header and inner form panels (teacher/classroom add forms, remarks boxes, review confirm box, Find School filters, empty states) now use a clean white background with a hairline border and soft shadow, so they stand out from the grey page.
+- Inputs and selects: white with a clear grey border, darker border on hover, soft blue focus ring; disabled/read-only fields light grey. Info hints keep their light blue tint.
+- Files: `resources/scss/app.scss`.
+- Verification: `npm run build` OK.
