@@ -466,3 +466,10 @@ h2, .h2 { letter-spacing: -.015em; }
 .upload-thumb-round { border: 3px solid #fff; box-shadow: 0 0 0 2px #1e9b4b; }
 .upload-text .t, .upload-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 575.98px) { .upload-icon, .upload-thumb { width: 52px; height: 52px; } }
+
+// Profile photo with camera button
+.profile-photo-frame { position: relative; display: inline-block; }
+.profile-photo-btn { position: absolute; right: -6px; bottom: -6px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    background: linear-gradient(135deg, #1565c0, #1e9b4b); color: #fff; border: 3px solid #fff; cursor: pointer; font-size: .95rem;
+    box-shadow: 0 3px 10px rgba(15,23,42,.2); transition: transform .15s;
+    &:hover { transform: scale(1.08); } }

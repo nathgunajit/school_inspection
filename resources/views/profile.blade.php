@@ -3,7 +3,28 @@
         <div class="col-lg-5">
             <div class="card card-elevated mb-4">
                 <div class="card-body text-center p-4">
-                    <x-user-avatar :user="$user" size="xl" class="mb-3" />
+                    <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo mb-3" data-photo-form
+                          data-max-kb="{{ config('inspection.employee_photo.max_kb') }}">
+                        @csrf
+                        <div class="profile-photo-frame">
+                            <x-user-avatar :user="$user" size="xl" data-photo-current />
+                            <img alt="New photo preview" class="avatar avatar-xl avatar-img d-none" data-photo-preview>
+                            <label class="profile-photo-btn" for="profile-photo-input" title="{{ $user->photo_path ? 'Change photo' : 'Upload photo' }}">
+                                <i class="bi bi-camera-fill"></i><span class="visually-hidden">{{ $user->photo_path ? 'Change photo' : 'Upload photo' }}</span>
+                            </label>
+                            <input type="file" id="profile-photo-input" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="d-none">
+                        </div>
+                        @unless ($user->photo_path)
+                            <div class="text-xs text-warning-emphasis mt-2" data-photo-hint><i class="bi bi-exclamation-circle me-1"></i>No photo yet. Tap <i class="bi bi-camera-fill"></i> to add your passport-size photo.</div>
+                        @endunless
+                        <div class="text-danger text-xs mt-2 d-none" data-photo-error></div>
+                        @error('photo')<div class="text-danger text-xs mt-2">{{ $message }}</div>@enderror
+                        <div class="d-flex justify-content-center gap-2 mt-2 d-none" data-photo-actions>
+                            <button type="button" class="btn btn-light btn-sm" data-photo-cancel><i class="bi bi-x-lg"></i>Cancel</button>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2"></i>Save photo</button>
+                        </div>
+                        <div class="text-secondary text-xs mt-1">JPG or PNG · max 1 MB</div>
+                    </form>
                     <h2 class="h5 mb-0">{{ $user->name }}</h2>
                     <div class="text-secondary text-sm mb-2">{{ $user->designation?->label }}</div>
                     <x-status-badge :status="$user->status" />

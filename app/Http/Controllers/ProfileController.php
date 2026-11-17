@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MobileChangeRequest;
 use App\Services\AuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -21,6 +23,31 @@ class ProfileController extends Controller
             'user' => $user,
             'pendingMobile' => MobileChangeRequest::where('user_id', $user->id)->where('status', 'pending')->first(),
         ]);
+    }
+
+    /** Upload or replace the officer's own photograph (stored on the private disk). */
+    public function updatePhoto(Request $request)
+    {
+        $cfg = config('inspection.employee_photo');
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb'], 'dimensions:min_width=100,min_height=100'],
+        ], [
+            'photo.required' => 'Please choose a photograph.',
+            'photo.max' => 'Photograph must be 1 MB or smaller.',
+            'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
+        ]);
+
+        $user = $request->user();
+        $file = $request->file('photo');
+        $path = $file->storeAs('employee-photos', Str::random(40).'.'.$file->extension(), 'private');
+        $old = $user->photo_path;
+        $user->update(['photo_path' => $path]);
+        if ($old) {
+            Storage::disk('private')->delete($old);
+        }
+        AuditLogger::log($old ? 'photo_changed' : 'photo_added', $user);
+
+        return back()->with('success', 'Your photo has been updated.');
     }
 
     public function requestMobileChange(Request $request)

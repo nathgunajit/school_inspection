@@ -41,6 +41,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
         Route::post('/profile/mobile', [ProfileController::class, 'requestMobileChange'])->name('profile.mobile');
+        Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
 
         // Schools & inspections
         Route::middleware('can:conduct_inspections')->group(function () {

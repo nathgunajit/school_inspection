@@ -92,3 +92,42 @@ export function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 window.escapeHtml = escapeHtml;
+
+// Profile: change own photo (preview, type/size check, save or cancel)
+document.querySelectorAll('[data-photo-form]').forEach((form) => {
+    const input = form.querySelector('input[type=file]');
+    const current = form.querySelector('[data-photo-current]');
+    const preview = form.querySelector('[data-photo-preview]');
+    const actions = form.querySelector('[data-photo-actions]');
+    const error = form.querySelector('[data-photo-error]');
+    const hint = form.querySelector('[data-photo-hint]');
+    const maxKb = Number(form.dataset.maxKb || 1024);
+    let url = null;
+    const reset = (msg = '') => {
+        input.value = '';
+        if (url) URL.revokeObjectURL(url);
+        url = null;
+        preview.classList.add('d-none');
+        current.classList.remove('d-none');
+        actions.classList.add('d-none');
+        hint?.classList.remove('d-none');
+        error.textContent = msg;
+        error.classList.toggle('d-none', !msg);
+    };
+    input.addEventListener('change', () => {
+        const f = input.files[0];
+        if (!f) return reset();
+        if (!['jpg', 'jpeg', 'png'].includes(f.name.split('.').pop().toLowerCase())) return reset('Only JPG or PNG photos are allowed.');
+        if (f.size > maxKb * 1024) return reset(`This photo is ${(f.size / 1048576).toFixed(1)} MB. Please choose one of 1 MB or less.`);
+        if (url) URL.revokeObjectURL(url);
+        url = URL.createObjectURL(f);
+        preview.src = url;
+        preview.classList.remove('d-none');
+        current.classList.add('d-none');
+        actions.classList.remove('d-none');
+        hint?.classList.add('d-none');
+        error.classList.add('d-none');
+    });
+    form.querySelector('[data-photo-cancel]').addEventListener('click', () => reset());
+    form.addEventListener('submit', () => form.querySelector('[type=submit]').disabled = true);
+});

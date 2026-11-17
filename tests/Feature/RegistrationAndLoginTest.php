@@ -164,4 +164,27 @@ class RegistrationAndLoginTest extends TestCase
         $this->assertSame($user->mobile, $user->fresh()->mobile);
         $this->assertDatabaseHas('mobile_change_requests', ['user_id' => $user->id, 'new_mobile' => '9123456780', 'status' => 'pending']);
     }
+
+    public function test_officer_can_upload_and_replace_own_photo_from_profile(): void
+    {
+        Storage::fake('private');
+        $user = $this->officer(UserLevel::Cluster);
+
+        $this->actingAs($user)->get(route('profile'))->assertOk()->assertSee('profile-photo-input', false);
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->create('x.pdf', 50, 'application/pdf')])
+            ->assertSessionHasErrors('photo');
+
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.jpg', 300, 400)])
+            ->assertSessionHas('success');
+        $first = $user->fresh()->photo_path;
+        Storage::disk('private')->assertExists($first);
+
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me2.png', 300, 400)]);
+        $second = $user->fresh()->photo_path;
+        $this->assertNotSame($first, $second);
+        Storage::disk('private')->assertMissing($first);
+        Storage::disk('private')->assertExists($second);
+        $this->assertTrue(AuditLog::where('action', 'photo_changed')->exists());
+        $this->actingAs($user)->get(route('admin.users.photo', $user))->assertOk();
+    }
 }
