@@ -253,3 +253,12 @@ Plan approved by the user. Decisions:
 - Sizes eased: portal title 1.3rem, dashboard greeting 1.25rem, KPI value 1.4rem, stat value 1.5rem, register hero 1.35rem.
 - Files: `resources/scss/app.scss`.
 - Verified: `npm run build` OK, `view:cache` OK, tests 34 passed.
+
+## 31. District/Block latitude & longitude + standard clean background (2026-11-17)
+- Migration `2026_11_18_000004_add_coordinates_to_districts_and_blocks` adds nullable `latitude`/`longitude` DECIMAL(10,7) to `districts` and `blocks` (run on MySQL).
+- `District`, `Block` models: fillable + float casts.
+- Location Master (`Admin\LocationController`, `admin/locations/index.blade.php`): Latitude/Longitude fields in Add and Edit for Districts and Blocks (optional, both-or-neither, range-checked); list shows a coordinate chip that opens the map, or "No coordinates".
+- Excel upload (`MasterImportService`): optional `latitude`, `longitude` columns in the location template; validated for district/block rows; empty cells keep existing values; old 5-column files still import. Error file includes the new columns.
+- Background: removed the glow/dot-grid pattern; body and registration page now use a plain light grey (#f5f7fa) with a faint blue wash at the top (`resources/scss/app.scss`).
+- Test: `test_district_and_block_coordinates_via_form_and_excel`.
+- Verified: build OK, view:cache OK, tests 35 passed.

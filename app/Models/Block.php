@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Block extends Model
 {
-    protected $fillable = ['district_id', 'code', 'name', 'is_active'];
+    protected $fillable = ['district_id', 'code', 'name', 'latitude', 'longitude', 'is_active'];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'latitude' => 'float', 'longitude' => 'float'];
 
     public function district()
     {

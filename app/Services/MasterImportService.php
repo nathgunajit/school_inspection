@@ -26,16 +26,19 @@ class MasterImportService
 {
     public const LOCATION_COLUMNS = ['type', 'code', 'name', 'parent_code', 'status'];
 
+    /** Optional columns (district and block only); older files without them still import. */
+    public const LOCATION_OPTIONAL = ['latitude', 'longitude'];
+
     public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
 
     public static function template(string $type): ArrayExport
     {
         return $type === 'location'
-            ? new ArrayExport(self::LOCATION_COLUMNS, [
-                ['state', '18', 'Demo State', '', 'active'],
-                ['district', '1801', 'North District', '18', 'active'],
-                ['block', '180101', 'Riverside Block', '1801', 'active'],
-                ['cluster', '18010101', 'Riverside Cluster 1', '180101', 'active'],
+            ? new ArrayExport([...self::LOCATION_COLUMNS, ...self::LOCATION_OPTIONAL], [
+                ['state', '18', 'Demo State', '', 'active', '', ''],
+                ['district', '1801', 'North District', '18', 'active', '26.1445000', '91.7362000'],
+                ['block', '180101', 'Riverside Block', '1801', 'active', '26.1800000', '91.7500000'],
+                ['cluster', '18010101', 'Riverside Cluster 1', '180101', 'active', '', ''],
             ])
             : new ArrayExport(self::SCHOOL_COLUMNS, [
                 ['18010101001', 'Govt. Primary School No. 1', '1801', '180101', '18010101', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '26.1130000', '91.7110000', 'active'],
@@ -75,7 +78,7 @@ class MasterImportService
 
         if ($result['errors']) {
             $path = 'imports/errors-'.$batch->id.'-'.Str::random(8).'.xlsx';
-            Excel::store(new ArrayExport(['row_number', 'reason', ...$expected], $result['errors']), $path, 'private');
+            Excel::store(new ArrayExport(['row_number', 'reason', ...$expected, ...($type === 'location' ? self::LOCATION_OPTIONAL : [])], $result['errors']), $path, 'private');
             $batch->update(['error_file_path' => $path]);
         }
 
@@ -102,7 +105,7 @@ class MasterImportService
             $parentCode = (string) ($r['parent_code'] ?? '');
             $status = strtolower((string) ($r['status'] ?: 'active'));
             $fail = function ($reason) use (&$errors, $rowNo, $r) {
-                $errors[] = [$rowNo, $reason, ...array_values($r->only(self::LOCATION_COLUMNS)->all())];
+                $errors[] = [$rowNo, $reason, ...array_map(fn ($c) => $r[$c] ?? '', [...self::LOCATION_COLUMNS, ...self::LOCATION_OPTIONAL])];
             };
 
             if (! isset($order[$type])) { $fail('Type must be state, district, block or cluster'); continue; }
@@ -120,6 +123,21 @@ class MasterImportService
             };
 
             $attrs = ['name' => $name, 'is_active' => $status === 'active'];
+
+            if (in_array($type, ['district', 'block'], true)) {
+                $lat = $r['latitude'] ?? null;
+                $lng = $r['longitude'] ?? null;
+                $hasLat = $lat !== null && $lat !== '';
+                $hasLng = $lng !== null && $lng !== '';
+                if ($hasLat !== $hasLng) { $fail('Give both latitude and longitude, or leave both empty'); continue; }
+                if ($hasLat) {
+                    if (! is_numeric($lat) || $lat < -90 || $lat > 90) { $fail('Latitude must be a number between -90 and 90'); continue; }
+                    if (! is_numeric($lng) || $lng < -180 || $lng > 180) { $fail('Longitude must be a number between -180 and 180'); continue; }
+                    $attrs += ['latitude' => (float) $lat, 'longitude' => (float) $lng];
+                }
+                // an empty cell leaves existing coordinates unchanged
+            }
+
             if ($parentModel) {
                 $parent = $parentModel::where('code', $parentCode)->first();
                 if (! $parent) { $fail('Parent code not found in Location Master'); continue; }

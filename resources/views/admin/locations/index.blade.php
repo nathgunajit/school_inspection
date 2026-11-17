@@ -29,6 +29,14 @@
                                 <div class="fw-semibold text-truncate">{{ $item->name }}</div>
                                 @if ($fk)<div class="text-xs text-secondary">{{ $item->{str_replace('_id', '', $fk)}?->name }}</div>@endif
                             </div>
+                            @if ($geo)
+                                @if ($item->latitude !== null)
+                                    <a href="https://www.google.com/maps?q={{ $item->latitude }},{{ $item->longitude }}" target="_blank" rel="noopener noreferrer"
+                                       class="geo-chip d-none d-sm-inline-flex" title="Open in map"><i class="bi bi-geo-alt"></i>{{ number_format($item->latitude, 5) }}, {{ number_format($item->longitude, 5) }}</a>
+                                @else
+                                    <span class="geo-chip is-empty d-none d-sm-inline-flex"><i class="bi bi-geo"></i>No coordinates</span>
+                                @endif
+                            @endif
                             <span class="badge-soft badge-soft-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" aria-label="Actions"><i class="bi bi-three-dots-vertical"></i></button>
@@ -37,6 +45,12 @@
                                         @csrf @method('PUT')
                                         <label class="form-label text-sm">Code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" required>
                                         <label class="form-label text-sm">Name</label><input name="name" value="{{ $item->name }}" class="form-control mb-2" required>
+                                        @if ($geo)
+                                            <div class="row g-2 mb-2">
+                                                <div class="col-6"><label class="form-label text-sm">Latitude</label><input name="latitude" value="{{ $item->latitude }}" inputmode="decimal" class="form-control" placeholder="26.1445"></div>
+                                                <div class="col-6"><label class="form-label text-sm">Longitude</label><input name="longitude" value="{{ $item->longitude }}" inputmode="decimal" class="form-control" placeholder="91.7362"></div>
+                                            </div>
+                                        @endif
                                         @if ($fk)<input type="hidden" name="{{ $fk }}" value="{{ $item->$fk }}">@endif
                                         <button class="btn btn-primary btn-sm w-100">Save</button>
                                     </form>
@@ -73,6 +87,21 @@
                         @error('code')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
                         <label class="form-label">Name</label>
                         <input name="name" value="{{ old('name') }}" class="form-control mb-3 @error('name') is-invalid @enderror" required>
+                        @if ($geo)
+                            <div class="row g-2 mb-1">
+                                <div class="col-6">
+                                    <label class="form-label">Latitude <span class="opt">optional</span></label>
+                                    <input name="latitude" value="{{ old('latitude') }}" inputmode="decimal" placeholder="26.1445" class="form-control @error('latitude') is-invalid @enderror">
+                                    @error('latitude')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Longitude <span class="opt">optional</span></label>
+                                    <input name="longitude" value="{{ old('longitude') }}" inputmode="decimal" placeholder="91.7362" class="form-control @error('longitude') is-invalid @enderror">
+                                    @error('longitude')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                            <div class="form-text mb-3"><i class="bi bi-info-circle me-1"></i>Headquarters location in decimal degrees.</div>
+                        @endif
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>
                 </div>

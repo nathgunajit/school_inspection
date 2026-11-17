@@ -23,6 +23,9 @@ class LocationController extends Controller
         'clusters' => [Cluster::class, Block::class, 'block_id', 'Cluster'],
     ];
 
+    /** Location types that carry latitude / longitude. */
+    public const WITH_COORDINATES = ['districts', 'blocks'];
+
     public function index(Request $request, string $type = 'districts')
     {
         abort_unless(isset(self::TYPES[$type]), 404);
@@ -36,6 +39,7 @@ class LocationController extends Controller
 
         return view('admin.locations.index', [
             'type' => $type, 'label' => $label, 'items' => $items, 'fk' => $fk,
+            'geo' => in_array($type, self::WITH_COORDINATES, true),
             'parents' => $parentModel ? $parentModel::orderBy('name')->get() : collect(),
             'counts' => collect(self::TYPES)->map(fn ($t) => $t[0]::count()),
         ]);
@@ -82,6 +86,11 @@ class LocationController extends Controller
         ];
         if ($fk) {
             $rules[$fk] = ['required', Rule::exists((new $parentModel)->getTable(), 'id')];
+        }
+        if (in_array($type, self::WITH_COORDINATES, true)) {
+            // optional headquarters location; both or neither
+            $rules['latitude'] = ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'];
+            $rules['longitude'] = ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'];
         }
 
         return $rules;

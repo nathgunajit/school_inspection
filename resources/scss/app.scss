@@ -15,7 +15,7 @@ $light: #f1f5f9;
 $dark: #0f172a;
 $accent: #1e9b4b;
 
-$body-bg: #f3f6fb;
+$body-bg: #f5f7fa;
 $body-color: #334155;
 $font-family-sans-serif: 'Segoe UI', 'Noto Sans', Roboto, 'Helvetica Neue', Arial, sans-serif;
 $font-weight-semibold: 500;
@@ -74,15 +74,10 @@ $enable-negative-margins: true;
 
 // ---------- Base ----------
 html { -webkit-tap-highlight-color: transparent; }
-body { min-height: 100vh; letter-spacing: -.003em;
-    // soft themed background: blue/green glow + faint dot grid
-    background:
-        radial-gradient(1100px 520px at 100% -10%, rgba(30,155,75,.07), transparent 60%),
-        radial-gradient(900px 480px at -10% 0%, rgba(21,101,192,.08), transparent 60%),
-        radial-gradient(rgba(21,101,192,.06) 1px, transparent 1px) 0 0 / 22px 22px,
-        $body-bg;
-    background-attachment: fixed; }
-h1, .h1 {  }
+body { min-height: 100vh;
+    // standard, clean portal background: plain light grey with a faint blue wash at the top
+    background: linear-gradient(180deg, rgba(21,101,192,.035) 0, transparent 320px) no-repeat, $body-bg; }
+
 h2, .h2 { letter-spacing: -.015em; }
 .text-xs { font-size: .72rem; }
 .text-sm { font-size: .8rem; }
@@ -234,8 +229,7 @@ h2, .h2 { letter-spacing: -.015em; }
 .reg-steps span i { font-size: .72rem; }
 
 // ---------- Registration page (full width, education theme) ----------
-.reg-page { background:
-        radial-gradient(rgba(21,101,192,.05) 1px, transparent 1px) 0 0 / 22px 22px, #f4f7fc; }
+.reg-page { background: linear-gradient(180deg, rgba(21,101,192,.04) 0, transparent 360px) no-repeat, #f5f7fa; }
 .reg-topbar { background: #fff; border-bottom: 3px solid transparent; padding: .6rem 0;
     border-image: linear-gradient(90deg, #1565c0, #1e9b4b 50%, #f39223) 1;
     .reg-logo-govt { height: 76px; width: auto; flex-shrink: 0; }
@@ -561,3 +555,9 @@ h2, .h2 { letter-spacing: -.015em; }
     span { width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: .62rem; font-weight: 600; color: #1565c0; } }
 .dash-empty { text-align: center; color: #64748b; font-size: .8rem; padding: 1.75rem 1rem;
     i { display: block; font-size: 1.8rem; color: #b6c6dc; margin-bottom: .35rem; } }
+
+// ---------- Location Master: coordinates ----------
+.geo-chip { align-items: center; gap: .3rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; white-space: nowrap;
+    background: rgba($primary, .06); color: $primary; text-decoration: none; font-variant-numeric: tabular-nums;
+    &:hover { background: rgba($primary, .12); }
+    &.is-empty { background: $light; color: #94a3b8; } }
