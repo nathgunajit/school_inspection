@@ -50,11 +50,35 @@
                             <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" required maxlength="40" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label" for="id_proof">Identity proof <span class="req">*</span></label>
-                            <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" class="form-control @error('id_proof') is-invalid @enderror" required>
-                            <div class="form-text">Posting order or department ID card · PDF, JPG or PNG · max 2 MB</div>
-                            @error('id_proof')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="upload-zone @error('id_proof') is-invalid @enderror" id="id-proof-zone">
+                                <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" required aria-describedby="id-proof-hint">
+                                {{-- Empty state --}}
+                                <div class="upload-empty">
+                                    <span class="upload-icon"><i class="bi bi-person-badge"></i></span>
+                                    <div class="upload-text">
+                                        <div class="t">Upload your department ID card or posting order</div>
+                                        <div class="s"><span class="text-primary fw-semibold">Click to choose a file</span> or drag &amp; drop it here</div>
+                                        <div class="upload-chips" id="id-proof-hint">
+                                            <span><i class="bi bi-file-earmark-pdf"></i>PDF</span>
+                                            <span><i class="bi bi-file-earmark-image"></i>JPG / PNG</span>
+                                            <span><i class="bi bi-hdd"></i>Max 2 MB</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {{-- Selected state --}}
+                                <div class="upload-done d-none">
+                                    <span class="upload-thumb"><img alt="Preview of identity proof" class="d-none"><i class="bi bi-file-earmark-pdf-fill d-none"></i></span>
+                                    <div class="min-w-0 flex-grow-1">
+                                        <div class="upload-name text-truncate"></div>
+                                        <div class="upload-meta"><i class="bi bi-check-circle-fill"></i><span></span></div>
+                                    </div>
+                                    <button type="button" class="btn btn-light btn-sm upload-remove" aria-label="Remove file"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            </div>
+                            <div class="upload-error text-danger text-xs mt-1 d-none"></div>
+                            @error('id_proof')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </div>

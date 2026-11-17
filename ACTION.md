@@ -211,3 +211,8 @@ Plan approved by the user. Decisions:
 - **What:** Removed the line "Online portal for inspection of schools by State, District, Block & Cluster officers" from the public portal header (user request).
 - **Files:** `resources/views/components/layouts/portal.blade.php`
 - **Verify:** `view:cache` OK; /login no longer contains the line.
+
+### 24. 2026-11-17 · Registration: attractive identity-proof (ID card) upload
+- **What:** Replaced the plain file input on the registration page with a full-width upload zone: gradient badge icon, "Click to choose a file or drag & drop", format/size chips (PDF · JPG/PNG · Max 2 MB). After choosing, it shows a preview card (image thumbnail or PDF icon, file name, size, green "ready to upload") with a remove button. Client-side checks for type and the 2 MB limit with an inline message; server validation (`RegisterRequest`) unchanged, field name `id_proof` unchanged.
+- **Files:** `resources/views/auth/register.blade.php`, `resources/js/register.js`, `resources/scss/app.scss` (`.upload-*`)
+- **Verify:** `npm run build` OK, `view:cache` OK, /register 200 with the new zone; `php artisan test` 32 passed (337 assertions).
