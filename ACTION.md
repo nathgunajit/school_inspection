@@ -233,3 +233,8 @@ Plan approved by the user. Decisions:
 - **What:** My Profile now has a round camera button on the profile photo. Choosing a photo (camera or gallery on phones) shows a preview with **Save photo** / **Cancel**; type (JPG/PNG) and 1 MB limit checked in the browser and again on the server (same rules as registration, min 100×100 px). Officers without a photo (e.g. older accounts) see a "No photo yet" prompt. The old file is deleted from the private disk after a successful replace; audited as `photo_added` / `photo_changed`. Avatar URLs now carry a version tag (`?v=`) so the new photo shows immediately everywhere instead of a cached old one.
 - **Files:** `app/Http/Controllers/ProfileController.php` (`updatePhoto`), `routes/web.php` (`POST /profile/photo`, `profile.photo`), `resources/views/profile.blade.php`, `resources/views/components/user-avatar.blade.php`, `resources/js/app.js`, `resources/scss/app.scss` (`.profile-photo-*`), `tests/Feature/RegistrationAndLoginTest.php`
 - **Verify:** `npm run build` OK, `view:cache` OK; `php artisan test` **34 passed (357 assertions)** incl. new test (wrong type rejected, upload, replace deletes old file, audit entry, photo served).
+
+### 28. 2026-11-17 · Registration: Employee photo and Identity proof on one line
+- **What:** Full name, Designation and Employee ID now share one row (`col-md-4` each, were `col-md-6`), so Employee photo and Identity proof sit together on the next row (`col-md-6` each) instead of Employee photo sitting beside Employee ID and Identity proof wrapping alone. Phones still stack all fields.
+- **Files:** `resources/views/auth/register.blade.php`
+- **Verify:** `view:cache` OK, /register 200.

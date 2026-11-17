@@ -32,12 +32,12 @@
                 </div>
                 <div class="reg-block-body">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="name">Full name <span class="req">*</span></label>
                             <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required maxlength="120" autocomplete="name" placeholder="e.g. Ananya Sharma">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
                             <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required>
                                 <option value="">Select designation</option>
@@ -45,7 +45,7 @@
                             </select>
                             @error('designation_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label" for="employee_id">Employee ID <span class="req">*</span></label>
                             <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" required maxlength="40" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
