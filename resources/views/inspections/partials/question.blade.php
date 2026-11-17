@@ -19,7 +19,7 @@
     // and become an equal-width segmented control on phones.
     $inline = $q['type'] === 'radio' && count($opts) <= 3 && collect($opts)->every(fn ($l) => mb_strlen($l) <= 16);
 @endphp
-<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }}"
+<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ $inline && count($opts) === 2 ? 'q-inline-2' : '' }} {{ $q['type'] === 'number' ? 'q-num' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }}"
      id="q-{{ $code }}" data-code="{{ $code }}" data-type="{{ $q['type'] }}">
     <div class="q-label">
         <span class="q-no" aria-hidden="true"><span class="n">{{ $n }}</span><i class="bi bi-check-lg"></i></span>

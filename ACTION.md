@@ -279,3 +279,12 @@ Plan approved by the user. Decisions:
 - Stepper: lighter pill track; on phones only step numbers show, with the label for the current step; thinner progress bar. Action bar: compact status ("N left in this step" / "Step complete").
 - Files: `inspections/step.blade.php`, `inspections/partials/{question,stepper}.blade.php`, `resources/js/wizard.js` (answered state, − / + steppers, status text), `resources/scss/app.scss`.
 - Verified: build OK, view:cache OK, tests 36 passed; live MySQL: all 7 steps of a draft return 200 as demo inspector 9000000031.
+
+## 34. Inspection form: compact, aligned, no horizontal scrollbar (2026-11-17)
+- Removed the page-wide horizontal scrollbar: `html, body, .app-main { overflow-x: clip }` (keeps sticky headers working); the step track no longer scrolls: steps share the width (numbers only on phones/tablets, label for the current step).
+- Smaller type: question text .8125rem, choices .8rem, inputs .8125rem, step title .95rem, intro .72rem; smaller step header, stepper, action bar.
+- Tighter spacing: question rows .6rem, group headings as light tinted bars, smaller form panels, photo slots and info card.
+- Alignment: on tablet/desktop all short answers sit in one fixed 230 px column (numbers in a 150 px column), so buttons line up down the page; on phones Yes/No and number fields stay on the question's line (132 px), longer choices go below.
+- Selected answers now filled (blue / green / orange / red with white text). Touch targets stay ≥ 42 px on touch screens (`pointer: coarse`).
+- Files: `resources/scss/app.scss`, `inspections/partials/question.blade.php` (`q-inline-2`, `q-num`), `inspections/step.blade.php`.
+- Verified: build OK, view:cache OK, tests 36 passed; live: all 7 steps 200.
