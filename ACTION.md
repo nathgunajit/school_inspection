@@ -149,3 +149,24 @@ Plan approved by the user. Decisions:
 - MySQL smoke test on `:8010` as demo inspector 9000000031: login page shows both logos; dashboard, schools, profile 200; start inspection; steps 1–7 200 (28 question blocks on step 1); conditional answer saved; absentee, classroom and fund rows saved; gallery photo stored with `source=gallery`; review, show, PDF and Excel 200.
 - Cleanup: deleted my smoke-test inspection #2 and its photo. The user's draft #1 is untouched (it will continue on v2 when opened).
 - Not verified: visual check in a browser and on a phone (to be done by the user).
+
+### 18. 2026-11-17 · Registration page redesign (education theme, proper alignment)
+- **Problem:** registration shared the login's split screen, so the form only had half the width. The 4 location dropdowns were squeezed and labels with inline hints made the rows uneven.
+- **New layout** `resources/views/components/layouts/register.blade.php` (full width):
+  - an official header strip (Govt. of Assam logo + title + Samagra Shiksha logo, tricolour-gradient underline);
+  - a blue→green banner with a faint pattern of education icons (mortarboard, book, school, pencil…), the "Inspecting Officer Registration" heading and a 3-step guide;
+  - a centred form card overlapping the banner, and a footer.
+- **`auth/register.blade.php` rebuilt:**
+  - Each section is a two-column block on desktop (title, icon and short description on the left; fields on the right), stacking on mobile.
+  - Every field in a section uses the same 2-column grid (`col-md-6`, `g-3`); labels are uniform; hints moved under their inputs as `form-text`, so rows line up.
+  - Locations are a 2×2 grid (State, District, Block, Cluster) and only the needed ones show.
+  - Level cards show an icon, the level and typical posts (Directorate / DEEO-IS / BEEO-BRP / CRCC).
+  - Mobile number has a +91 prefix; required `*` and "(optional)" markers.
+  - Bottom bar: privacy consent on the left, "Sign in" and "Submit registration" on the right.
+- **Styles:** `app.scss`: new `.reg-*` styles; the level pills were restyled.
+- **Unchanged:** field names, IDs, `register.js` and `RegisterRequest` validation.
+- **Verification:**
+  - `npm run build` OK; views compile; `/register` returns 200.
+  - `php artisan test` → 32 passed (337 assertions).
+  - A live POST without a CAPTCHA was correctly rejected; no user created.
+  - The visual check in the browser is left to the user.
