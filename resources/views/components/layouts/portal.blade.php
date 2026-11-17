@@ -24,27 +24,21 @@
         </div>
     </header>
 
-    @isset($hero)
-        {{-- Education themed banner (registration, password pages) --}}
-        <section class="reg-hero">
-            <div class="reg-hero-pattern" aria-hidden="true">
-                <i class="bi bi-mortarboard"></i><i class="bi bi-book"></i><i class="bi bi-building"></i><i class="bi bi-pencil"></i>
-                <i class="bi bi-journal-check"></i><i class="bi bi-easel"></i><i class="bi bi-backpack"></i><i class="bi bi-clipboard-check"></i>
-            </div>
-            <div class="container-xl position-relative">
-                {{ $hero }}
-            </div>
-        </section>
-        <main {{ $attributes->merge(['class' => 'container-xl reg-main']) }}>
-            @include('partials.flash')
-            {{ $slot }}
-        </main>
-    @else
-        {{-- No banner: centred content (standard portal login) --}}
-        <main {{ $attributes->merge(['class' => 'container-xl portal-main']) }}>
-            {{ $slot }}
-        </main>
-    @endisset
+    {{-- Education themed banner --}}
+    <section class="reg-hero">
+        <div class="reg-hero-pattern" aria-hidden="true">
+            <i class="bi bi-mortarboard"></i><i class="bi bi-book"></i><i class="bi bi-building"></i><i class="bi bi-pencil"></i>
+            <i class="bi bi-journal-check"></i><i class="bi bi-easel"></i><i class="bi bi-backpack"></i><i class="bi bi-clipboard-check"></i>
+        </div>
+        <div class="container-xl position-relative">
+            {{ $hero ?? '' }}
+        </div>
+    </section>
+
+    <main {{ $attributes->merge(['class' => 'container-xl reg-main']) }}>
+        @include('partials.flash')
+        {{ $slot }}
+    </main>
 
     <footer class="reg-footer">
         <div class="container-xl d-flex flex-column flex-md-row justify-content-between gap-1">

@@ -1,73 +1,73 @@
-<x-layouts.portal title="Officer Login">
-    <div class="portal-login">
-        {{-- Left: branding panel --}}
-        <section class="portal-login-brand">
-            <div class="reg-hero-pattern" aria-hidden="true">
-                <i class="bi bi-mortarboard"></i><i class="bi bi-book"></i><i class="bi bi-building"></i><i class="bi bi-pencil"></i>
-                <i class="bi bi-journal-check"></i><i class="bi bi-easel"></i>
+<x-layouts.portal title="Sign in" class="login-main">
+    <x-slot:hero>
+        <div class="row align-items-center g-3">
+            <div class="col-lg-7">
+                <span class="reg-badge"><i class="bi bi-shield-check"></i>Inspecting Officer Login</span>
+                <h1 class="reg-hero-title">Welcome to School Inspection</h1>
+                <p class="reg-hero-sub mb-0">Sign in to inspect schools, record findings with geo-stamped photographs and submit reports for your jurisdiction.</p>
             </div>
-            <div class="position-relative">
-                <div class="brand-logos">
-                    <span><img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam"></span>
-                    <span><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha"></span>
-                </div>
-                <div class="brand-kicker">Samagra Shiksha, Assam</div>
-                <h1 class="brand-title">School Inspection<br>Management System</h1>
-                <p class="brand-text">The official portal for State, District, Block and Cluster level officers to inspect schools and submit reports.</p>
+            <div class="col-lg-5 d-none d-lg-block">
+                <ul class="reg-steps">
+                    <li><span><i class="bi bi-search"></i></span>Find school by UDISE code</li>
+                    <li><span><i class="bi bi-ui-checks-grid"></i></span>Fill the 7-step inspection form</li>
+                    <li><span><i class="bi bi-camera"></i></span>Add photos &amp; submit report</li>
+                </ul>
             </div>
-            <ul class="brand-points position-relative">
-                <li><i class="bi bi-search"></i>Find schools by UDISE code</li>
-                <li><i class="bi bi-ui-checks-grid"></i>Digital inspection form with auto-save</li>
-                <li><i class="bi bi-camera"></i>Geo-stamped photographs</li>
-                <li><i class="bi bi-shield-lock"></i>Secure, jurisdiction-based access</li>
-            </ul>
-        </section>
+        </div>
+    </x-slot:hero>
 
-        {{-- Right: login form --}}
-        <section class="portal-login-form">
-            <div class="form-head">
-                <span class="form-head-icon"><i class="bi bi-person-lock"></i></span>
-                <h2>Officer Login</h2>
-                <p>Sign in with your registered mobile number</p>
+    <div class="login-grid">
+        {{-- Sign-in card --}}
+        <div class="reg-card login-card">
+            <div class="reg-block-head mb-4">
+                <span class="reg-icon tone-primary"><i class="bi bi-box-arrow-in-right"></i></span>
+                <div><h2>Sign in</h2><p>Use the mobile number you registered with.</p></div>
             </div>
 
-            @include('partials.flash')
-
-            <form method="POST" action="{{ route('login') }}" novalidate>
+            <form method="POST" action="{{ route('login') }}" novalidate class="reg-block-body">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label" for="mobile">Mobile number</label>
+                    <label class="form-label" for="mobile">Mobile number <span class="req">*</span></label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                        <span class="input-group-text">+91</span>
                         <input type="tel" inputmode="numeric" maxlength="10" pattern="\d{10}" id="mobile" name="mobile" value="{{ old('mobile') }}"
-                               class="form-control @error('mobile') is-invalid @enderror" placeholder="Enter 10-digit mobile number" autocomplete="username" required autofocus>
+                               class="form-control @error('mobile') is-invalid @enderror" placeholder="10-digit mobile number" autocomplete="username" required autofocus>
                         @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
-                <div class="mb-2">
-                    <label class="form-label" for="password">Password</label>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <label class="form-label" for="password">Password <span class="req">*</span></label>
+                        <a href="{{ route('password.request') }}" class="text-xs">Forgot password?</a>
+                    </div>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Enter password" autocomplete="current-password" required>
+                        <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Your password" autocomplete="current-password" required>
                         <button type="button" class="btn btn-light border" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password';this.firstElementChild.classList.toggle('bi-eye-slash')" aria-label="Show password"><i class="bi bi-eye"></i></button>
                         @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                </div>
-                <div class="d-flex justify-content-end mb-3">
-                    <a href="{{ route('password.request') }}" class="text-sm">Forgot password?</a>
                 </div>
 
                 @if ($needsCaptcha && config('inspection.captcha_enabled'))
                     @include('partials.captcha')
                 @endif
 
-                <button class="btn btn-primary btn-lg w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i>Login</button>
+                <button class="btn btn-primary w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i>Sign in</button>
             </form>
+        </div>
 
-            <div class="form-divider"><span>New to the portal?</span></div>
-            <a href="{{ route('register') }}" class="btn btn-outline-primary w-100"><i class="bi bi-person-plus"></i>Register as Inspecting Officer</a>
-
-            <p class="form-note"><i class="bi bi-info-circle"></i>New registrations are approved by a higher officer before you can log in. For help, contact your Block or District office.</p>
-        </section>
+        {{-- New officer card --}}
+        <div class="reg-card login-side">
+            <div class="reg-block-head mb-3">
+                <span class="reg-icon tone-success"><i class="bi bi-person-plus"></i></span>
+                <div><h2>New officer?</h2><p>State, District, Block and Cluster level officers can register online.</p></div>
+            </div>
+            <ul class="login-points">
+                <li><i class="bi bi-check2-circle"></i>Keep your posting order or department ID card ready</li>
+                <li><i class="bi bi-check2-circle"></i>Your request is approved by a higher officer</li>
+                <li><i class="bi bi-check2-circle"></i>You can sign in once approved</li>
+            </ul>
+            <a href="{{ route('register') }}" class="btn btn-soft-primary w-100"><i class="bi bi-person-plus"></i>Register as officer</a>
+            <div class="login-help"><i class="bi bi-headset"></i>Need help? Contact your Block or District office, or the State Administrator.</div>
+        </div>
     </div>
 </x-layouts.portal>

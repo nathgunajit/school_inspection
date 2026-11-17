@@ -215,41 +215,6 @@ h2, .h2 { letter-spacing: -.015em; }
 .empty-state { text-align: center; padding: 3rem 1rem; color: #64748b;
     .empty-icon { width: 72px; height: 72px; border-radius: 22px; margin: 0 auto 1rem; display: grid; place-items: center; font-size: 2rem; background: rgba($primary, .08); color: $primary; } }
 
-// ---------- Standard portal login (centred two-panel card) ----------
-.portal-main { display: flex; align-items: center; justify-content: center; padding-top: 2rem; padding-bottom: 2rem;
-    min-height: calc(100vh - 66px - 56px); }   // viewport minus header and footer
-.portal-login { width: 100%; max-width: 940px; display: grid; grid-template-columns: 1fr; background: #fff; border-radius: 1.25rem; overflow: hidden;
-    box-shadow: 0 30px 60px -28px rgba(13,71,161,.4), 0 2px 8px rgba(15,23,42,.06);
-    @include media-breakpoint-up(lg) { grid-template-columns: 1fr 1fr; } }
-.portal-login-brand { position: relative; overflow: hidden; color: #fff; padding: 2.25rem; display: none; flex-direction: column; justify-content: space-between; gap: 2rem;
-    background: linear-gradient(150deg, #0d47a1 0%, #1565c0 50%, #138a52 115%);
-    @include media-breakpoint-up(lg) { display: flex; }
-    &::after { content: ''; position: absolute; right: -90px; bottom: -90px; width: 260px; height: 260px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(243,146,35,.35), transparent 70%); }
-    .brand-logos { display: flex; gap: .6rem; margin-bottom: 1.75rem;
-        span { background: #fff; border-radius: .7rem; padding: .35rem .55rem; display: inline-flex; align-items: center; box-shadow: 0 8px 20px -10px rgba(0,0,0,.4); }
-        img { height: 46px; width: auto; } }
-    .brand-kicker { font-size: .72rem; text-transform: uppercase; letter-spacing: .14em; font-weight: 700; color: rgba(255,255,255,.75); margin-bottom: .4rem; }
-    .brand-title { color: #fff; font-size: 1.75rem; font-weight: 750; line-height: 1.2; letter-spacing: -.02em; margin-bottom: .75rem; }
-    .brand-text { color: rgba(255,255,255,.8); font-size: .86rem; margin: 0; max-width: 360px; }
-    .brand-points { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; font-size: .82rem;
-        li { display: flex; align-items: center; gap: .65rem; }
-        i { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.14); display: grid; place-items: center; font-size: .95rem; flex-shrink: 0; } } }
-.portal-login-form { padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: center;
-    @include media-breakpoint-up(md) { padding: 2.5rem 2.75rem; }
-    .form-head { text-align: center; margin-bottom: 1.5rem;
-        h2 { font-size: 1.35rem; font-weight: 750; margin: .6rem 0 .2rem; }
-        p { color: #64748b; font-size: .82rem; margin: 0; } }
-    .form-head-icon { width: 52px; height: 52px; border-radius: 16px; display: inline-grid; place-items: center; font-size: 1.45rem;
-        background: linear-gradient(135deg, rgba($primary, .12), rgba($success, .12)); color: $primary; }
-    .form-label { font-weight: 600; font-size: .8rem; }
-    .input-group-text { background: #f8fafc; color: #64748b; }
-    .btn-lg { font-size: .95rem; min-height: 48px; }
-    .form-divider { display: flex; align-items: center; gap: .75rem; margin: 1.5rem 0 1rem; color: #94a3b8; font-size: .76rem;
-        &::before, &::after { content: ''; flex: 1; height: 1px; background: $border-color; } }
-    .form-note { margin: 1.25rem 0 0; font-size: .74rem; color: #64748b; display: flex; gap: .45rem; line-height: 1.45;
-        i { color: $primary; margin-top: .1rem; } } }
-
 // ---------- Login & password pages (share the portal layout with registration) ----------
 .login-main { max-width: 960px; }
 .login-grid { display: grid; grid-template-columns: 1fr; gap: 1rem;
