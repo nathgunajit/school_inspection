@@ -29,6 +29,11 @@
         <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha, Assam</small></a>
         <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini title="Collapse / expand menu" aria-label="Collapse or expand menu"><i class="bi bi-chevron-double-left"></i></button>
     </div>
+    @can('conduct_inspections')
+        <div class="sidebar-cta">
+            <a href="{{ route('schools.index') }}" class="btn-new" title="New inspection" data-mini-tip><i class="bi bi-plus-lg"></i><span>New inspection</span></a>
+        </div>
+    @endcan
     @php
         $link = fn ($route, $pattern, $icon, $label, $extra = '') => '<a href="'.route($route).'" class="nav-link '.(request()->routeIs($pattern) ? 'active' : '').'" title="'.e($label).'" data-mini-tip><i class="bi '.$icon.'"></i><span>'.e($label).'</span>'.$extra.'</a>';
     @endphp
@@ -55,20 +60,7 @@
         @endcan
         @can('state_admin'){!! $link('admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log') !!}@endcan
     </nav>
-    <div class="sidebar-logos">
-        <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam">
-        <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha">
-    </div>
-    <div class="sidebar-foot d-flex align-items-center gap-2">
-        <x-user-avatar :user="$u" style="background:rgba(255,255,255,.15);color:#fff" />
-        <div class="flex-grow-1 min-w-0 foot-text">
-            <div class="text-white text-sm fw-550 text-truncate">{{ $u->name }}</div>
-            <div class="text-xs text-truncate" style="color:#9fb6dd">{{ $u->level->label() }}</div>
-        </div>
-        <form method="POST" action="{{ route('logout') }}">@csrf
-            <button class="btn btn-sm btn-link p-1" style="color:#9fb6dd;min-height:32px" title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right fs-5"></i></button>
-        </form>
-    </div>
+    <div class="sidebar-note">Government of Assam</div>
 </aside>
 
 <div class="app-main">
@@ -79,22 +71,42 @@
         @endisset
         <h1 class="page-title flex-grow-1">{{ $title ?? 'Dashboard' }}</h1>
         {{ $actions ?? '' }}
-        <div class="dropdown">
-            <button class="btn btn-light d-flex align-items-center gap-2 px-2" data-bs-toggle="dropdown" aria-label="Account menu">
-                <x-user-avatar :user="$u" style="width:32px;height:32px" />
-                <i class="bi bi-chevron-down text-xs d-none d-sm-inline"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="min-width:240px">
-                <li class="px-2 py-2">
-                    <div class="fw-semibold">{{ $u->name }}</div>
-                    <div class="text-xs text-secondary">{{ $u->level->label() }} · {{ $u->mobile }}</div>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item rounded" href="{{ route('profile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                <li><a class="dropdown-item rounded" href="{{ route('password.change') }}"><i class="bi bi-key me-2"></i>Change Password</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item rounded text-danger"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button></form></li>
-            </ul>
+        <div class="topbar-right">
+            @if ($pendingCount)
+                <a href="{{ route('admin.approvals.index') }}" class="topbar-icon" title="{{ $pendingCount }} pending approval{{ $pendingCount > 1 ? 's' : '' }}" aria-label="Pending approvals">
+                    <i class="bi bi-bell"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>
+                </a>
+            @endif
+            <div class="dropdown">
+                <button class="account-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                    <x-user-avatar :user="$u" class="account-avatar" />
+                    <span class="account-text d-none d-md-block">
+                        <span class="n">{{ $u->name }}</span>
+                        <span class="r">{{ $u->designation?->label ?? $u->level->label() }}</span>
+                    </span>
+                    <i class="bi bi-chevron-down text-xs text-secondary d-none d-md-inline"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end account-menu">
+                    <div class="account-head">
+                        <x-user-avatar :user="$u" size="lg" />
+                        <div class="min-w-0">
+                            <div class="fw-semibold text-truncate">{{ $u->name }}</div>
+                            <div class="text-xs text-secondary text-truncate">{{ $u->designation?->label }}</div>
+                            <span class="badge-soft badge-soft-primary mt-1 d-inline-block">{{ $u->level->label() }}</span>
+                        </div>
+                    </div>
+                    <div class="account-meta">
+                        <div><i class="bi bi-geo-alt"></i><span class="text-truncate">{{ $u->currentJurisdiction?->label() ?: 'State' }}</span></div>
+                        <div><i class="bi bi-phone"></i><span>+91 {{ $u->mobile }}</span></div>
+                    </div>
+                    <div class="p-2">
+                        <a class="dropdown-item rounded" href="{{ route('profile') }}"><i class="bi bi-person-circle me-2"></i>My Profile</a>
+                        <a class="dropdown-item rounded" href="{{ route('password.change') }}"><i class="bi bi-key me-2"></i>Change Password</a>
+                        <hr class="dropdown-divider">
+                        <form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item rounded text-danger"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button></form>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 

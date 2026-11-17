@@ -1,73 +1,88 @@
 <x-layouts.app title="Dashboard">
-    <div class="d-flex align-items-end justify-content-between gap-2 mb-3">
-        <div class="min-w-0">
-            <div class="text-xs text-secondary">{{ now()->format('l, d M Y') }}</div>
-            <h2 class="h5 mb-0 text-truncate">Hello, {{ \Illuminate\Support\Str::of($user->name)->before(' ') }}</h2>
-            <div class="text-xs text-secondary text-truncate">{{ $jurisdiction?->label() ?: $user->level->label() }}</div>
+    @php
+        $hour = now()->hour;
+        $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+        $first = \Illuminate\Support\Str::of($user->name)->before(' ');
+        $mineUrl = fn ($q = []) => $user->can('conduct_inspections') ? route('inspections.mine', $q) : null;
+        $cards = [
+            ['Inspected today', $stats['today'], 'bi-calendar-check', 'primary', $mineUrl()],
+            ['This month', $stats['month'], 'bi-bar-chart-line', 'success', $mineUrl()],
+            ['Drafts in progress', $stats['my_drafts'], 'bi-pencil-square', 'warning', $mineUrl(['status' => 'draft'])],
+            $pending
+                ? ['Pending approvals', $pending, 'bi-person-check', 'danger', route('admin.approvals.index')]
+                : ['Total submitted', $stats['total'], 'bi-clipboard2-check', 'info', $mineUrl()],
+        ];
+    @endphp
+
+    {{-- Welcome banner --}}
+    <section class="dash-hero">
+        <div class="dash-hero-pattern" aria-hidden="true"><i class="bi bi-mortarboard"></i><i class="bi bi-book"></i><i class="bi bi-building"></i></div>
+        <div class="dash-hero-body">
+            <div class="min-w-0">
+                <div class="dash-date"><i class="bi bi-calendar3 me-1"></i>{{ now()->format('l, d F Y') }}</div>
+                <h2 class="dash-title">{{ $greet }}, {{ $first }}</h2>
+                <div class="dash-sub"><i class="bi bi-geo-alt me-1"></i>{{ $jurisdiction?->label() ?: $user->level->label() }}</div>
+            </div>
+            @can('conduct_inspections')
+                <a href="{{ route('schools.index') }}" class="dash-hero-btn"><i class="bi bi-plus-lg"></i>Start inspection</a>
+            @endcan
         </div>
-    </div>
+    </section>
 
-    @if ($pending)
-        <a href="{{ route('admin.approvals.index') }}" class="alert alert-warning border-0 d-flex align-items-center gap-2 text-decoration-none py-2 mb-3 text-sm">
-            <i class="bi bi-person-exclamation fs-5"></i>
-            <div class="flex-grow-1"><strong>{{ $pending }}</strong> registration{{ $pending > 1 ? 's' : '' }} waiting for your approval</div>
-            <i class="bi bi-chevron-right"></i>
-        </a>
-    @endif
-
-    <div class="quick-actions mb-3">
-        @can('conduct_inspections')
-            <a href="{{ route('schools.index') }}" class="cta-card">
-                <span class="cta-icon"><i class="bi bi-plus-lg"></i></span>
-                <span class="flex-grow-1"><span class="d-block fw-bold">Start new inspection</span><span class="text-xs" style="opacity:.85">Search school by UDISE code</span></span>
-                <i class="bi bi-arrow-right fs-5"></i>
-            </a>
-        @endcan
-        <div class="summary-strip">
-            <div><div class="v">{{ $stats['today'] }}</div><div class="l">Today</div></div>
-            <div><div class="v">{{ $stats['month'] }}</div><div class="l">This month</div></div>
-            <a href="{{ route('inspections.mine', ['status' => 'draft']) }}" class="text-decoration-none"><div class="v text-warning">{{ $stats['my_drafts'] }}</div><div class="l">Drafts</div></a>
-        </div>
-    </div>
-
-    @if ($drafts->isNotEmpty())
-        <div class="section-title">Continue draft</div>
-        <div class="row g-2 mb-3">
-            @foreach ($drafts as $d)
-                <div class="col-md-6 col-xl-4">
-                    <a href="{{ route('inspections.step', [$d, 1]) }}" class="card h-100 text-decoration-none">
-                        <div class="card-body py-2 px-3">
-                            <div class="d-flex justify-content-between align-items-center gap-2">
-                                <div class="fw-semibold text-sm text-truncate text-body">{{ $d->school->name }}</div>
-                                <span class="text-xs fw-bold text-primary">{{ $d->completion_pct }}%</span>
-                            </div>
-                            <div class="text-xs text-secondary">UDISE {{ $d->school->udise_code }} · {{ $d->inspection_date->format('d M') }}</div>
-                            <div class="progress-thin progress mt-2"><div class="progress-bar" style="width: {{ $d->completion_pct }}%"></div></div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-    @endif
-
-    <div class="d-flex justify-content-between align-items-center">
-        <div class="section-title mb-2">Recent submissions</div>
-        <a href="{{ route('inspections.mine') }}" class="text-xs mb-2">View all</a>
-    </div>
-    <div class="card">
-        <div class="list-card">
-            @forelse ($recent as $r)
-                <a href="{{ route('inspections.show', $r) }}" class="list-item text-decoration-none py-2">
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                    <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold text-sm text-truncate">{{ $r->school->name }}</div>
-                        <div class="text-xs text-secondary">{{ $r->inspection_no }} · {{ $r->submitted_at?->format('d M, h:i A') }}</div>
-                    </div>
-                    <i class="bi bi-chevron-right text-secondary"></i>
+    {{-- Key figures --}}
+    <div class="row g-3 mb-4">
+        @foreach ($cards as [$label, $value, $icon, $tone, $href])
+            <div class="col-6 col-xl-3">
+                <a @if ($href) href="{{ $href }}" @endif class="kpi-card kpi-{{ $tone }} {{ $href ? '' : 'is-static' }}">
+                    <span class="kpi-icon"><i class="bi {{ $icon }}"></i></span>
+                    <span class="kpi-body"><span class="kpi-value">{{ $value }}</span><span class="kpi-label">{{ $label }}</span></span>
                 </a>
-            @empty
-                <div class="text-center text-secondary text-sm py-4">No submitted inspections yet.</div>
-            @endforelse
+            </div>
+        @endforeach
+    </div>
+
+    <div class="row g-4">
+        {{-- Recent submissions --}}
+        <div class="col-lg-7">
+            <div class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h3><i class="bi bi-clock-history"></i>Recent submissions</h3>
+                    <a href="{{ route('inspections.mine') }}">View all <i class="bi bi-arrow-right"></i></a>
+                </div>
+                @forelse ($recent as $r)
+                    <a href="{{ route('inspections.show', $r) }}" class="dash-row">
+                        <span class="dash-row-icon bg-success-subtle text-success"><i class="bi bi-check2"></i></span>
+                        <span class="flex-grow-1 min-w-0">
+                            <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $r->school->name }}</span>
+                            <span class="d-block text-xs text-secondary text-truncate">{{ $r->inspection_no }}</span>
+                        </span>
+                        <span class="text-xs text-secondary text-nowrap">{{ $r->submitted_at?->format('d M') }}</span>
+                    </a>
+                @empty
+                    <div class="dash-empty"><i class="bi bi-inbox"></i>No submitted inspections yet.</div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Drafts --}}
+        <div class="col-lg-5">
+            <div class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h3><i class="bi bi-pencil-square"></i>Continue where you left off</h3>
+                </div>
+                @forelse ($drafts as $d)
+                    <a href="{{ route('inspections.step', [$d, 1]) }}" class="dash-row">
+                        <span class="dash-ring" style="--p: {{ (int) $d->completion_pct }}"><span>{{ (int) $d->completion_pct }}%</span></span>
+                        <span class="flex-grow-1 min-w-0">
+                            <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $d->school->name }}</span>
+                            <span class="d-block text-xs text-secondary">UDISE {{ $d->school->udise_code }} · {{ $d->inspection_date->format('d M') }}</span>
+                        </span>
+                        <i class="bi bi-chevron-right text-secondary"></i>
+                    </a>
+                @empty
+                    <div class="dash-empty"><i class="bi bi-check2-all"></i>No drafts pending. You're all caught up.</div>
+                @endforelse
+            </div>
         </div>
     </div>
 </x-layouts.app>
