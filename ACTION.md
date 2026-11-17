@@ -245,3 +245,11 @@ Plan approved by the user. Decisions:
 - **Dashboard:** gradient welcome banner (time-based greeting, date, jurisdiction, white **Start inspection** button); four KPI cards only: Inspected today, This month, Drafts in progress, and Total submitted (or **Pending approvals** for approvers); two compact panels: Recent submissions (last 5) and "Continue where you left off" drafts (last 3) with a progress ring. Old pending-approval banner and summary strip removed (now a KPI card + bell). KPI cards are only links for users who can open My Inspections. Unused `.quick-actions/.cta-card/.summary-strip` styles removed.
 - **Files:** `resources/views/components/layouts/app.blade.php`, `resources/views/dashboard.blade.php`, `app/Http/Controllers/DashboardController.php` (`total` stat), `resources/scss/app.scss`
 - **Verify:** `npm run build` OK, `view:cache` OK; `php artisan test` 34 passed (357 assertions); live MySQL: logged in as 9000000031 (Cluster) and 9000000001 (State approver) → dashboard 200 with the expected KPI cards (Total submitted vs Pending approvals), account header present, old sidebar footer/logos gone; /profile 200.
+
+## 30. Lighter, standard government-portal typography (2026-11-17)
+- Font: replaced Inter web font with the standard system stack `Segoe UI, Noto Sans, Roboto, Helvetica Neue, Arial` (no font download).
+- Weights: bold capped at 600 (`fw-bold`, headings, titles, KPI values); everything else that was 550–650 is now 500 (`fw-semibold`, buttons, labels, badges, table heads). 800/750/700 removed.
+- Colours softened: body text #334155, headings #1e293b, form labels #475569. Negative letter-spacing removed.
+- Sizes eased: portal title 1.3rem, dashboard greeting 1.25rem, KPI value 1.4rem, stat value 1.5rem, register hero 1.35rem.
+- Files: `resources/scss/app.scss`.
+- Verified: `npm run build` OK, `view:cache` OK, tests 34 passed.
