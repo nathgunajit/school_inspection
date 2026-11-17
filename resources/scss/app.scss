@@ -456,7 +456,13 @@ h2, .h2 { letter-spacing: -.015em; }
     .upload-zone { padding: .9rem; }
     .upload-icon, .upload-thumb { width: 48px; height: 48px; font-size: 1.35rem; }
 }
-.upload-zone { min-height: 104px; display: flex; align-items: center;
+// Photo + identity proof side by side: equal height, identical geometry
+.upload-col { display: flex; flex-direction: column;
+    > .upload-zone { flex: 1 1 auto; } }
+.upload-zone { min-height: 112px; display: flex; align-items: center;
     > .upload-empty, > .upload-done { width: 100%; } }
-.upload-icon-round { border-radius: 50%; }
-.upload-thumb-round { width: 72px; height: 72px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #1e9b4b; }
+.upload-icon, .upload-thumb { width: 64px; height: 64px; }
+.upload-icon-round, .upload-thumb-round { border-radius: 50%; }
+.upload-thumb-round { border: 3px solid #fff; box-shadow: 0 0 0 2px #1e9b4b; }
+.upload-text .t, .upload-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 575.98px) { .upload-icon, .upload-thumb { width: 52px; height: 52px; } }

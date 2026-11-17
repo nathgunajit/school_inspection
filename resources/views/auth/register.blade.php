@@ -50,15 +50,15 @@
                             <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" required maxlength="40" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-5">
+                        <div class="col-md-6 upload-col">
                             <label class="form-label" for="photo">Employee photo <span class="req">*</span></label>
                             <div class="upload-zone upload-zone-photo @error('photo') is-invalid @enderror" data-exts="jpg,jpeg,png" data-max-kb="{{ config('inspection.employee_photo.max_kb') }}">
                                 <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required aria-describedby="photo-hint">
                                 <div class="upload-empty">
                                     <span class="upload-icon upload-icon-round"><i class="bi bi-person-bounding-box"></i></span>
                                     <div class="upload-text">
-                                        <div class="t">Passport-size photo</div>
-                                        <div class="s"><span class="text-primary fw-semibold">Take or choose a photo</span> · clear face, plain background</div>
+                                        <div class="t">Passport-size photograph</div>
+                                        <div class="s"><span class="text-primary fw-semibold">Click to choose</span> or drag &amp; drop · clear face</div>
                                         <div class="upload-chips" id="photo-hint">
                                             <span><i class="bi bi-file-earmark-image"></i>JPG / PNG</span>
                                             <span><i class="bi bi-hdd"></i>Max 1 MB</span>
@@ -77,7 +77,7 @@
                             <div class="upload-error text-danger text-xs mt-1 d-none"></div>
                             @error('photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-7">
+                        <div class="col-md-6 upload-col">
                             <label class="form-label" for="id_proof">Identity proof <span class="req">*</span></label>
                             <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}">
                                 <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" required aria-describedby="id-proof-hint">
@@ -85,8 +85,8 @@
                                 <div class="upload-empty">
                                     <span class="upload-icon"><i class="bi bi-person-badge"></i></span>
                                     <div class="upload-text">
-                                        <div class="t">Upload your department ID card or posting order</div>
-                                        <div class="s"><span class="text-primary fw-semibold">Click to choose a file</span> or drag &amp; drop it here</div>
+                                        <div class="t">Department ID card / posting order</div>
+                                        <div class="s"><span class="text-primary fw-semibold">Click to choose</span> or drag &amp; drop · clear copy</div>
                                         <div class="upload-chips" id="id-proof-hint">
                                             <span><i class="bi bi-file-earmark-pdf"></i>PDF</span>
                                             <span><i class="bi bi-file-earmark-image"></i>JPG / PNG</span>
