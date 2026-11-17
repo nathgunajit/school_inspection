@@ -22,6 +22,20 @@ abstract class TestCase extends BaseTestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Safety guard: never let RefreshDatabase run against a real database
+     * (e.g. when `php artisan config:cache` made the tests ignore phpunit.xml).
+     */
+    protected function beforeRefreshingDatabase()
+    {
+        $conn = config('database.default');
+        $db = config("database.connections.$conn.database");
+        if ($conn !== 'sqlite' || $db !== ':memory:') {
+            fwrite(STDERR, "\nRefusing to run tests against [$conn:$db]. Run `php artisan config:clear` first.\n");
+            exit(1);
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

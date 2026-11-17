@@ -75,3 +75,12 @@ Format: **#. Date · Action**, then files touched and the result.
 - Verified the approval queues match PRD 3.3: State Admin sees all 3 pending; the State officer sees the District applicant; North District sees the Block applicant (Hillview has no approver); Riverside Block sees the Cluster applicant. School scope: state 24, district 12, block 6, cluster 3. Cluster officer login → dashboard 200.
 - Note: the State Admin mobile in the database is `8287619163` (changed after seeding); left as is.
 - Demo credentials table added to `CLAUDE.md`.
+
+### 11. 2026-11-17 · INCIDENT: test run wiped the MySQL database. Fixed and guarded
+- **What happened:** after seeding the demo users I ran `php artisan test`. The config had been cached at 15:00 (`bootstrap/cache/config.php`, env=local, DB=mysql), so phpunit.xml's SQLite settings were ignored and `RefreshDatabase` reset the real `schoolinspection` tables. All data entered after the 14:40 reseed was lost; the only change known to have been lost was the State Admin mobile (`8287619163`).
+- **Fix:**
+  - `php artisan config:clear`, then `migrate:fresh --seed`: 21 users (admin + 20 demo), 24 schools.
+  - Restored the State Admin mobile to `8287619163`.
+- **Guard:** `tests/TestCase.php::beforeRefreshingDatabase()` now exits unless the connection is `sqlite` with `:memory:`. I verified it by re-running tests with the config cached: the run was refused and a probe table in MySQL was untouched.
+- **Verification:** with the config cleared, `php artisan test` → 30 passed (280 assertions); MySQL still had 21 users afterwards.
+- Added a "Testing safety" section to `CLAUDE.md`.

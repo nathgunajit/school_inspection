@@ -61,5 +61,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - Mobile-first UI: touch targets ≥ 44px, one wizard step per screen on mobile, bottom nav on phones. Reuse the components in `resources/views/components`.
 - Lists paginate at 25 rows.
 
+## Testing safety
+- Tests must run on in-memory SQLite only. `tests/TestCase.php` aborts if the connection is anything else.
+- **Never run `php artisan test` while the config is cached.** A cached config makes phpunit.xml be ignored, and RefreshDatabase would wipe MySQL. Run `php artisan config:clear` first.
+
 ## ACTION log
 After completing each meaningful action (feature, migration, fix, config change), append an entry to **`ACTION.md`**: date, what was done, files touched, result or verification.
