@@ -229,6 +229,20 @@ class InspectionFlowTest extends TestCase
             ->assertJsonPath('errors.teacher_type.0', "Please select the teacher's type.");
         $this->classroom($i, ['tlm_used' => null])->assertStatus(422)->assertJsonPath('errors.tlm_used.0', 'Please choose Yes or No for use of TLM.');
 
+        // Rows can be edited (update), with the same validation; rows of another inspection are refused
+        $t = $i->absentTeachers()->first();
+        $this->putJson(route('inspections.teachers.update', [$i, $t]), ['teacher_name' => 'R. Kumar Das', 'teacher_type' => 'contractual', 'reason' => 'EL', 'remarks' => 'Approved'])
+            ->assertOk()->assertJsonCount(2, 'teachers')->assertJsonPath('teachers.0.values.teacher_type', 'contractual');
+        $this->assertSame('R. Kumar Das', $t->fresh()->teacher_name);
+        $this->putJson(route('inspections.teachers.update', [$i, $t]), ['teacher_name' => '', 'teacher_type' => 'regular', 'reason' => 'CL'])->assertStatus(422);
+        $c = $i->classroomObservations()->first();
+        $this->putJson(route('inspections.classrooms.update', [$i, $c]), ['teacher_name' => 'B. Devi', 'class' => 'VII', 'subject' => 'Science', 'tlm_used' => 'no', 'participation' => 'not_satisfactory'])
+            ->assertOk()->assertJsonCount(1, 'classrooms')->assertJsonPath('classrooms.0.values.class', 'VII')->assertJsonPath('classrooms.0.tlm_ok', false);
+        $other = $this->startInspection($this->officer(UserLevel::Cluster), $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->putJson(route('inspections.classrooms.update', [$other, $c]), ['teacher_name' => 'X Y', 'class' => 'I', 'subject' => 'Maths', 'tlm_used' => 'yes', 'participation' => 'satisfactory'])->assertNotFound();
+        $this->assertSame('Science', $c->fresh()->subject);
+        $this->actingAs($officer)->get(route('inspections.step', [$i, 5]))->assertOk()->assertSee('Samagra Shiksha (SSA)')->assertSee('fund-src src-govt', false);
+
         // Review page: status, missing items with direct links, answers per step
         $this->get(route('inspections.review', $i))->assertOk()
             ->assertSee('still to complete')->assertSee('Your answers')->assertSee('B. Devi')->assertSee('Fix');

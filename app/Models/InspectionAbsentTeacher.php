@@ -50,6 +50,8 @@ class InspectionAbsentTeacher extends Model
             'type' => $this->typeLabel(),
             'reason' => $this->reasonLabel(),
             'remarks' => $this->remarks,
+            'values' => ['teacher_name' => $this->teacher_name, 'teacher_type' => $this->teacher_type, 'reason' => $this->reason, 'remarks' => $this->remarks],
+            'update_url' => route('inspections.teachers.update', [$this->inspection_id, $this->id]),
             'delete_url' => route('inspections.teachers.destroy', [$this->inspection_id, $this->id]),
         ];
     }

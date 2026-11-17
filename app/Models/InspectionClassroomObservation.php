@@ -31,6 +31,11 @@ class InspectionClassroomObservation extends Model
             'tlm' => $this->tlm_used ? 'Yes' : 'No',
             'participation' => $this->participationLabel(),
             'remarks' => $this->remarks,
+            'tlm_ok' => (bool) $this->tlm_used,
+            'participation_ok' => $this->participation === 'satisfactory',
+            'values' => ['teacher_name' => $this->teacher_name, 'class' => $this->class, 'subject' => $this->subject,
+                'tlm_used' => $this->tlm_used ? 'yes' : 'no', 'participation' => $this->participation, 'remarks' => $this->remarks],
+            'update_url' => route('inspections.classrooms.update', [$this->inspection_id, $this->id]),
             'delete_url' => route('inspections.classrooms.destroy', [$this->inspection_id, $this->id]),
         ];
     }

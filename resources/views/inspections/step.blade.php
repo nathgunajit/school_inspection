@@ -108,29 +108,40 @@
 
                     {{-- ============ STEP 3: Teachers absentee (repeating) ============ --}}
                     @if ($step === 3)
-                        <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
-                        <div id="teacher-list" class="row-list mb-3"></div>
+                        <div class="rs-head">
+                            <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
+                            <span class="rs-count" data-count="teachers">0</span>
+                        </div>
+                        <div id="teacher-list" class="rs-list"></div>
                         <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
-                            <div class="row-form-title"><i class="bi bi-plus-circle"></i>Add an absent teacher</div>
+                            <div class="row-form-title"><span class="rf-icon"><i class="bi bi-person-plus"></i></span>
+                                <span data-form-title data-add="Add an absent teacher" data-edit="Edit absent teacher">Add an absent teacher</span></div>
                             <div class="row g-2">
                                 <div class="col-md-6"><label class="form-label text-sm" for="t_name">Teacher's name <span class="req">*</span></label><input id="t_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
                                 <div class="col-md-6"><label class="form-label text-sm" for="t_type">Teacher's type <span class="req">*</span></label>
                                     <select id="t_type" name="teacher_type" class="form-select" required><option value="">Select</option>@foreach (AT::TYPES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                                 <div class="col-md-6"><label class="form-label text-sm" for="t_reason">Reason for absence <span class="req">*</span></label>
                                     <select id="t_reason" name="reason" class="form-select" required><option value="">Select</option>@foreach (AT::REASONS as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
-                                <div class="col-md-6"><label class="form-label text-sm">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="t_remarks">Remarks</label><input id="t_remarks" name="remarks" class="form-control" maxlength="500" placeholder="Optional"></div>
                             </div>
                             <div class="form-error d-none" data-form-error></div>
-                            <button class="btn btn-primary row-form-btn"><i class="bi bi-plus-lg"></i>Add teacher</button>
+                            <div class="row-form-actions">
+                                <button type="button" class="btn btn-light d-none" data-cancel-edit><i class="bi bi-x-lg"></i>Cancel</button>
+                                <button class="btn btn-primary row-form-btn" data-add-label="Add teacher" data-edit-label="Update teacher"><i class="bi bi-plus-lg"></i><span>Add teacher</span></button>
+                            </div>
                         </form>
                     @endif
 
                     {{-- ============ STEP 4: Classroom performance (repeating) ============ --}}
                     @if ($step === 4)
-                        <div class="q-group"><span class="q-group-icon"><i class="bi bi-easel"></i></span><span>Classrooms observed</span></div>
-                        <div id="classroom-list" class="row-list mb-3"></div>
+                        <div class="rs-head">
+                            <div class="q-group"><span class="q-group-icon"><i class="bi bi-easel"></i></span><span>Classrooms observed</span></div>
+                            <span class="rs-count" data-count="classrooms">0</span>
+                        </div>
+                        <div id="classroom-list" class="rs-list"></div>
                         <form id="classroom-form" class="row-form" data-url="{{ route('inspections.classrooms.store', $inspection) }}" novalidate>
-                            <div class="row-form-title"><i class="bi bi-plus-circle"></i>Add a classroom observation</div>
+                            <div class="row-form-title"><span class="rf-icon"><i class="bi bi-journal-plus"></i></span>
+                                <span data-form-title data-add="Add a classroom observation" data-edit="Edit classroom observation">Add a classroom observation</span></div>
                             <div class="row g-2">
                                 <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_class">Class <span class="req">*</span></label>
@@ -141,10 +152,13 @@
                                         <input type="radio" name="tlm_used" id="tlm_no" value="no"><label for="tlm_no" class="tone-bad">No</label></div></div>
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="participation">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>
-                                <div class="col-12"><label class="form-label text-sm">Remarks</label><input name="remarks" class="form-control" maxlength="500"></div>
+                                <div class="col-12"><label class="form-label text-sm" for="c_remarks">Remarks</label><input id="c_remarks" name="remarks" class="form-control" maxlength="500" placeholder="Optional"></div>
                             </div>
                             <div class="form-error d-none" data-form-error></div>
-                            <button class="btn btn-primary row-form-btn"><i class="bi bi-plus-lg"></i>Add classroom record</button>
+                            <div class="row-form-actions">
+                                <button type="button" class="btn btn-light d-none" data-cancel-edit><i class="bi bi-x-lg"></i>Cancel</button>
+                                <button class="btn btn-primary row-form-btn" data-add-label="Add classroom record" data-edit-label="Update record"><i class="bi bi-plus-lg"></i><span>Add classroom record</span></button>
+                            </div>
                         </form>
                     @endif
 
@@ -164,18 +178,22 @@
                             <fieldset id="fund-amounts" class="d-none" disabled>
                                 <div class="fund-table">
                                     <div class="fund-row fund-row-head" aria-hidden="true"><span>Fund head</span><span>Received</span><span>Expenditure</span><span>Balance</span></div>
-                                    @foreach (FP::HEADS as $key => [$headLabel, $rc, $ec])
-                                        <div class="fund-row" data-head="{{ $key }}">
-                                            <span class="fund-head">{{ $headLabel }}</span>
-                                            @foreach ([[$rc, 'Received'], [$ec, 'Expenditure']] as [$col, $what])
-                                                <div class="fund-cell">
-                                                    <label class="fund-cell-lbl" for="f_{{ $col }}">{{ $what }}</label>
-                                                    <div class="fund-input"><input id="f_{{ $col }}" name="{{ $col }}" type="number" min="0" max="99999" step="0.01" inputmode="decimal" placeholder="0.00"
-                                                        class="form-control" data-label="{{ $headLabel }} {{ strtolower($what) }}"><span>L</span></div>
-                                                </div>
-                                            @endforeach
-                                            <span class="fund-bal"><span class="fund-cell-lbl">Balance</span><span data-bal>0.00</span></span>
-                                        </div>
+                                    @foreach (FP::SOURCES as $src => [$srcLabel, $srcIcon, $srcHeads])
+                                        <div class="fund-src src-{{ $src }}"><span class="fund-src-icon"><i class="bi {{ $srcIcon }}"></i></span>{{ $srcLabel }}</div>
+                                        @foreach ($srcHeads as $key)
+                                            @php [$headLabel, $rc, $ec] = FP::HEADS[$key]; @endphp
+                                            <div class="fund-row src-{{ $src }}" data-head="{{ $key }}">
+                                                <span class="fund-head">{{ FP::SHORT[$key] }}</span>
+                                                @foreach ([[$rc, 'Received'], [$ec, 'Expenditure']] as [$col, $what])
+                                                    <div class="fund-cell">
+                                                        <label class="fund-cell-lbl" for="f_{{ $col }}">{{ $what }}</label>
+                                                        <div class="fund-input"><input id="f_{{ $col }}" name="{{ $col }}" type="number" min="0" max="99999" step="0.01" inputmode="decimal" placeholder="0.00"
+                                                            class="form-control" data-label="{{ $headLabel }} {{ strtolower($what) }}"><span>L</span></div>
+                                                    </div>
+                                                @endforeach
+                                                <span class="fund-bal"><span class="fund-cell-lbl">Balance</span><span data-bal>0.00</span></span>
+                                            </div>
+                                        @endforeach
                                     @endforeach
                                     <div class="fund-row fund-row-total">
                                         <span class="fund-head">Total (lakh)</span>
@@ -193,8 +211,11 @@
                             </fieldset>
                         </form>
 
-                        <div class="q-group mt-4"><span class="q-group-icon"><i class="bi bi-cash-coin"></i></span><span>Saved years</span></div>
-                        <div id="fund-list" class="row-list"></div>
+                        <div class="rs-head mt-4">
+                            <div class="q-group"><span class="q-group-icon"><i class="bi bi-cash-coin"></i></span><span>Saved years</span></div>
+                            <span class="rs-count" data-count="funds">0</span>
+                        </div>
+                        <div id="fund-list" class="rs-list"></div>
                     @endif
 
                     {{-- ============ STEP 6: suggestions after governance questions ============ --}}

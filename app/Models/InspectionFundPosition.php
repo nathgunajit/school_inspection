@@ -18,7 +18,28 @@ class InspectionFundPosition extends Model
         'other' => ['Other Source', 'other_received', 'other_expenditure'],
     ];
 
-    public const AMOUNT_COLUMNS = ['asg_received', 'asg_expenditure', 'mdm_received', 'mdm_expenditure', 'govt_received', 'govt_expenditure', 'other_received', 'other_expenditure'];
+    /** Fund sources, shown as coloured groups on screen: [label, icon, heads]. */
+    public const SOURCES = [
+        'ssa' => ['Samagra Shiksha (SSA)', 'bi-mortarboard', ['asg', 'mdm']],
+        'govt' => ['Government', 'bi-bank', ['govt']],
+        'other' => ['Other Source', 'bi-wallet2', ['other']],
+    ];
+
+    /** Head label without the source suffix, for use inside its source group. */
+    public const SHORT = ['asg' => 'Annual School Grant', 'mdm' => 'MDM Fund', 'govt' => 'Government fund', 'other' => 'Other source fund'];
+
+    public static function source(string $head): string
+    {
+        foreach (self::SOURCES as $key => [, , $heads]) {
+            if (in_array($head, $heads, true)) {
+                return $key;
+            }
+        }
+
+        return 'other';
+    }
+
+    public const AMOUNT_COLUMNS =['asg_received', 'asg_expenditure', 'mdm_received', 'mdm_expenditure', 'govt_received', 'govt_expenditure', 'other_received', 'other_expenditure'];
 
     protected $fillable = ['inspection_id', 'financial_year', 'fund_category_id', 'amount_received', 'amount_utilised', ...self::AMOUNT_COLUMNS];
 
@@ -67,7 +88,7 @@ class InspectionFundPosition extends Model
         $fmt = fn ($v) => number_format((float) $v, 2);
         $heads = [];
         foreach (self::HEADS as $key => [$label, $r, $e]) {
-            $heads[] = ['label' => $label, 'received' => $fmt($this->$r), 'expenditure' => $fmt($this->$e), 'balance' => $fmt($this->balance($key))];
+            $heads[] = ['key' => $key, 'source' => self::source($key), 'label' => $label, 'received' => $fmt($this->$r), 'expenditure' => $fmt($this->$e), 'balance' => $fmt($this->balance($key))];
         }
 
         return [

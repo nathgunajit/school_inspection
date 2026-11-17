@@ -318,3 +318,11 @@ Plan approved by the user. Decisions:
 - Screen: question partial wraps the input in a `fieldset` disabled by default rendering; `wizard.js` toggles it live and clears the shown answer; SCSS `.q-block.is-disabled`.
 - Files: `app/Questionnaire/{QuestionnaireDefinition,InspectionValidator}.php`, `app/Http/Controllers/InspectionController.php`, `resources/views/inspections/partials/question.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 37 passed (413 assertions).
+
+## 39. Edit absentee/classroom rows, nicer lists, fund sources in colour (2026-11-17)
+- Fix: absentee and classroom rows could only be added or removed. New `PUT /inspections/{i}/teachers/{teacher}` and `PUT /inspections/{i}/classrooms/{classroom}` (`updateAbsentTeacher`, `updateClassroom`), sharing validation with add (`teacherData`, `classroomData`); row must belong to the inspection (404 otherwise). Rows now return `values` and `update_url`.
+- Lists: each row is a card with initials / class badge, numbered title, coloured chips (type, leave reason, TLM Yes/No, participation), remarks line, and Edit + Remove buttons; a count badge sits beside each section heading; friendlier empty states.
+- Add form: "Edit" loads the row into the form (title, icon and button change to "Update …", Cancel button, the row is marked "Editing").
+- Fund step: heads grouped by source with coloured headers and row markers: Samagra Shiksha (SSA) blue (Annual School Grant, MDM Fund), Government green, Other Source orange. Saved-year cards show each head with an SSA / Govt / Other tag in the same colours. `InspectionFundPosition::SOURCES`, `SHORT`, `source()`.
+- Files: `app/Http/Controllers/InspectionController.php`, `routes/web.php`, `app/Models/{InspectionAbsentTeacher,InspectionClassroomObservation,InspectionFundPosition}.php`, `resources/views/inspections/step.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 37 passed (427 assertions); live steps 3, 4, 5 return 200.

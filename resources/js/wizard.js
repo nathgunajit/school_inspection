@@ -309,37 +309,50 @@ document.addEventListener('change', (e) => {
 });
 
 /* ---------------- Repeating sections (absentee, classroom, fund) ---------------- */
-const delBtn = (url) => `<button type="button" class="btn btn-sm btn-light btn-icon" data-del="${esc(url)}" aria-label="Remove"><i class="bi bi-trash text-danger"></i></button>`;
 const fyShort = (fy) => String(fy).replace('FY-', '');
+const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+const rowActions = (r, editAttr = 'data-edit') => `<div class="rs-actions">
+    <button type="button" class="rs-btn" ${editAttr}="${esc(r.id)}" aria-label="Edit"><i class="bi bi-pencil"></i><span>Edit</span></button>
+    <button type="button" class="rs-btn rs-del" data-del="${esc(r.delete_url)}" aria-label="Remove"><i class="bi bi-trash"></i></button></div>`;
+const chip = (text, tone = '') => `<span class="rs-chip ${tone}">${text}</span>`;
+const SRC = { ssa: 'SSA', govt: 'Govt', other: 'Other' };
 
 const sections = {
     teachers: {
-        list: '#teacher-list', form: '#teacher-form', key: 'teachers', done: 'Teacher added',
-        empty: '<i class="bi bi-person-check d-block fs-4 mb-1 text-success"></i>No absent teachers added. Leave empty if all were present.',
-        row: (t) => `<div class="row-item"><span class="row-icon tone-danger"><i class="bi bi-person-x"></i></span>
-            <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-sm">${esc(t.teacher_name)}</div>
-            <div class="text-xs text-secondary">${esc(t.type)} · ${esc(t.reason)}${t.remarks ? ' · ' + esc(t.remarks) : ''}</div></div>${delBtn(t.delete_url)}</div>`,
+        list: '#teacher-list', form: '#teacher-form', key: 'teachers', done: 'Teacher added', updated: 'Teacher updated',
+        empty: '<i class="bi bi-person-check"></i><strong>No absent teachers</strong><span>Leave this empty if all teachers were present.</span>',
+        row: (t, i) => `<div class="rs-item" data-id="${esc(t.id)}">
+            <span class="rs-avatar tone-danger">${esc(initials(t.teacher_name))}</span>
+            <div class="rs-body">
+                <div class="rs-title"><span class="rs-no">${i + 1}.</span>${esc(t.teacher_name)}</div>
+                <div class="rs-chips">${chip(esc(t.type))}${chip('<i class="bi bi-calendar-x"></i>' + esc(t.reason), 'warn')}</div>
+                ${t.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(t.remarks)}</div>` : ''}
+            </div>${rowActions(t)}</div>`,
     },
     classrooms: {
-        list: '#classroom-list', form: '#classroom-form', key: 'classrooms', done: 'Classroom record added',
-        empty: '<i class="bi bi-easel d-block fs-4 mb-1 text-warning"></i>No classroom records yet. Add at least one below.',
-        row: (c) => `<div class="row-item"><span class="row-icon tone-primary"><i class="bi bi-easel"></i></span>
-            <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-sm">${esc(c.class)} · ${esc(c.subject)}</div>
-            <div class="text-xs text-secondary">${esc(c.teacher_name)} · TLM: ${esc(c.tlm)} · Participation: ${esc(c.participation)}${c.remarks ? ' · ' + esc(c.remarks) : ''}</div></div>${delBtn(c.delete_url)}</div>`,
+        list: '#classroom-list', form: '#classroom-form', key: 'classrooms', done: 'Classroom record added', updated: 'Classroom record updated',
+        empty: '<i class="bi bi-easel"></i><strong>No classroom records yet</strong><span>Add at least one classroom observation below.</span>',
+        row: (c, i) => `<div class="rs-item" data-id="${esc(c.id)}">
+            <span class="rs-avatar tone-primary rs-class">${esc(String(c.values.class))}</span>
+            <div class="rs-body">
+                <div class="rs-title"><span class="rs-no">${i + 1}.</span>${esc(c.subject)} <span class="rs-muted">· ${esc(c.class)}</span></div>
+                <div class="rs-sub"><i class="bi bi-person"></i>${esc(c.teacher_name)}</div>
+                <div class="rs-chips">${chip('TLM: ' + esc(c.tlm), c.tlm_ok ? 'ok' : 'bad')}${chip('Participation: ' + esc(c.participation), c.participation_ok ? 'ok' : 'bad')}</div>
+                ${c.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(c.remarks)}</div>` : ''}
+            </div>${rowActions(c)}</div>`,
     },
     funds: {
         list: '#fund-list', form: '#fund-form', key: 'funds', done: 'Year saved',
-        empty: '<i class="bi bi-cash-stack d-block fs-4 mb-1 text-secondary"></i>No years saved yet. This step is optional.',
-        row: (f) => `<div class="row-item fund-saved align-items-start">
-            <span class="row-icon tone-success"><i class="bi bi-cash-coin"></i></span>
-            <div class="flex-grow-1 min-w-0">
-                <div class="d-flex flex-wrap align-items-center gap-2"><span class="fw-semibold text-sm">FY ${esc(fyShort(f.financial_year))}</span>
-                    <span class="fund-pill">Received ${esc(f.total_received)} L</span><span class="fund-pill">Spent ${esc(f.total_expenditure)} L</span>
-                    <span class="fund-pill ${parseFloat(String(f.balance).replace(/,/g, '')) < 0 ? 'neg' : 'pos'}">Balance ${esc(f.balance)} L</span></div>
+        empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>This step is optional.</span>',
+        row: (f) => `<div class="rs-item fund-saved">
+            <span class="rs-avatar tone-success"><i class="bi bi-calendar3"></i></span>
+            <div class="rs-body">
+                <div class="rs-title">FY ${esc(fyShort(f.financial_year))}</div>
+                <div class="rs-chips">${chip('Received ' + esc(f.total_received) + ' L')}${chip('Spent ' + esc(f.total_expenditure) + ' L')}
+                    ${chip('Balance ' + esc(f.balance) + ' L', parseFloat(String(f.balance).replace(/,/g, '')) < 0 ? 'bad' : 'ok')}</div>
                 <div class="fund-saved-heads">${f.heads.filter((h) => h.received !== '0.00' || h.expenditure !== '0.00')
-                    .map((h) => `<span>${esc(h.label)}: ${esc(h.received)} / ${esc(h.expenditure)}</span>`).join('')}</div>
-            </div>
-            <div class="d-flex gap-1"><button type="button" class="btn btn-sm btn-light btn-icon" data-edit-fund="${esc(f.financial_year)}" aria-label="Edit"><i class="bi bi-pencil"></i></button>${delBtn(f.delete_url)}</div></div>`,
+                    .map((h) => `<span class="src-${esc(h.source)}"><b>${SRC[h.source] || ''}</b>${esc(h.label.replace(/\s*\(SSA\)$/, ''))}: ${esc(h.received)} / ${esc(h.expenditure)}</span>`).join('')}</div>
+            </div>${rowActions({ id: f.financial_year, delete_url: f.delete_url }, 'data-edit-fund')}</div>`,
     },
 };
 
@@ -347,8 +360,35 @@ function renderSection(s) {
     const list = $(s.list);
     if (!list) return;
     const rows = SI[s.key] || [];
-    list.innerHTML = rows.length ? rows.map(s.row).join('') : `<div class="row-empty">${s.empty}</div>`;
+    list.innerHTML = rows.length ? rows.map(s.row).join('') : `<div class="rs-empty">${s.empty}</div>`;
+    const count = $(`[data-count="${s.key}"]`);
+    if (count) { count.textContent = rows.length; count.classList.toggle('has', rows.length > 0); }
+    if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
     if (s.key === 'funds') markSavedYears();
+}
+
+/** Add / edit mode for the absentee and classroom forms. */
+function setEditMode(s, form, row) {
+    s.editing = row ? String(row.id) : null;
+    form.dataset.editUrl = row ? row.update_url : '';
+    form.classList.toggle('is-editing', !!row);
+    const title = $('[data-form-title]', form);
+    title.textContent = row ? title.dataset.edit : title.dataset.add;
+    const btn = $('.row-form-btn', form);
+    btn.innerHTML = row ? `<i class="bi bi-check2"></i><span>${esc(btn.dataset.editLabel)}</span>` : `<i class="bi bi-plus-lg"></i><span>${esc(btn.dataset.addLabel)}</span>`;
+    $('[data-cancel-edit]', form).classList.toggle('d-none', !row);
+    form.querySelector('.rf-icon i').className = row ? 'bi bi-pencil-square' : (s.key === 'teachers' ? 'bi bi-person-plus' : 'bi bi-journal-plus');
+    clearFormErrors(form);
+    form.reset();
+    if (row) {
+        for (const [name, value] of Object.entries(row.values || {})) {
+            const el = form.elements[name];
+            if (!el) continue;
+            if (el instanceof RadioNodeList) { for (const r of el) r.checked = r.value === String(value); } else { el.value = value ?? ''; }
+        }
+    }
+    window.siSyncSelects?.(form);
+    renderSection(s);
 }
 
 for (const s of Object.values(sections)) {
@@ -364,28 +404,41 @@ for (const s of Object.values(sections)) {
         const btn = form.querySelector('button:not([type=button])');
         btn.disabled = true;
         const data = Object.fromEntries(new FormData(form));
-        queue(() => axios.post(form.dataset.url, data).then((r) => {
+        const editing = s.key !== 'funds' && form.dataset.editUrl;
+        queue(() => (editing ? axios.put(form.dataset.editUrl, data) : axios.post(form.dataset.url, data)).then((r) => {
             SI[s.key] = r.data[s.key];
-            renderSection(s);
             if (s.key === 'funds') {
+                renderSection(s);
                 fundSaved(data.financial_year);
+                window.toast(`FY ${fyShort(data.financial_year)} saved`, 'success');
             } else {
-                form.reset();
-                window.siSyncSelects?.(form);
-                form.querySelector('input,select')?.focus();
+                setEditMode(s, form, null);
+                window.toast(editing ? s.updated : s.done, 'success');
+                form.querySelector('input,select')?.focus({ preventScroll: !!editing });
             }
-            window.toast(s.key === 'funds' ? `FY ${fyShort(data.financial_year)} saved` : s.done, 'success');
             return r;
         }), (errors, message) => showServerErrors(form, errors, message)).finally(() => { btn.disabled = false; });
     });
+    $('[data-cancel-edit]', form)?.addEventListener('click', () => setEditMode(s, form, null));
     $(s.list).addEventListener('click', (e) => {
         const b = e.target.closest('[data-del]');
         if (b && confirm('Remove this record?')) {
-            queue(() => axios.delete(b.dataset.del).then((r) => { SI[s.key] = r.data[s.key]; renderSection(s); window.toast('Removed', 'success'); return r; }));
+            queue(() => axios.delete(b.dataset.del).then((r) => {
+                SI[s.key] = r.data[s.key];
+                if (s.editing && !(SI[s.key] || []).some((x) => String(x.id) === s.editing)) setEditMode(s, form, null);
+                renderSection(s);
+                window.toast('Removed', 'success');
+                return r;
+            }));
         }
-        const ed = e.target.closest('[data-edit-fund]');
+        const ed = e.target.closest('[data-edit]');
         if (ed) {
-            selectYear(ed.dataset.editFund);
+            const row = (SI[s.key] || []).find((x) => String(x.id) === ed.dataset.edit);
+            if (row) { setEditMode(s, form, row); form.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        }
+        const edf = e.target.closest('[data-edit-fund]');
+        if (edf) {
+            selectYear(edf.dataset.editFund);
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });

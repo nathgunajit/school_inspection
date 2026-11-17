@@ -193,13 +193,16 @@ class InspectionController extends Controller
     public function addAbsentTeacher(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $data = $request->validate([
-            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
-            'teacher_type' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::TYPES))],
-            'reason' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::REASONS))],
-            'remarks' => ['nullable', 'string', 'max:500'],
-        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
-        $inspection->absentTeachers()->create($data);
+        $inspection->absentTeachers()->create($this->teacherData($request));
+
+        return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
+    }
+
+    public function updateAbsentTeacher(Request $request, Inspection $inspection, InspectionAbsentTeacher $teacher)
+    {
+        $this->authorize('update', $inspection);
+        abort_unless($teacher->inspection_id === $inspection->id, 404);
+        $teacher->update($this->teacherData($request));
 
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
@@ -213,20 +216,30 @@ class InspectionController extends Controller
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
 
+    private function teacherData(Request $request): array
+    {
+        return $request->validate([
+            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
+            'teacher_type' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::TYPES))],
+            'reason' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::REASONS))],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
+    }
+
     /** Class Room Performance row (v2 step 4). */
     public function addClassroom(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $data = $request->validate([
-            'teacher_name' => ['required', 'string', 'max:120'],
-            'class' => ['required', Rule::in(array_keys(InspectionClassroomObservation::CLASSES))],
-            'subject' => ['required', 'string', 'max:100'],
-            'tlm_used' => ['required', 'in:yes,no'],
-            'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
-            'remarks' => ['nullable', 'string', 'max:500'],
-        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
-        $data['tlm_used'] = $data['tlm_used'] === 'yes';
-        $inspection->classroomObservations()->create($data);
+        $inspection->classroomObservations()->create($this->classroomData($request));
+
+        return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
+    }
+
+    public function updateClassroom(Request $request, Inspection $inspection, InspectionClassroomObservation $classroom)
+    {
+        $this->authorize('update', $inspection);
+        abort_unless($classroom->inspection_id === $inspection->id, 404);
+        $classroom->update($this->classroomData($request));
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
     }
@@ -238,6 +251,22 @@ class InspectionController extends Controller
         $classroom->delete();
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
+    }
+
+    private function classroomData(Request $request): array
+    {
+        $data = $request->validate([
+            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
+            'class' => ['required', Rule::in(array_keys(InspectionClassroomObservation::CLASSES))],
+            'subject' => ['required', 'string', 'max:100'],
+            'tlm_used' => ['required', 'in:yes,no'],
+            'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
+        $data['tlm_used'] = $data['tlm_used'] === 'yes';
+        $data['remarks'] ??= null;
+
+        return $data;
     }
 
     /** Fund received & expenditure for a financial year, in lakh; one row per year (v2 step 5). */
