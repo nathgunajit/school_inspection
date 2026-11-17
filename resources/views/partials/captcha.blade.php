@@ -1,4 +1,4 @@
-<div class="mb-2 captcha-field">
+<div class="mb-3">
     <label class="form-label" for="captcha">Security check</label>
     <div class="captcha-box">
         <img src="{{ captcha_src('flat') }}" alt="CAPTCHA image" id="captcha-img">
