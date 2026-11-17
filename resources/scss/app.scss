@@ -215,35 +215,21 @@ h2, .h2 { letter-spacing: -.015em; }
 .empty-state { text-align: center; padding: 3rem 1rem; color: #64748b;
     .empty-icon { width: 72px; height: 72px; border-radius: 22px; margin: 0 auto 1rem; display: grid; place-items: center; font-size: 2rem; background: rgba($primary, .08); color: $primary; } }
 
-// ---------- Auth pages ----------
-.auth-wrap { min-height: 100vh; display: grid; grid-template-columns: 1fr; }
-@include media-breakpoint-up(lg) { .auth-wrap { grid-template-columns: 1.05fr 1fr; } }
-.auth-aside { display: none; background: var(--si-grad); color: #fff; padding: 3rem; position: relative; overflow: hidden;
-    @include media-breakpoint-up(lg) { display: flex; flex-direction: column; justify-content: space-between; }
-    .bubble { position: absolute; border-radius: 50%; background: rgba(255,255,255,.08); }
-    .feature { display: flex; gap: .875rem; align-items: flex-start; margin-bottom: 1.25rem;
-        i { width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; background: rgba(255,255,255,.14); display: grid; place-items: center; font-size: 1.15rem; } } }
-.auth-panel { display: flex; align-items: flex-start; justify-content: center; padding: 1.5rem 1rem;
-    background:
-        radial-gradient(600px 300px at 100% 0%, rgba(30,155,75,.08), transparent 60%),
-        radial-gradient(600px 300px at 0% 100%, rgba(243,146,35,.08), transparent 60%),
-        radial-gradient(rgba(21,101,192,.07) 1px, transparent 1px) 0 0 / 20px 20px, #f7f9fd;
-    @include media-breakpoint-up(md) { align-items: center; padding: 2.5rem; } }
-.auth-card { width: 100%; max-width: 430px; background: #fff; border-radius: 1.1rem; padding: 1.5rem;
-    box-shadow: 0 20px 45px -20px rgba(13,71,161,.28), 0 2px 6px rgba(15,23,42,.05); border-top: 4px solid transparent;
-    border-image: linear-gradient(90deg, #1565c0, #1e9b4b 55%, #f39223) 1;
-    @include media-breakpoint-up(md) { padding: 2rem; } }
-.auth-card.wide { max-width: 760px; }
-.auth-logos { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; margin-bottom: 1.25rem;
-    border-bottom: 1px solid $border-color;
-    .logo-govt { height: 62px; width: auto; }
-    .logo-ss { height: 40px; width: auto; }
-    .divider { width: 1px; align-self: stretch; background: $border-color; } }
-.auth-title { font-size: 1.25rem; font-weight: 700; margin-bottom: .15rem; }
-.auth-sub { color: #64748b; font-size: .82rem; margin-bottom: 1.25rem; }
-.aside-logos { display: flex; align-items: center; gap: .9rem; position: relative;
-    span { background: #fff; border-radius: .75rem; padding: .4rem .6rem; display: inline-flex; box-shadow: 0 6px 18px -8px rgba(0,0,0,.35); }
-    img { height: 44px; width: auto; } }
+// ---------- Login & password pages (share the portal layout with registration) ----------
+.login-main { max-width: 960px; }
+.login-grid { display: grid; grid-template-columns: 1fr; gap: 1rem;
+    @include media-breakpoint-up(md) { grid-template-columns: 1.15fr 1fr; align-items: stretch; } }
+.login-card { max-width: 480px; width: 100%; }
+.login-grid .login-card { max-width: none; }
+.login-side { display: flex; flex-direction: column;
+    @include media-breakpoint-up(md) { background: linear-gradient(160deg, #fff 55%, rgba(30,155,75,.06)); } }
+.login-points { list-style: none; padding: 0; margin: 0 0 1.25rem; font-size: .82rem;
+    li { display: flex; gap: .5rem; align-items: flex-start; padding: .35rem 0; }
+    i { color: $success; margin-top: .1rem; } }
+.login-help { margin-top: auto; padding-top: 1rem; font-size: .74rem; color: #64748b; display: flex; gap: .45rem; align-items: flex-start;
+    border-top: 1px dashed $border-color; i { color: $primary; } }
+.login-card .login-help { margin-top: 1rem; }
+.reg-steps span i { font-size: .72rem; }
 
 // ---------- Registration page (full width, education theme) ----------
 .reg-page { background:

@@ -170,3 +170,17 @@ Plan approved by the user. Decisions:
   - `php artisan test` → 32 passed (337 assertions).
   - A live POST without a CAPTCHA was correctly rejected; no user created.
   - The visual check in the browser is left to the user.
+
+### 19. 2026-11-17 · Login (and password pages) in the same design as registration
+- Renamed the registration layout to a shared **`components/layouts/portal.blade.php`** (official header with both logos, education-icon banner, overlapping card, footer). `register.blade.php` now uses `<x-layouts.portal>`.
+- **Login** (`auth/login.blade.php`):
+  - Banner: "Welcome to School Inspection" with a 3-point guide (find school by UDISE, 7-step form, photos & submit).
+  - Two cards: **Sign in** (mobile with +91 prefix, password with show/hide, forgot link, CAPTCHA after 3 failures) and **New officer?** (what to keep ready, approval note, "Register as officer" button, help line). They sit side by side on desktop and stack on mobile.
+- **Forgot password** and **reset password** use the same portal layout with a single centred card.
+- Removed the now-unused `components/layouts/guest.blade.php` and its `.auth-*` styles; added `.login-*` styles in `app.scss`.
+- **Verification:**
+  - `npm run build` OK; views compile.
+  - `/login`, `/register`, `/forgot-password` and `/reset-password/{token}` → 200, all with the header and banner.
+  - `php artisan test` → 32 passed (337 assertions).
+  - Live login as demo officer 9000000031 → dashboard.
+  - Visual check left to the user.

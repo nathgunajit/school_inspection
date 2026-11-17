@@ -1,4 +1,5 @@
-@props(['title' => 'Officer Registration'])
+{{-- Public portal layout (login, registration, password pages): official header, education banner, card, footer --}}
+@props(['title' => 'Welcome'])
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +35,7 @@
         </div>
     </section>
 
-    <main class="container-xl reg-main">
+    <main {{ $attributes->merge(['class' => 'container-xl reg-main']) }}>
         @include('partials.flash')
         {{ $slot }}
     </main>

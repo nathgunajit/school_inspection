@@ -1,4 +1,4 @@
-<x-layouts.register title="Officer Registration">
+<x-layouts.portal title="Officer Registration">
     <x-slot:hero>
         <div class="row align-items-center g-3">
             <div class="col-lg-8">
@@ -169,4 +169,4 @@
     </div>
 
     @push('scripts') @vite('resources/js/register.js') @endpush
-</x-layouts.register>
+</x-layouts.portal>
