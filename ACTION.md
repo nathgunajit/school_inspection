@@ -193,3 +193,17 @@ Plan approved by the user. Decisions:
   - `npm run build` OK on the second run (the first run failed once, most likely a temporary file lock while replacing the old build; no code changes between runs).
   - Views compile; `/login`, `/register`, `/forgot-password` → 200.
   - `php artisan test` → 32 passed.
+
+### 21. 2026-11-17 · Login page redesigned as a standard portal login
+- **Layout `components/layouts/portal.blade.php`:** the banner is now optional (`@isset($hero)`). Without it, content is centred vertically between the header and footer (`.portal-main`). Registration and the password pages still use the banner, unchanged.
+- **`auth/login.blade.php`:** a single centred two-panel card (standard government portal style).
+  - **Left (desktop only):** gradient branding panel with both logos on white chips, "Samagra Shiksha, Assam", the title "School Inspection Management System", a one-line description, 4 feature points, and a faint education-icon pattern.
+  - **Right:** "Officer Login" heading with icon; mobile and password fields with icons and show/hide; "Forgot password?" aligned right; CAPTCHA after 3 failures (unchanged); a full-width Login button; a "New to the portal?" divider, a "Register as Inspecting Officer" button and an approval/help note.
+  - On phones only the form card shows, under the official header.
+- **Styles:** `app.scss` gets the new `.portal-*` styles. The earlier login-only banner and two-card layout are replaced.
+- **Verification:**
+  - Build OK; views compile.
+  - `/login` → 200 with the portal card and no banner; `/register`, `/forgot-password`, `/reset-password` → 200 with the banner.
+  - `php artisan test` → 32 passed.
+  - Live login as 9000000031 → dashboard. A wrong password shows "The mobile number or password is incorrect." on the new page; I reset the test's failed-attempt counter on 9000000032 afterwards.
+  - Visual check left to the user.
