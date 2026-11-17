@@ -49,11 +49,17 @@ class InspectionFlowTest extends TestCase
         ], $over), ['Accept' => 'application/json']);
     }
 
-    /** Fill every question with a valid "good" answer. */
+    private function classroom(Inspection $i, array $over = [])
+    {
+        return $this->postJson(route('inspections.classrooms.store', $i), array_merge([
+            'teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics', 'tlm_used' => 'yes', 'participation' => 'satisfactory',
+        ], $over));
+    }
+
+    /** Fill every question (v2) with a valid answer, one classroom record and the 4 mandatory photos. */
     private function completeAll(Inspection $i): void
     {
-        $overrides = ['GOV_18' => 'not_available', 'ATT_SANCTIONED' => 5, 'ATT_WORKING' => 4, 'ATT_PRESENT' => 4, 'ATT_ABSENT' => 0,
-            'ATT_ENROLLED' => 120, 'ATT_STUDENTS_PRESENT' => 100, 'GOV_16_DATE' => now()->subMonth()->toDateString()];
+        $overrides = ['TSI_09' => 4];
         $answers = [];
         foreach (Q::all() as $code => $q) {
             if (! InspectionValidator::visible($q, $answers)) {
@@ -69,8 +75,8 @@ class InspectionFlowTest extends TestCase
             $answers[$code] = $v;
             $this->answer($i, $code, $v)->assertOk();
         }
-        $this->photo($i, 'kitchen_mdm', 'GOV_14')->assertCreated();
-        foreach (['school_front', 'classroom', 'toilet'] as $cat) {
+        $this->classroom($i)->assertOk();
+        foreach (array_keys(config('inspection.mandatory_photos')) as $cat) {
             $this->photo($i, $cat)->assertCreated();
         }
     }
@@ -96,7 +102,7 @@ class InspectionFlowTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_submitted', 'auditable_id' => $i->id]);
 
         // locked: no more edits or evidence
-        $this->answer($i, 'GOV_02', 'no')->assertForbidden();
+        $this->answer($i, 'GOVR_02', 'no')->assertForbidden();
         $this->photo($i, 'other')->assertForbidden();
         $this->deleteJson(route('evidence.destroy', InspectionEvidence::first()))->assertForbidden();
 
@@ -124,48 +130,81 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(2, Inspection::count());
     }
 
-    public function test_conditional_rules_and_remarks(): void
+    private function missingCodes(Inspection $i, int $step)
     {
-        $officer = $this->officer(UserLevel::Cluster);
-        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
-
-        $this->answer($i, 'GOV_02', 'no')->assertOk();
-        $missing = collect((new InspectionValidator($i->fresh()))->missing()[2])->pluck('code');
-        $this->assertContains('GOV_03', $missing, 'Reason required when SMC not formed');
-        $this->assertNotContains('GOV_04', $missing, 'Monthly sitting hidden when SMC not formed');
-
-        $this->answer($i, 'GOV_20', 'unsatisfactory')->assertOk();
-        $msgs = collect((new InspectionValidator($i->fresh()))->missing()[2])->where('code', 'GOV_20')->pluck('message')->implode(' ');
-        $this->assertStringContainsString('remarks required', $msgs);
-        $this->answer($i, 'GOV_20', 'unsatisfactory', 'Registers incomplete')->assertOk();
-        $this->assertEmpty(collect((new InspectionValidator($i->fresh()))->missing()[2])->where('code', 'GOV_20'));
-
-        // condition item unsatisfactory needs remarks and a photo
-        $this->answer($i, 'CON_05', 'unsatisfactory', 'Broken door')->assertOk();
-        $msgs = collect((new InspectionValidator($i->fresh()))->missing()[3])->where('code', 'CON_05')->pluck('message')->implode(' ');
-        $this->assertStringContainsString('photograph required', $msgs);
-
-        // invalid option and negative number refused
-        $this->answer($i, 'GOV_05', 'sometimes')->assertStatus(422);
-        $this->answer($i, 'ATT_PRESENT', -2)->assertStatus(422);
+        return collect((new InspectionValidator($i->fresh()))->missing()[$step] ?? [])->pluck('code');
     }
 
-    public function test_attendance_arithmetic_and_absent_teachers(): void
+    public function test_conditional_rules_v2(): void
     {
         $officer = $this->officer(UserLevel::Cluster);
         $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
-        foreach (['ATT_SANCTIONED' => 6, 'ATT_WORKING' => 5, 'ATT_PRESENT' => 3, 'ATT_ABSENT' => 1] as $c => $v) {
+
+        // Internet functional only asked when Internet = Yes
+        $this->answer($i, 'CND_17', 'no')->assertOk();
+        $this->assertNotContains('CND_18', $this->missingCodes($i, 1));
+        $this->answer($i, 'CND_17', 'yes')->assertOk();
+        $this->assertContains('CND_18', $this->missingCodes($i, 1));
+
+        // ICT functional only when ICT lab = Yes
+        $this->answer($i, 'CND_19', 'yes')->assertOk();
+        $this->assertContains('CND_20', $this->missingCodes($i, 1));
+
+        // Tinkering lab: agency + functional when Yes
+        $this->answer($i, 'CND_24', 'yes')->assertOk();
+        $this->assertContains('CND_25', $this->missingCodes($i, 1));
+        $this->assertContains('CND_26', $this->missingCodes($i, 1));
+        $this->answer($i, 'CND_24', 'no')->assertOk();
+        $this->assertNotContains('CND_25', $this->missingCodes($i, 1));
+
+        // Governance: reason required when SMC not formed; monthly sitting hidden
+        $this->answer($i, 'GOVR_02', 'no')->assertOk();
+        $this->assertContains('GOVR_03', $this->missingCodes($i, 6));
+        $this->assertNotContains('GOVR_04', $this->missingCodes($i, 6));
+        $this->answer($i, 'GOVR_06', 'no')->assertOk();
+        $this->assertContains('GOVR_07', $this->missingCodes($i, 6));
+        $this->answer($i, 'GOVR_06', 'yes')->assertOk();
+        $this->assertNotContains('GOVR_07', $this->missingCodes($i, 6));
+
+        // invalid option and negative number refused; v1 codes are unknown now
+        $this->answer($i, 'GOVR_05', 'sometimes')->assertStatus(422);
+        $this->answer($i, 'TSI_01', -2)->assertStatus(422);
+        $this->answer($i, 'GOV_02', 'yes')->assertStatus(422);
+    }
+
+    public function test_absentee_classroom_and_fund_sections(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+
+        // Absentee rows validate type and reason
+        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'R. Kumar', 'teacher_type' => 'boss', 'reason' => 'CL'])->assertStatus(422);
+        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'R. Kumar', 'teacher_type' => 'regular', 'reason' => 'CL'])
+            ->assertOk()->assertJsonCount(1, 'teachers')->assertJsonPath('teachers.0.reason', 'Casual Leave (CL)');
+        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'S. Ali', 'teacher_type' => 'tutor', 'reason' => 'UL'])->assertJsonCount(2, 'teachers');
+
+        // Warning (non-blocking) when absentees fewer than implied absence
+        foreach (['TSI_04' => 4, 'TSI_05' => 1, 'TSI_06' => 0, 'TSI_07' => 0, 'TSI_08' => 0, 'TSI_09' => 1] as $c => $v) {
             $this->answer($i, $c, $v);
         }
-        $msgs = collect((new InspectionValidator($i->fresh()))->missing()[4])->pluck('message')->implode(' | ');
-        $this->assertStringContainsString('must equal working', $msgs);
-        $this->assertStringContainsString('Details required for each absent teacher', $msgs);
+        $warn = (new InspectionValidator($i->fresh()))->warnings();
+        $this->assertStringContainsString('4 teacher(s) appear absent; 2 entered', implode(' ', $warn[3] ?? []));
+        $this->answer($i, 'TSI_09', 9);
+        $this->assertStringContainsString('more than total', implode(' ', (new InspectionValidator($i->fresh()))->warnings()[2] ?? []));
 
-        $this->answer($i, 'ATT_PRESENT', 4);
-        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'R. Kumar', 'status' => 'absent_without_info'])->assertOk()->assertJsonCount(1, 'teachers');
-        $msgs = collect((new InspectionValidator($i->fresh()))->missing()[4] ?? [])->pluck('message')->implode(' | ');
-        $this->assertStringNotContainsString('must equal', $msgs);
-        $this->assertStringNotContainsString('absent teacher', $msgs);
+        // At least one classroom record is required
+        $this->assertContains('CLASSROOM', $this->missingCodes($i, 4));
+        $this->classroom($i, ['class' => 'XIII'])->assertStatus(422);
+        $this->classroom($i)->assertOk()->assertJsonCount(1, 'classrooms');
+        $this->assertNotContains('CLASSROOM', $this->missingCodes($i, 4));
+
+        // Fund: one row per year, saving the same year updates it
+        $fy = \App\Models\InspectionFundPosition::financialYears()[0];
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => '2019-20'])->assertStatus(422);
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy, 'asg_received' => 1.5, 'asg_expenditure' => 1.2, 'govt_received' => 2])
+            ->assertOk()->assertJsonCount(1, 'funds')->assertJsonPath('funds.0.balance', '2.30');
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $fy, 'asg_received' => 3])->assertOk()->assertJsonCount(1, 'funds');
+        $this->assertSame(3.0, (float) $i->fundPositions()->first()->asg_received);
     }
 
     public function test_submission_blocked_without_mandatory_photos(): void
@@ -174,8 +213,29 @@ class InspectionFlowTest extends TestCase
         $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
         $this->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect(route('inspections.review', $i));
         $this->assertSame(InspectionStatus::Draft, $i->fresh()->status);
-        $codes = collect((new InspectionValidator($i->fresh()))->missing()[6])->pluck('code');
-        $this->assertContains('PHOTO_school_front', $codes);
+        $codes = $this->missingCodes($i, 7);
+        foreach (['school', 'toilet_block', 'ict_smart', 'classroom_transaction'] as $cat) {
+            $this->assertContains('PHOTO_'.$cat, $codes);
+        }
+    }
+
+    public function test_gallery_photo_is_marked_and_counts_for_mandatory_slot(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->photo($i, 'toilet_block', null, ['source' => 'gallery'])->assertCreated()->assertJsonPath('source', 'gallery');
+        $this->photo($i, 'school', null, ['source' => 'phone'])->assertStatus(422);
+        $this->assertNotContains('PHOTO_toilet_block', $this->missingCodes($i, 7));
+        $this->assertSame('gallery', InspectionEvidence::first()->source);
+        $this->get(route('inspections.show', $i))->assertOk();
+    }
+
+    public function test_expired_session_gets_401_json(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        auth()->logout();
+        $this->postJson(route('inspections.answers', $i), ['code' => 'CND_02', 'value' => 'yes'])->assertUnauthorized();
     }
 
     public function test_evidence_checks(): void
@@ -185,24 +245,24 @@ class InspectionFlowTest extends TestCase
 
         // PNG is not accepted as an in-app photo, only JPEG
         $png = UploadedFile::fake()->image('x.png');
-        $this->photo($i, 'toilet', null, ['file' => $png, 'sha256' => null])->assertStatus(422);
+        $this->photo($i, 'toilet_block', null, ['file' => $png, 'sha256' => null])->assertStatus(422);
 
         // oversize document
         $big = UploadedFile::fake()->create('big.pdf', 6000, 'application/pdf');
         $this->post(route('evidence.store', $i), ['file' => $big, 'evidence_uid' => (string) Str::uuid(), 'kind' => 'document'], ['Accept' => 'application/json'])->assertStatus(422);
 
         // no location without reason
-        $this->photo($i, 'toilet', null, ['latitude' => null, 'longitude' => null])->assertStatus(422)->assertJsonValidationErrors('no_location_reason');
-        $this->photo($i, 'toilet', null, ['latitude' => null, 'longitude' => null, 'no_location_reason' => 'GPS off in building'])->assertCreated();
+        $this->photo($i, 'toilet_block', null, ['latitude' => null, 'longitude' => null])->assertStatus(422)->assertJsonValidationErrors('no_location_reason');
+        $this->photo($i, 'toilet_block', null, ['latitude' => null, 'longitude' => null, 'no_location_reason' => 'GPS off in building'])->assertCreated();
 
         // idempotent re-send
         $uid = (string) Str::uuid();
-        $this->photo($i, 'classroom', null, ['evidence_uid' => $uid])->assertCreated();
-        $this->photo($i, 'classroom', null, ['evidence_uid' => $uid])->assertOk();
+        $this->photo($i, 'classroom_transaction', null, ['evidence_uid' => $uid])->assertCreated();
+        $this->photo($i, 'classroom_transaction', null, ['evidence_uid' => $uid])->assertOk();
         $this->assertSame(1, InspectionEvidence::where('evidence_uid', $uid)->count());
 
         // fingerprint mismatch
-        $this->photo($i, 'classroom', null, ['sha256' => str_repeat('a', 64)])->assertStatus(422);
+        $this->photo($i, 'classroom_transaction', null, ['sha256' => str_repeat('a', 64)])->assertStatus(422);
 
         // stored privately under a random name
         $e = InspectionEvidence::where('evidence_uid', $uid)->first();
@@ -248,7 +308,7 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(InspectionStatus::Unlocked, $i->fresh()->status);
         $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_unlocked', 'auditable_id' => $i->id]);
 
-        $this->actingAs($officer)->post(route('inspections.answers', $i), ['code' => 'ATT_ENROLLED', 'value' => 121])->assertOk();
+        $this->actingAs($officer)->post(route('inspections.answers', $i), ['code' => 'TSI_01', 'value' => 121])->assertOk();
         $this->actingAs($officer)->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect();
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);
         $this->assertSame($no, $i->fresh()->inspection_no);

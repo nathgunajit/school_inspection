@@ -28,17 +28,17 @@ return [
         'clamav_binary' => env('CLAMAV_BINARY'), // e.g. C:\ClamAV\clamscan.exe ; null = skip scan
     ],
 
-    // Mandatory photograph categories and minimum count (PRD 9.3)
+    // Mandatory photograph categories and minimum count (Modification V1, step 7)
     'mandatory_photos' => [
-        'school_front' => 1,
-        'classroom' => 1,
-        'toilet' => 1,
-        'kitchen_mdm' => 1,
+        'school' => 1,
+        'toilet_block' => 1,
+        'ict_smart' => 1,
+        'classroom_transaction' => 1,
     ],
 
     'captcha_enabled' => (bool) env('CAPTCHA_ENABLED', true),
 
-    'max_suggestions' => 5,
+    'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,
 ];

@@ -41,6 +41,12 @@ class MasterValueSeeder extends Seeder
                 'higher_secondary' => 'Higher Secondary',
             ],
             'photo_category' => [
+                // v2 mandatory set (Modification V1, step 7)
+                'school' => 'Photograph of School',
+                'toilet_block' => 'Toilet Block',
+                'ict_smart' => 'ICT Lab / Smart Classroom / Tele Education',
+                'classroom_transaction' => 'Classroom Transaction',
+                // v1 categories kept for history and optional extras
                 'school_front' => 'School front with name board',
                 'classroom' => 'Classroom in session',
                 'toilet' => 'Toilets',

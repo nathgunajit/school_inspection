@@ -13,7 +13,7 @@ class InspectionEvidence extends Model
     protected $table = 'inspection_evidence';
 
     protected $fillable = [
-        'evidence_uid', 'inspection_id', 'kind', 'category_id', 'question_code', 'caption',
+        'evidence_uid', 'inspection_id', 'kind', 'source', 'category_id', 'question_code', 'caption',
         'taken_at', 'received_at', 'latitude', 'longitude', 'accuracy', 'no_location_reason',
         'original_name', 'mime', 'size_bytes', 'storage_path', 'sha256', 'status', 'uploaded_by',
     ];
@@ -48,6 +48,7 @@ class InspectionEvidence extends Model
             'id' => $this->id,
             'evidence_uid' => $this->evidence_uid,
             'kind' => $this->kind,
+            'source' => $this->source ?? 'camera',
             'category' => $this->category?->code,
             'category_label' => $this->category?->label,
             'question_code' => $this->question_code,

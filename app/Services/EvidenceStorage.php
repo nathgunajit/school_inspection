@@ -69,6 +69,7 @@ class EvidenceStorage
             'evidence_uid' => $meta['evidence_uid'],
             'inspection_id' => $inspection->id,
             'kind' => $kind,
+            'source' => $meta['source'] ?? 'camera',
             'category_id' => $meta['category_id'] ?? null,
             'question_code' => $meta['question_code'] ?? null,
             'caption' => $meta['caption'] ?? null,

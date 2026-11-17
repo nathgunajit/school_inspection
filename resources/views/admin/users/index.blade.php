@@ -1,7 +1,7 @@
 <x-layouts.app title="User List">
     <form method="GET" class="filter-bar mb-3">
         <div class="row g-2">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input name="q" value="{{ $filters['q'] ?? '' }}" class="form-control" placeholder="Name, mobile or employee ID">
@@ -20,10 +20,18 @@
                 </select>
             </div>
             @if (auth()->user()->level->isStateWide())
-                <div class="col-8 col-md-3">
-                    <select name="district_id" class="form-select" data-autosubmit aria-label="District">
+                <div class="col-6 col-md-2">
+                    <select name="district_id" class="form-select" data-autosubmit aria-label="District" onchange="this.form.block_id && (this.form.block_id.value='')">
                         <option value="">All districts</option>
                         @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(($filters['district_id'] ?? '') == $d->id)>{{ $d->name }}</option>@endforeach
+                    </select>
+                </div>
+            @endif
+            @if ($blocks->isNotEmpty())
+                <div class="col-6 col-md-2">
+                    <select name="block_id" class="form-select" data-autosubmit aria-label="Block">
+                        <option value="">All blocks</option>
+                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(($filters['block_id'] ?? '') == $b->id)>{{ $b->name }}</option>@endforeach
                     </select>
                 </div>
             @endif

@@ -7,22 +7,18 @@ use App\Services\ApproverResolver;
 use App\Services\JurisdictionService;
 use Illuminate\Http\Request;
 
+/** Compact inspector dashboard: daily actions and a short summary (Modification V1). */
 class DashboardController extends Controller
 {
     public function __invoke(Request $request, JurisdictionService $j, ApproverResolver $approvers)
     {
         $user = $request->user();
-        $from = now()->startOfMonth()->toDateString();
-        $to = now()->toDateString();
-
-        $submitted = fn () => $j->inspections($user)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
+        $mine = fn () => $user->inspections()->where('status', InspectionStatus::Submitted);
 
         $stats = [
-            'schools' => $j->schools($user)->where('status', 'active')->count(),
-            'inspected' => $submitted()->whereDate('inspection_date', '>=', $from)->whereDate('inspection_date', '<=', $to)->distinct('school_id')->count('school_id'),
-            'submitted' => $submitted()->whereDate('inspection_date', '>=', $from)->whereDate('inspection_date', '<=', $to)->count(),
+            'today' => $mine()->whereDate('inspection_date', today()->toDateString())->count(),
+            'month' => $mine()->whereDate('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
             'my_drafts' => $user->inspections()->whereIn('status', [InspectionStatus::Draft, InspectionStatus::Unlocked])->count(),
-            'my_total' => $user->inspections()->where('status', InspectionStatus::Submitted)->count(),
         ];
 
         $drafts = $user->inspections()->with('school')

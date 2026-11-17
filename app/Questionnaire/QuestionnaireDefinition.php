@@ -3,39 +3,37 @@
 namespace App\Questionnaire;
 
 /**
- * The predefined Phase 1 questionnaire (PRD 8.3).
+ * The predefined inspection questionnaire, Version 2
+ * (source: Documents/Modification of the ApplicationV1.docx; supersedes the PRD 8.3 v1 form).
  *
  * Question codes are permanent identifiers: never rename or reuse them.
- * Phase 2 will load this definition as "Version 1" of the configurable questionnaire.
+ * v1 codes (GOV_*, CON_*, ATT_*, CLS_*, FIN_*) belong to legacy inspections and must not be reused.
  *
  * Question keys:
  *  code, label, type (radio|multi|select|text|textarea|number|date),
  *  options [value => label], required (bool),
  *  show_if [code, [values]], required_if [code, [values]], required_unless [code, [values]],
- *  remarks_if [values]  : remarks mandatory when answer is one of these
- *  photo  'required' | 'optional' | ['required_if' => [values]]
- *  photo_category        : category code for question-linked photos (default 'other')
+ *  remarks_if [values], photo 'required'|'optional'|['required_if' => [values]], photo_category
+ *
+ * Steps 3–5 and 7 are repeating sections / evidence handled outside the question list.
  */
 class QuestionnaireDefinition
 {
-    public const VERSION = 1;
+    public const VERSION = 2;
 
-    private const GSU = ['good' => 'Good', 'satisfactory' => 'Satisfactory', 'unsatisfactory' => 'Unsatisfactory'];
     private const YN = ['yes' => 'Yes', 'no' => 'No'];
-    private const CONDITION = ['good' => 'Good', 'satisfactory' => 'Satisfactory', 'unsatisfactory' => 'Unsatisfactory', 'not_available' => 'Not available'];
-    private const RATING4 = ['very_good' => 'Very good', 'good' => 'Good', 'needs_improvement' => 'Needs improvement', 'poor' => 'Poor'];
-    private const RECEIVED = ['all' => 'All students', 'some' => 'Some students', 'not_received' => 'Not received'];
-    private const HELD = ['monthly' => 'Held every month', 'irregular' => 'Irregular', 'not_held' => 'Not held'];
+    private const SU = ['satisfactory' => 'Satisfactory', 'unsatisfactory' => 'Unsatisfactory'];
 
     public static function steps(): array
     {
         return [
-            1 => ['key' => 'basic', 'title' => 'Basic Information', 'short' => 'Basic', 'icon' => 'bi-info-circle'],
-            2 => ['key' => 'governance', 'title' => 'School Governance', 'short' => 'Governance', 'icon' => 'bi-diagram-3'],
-            3 => ['key' => 'condition', 'title' => 'Condition of the School', 'short' => 'Condition', 'icon' => 'bi-building'],
-            4 => ['key' => 'attendance', 'title' => 'Teacher & Student Attendance', 'short' => 'Attendance', 'icon' => 'bi-people'],
-            5 => ['key' => 'classroom', 'title' => 'Classroom Observation & Fund Position', 'short' => 'Classroom', 'icon' => 'bi-easel'],
-            6 => ['key' => 'evidence', 'title' => 'Photographs, Suggestions & Remarks', 'short' => 'Photos', 'icon' => 'bi-camera'],
+            1 => ['key' => 'condition', 'title' => 'Condition of the School', 'short' => 'Condition', 'icon' => 'bi-building'],
+            2 => ['key' => 'strength', 'title' => "Teacher's & Student's Information", 'short' => 'Strength', 'icon' => 'bi-people'],
+            3 => ['key' => 'absentee', 'title' => 'Teachers Absentee Form', 'short' => 'Absentee', 'icon' => 'bi-person-x'],
+            4 => ['key' => 'classroom', 'title' => 'Class Room Performance', 'short' => 'Classroom', 'icon' => 'bi-easel'],
+            5 => ['key' => 'fund', 'title' => 'Fund Received & Expenditure', 'short' => 'Fund', 'icon' => 'bi-cash-coin'],
+            6 => ['key' => 'governance', 'title' => 'School Governance', 'short' => 'Governance', 'icon' => 'bi-diagram-3'],
+            7 => ['key' => 'photos', 'title' => 'Photographs of School', 'short' => 'Photos', 'icon' => 'bi-camera'],
         ];
     }
 
@@ -43,105 +41,102 @@ class QuestionnaireDefinition
     public static function questions(): array
     {
         static $cache;
+        if ($cache) {
+            return $cache;
+        }
 
-        return $cache ??= [
+        $yn = fn (string $code, string $label, array $extra = []) => ['code' => $code, 'label' => $label, 'type' => 'radio', 'required' => true, 'options' => self::YN] + $extra;
+        $su = fn (string $code, string $label) => ['code' => $code, 'label' => $label, 'type' => 'radio', 'required' => true, 'options' => self::SU];
+        $num = fn (string $code, string $label) => ['code' => $code, 'label' => $label, 'type' => 'number', 'required' => true];
+        $reason = fn (string $code, string $label, string $parent) => ['code' => $code, 'label' => $label, 'type' => 'textarea',
+            'show_if' => [$parent, ['no']], 'required_if' => [$parent, ['no']]];
+
+        return $cache = [
             1 => [
                 ['code' => 'BAS_PERSON_NAME', 'label' => 'Name of the person met at the school', 'type' => 'text', 'required' => true],
                 ['code' => 'BAS_PERSON_DESIG', 'label' => 'Designation of the person met', 'type' => 'text', 'required' => true],
+                ['code' => 'CND_01', 'label' => 'Type of School Building', 'type' => 'radio', 'required' => true,
+                    'options' => ['pucca' => 'Pucca', 'semi_pucca' => 'Semi Pucca', 'others' => 'Others']],
+                $yn('CND_02', 'Boundary Wall'),
+                $yn('CND_03', 'Functional Toilet for Girls'),
+                $yn('CND_04', 'Running Water Facility in Girls Toilet'),
+                $yn('CND_05', 'Functional Toilet for Boys'),
+                $yn('CND_06', 'Running Water Facility in Boys Toilet'),
+                $yn('CND_07', 'Safe Drinking Water Facility'),
+                $yn('CND_08', 'Electricity'),
+                $yn('CND_09', 'External Electrification'),
+                $yn('CND_10', 'Internal Electrification'),
+                $yn('CND_11', 'Adequate Number of Classrooms'),
+                $yn('CND_12', 'Requirement of ACR (Additional Classroom)'),
+                $yn('CND_13', 'Land Availability'),
+                $yn('CND_14', 'Classrooms having Black Board'),
+                $yn('CND_15', 'School Sign Board'),
+                $yn('CND_16', 'Does the School have Ramp with Rails'),
+                $yn('CND_17', 'Internet Facility'),
+                $yn('CND_18', 'Internet is Functional', ['show_if' => ['CND_17', ['yes']], 'required' => false, 'required_if' => ['CND_17', ['yes']]]),
+                $yn('CND_19', 'ICT Lab'),
+                $yn('CND_20', 'ICT Lab is Functional', ['show_if' => ['CND_19', ['yes']], 'required' => false, 'required_if' => ['CND_19', ['yes']]]),
+                $yn('CND_21', 'Vocational Education'),
+                $yn('CND_22', 'Smart Classroom'),
+                $yn('CND_23', 'Tele Education'),
+                $yn('CND_24', 'Does the School have Tinkering Lab'),
+                ['code' => 'CND_25', 'label' => 'Implementing Agency of Tinkering Lab', 'type' => 'radio',
+                    'options' => ['niti_aayog' => 'NITI Aayog', 'samagra_shiksha' => 'Samagra Shiksha', 'na' => 'Not Applicable'],
+                    'show_if' => ['CND_24', ['yes']], 'required_if' => ['CND_24', ['yes']]],
+                ['code' => 'CND_26', 'label' => 'Tinkering Lab is Functional', 'type' => 'radio',
+                    'options' => ['yes' => 'Yes', 'no' => 'No', 'na' => 'Not Applicable'],
+                    'show_if' => ['CND_24', ['yes']], 'required_if' => ['CND_24', ['yes']]],
             ],
 
             2 => [
-                ['code' => 'GOV_01', 'label' => 'Method of Teaching', 'type' => 'multi', 'required' => true,
-                    'options' => ['lecture' => 'Lecture', 'activity' => 'Activity-based', 'group' => 'Group work', 'tlm' => 'Use of TLM', 'digital' => 'Digital']],
-                ['code' => 'GOV_02', 'label' => 'SMDC/SMC Formed', 'type' => 'radio', 'required' => true, 'options' => self::YN],
-                ['code' => 'GOV_03', 'label' => 'Reason for Not Forming SMDC/SMC', 'type' => 'textarea',
-                    'show_if' => ['GOV_02', ['no']], 'required_if' => ['GOV_02', ['no']]],
-                ['code' => 'GOV_04', 'label' => 'Monthly Sitting of SMC/SMDC', 'type' => 'radio', 'options' => self::HELD,
-                    'show_if' => ['GOV_02', ['yes']], 'required_if' => ['GOV_02', ['yes']], 'photo' => 'optional', 'photo_category' => 'records'],
-                ['code' => 'GOV_05', 'label' => 'Morning Assembly', 'type' => 'radio', 'required' => true,
-                    'options' => ['daily' => 'Held daily', 'irregular' => 'Irregular', 'not_held' => 'Not held']],
-                ['code' => 'GOV_06', 'label' => 'Free Textbook Received', 'type' => 'radio', 'required' => true, 'options' => self::RECEIVED],
-                ['code' => 'GOV_07', 'label' => 'Reason for Not Receiving Free Textbooks', 'type' => 'textarea',
-                    'show_if' => ['GOV_06', ['some', 'not_received']], 'required_unless' => ['GOV_06', ['all']]],
-                ['code' => 'GOV_08', 'label' => 'Free Uniform Received', 'type' => 'radio', 'required' => true, 'options' => self::RECEIVED],
-                ['code' => 'GOV_09', 'label' => 'Reason for Not Receiving Free Uniform', 'type' => 'textarea',
-                    'show_if' => ['GOV_08', ['some', 'not_received']], 'required_unless' => ['GOV_08', ['all']]],
-                ['code' => 'GOV_10', 'label' => 'School Cleanliness', 'type' => 'radio', 'required' => true, 'options' => self::GSU,
-                    'photo' => ['required_if' => ['unsatisfactory']]],
-                ['code' => 'GOV_11', 'label' => 'Organic Kitchen Garden', 'type' => 'radio', 'required' => true,
-                    'options' => ['yes' => 'Yes', 'no' => 'No', 'no_space' => 'No space'], 'photo' => 'optional'],
-                ['code' => 'GOV_12', 'label' => 'Mid-Day Meal on Regular Basis', 'type' => 'radio', 'required' => true, 'options' => self::YN],
-                ['code' => 'GOV_13', 'label' => 'Reason for Irregularity or Non-Availability of MDM', 'type' => 'textarea',
-                    'show_if' => ['GOV_12', ['no']], 'required_if' => ['GOV_12', ['no']]],
-                ['code' => 'GOV_14', 'label' => 'Separate and Hygienic Kitchen Available', 'type' => 'radio', 'required' => true, 'options' => self::YN,
-                    'photo' => 'required', 'photo_category' => 'kitchen_mdm'],
-                ['code' => 'GOV_15', 'label' => 'Hygienic Uniform Worn by Cook-cum-Helper', 'type' => 'radio', 'required' => true,
-                    'options' => ['yes' => 'Yes', 'no' => 'No', 'cook_absent' => 'Cook absent']],
-                ['code' => 'GOV_16', 'label' => 'Regular Health Check-up of Students', 'type' => 'radio', 'required' => true, 'options' => self::YN],
-                ['code' => 'GOV_16_DATE', 'label' => 'Date of last health check-up', 'type' => 'date',
-                    'show_if' => ['GOV_16', ['yes']], 'required_if' => ['GOV_16', ['yes']]],
-                ['code' => 'GOV_17', 'label' => 'Health Check-up of Cook-cum-Helper', 'type' => 'radio', 'required' => true, 'options' => self::YN],
-                ['code' => 'GOV_18', 'label' => 'Fire Extinguisher Available', 'type' => 'radio', 'required' => true,
-                    'options' => ['valid' => 'Available and valid', 'expired' => 'Expired', 'not_available' => 'Not available'],
-                    'photo' => ['required_if' => ['valid', 'expired']]],
-                ['code' => 'GOV_19', 'label' => 'Availability of Sports Items', 'type' => 'radio', 'required' => true,
-                    'options' => ['adequate' => 'Adequate', 'inadequate' => 'Inadequate', 'not_available' => 'Not available']],
-                ['code' => 'GOV_20', 'label' => 'School Record-Keeping System', 'type' => 'radio', 'required' => true, 'options' => self::GSU,
-                    'remarks_if' => ['unsatisfactory']],
-                ['code' => 'GOV_21', 'label' => 'Administration', 'type' => 'radio', 'required' => true, 'options' => self::GSU,
-                    'remarks_if' => ['unsatisfactory']],
-                ['code' => 'GOV_22', 'label' => 'Attendance Registers up to date', 'type' => 'radio', 'required' => true,
-                    'options' => ['yes' => 'Yes', 'partly' => 'Partly', 'no' => 'No']],
-                ['code' => 'GOV_23', 'label' => 'Accounting System', 'type' => 'radio', 'required' => true, 'options' => self::GSU,
-                    'remarks_if' => ['unsatisfactory']],
-                ['code' => 'GOV_24', 'label' => 'Teaching Learning Material (TLM)', 'type' => 'radio', 'required' => true,
-                    'options' => ['in_use' => 'Available and in use', 'not_in_use' => 'Available, not in use', 'not_available' => 'Not available']],
+                $num('TSI_01', 'Number of Students Present'),
+                $num('TSI_02', 'Number of Students Absent'),
+                $num('TSI_03', 'Seating Arrangement of the Students (number of benches/desks)'),
+                $num('TSI_04', 'Number of Regular Teachers'),
+                $num('TSI_05', 'Number of Contractual Teachers'),
+                $num('TSI_06', 'Number of SSA Teachers'),
+                $num('TSI_07', 'Total Number of Provincialised Tutors'),
+                $num('TSI_08', 'Total Number of Tutors Newly Accorded'),
+                $num('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
+                $num('TSI_10', 'Number of Male Trained Teachers'),
+                $num('TSI_11', 'Number of Male Untrained Teachers'),
+                $num('TSI_12', 'Number of Female Trained Teachers'),
+                $num('TSI_13', 'Number of Female Untrained Teachers'),
             ],
 
-            3 => collect([
-                'CON_01' => ['School Building', 'other'],
-                'CON_02' => ['Classrooms', 'classroom'],
-                'CON_03' => ['Boundary Wall', 'other'],
-                'CON_04' => ['Drinking Water', 'drinking_water'],
-                'CON_05' => ["Boys' Toilet", 'toilet'],
-                'CON_06' => ["Girls' Toilet", 'toilet'],
-                'CON_07' => ['Electricity and Fans', 'other'],
-                'CON_08' => ['Furniture', 'other'],
-                'CON_09' => ['Playground', 'playground'],
-                'CON_10' => ['Kitchen and Dining Facilities', 'kitchen_mdm'],
-                'CON_11' => ['Ramp and Accessibility', 'other'],
-            ])->map(fn ($v, $code) => [
-                'code' => $code, 'label' => $v[0], 'type' => 'radio', 'required' => true, 'options' => self::CONDITION,
-                'remarks_if' => ['unsatisfactory', 'not_available'],
-                'photo' => ['required_if' => ['unsatisfactory', 'not_available']],
-                'photo_category' => $v[1],
-            ])->values()->all(),
-
-            4 => [
-                ['code' => 'ATT_SANCTIONED', 'label' => 'Total Sanctioned Teachers', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_WORKING', 'label' => 'Total Working Teachers', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_PRESENT', 'label' => 'Teachers Present', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_ABSENT', 'label' => 'Teachers Absent', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_ENROLLED', 'label' => 'Total Students Enrolled', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_STUDENTS_PRESENT', 'label' => 'Students Present Today (head count)', 'type' => 'number', 'required' => true],
-                ['code' => 'ATT_REMARKS', 'label' => 'Inspection Remarks', 'type' => 'textarea'],
-            ],
-
-            5 => [
-                ['code' => 'CLS_CLASS', 'label' => 'Class Observed', 'type' => 'select', 'required' => true,
-                    'options' => collect(range(1, 12))->mapWithKeys(fn ($c) => [(string) $c => 'Class '.$c])->prepend('Pre-primary', 'pre_primary')->all()],
-                ['code' => 'CLS_SUBJECT', 'label' => 'Subject', 'type' => 'text', 'required' => true],
-                ['code' => 'CLS_TEACHER', 'label' => 'Teacher', 'type' => 'text', 'required' => true],
-                ['code' => 'CLS_ACTIVITY', 'label' => 'Teaching-learning activities', 'type' => 'radio', 'required' => true, 'options' => self::RATING4],
-                ['code' => 'CLS_PARTICIPATION', 'label' => 'Student participation', 'type' => 'radio', 'required' => true, 'options' => self::RATING4],
-                ['code' => 'CLS_TLM_USE', 'label' => 'Use of TLM', 'type' => 'radio', 'required' => true, 'options' => self::RATING4],
-                ['code' => 'CLS_NOTES', 'label' => 'Observation notes', 'type' => 'textarea'],
-                ['code' => 'CLS_SUGGESTIONS', 'label' => 'Suggestions for the teacher', 'type' => 'textarea'],
-            ],
+            3 => [],
+            4 => [],
+            5 => [],
 
             6 => [
-                ['code' => 'FIN_GENERAL_REMARKS', 'label' => 'General remarks', 'type' => 'textarea'],
+                ['code' => 'GOVR_01', 'label' => 'Method of Teaching', 'type' => 'radio', 'required' => true,
+                    'options' => ['conventional' => 'Conventional', 'non_conventional' => 'Non-Conventional']],
+                $yn('GOVR_02', 'SMDC/SMC Formed'),
+                $reason('GOVR_03', 'Reason for not forming SMDC/SMC', 'GOVR_02'),
+                $yn('GOVR_04', 'Monthly Sitting of SMC/SMDC', ['show_if' => ['GOVR_02', ['yes']], 'required' => false, 'required_if' => ['GOVR_02', ['yes']]]),
+                $yn('GOVR_05', 'Morning Assembly'),
+                $yn('GOVR_06', 'Free Text Book Received'),
+                $reason('GOVR_07', 'Reason for not receiving Free Text Books', 'GOVR_06'),
+                $yn('GOVR_08', 'Free Uniform Received'),
+                $reason('GOVR_09', 'Reason for not receiving Free Uniform', 'GOVR_08'),
+                $su('GOVR_10', 'School Cleanliness'),
+                $yn('GOVR_11', 'Organic Kitchen Garden'),
+                $yn('GOVR_12', 'Mid-Day Meal on regular basis'),
+                $reason('GOVR_13', 'If irregular or not provided, state the reason with due specification', 'GOVR_12'),
+                $yn('GOVR_14', 'Separate & Hygienic Kitchen is available'),
+                $yn('GOVR_15', 'Hygienic uniform worn by the Cook-cum-Helper'),
+                $yn('GOVR_16', 'Regular Health Check-up of Students'),
+                $yn('GOVR_17', 'Health Check-up of Cook-cum-Helper'),
+                $yn('GOVR_18', 'Fire Extinguisher is available'),
+                $yn('GOVR_19', 'Availability of Sports Items'),
+                $su('GOVR_20', 'Record Keeping System of the School'),
+                $su('GOVR_21', 'Administration'),
+                $su('GOVR_22', 'Attendance'),
+                $su('GOVR_23', 'Accounting System'),
+                $su('GOVR_24', 'TLM'),
             ],
+
+            7 => [],
         ];
     }
 
@@ -174,11 +169,21 @@ class QuestionnaireDefinition
             return '—';
         }
         if (! empty($q['options'])) {
-            $vals = (array) $value;
-
-            return collect($vals)->map(fn ($v) => $q['options'][$v] ?? $v)->implode(', ');
+            return collect((array) $value)->map(fn ($v) => $q['options'][$v] ?? $v)->implode(', ');
         }
 
         return is_array($value) ? implode(', ', $value) : (string) $value;
+    }
+
+    /** Teaching staff total from step 2 (regular + contractual + SSA + tutors). */
+    public static function totalTeachers(array $answers): ?int
+    {
+        $codes = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
+        $vals = array_map(fn ($c) => $answers[$c] ?? null, $codes);
+        if (in_array(null, $vals, true)) {
+            return null;
+        }
+
+        return array_sum(array_map('intval', $vals));
     }
 }

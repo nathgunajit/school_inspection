@@ -45,6 +45,10 @@ class UserController extends Controller
             'users' => $users,
             'filters' => $f,
             'districts' => District::orderBy('name')->get(),
+            // Block filter: blocks of the chosen district, or of the manager's own district
+            'blocks' => ($districtId = ($f['district_id'] ?? null) ?: $this->j->current($request->user())?->district_id)
+                ? Block::where('district_id', $districtId)->orderBy('name')->get()
+                : collect(),
             'levels' => UserLevel::registrable(),
             'statuses' => UserStatus::cases(),
         ]);

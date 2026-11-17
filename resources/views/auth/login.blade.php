@@ -1,6 +1,6 @@
 <x-layouts.guest title="Sign in">
-    <h1 class="h3 fw-bold mb-1">Welcome back</h1>
-    <p class="text-secondary mb-4">Sign in with your registered mobile number.</p>
+    <div class="auth-title">Sign in</div>
+    <div class="auth-sub">School Inspection Management System</div>
 
     <form method="POST" action="{{ route('login') }}" novalidate>
         @csrf
@@ -16,12 +16,12 @@
         <div class="mb-3">
             <div class="d-flex justify-content-between">
                 <label class="form-label" for="password">Password</label>
-                <a href="{{ route('password.request') }}" class="text-sm">Forgot password?</a>
+                <a href="{{ route('password.request') }}" class="text-xs">Forgot password?</a>
             </div>
             <div class="input-group">
                 <span class="input-group-text bg-white"><i class="bi bi-lock text-secondary"></i></span>
                 <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Your password" autocomplete="current-password" required>
-                <button type="button" class="btn btn-outline-secondary border-start-0" style="border-color:var(--bs-border-color)" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password';this.firstElementChild.classList.toggle('bi-eye-slash')" aria-label="Show password"><i class="bi bi-eye"></i></button>
+                <button type="button" class="btn btn-outline-secondary" style="border-color:var(--bs-border-color)" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password';this.firstElementChild.classList.toggle('bi-eye-slash')" aria-label="Show password"><i class="bi bi-eye"></i></button>
                 @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
         </div>
@@ -30,10 +30,10 @@
             @include('partials.captcha')
         @endif
 
-        <button class="btn btn-primary w-100 btn-lg mt-2" type="submit"><i class="bi bi-box-arrow-in-right"></i>Sign in</button>
+        <button class="btn btn-primary w-100 mt-1" type="submit"><i class="bi bi-box-arrow-in-right"></i>Sign in</button>
     </form>
 
-    <div class="text-center mt-4 pt-3 border-top">
+    <div class="text-center mt-4 pt-3 border-top text-sm">
         <span class="text-secondary">New officer?</span>
         <a href="{{ route('register') }}" class="fw-semibold">Register here</a>
     </div>

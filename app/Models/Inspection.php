@@ -39,6 +39,7 @@ class Inspection extends Model
     public function cluster() { return $this->belongsTo(Cluster::class); }
     public function answers() { return $this->hasMany(InspectionAnswer::class); }
     public function absentTeachers() { return $this->hasMany(InspectionAbsentTeacher::class); }
+    public function classroomObservations() { return $this->hasMany(InspectionClassroomObservation::class); }
     public function fundPositions() { return $this->hasMany(InspectionFundPosition::class); }
     public function evidence() { return $this->hasMany(InspectionEvidence::class); }
     public function photos() { return $this->evidence()->where('kind', 'photo'); }

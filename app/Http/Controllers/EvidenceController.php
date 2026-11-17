@@ -27,6 +27,7 @@ class EvidenceController extends Controller
             'file' => ['required', 'file'],
             'evidence_uid' => ['required', 'uuid'],
             'kind' => ['required', 'in:photo,document'],
+            'source' => ['nullable', 'in:camera,gallery'],
             'category' => ['nullable', Rule::exists('master_values', 'code')->where('type', 'photo_category')],
             'question_code' => ['nullable', 'string', 'max:20'],
             'caption' => ['nullable', 'string', 'max:150'],
@@ -57,6 +58,7 @@ class EvidenceController extends Controller
         $evidence = $this->storage->store($inspection, $request->user(), $request->file('file'), [
             'evidence_uid' => $data['evidence_uid'],
             'kind' => $data['kind'],
+            'source' => $data['kind'] === 'photo' ? ($data['source'] ?? 'camera') : 'gallery',
             'sha256' => $data['sha256'] ?? null,
             'category_id' => isset($data['category']) ? MasterValue::idFor('photo_category', $data['category']) : null,
             'question_code' => $data['question_code'] ?? null,
@@ -68,7 +70,7 @@ class EvidenceController extends Controller
             'no_location_reason' => isset($data['latitude']) ? null : ($data['no_location_reason'] ?? null),
         ]);
 
-        AuditLogger::log('evidence_uploaded', $evidence, ['inspection_id' => $inspection->id, 'kind' => $evidence->kind, 'sha256' => $evidence->sha256]);
+        AuditLogger::log('evidence_uploaded', $evidence, ['inspection_id' => $inspection->id, 'kind' => $evidence->kind, 'source' => $evidence->source, 'sha256' => $evidence->sha256]);
 
         return response()->json($evidence->load('category')->toClientArray(), 201);
     }

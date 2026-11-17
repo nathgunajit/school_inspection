@@ -1,78 +1,73 @@
 <x-layouts.app title="Dashboard">
-    <div class="hero mb-4">
-        <div class="row align-items-center g-3 position-relative" style="z-index:1">
-            <div class="col-md">
-                <div class="text-white-75 text-sm mb-1">{{ now()->format('l, d F Y') }}</div>
-                <h2 class="h3 fw-bold mb-1">Hello, {{ \Illuminate\Support\Str::of($user->name)->before(' ') }} 👋</h2>
-                <div class="text-white-75">{{ $user->designation?->label ?? $user->level->label() }} · {{ $jurisdiction?->label() ?: 'No jurisdiction' }}</div>
-            </div>
-            @can('conduct_inspections')
-                <div class="col-md-auto">
-                    <a href="{{ route('schools.index') }}" class="btn btn-light btn-lg fw-semibold text-primary w-100"><i class="bi bi-plus-circle"></i>Start new inspection</a>
-                </div>
-            @endcan
+    <div class="d-flex align-items-end justify-content-between gap-2 mb-3">
+        <div class="min-w-0">
+            <div class="text-xs text-secondary">{{ now()->format('l, d M Y') }}</div>
+            <h2 class="h5 mb-0 text-truncate">Hello, {{ \Illuminate\Support\Str::of($user->name)->before(' ') }}</h2>
+            <div class="text-xs text-secondary text-truncate">{{ $jurisdiction?->label() ?: $user->level->label() }}</div>
         </div>
     </div>
 
     @if ($pending)
-        <a href="{{ route('admin.approvals.index') }}" class="alert alert-warning border-0 d-flex align-items-center gap-3 text-decoration-none mb-4">
-            <i class="bi bi-person-exclamation fs-4"></i>
-            <div class="flex-grow-1"><strong>{{ $pending }} registration{{ $pending > 1 ? 's' : '' }}</strong> waiting for your approval</div>
+        <a href="{{ route('admin.approvals.index') }}" class="alert alert-warning border-0 d-flex align-items-center gap-2 text-decoration-none py-2 mb-3 text-sm">
+            <i class="bi bi-person-exclamation fs-5"></i>
+            <div class="flex-grow-1"><strong>{{ $pending }}</strong> registration{{ $pending > 1 ? 's' : '' }} waiting for your approval</div>
             <i class="bi bi-chevron-right"></i>
         </a>
     @endif
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-xl-3"><x-stat-card label="Schools in jurisdiction" :value="number_format($stats['schools'])" icon="bi-building" tone="primary" /></div>
-        <div class="col-6 col-xl-3"><x-stat-card label="Schools inspected this month" :value="number_format($stats['inspected'])" icon="bi-check2-circle" tone="accent" /></div>
-        <div class="col-6 col-xl-3"><x-stat-card label="Inspections submitted this month" :value="number_format($stats['submitted'])" icon="bi-send-check" tone="success" :href="auth()->user()->can('view_reports') ? route('inspections.area') : null" /></div>
-        <div class="col-6 col-xl-3"><x-stat-card label="My drafts in progress" :value="$stats['my_drafts']" icon="bi-pencil-square" tone="warning" :href="route('inspections.mine', ['status' => 'draft'])" /></div>
+    <div class="quick-actions mb-3">
+        @can('conduct_inspections')
+            <a href="{{ route('schools.index') }}" class="cta-card">
+                <span class="cta-icon"><i class="bi bi-plus-lg"></i></span>
+                <span class="flex-grow-1"><span class="d-block fw-bold">Start new inspection</span><span class="text-xs" style="opacity:.85">Search school by UDISE code</span></span>
+                <i class="bi bi-arrow-right fs-5"></i>
+            </a>
+        @endcan
+        <div class="summary-strip">
+            <div><div class="v">{{ $stats['today'] }}</div><div class="l">Today</div></div>
+            <div><div class="v">{{ $stats['month'] }}</div><div class="l">This month</div></div>
+            <a href="{{ route('inspections.mine', ['status' => 'draft']) }}" class="text-decoration-none"><div class="v text-warning">{{ $stats['my_drafts'] }}</div><div class="l">Drafts</div></a>
+        </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-pencil-square text-warning me-2"></i>Continue where you left off</span>
-                </div>
-                <div class="list-card">
-                    @forelse ($drafts as $d)
-                        <a href="{{ route('inspections.step', [$d, 1]) }}" class="list-item text-decoration-none">
-                            <span class="stat-icon tone-warning" style="width:40px;height:40px;border-radius:10px;display:grid;place-items:center"><i class="bi bi-file-earmark-text"></i></span>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="fw-semibold text-truncate">{{ $d->school->name }}</div>
-                                <div class="text-xs text-secondary">UDISE {{ $d->school->udise_code }} · {{ $d->inspection_date->format('d M Y') }}</div>
-                                <div class="progress-thin progress mt-2"><div class="progress-bar" style="width: {{ $d->completion_pct }}%"></div></div>
+    @if ($drafts->isNotEmpty())
+        <div class="section-title">Continue draft</div>
+        <div class="row g-2 mb-3">
+            @foreach ($drafts as $d)
+                <div class="col-md-6 col-xl-4">
+                    <a href="{{ route('inspections.step', [$d, 1]) }}" class="card h-100 text-decoration-none">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <div class="fw-semibold text-sm text-truncate text-body">{{ $d->school->name }}</div>
+                                <span class="text-xs fw-bold text-primary">{{ $d->completion_pct }}%</span>
                             </div>
-                            <span class="text-sm fw-semibold text-primary">{{ $d->completion_pct }}%</span>
-                        </a>
-                    @empty
-                        <x-empty-state icon="bi-clipboard-plus" title="No drafts" text="Start an inspection by searching for a school by UDISE code." />
-                    @endforelse
+                            <div class="text-xs text-secondary">UDISE {{ $d->school->udise_code }} · {{ $d->inspection_date->format('d M') }}</div>
+                            <div class="progress-thin progress mt-2"><div class="progress-bar" style="width: {{ $d->completion_pct }}%"></div></div>
+                        </div>
+                    </a>
                 </div>
-            </div>
+            @endforeach
         </div>
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-clock-history text-primary me-2"></i>Recently submitted</span>
-                    <a href="{{ route('inspections.mine') }}" class="text-sm">View all</a>
-                </div>
-                <div class="list-card">
-                    @forelse ($recent as $r)
-                        <a href="{{ route('inspections.show', $r) }}" class="list-item text-decoration-none">
-                            <span class="stat-icon tone-success" style="width:40px;height:40px;border-radius:10px;display:grid;place-items:center"><i class="bi bi-check2"></i></span>
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="fw-semibold text-truncate">{{ $r->school->name }}</div>
-                                <div class="text-xs text-secondary">{{ $r->inspection_no }} · {{ $r->submitted_at?->format('d M Y, h:i A') }}</div>
-                            </div>
-                            <i class="bi bi-chevron-right text-secondary"></i>
-                        </a>
-                    @empty
-                        <x-empty-state icon="bi-send" title="No submitted inspections yet" />
-                    @endforelse
-                </div>
-            </div>
+    @endif
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="section-title mb-2">Recent submissions</div>
+        <a href="{{ route('inspections.mine') }}" class="text-xs mb-2">View all</a>
+    </div>
+    <div class="card">
+        <div class="list-card">
+            @forelse ($recent as $r)
+                <a href="{{ route('inspections.show', $r) }}" class="list-item text-decoration-none py-2">
+                    <i class="bi bi-check-circle-fill text-success"></i>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold text-sm text-truncate">{{ $r->school->name }}</div>
+                        <div class="text-xs text-secondary">{{ $r->inspection_no }} · {{ $r->submitted_at?->format('d M, h:i A') }}</div>
+                    </div>
+                    <i class="bi bi-chevron-right text-secondary"></i>
+                </a>
+            @empty
+                <div class="text-center text-secondary text-sm py-4">No submitted inspections yet.</div>
+            @endforelse
         </div>
     </div>
 </x-layouts.app>

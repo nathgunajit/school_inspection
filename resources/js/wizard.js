@@ -1,4 +1,4 @@
-// Inspection questionnaire: auto-save after every answer, conditional rules, progress (PRD 8.2, 8.3, 10.1)
+// Inspection questionnaire (v2): auto-save after every answer, conditional rules, repeating sections, progress
 const SI = window.SI;
 const esc = window.escapeHtml;
 const $ = (s, r = document) => r.querySelector(s);
@@ -6,6 +6,20 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 let pending = 0;
 let chain = Promise.resolve();
+
+/* ---------------- Session expiry (401 / 419) ---------------- */
+let redirecting = false;
+export function handleAuthError(err) {
+    const code = err?.response?.status;
+    if ((code === 401 || code === 419) && !redirecting) {
+        redirecting = true;
+        window.toast('Your session has expired. Your answers are saved. Please sign in again.', 'warning');
+        setTimeout(() => { window.location.href = SI.loginUrl; }, 2200);
+        return true;
+    }
+    return redirecting;
+}
+window.siHandleAuthError = handleAuthError;
 
 /* ---------------- Save indicator ---------------- */
 function indicator(state, text) {
@@ -27,8 +41,9 @@ function queue(fn) {
         }
         return res;
     }).catch((err) => {
-        const msg = err.response?.data?.message || (err.response ? 'Could not save' : 'No connection. Will retry when you change an answer.');
         indicator('error', 'Not saved');
+        if (handleAuthError(err)) return;
+        const msg = err.response?.data?.message || (err.response ? 'Could not save' : 'No connection. Will retry when you change an answer.');
         window.toast(msg, 'danger');
     }).finally(() => { pending--; });
     return chain;
@@ -48,9 +63,12 @@ function applyProgress(d) {
     }
     const miss = (d.missing || {})[SI.step] || [];
     $('#step-missing') && ($('#step-missing').textContent = miss.length ? `${miss.length} item(s) pending in this step` : 'Step complete');
+    const warn = (d.warnings || {})[SI.step] || [];
+    const box = $('#step-warnings');
+    if (box) box.innerHTML = warn.map((w) => `<div class="alert alert-warning text-sm py-2 mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>${esc(w)}</div>`).join('');
     document.dispatchEvent(new CustomEvent('si:progress', { detail: d }));
 }
-window.siRefreshProgress = () => axios.get(SI.progressUrl).then((r) => applyProgress(r.data)).catch(() => {});
+window.siRefreshProgress = () => axios.get(SI.progressUrl).then((r) => applyProgress(r.data)).catch((e) => handleAuthError(e));
 
 /* ---------------- Answer helpers ---------------- */
 function readValue(block) {
@@ -78,7 +96,7 @@ function photoRequired(q, v) {
     return !!(q.photo && q.photo.required_if && matches(v, q.photo.required_if));
 }
 
-/** Re-evaluate visibility, required stars, remarks and photo boxes for all questions on this step. */
+/** Re-evaluate visibility, required stars, remarks and photo boxes for questions on this step. */
 function refreshRules() {
     for (const q of Object.values(SI.questions)) {
         const block = document.getElementById(`q-${q.code}`);
@@ -86,20 +104,16 @@ function refreshRules() {
         const v = SI.answers[q.code];
         block.classList.toggle('d-none', !isVisible(q));
         block.querySelector('.q-req')?.classList.toggle('d-none', !isRequired(q));
-
         const rem = block.querySelector('.q-remarks');
         if (rem) rem.classList.toggle('d-none', !(filled(v) && matches(v, q.remarks_if || [])));
-
         const ph = block.querySelector('.q-photos');
         if (ph) {
             const req = filled(v) && photoRequired(q, v);
-            const show = q.photo === 'required' || q.photo === 'optional' || req;
-            ph.classList.toggle('d-none', !show);
+            ph.classList.toggle('d-none', !(q.photo === 'required' || q.photo === 'optional' || req));
             ph.querySelector('.photo-req')?.classList.toggle('d-none', !req);
             ph.querySelector('.photo-opt')?.classList.toggle('d-none', req);
         }
     }
-    attendanceCheck();
 }
 
 /* ---------------- Wire up answers ---------------- */
@@ -121,7 +135,6 @@ $$('.q-block').forEach((block) => {
         } else {
             el.addEventListener('input', () => {
                 SI.answers[code] = readValue(block);
-                if (type === 'number') attendanceCheck();
                 clearTimeout(timers[code]);
                 timers[code] = setTimeout(() => saveAnswer(code, readValue(block)), 800);
             });
@@ -140,75 +153,85 @@ $$('.q-block').forEach((block) => {
     }
 });
 
-/* ---------------- Step 4: attendance ---------------- */
-function attendanceCheck() {
-    const box = $('#att-check');
-    if (!box) return;
-    const n = (c) => (filled(SI.answers[c]) ? parseInt(SI.answers[c], 10) : null);
-    const [s, w, p, a, e, sp] = ['ATT_SANCTIONED', 'ATT_WORKING', 'ATT_PRESENT', 'ATT_ABSENT', 'ATT_ENROLLED', 'ATT_STUDENTS_PRESENT'].map(n);
-    const msgs = [];
-    if (w !== null && p !== null && a !== null && p + a !== w) msgs.push(`Present (${p}) + Absent (${a}) = ${p + a}, but Working is ${w}.`);
-    if (s !== null && w !== null && w > s) msgs.push('Working teachers cannot exceed sanctioned posts.');
-    if (e !== null && sp !== null && sp > e) msgs.push('Students present cannot exceed enrolment.');
-    const tc = SI.teachers?.length ?? 0;
-    if (a !== null && a !== tc) msgs.push(`Add details for each absent teacher (${tc} of ${a} added).`);
-    box.className = `alert text-sm py-2 ${msgs.length ? 'alert-warning' : (w !== null && p !== null && a !== null ? 'alert-success' : 'd-none')}`;
-    box.innerHTML = msgs.length ? msgs.map((m) => `<div><i class="bi bi-exclamation-triangle me-1"></i>${esc(m)}</div>`).join('') : '<i class="bi bi-check-circle me-1"></i>Attendance figures are consistent.';
-}
+/* ---------------- Repeating sections (absentee, classroom, fund) ---------------- */
+const delBtn = (url) => `<button type="button" class="btn btn-sm btn-light btn-icon" data-del="${esc(url)}" aria-label="Remove"><i class="bi bi-trash text-danger"></i></button>`;
 
-function renderTeachers() {
-    const list = $('#teacher-list');
-    if (!list) return;
-    $('#teacher-count').textContent = SI.teachers.length;
-    list.innerHTML = SI.teachers.length ? SI.teachers.map((t) => `
-        <div class="list-item py-2">
-            <i class="bi bi-person text-secondary"></i>
+const sections = {
+    teachers: {
+        list: '#teacher-list', form: '#teacher-form', key: 'teachers',
+        empty: 'No absent teachers added.',
+        row: (t) => `<div class="row-item"><span class="row-icon tone-danger"><i class="bi bi-person-x"></i></span>
             <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-sm">${esc(t.teacher_name)}</div>
-                <div class="text-xs text-secondary">${esc(t.status)}${t.remarks ? ' · ' + esc(t.remarks) : ''}</div></div>
-            <button type="button" class="btn btn-sm btn-light btn-icon" data-del="${esc(t.delete_url)}" aria-label="Remove"><i class="bi bi-trash text-danger"></i></button>
-        </div>`).join('') : '<div class="text-sm text-secondary p-2">No absent teachers added.</div>';
-    attendanceCheck();
+            <div class="text-xs text-secondary">${esc(t.type)} · ${esc(t.reason)}${t.remarks ? ' · ' + esc(t.remarks) : ''}</div></div>${delBtn(t.delete_url)}</div>`,
+    },
+    classrooms: {
+        list: '#classroom-list', form: '#classroom-form', key: 'classrooms',
+        empty: 'No classroom records yet. Add at least one.',
+        row: (c) => `<div class="row-item"><span class="row-icon tone-primary"><i class="bi bi-easel"></i></span>
+            <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-sm">${esc(c.class)} · ${esc(c.subject)}</div>
+            <div class="text-xs text-secondary">${esc(c.teacher_name)} · TLM: ${esc(c.tlm)} · Participation: ${esc(c.participation)}${c.remarks ? ' · ' + esc(c.remarks) : ''}</div></div>${delBtn(c.delete_url)}</div>`,
+    },
+    funds: {
+        list: '#fund-list', form: '#fund-form', key: 'funds',
+        empty: 'No fund details entered.',
+        row: (f) => `<div class="row-item align-items-start"><span class="row-icon tone-success"><i class="bi bi-cash-coin"></i></span>
+            <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-sm">${esc(f.financial_year)}
+                <span class="text-xs text-secondary fw-normal ms-1">Received ₹${esc(f.total_received)} L · Spent ₹${esc(f.total_expenditure)} L · Balance ₹${esc(f.balance)} L</span></div>
+            <div class="table-responsive"><table class="table table-sm text-xs mb-0 mt-1"><thead><tr><th>Head</th><th class="text-end">Received</th><th class="text-end">Expenditure</th><th class="text-end">Balance</th></tr></thead><tbody>
+            ${f.heads.map((h) => `<tr><td>${esc(h.label)}</td><td class="text-end">${esc(h.received)}</td><td class="text-end">${esc(h.expenditure)}</td><td class="text-end">${esc(h.balance)}</td></tr>`).join('')}
+            </tbody></table></div></div>
+            <div class="d-flex flex-column gap-1"><button type="button" class="btn btn-sm btn-light btn-icon" data-edit-fund="${esc(f.financial_year)}" aria-label="Edit"><i class="bi bi-pencil"></i></button>${delBtn(f.delete_url)}</div></div>`,
+    },
+};
+
+function renderSection(s) {
+    const list = $(s.list);
+    if (!list) return;
+    const rows = SI[s.key] || [];
+    list.innerHTML = rows.length ? rows.map(s.row).join('') : `<div class="text-sm text-secondary p-3 text-center">${s.empty}</div>`;
 }
 
-const tForm = $('#teacher-form');
-if (tForm) {
-    renderTeachers();
-    tForm.addEventListener('submit', (e) => {
+for (const s of Object.values(sections)) {
+    const form = $(s.form);
+    if (!form) continue;
+    renderSection(s);
+    form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const data = Object.fromEntries(new FormData(tForm));
-        queue(() => axios.post(tForm.dataset.url, data).then((r) => { SI.teachers = r.data.teachers; renderTeachers(); tForm.reset(); tForm.teacher_name.focus(); return r; }));
-    });
-    $('#teacher-list').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-del]');
-        if (b) queue(() => axios.delete(b.dataset.del).then((r) => { SI.teachers = r.data.teachers; renderTeachers(); return r; }));
-    });
-}
-
-/* ---------------- Step 5: funds ---------------- */
-function renderFunds() {
-    const body = $('#fund-list');
-    if (!body) return;
-    body.innerHTML = SI.funds.length ? SI.funds.map((f) => `
-        <tr><td class="text-sm">${esc(f.financial_year)}</td><td class="text-sm">${esc(f.category)}</td>
-        <td class="text-end text-sm">₹${esc(f.received)}</td><td class="text-end text-sm">₹${esc(f.utilised)}</td>
-        <td class="text-end text-sm fw-semibold">₹${esc(f.balance)}</td>
-        <td class="text-end"><button type="button" class="btn btn-sm btn-light btn-icon" data-del="${esc(f.delete_url)}" aria-label="Remove"><i class="bi bi-trash text-danger"></i></button></td></tr>`).join('')
-        : '<tr><td colspan="6" class="text-sm text-secondary">No fund entries.</td></tr>';
-}
-const fForm = $('#fund-form');
-if (fForm) {
-    renderFunds();
-    fForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        queue(() => axios.post(fForm.dataset.url, Object.fromEntries(new FormData(fForm))).then((r) => {
-            SI.funds = r.data.funds; renderFunds();
-            fForm.amount_received.value = ''; fForm.amount_utilised.value = '';
+        const data = Object.fromEntries(new FormData(form));
+        queue(() => axios.post(form.dataset.url, data).then((r) => {
+            SI[s.key] = r.data[s.key];
+            renderSection(s);
+            form.reset();
+            if (s.key === 'funds') $('#fund-amounts').disabled = true;
+            form.querySelector('input,select')?.focus();
+            window.toast('Saved', 'success');
             return r;
         }));
     });
-    $('#fund-list').addEventListener('click', (e) => {
+    $(s.list).addEventListener('click', (e) => {
         const b = e.target.closest('[data-del]');
-        if (b) queue(() => axios.delete(b.dataset.del).then((r) => { SI.funds = r.data.funds; renderFunds(); return r; }));
+        if (b && confirm('Remove this record?')) {
+            queue(() => axios.delete(b.dataset.del).then((r) => { SI[s.key] = r.data[s.key]; renderSection(s); return r; }));
+        }
+        const ed = e.target.closest('[data-edit-fund]');
+        if (ed) {
+            const f = SI.funds.find((x) => x.financial_year === ed.dataset.editFund);
+            form.financial_year.value = f.financial_year;
+            $('#fund-amounts').disabled = false;
+            for (const [k, v] of Object.entries(f.values)) if (form[k]) form[k].value = v || '';
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+}
+
+// Fund: select the year first, then the amounts unlock (prefilled if the year exists)
+const fundForm = $('#fund-form');
+if (fundForm) {
+    fundForm.financial_year.addEventListener('change', () => {
+        const fy = fundForm.financial_year.value;
+        $('#fund-amounts').disabled = !fy;
+        const existing = (SI.funds || []).find((x) => x.financial_year === fy);
+        for (const el of $$('#fund-amounts input')) el.value = existing ? (existing.values[el.name] || '') : '';
     });
 }
 
@@ -224,9 +247,8 @@ if (sugBox) {
 /* ---------------- Leaving the page ---------------- */
 window.siPendingWork = () => pending + (window.siPendingUploads?.() ?? 0);
 window.addEventListener('beforeunload', (e) => {
-    if (window.siPendingWork() > 0) { e.preventDefault(); e.returnValue = ''; }
+    if (!redirecting && window.siPendingWork() > 0) { e.preventDefault(); e.returnValue = ''; }
 });
-// Flush pending debounced text before navigating with the step links
 $$('[data-next], [data-step-link], .action-bar a').forEach((a) => a.addEventListener('click', async (e) => {
     const active = document.activeElement;
     if (active && active.matches('[data-answer], [data-remarks], [data-suggestion]')) active.blur();

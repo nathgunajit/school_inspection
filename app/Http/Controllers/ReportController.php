@@ -106,27 +106,30 @@ class ReportController extends Controller
             : $this->j->inspections($user)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
 
         $rows = $this->filtered($base, $request, own: $mode === 'mine')
-            ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'photos'])
+            ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos'])
             ->orderBy('inspection_date')->limit(20000)->get();
 
-        $keyCodes = ['GOV_02', 'GOV_05', 'GOV_06', 'GOV_08', 'GOV_10', 'GOV_12', 'GOV_14', 'GOV_18', 'CON_01', 'CON_02', 'CON_04', 'CON_05', 'CON_06', 'CON_07'];
-        $headings = ['Inspection ID', 'Status', 'Date', 'Submitted at', 'District', 'Block', 'Cluster', 'UDISE Code', 'School', 'Category', 'Officer', 'Designation', 'Person met',
-            'Teachers sanctioned', 'Teachers working', 'Teachers present', 'Teachers absent', 'Absent w/o info', 'Students enrolled', 'Students present', 'Photos'];
-        foreach ($keyCodes as $c) {
+        // All questionnaire answers (steps 1, 2, 6) in definition order, except the person-met fields shown separately
+        $codes = array_values(array_filter(array_keys(Q::all()), fn ($c) => ! str_starts_with($c, 'BAS_')));
+        $headings = ['Inspection ID', 'Status', 'Questionnaire', 'Date', 'Submitted at', 'District', 'Block', 'Cluster', 'UDISE Code', 'School', 'Category',
+            'Officer', 'Designation', 'Person met', 'Absentee entries', 'Unauthorised leave', 'Classrooms observed',
+            'Fund years', 'Fund received (lakh)', 'Fund expenditure (lakh)', 'Photos', 'Photos from gallery'];
+        foreach ($codes as $c) {
             $headings[] = Q::find($c)['label'];
         }
 
-        $data = $rows->map(function (Inspection $i) use ($keyCodes) {
+        $data = $rows->map(function (Inspection $i) use ($codes) {
             $a = $i->answerMap();
             $row = [
-                $i->inspection_no ?? '—', $i->status->label(), $i->inspection_date->format('d-m-Y'), $i->submitted_at?->format('d-m-Y H:i'),
+                $i->inspection_no ?? '—', $i->status->label(), 'v'.$i->questionnaire_version, $i->inspection_date->format('d-m-Y'), $i->submitted_at?->format('d-m-Y H:i'),
                 $i->district?->name, $i->block?->name, $i->cluster?->name, $i->school->udise_code, $i->school->name, $i->school->category?->label,
                 $i->officer->name, $i->officer->designation?->label, trim($i->person_met_name.' ('.$i->person_met_designation.')', ' ()'),
-                $a['ATT_SANCTIONED'] ?? null, $a['ATT_WORKING'] ?? null, $a['ATT_PRESENT'] ?? null, $a['ATT_ABSENT'] ?? null,
-                $i->absentTeachers->where('status', 'absent_without_info')->count(), $a['ATT_ENROLLED'] ?? null, $a['ATT_STUDENTS_PRESENT'] ?? null,
-                $i->photos->count(),
+                $i->absentTeachers->count(), $i->absentTeachers->where('reason', 'UL')->count(), $i->classroomObservations->count(),
+                $i->fundPositions->pluck('financial_year')->implode(', '),
+                round($i->fundPositions->sum(fn ($f) => $f->totalReceived()), 2), round($i->fundPositions->sum(fn ($f) => $f->totalExpenditure()), 2),
+                $i->photos->count(), $i->photos->where('source', 'gallery')->count(),
             ];
-            foreach ($keyCodes as $c) {
+            foreach ($codes as $c) {
                 $row[] = Q::optionLabel($c, $a[$c] ?? null);
             }
 
@@ -143,7 +146,7 @@ class ReportController extends Controller
     private function reportData(Inspection $inspection): array
     {
         $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation',
-            'answers', 'absentTeachers', 'fundPositions.category', 'evidence.category', 'remarks', 'unlocker']);
+            'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks', 'unlocker']);
 
         return [
             'inspection' => $inspection,

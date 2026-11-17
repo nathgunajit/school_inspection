@@ -40,7 +40,16 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 ## Layout
 - `app/Enums/`: UserLevel, UserStatus, InspectionStatus, EvidenceStatus
 - `app/Services/`: JurisdictionService, ApproverResolver, PermissionService, AuditLogger, InspectionNumberGenerator, EvidenceStorage, Otp/*
-- `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** PRD 8.3 questionnaire (codes, options, conditions, photo rules). It drives both rendering and validation.
+- `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
+  1. Condition (`CND_*` + `BAS_PERSON_*`)
+  2. Teacher/Student numbers (`TSI_*`)
+  3. Absentee rows (`inspection_absent_teachers`)
+  4. Classroom rows (`inspection_classroom_observations`)
+  5. Fund by financial year in lakh (`inspection_fund_positions`)
+  6. Governance (`GOVR_*`) + 3 suggestions
+  7. Photographs: 4 mandatory categories from `config('inspection.mandatory_photos')`
+
+  The definition drives both rendering and `InspectionValidator`. v1 codes (`GOV_*`, `CON_*`, `ATT_*`, `CLS_*`, `FIN_*`) belong to legacy rows (`questionnaire_version = 1`) and must not be reused.
 - `app/Http/Controllers/{Auth,Admin,Inspection,...}`, `app/Policies/`, `app/Http/Middleware/`
 - `config/inspection.php`: the configurable "Proposed" values (PRD 30): draft expiry, lockout, limits, retention
 - `database/migrations/`: schema; master tables run first (`0001_01_00_*`)
@@ -48,10 +57,10 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 ## Domain rules (do not break)
 1. **Jurisdiction scoping.** Every school, user or inspection query a non-admin can reach goes through `JurisdictionService`. Never trust location IDs from the client.
 2. **Users cannot change their own level or jurisdiction.** Transfers end the old `user_jurisdictions` row and create a new one.
-3. **Question codes** (e.g. `GOV_02`) are stable identifiers stored with each answer. Never rename or reuse a code.
+3. **Question codes** (e.g. `GOVR_02`) are stable identifiers stored with each answer. Never rename or reuse a code.
 4. **Submitted inspections are locked.** Only the State Admin can unlock, and only with a reason; every unlock is audited.
 5. **One inspection per officer, per school, per day** (DB unique key). An existing draft is reopened instead of creating a new one.
-6. **Evidence lives on the `private` disk** under random names. It is served only through a controller that checks permission. Photos come only from the in-app camera (no gallery input). An upload with the same `evidence_uid` is idempotent.
+6. **Evidence lives on the `private` disk** under random names. It is served only through a controller that checks permission. Photos come from the in-app camera **or the phone gallery** (Modification V1). Both go through the same browser pipeline: resize to ≤1600 px, JPEG, stamp strip, SHA-256. Gallery photos are stored with `source = gallery` and labelled "From gallery" in the report and PDF. An upload with the same `evidence_uid` is idempotent.
 7. **The audit log is append-only.** Use `AuditLogger::log()`; never update or delete rows.
 8. **Server time** is the source of truth for inspection date and time.
 9. Phase 1 has **no OTP**. `OtpService` exists with a log driver, ready for Phase 2.
@@ -59,6 +68,8 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 ## Conventions
 - Validate with Form Requests and authorize with policies/gates; keep controllers thin and put logic in services.
 - Mobile-first UI: touch targets ≥ 44px, one wizard step per screen on mobile, bottom nav on phones. Reuse the components in `resources/views/components`.
+- Theme: Samagra Shiksha palette (blue `#1565c0`, green `#1e9b4b`, orange `#f39223`), base font 0.875rem. Logos are in `public/logo/` (`ASSAM GOVT LOGO.png`, `SSA LOGO.png`). The sidebar collapses to an icon rail; its state is stored in `localStorage` (`si-sidebar`).
+- Production: see the checklist at the bottom of `.env.example`. With `APP_ENV=production`, URLs are forced to HTTPS.
 - Lists paginate at 25 rows.
 
 ## Testing safety

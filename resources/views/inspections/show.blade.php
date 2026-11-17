@@ -62,12 +62,47 @@
 
     <div class="row g-4">
         <div class="col-xl-8">
+            @if ($inspection->questionnaire_version < QD::VERSION)
+                <div class="alert alert-secondary text-sm"><i class="bi bi-archive me-1"></i>This inspection used <strong>Questionnaire v{{ $inspection->questionnaire_version }} (legacy)</strong>. Answers to questions that no longer exist are kept in the database and in the Excel export.</div>
+            @endif
             @foreach ($steps as $n => $st)
-                @continue($n === 1)
+                @continue($n === count($steps))
                 <div class="card mb-4">
                     <div class="card-header"><i class="bi {{ $st['icon'] }} me-2 text-primary"></i>{{ $st['title'] }}</div>
                     <div class="card-body py-2">
+                        @if ($n === 3)
+                            @forelse ($inspection->absentTeachers as $t)
+                                <div class="answer-row"><div class="a-q">{{ $t->teacher_name }}<div class="text-xs text-secondary">{{ $t->typeLabel() }}@if ($t->remarks) · {{ $t->remarks }}@endif</div></div><div class="a-v">{{ $t->reasonLabel() }}</div></div>
+                            @empty
+                                <div class="text-sm text-secondary py-2">No absent teachers recorded.</div>
+                            @endforelse
+                        @endif
+                        @if ($n === 4)
+                            @forelse ($inspection->classroomObservations as $c)
+                                <div class="answer-row"><div class="a-q"><strong>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }} · {{ $c->subject }}</strong><div class="text-xs text-secondary">{{ $c->teacher_name }}@if ($c->remarks) · {{ $c->remarks }}@endif</div></div>
+                                    <div class="a-v text-sm">TLM: {{ $c->tlm_used ? 'Yes' : 'No' }}<div class="fw-normal text-xs">{{ $c->participationLabel() }}</div></div></div>
+                            @empty
+                                <div class="text-sm text-secondary py-2">No classroom records.</div>
+                            @endforelse
+                        @endif
+                        @if ($n === 5)
+                            @forelse ($inspection->fundPositions as $f)
+                                <div class="fw-semibold mt-2">{{ $f->financial_year }}</div>
+                                <div class="table-responsive"><table class="table table-sm text-sm mb-2"><thead><tr><th>Head (₹ lakh)</th><th class="text-end">Received</th><th class="text-end">Expenditure</th><th class="text-end">Balance</th></tr></thead><tbody>
+                                    @if ($f->isLegacy())
+                                        <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="text-end">{{ number_format((float) $f->amount_received, 2) }}</td><td class="text-end">{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="text-end fw-semibold">{{ number_format($f->balance(), 2) }}</td></tr>
+                                    @else
+                                        @foreach (\App\Models\InspectionFundPosition::HEADS as $key => [$label, $rc, $ec])
+                                            <tr><td>{{ $label }}</td><td class="text-end">{{ number_format((float) $f->$rc, 2) }}</td><td class="text-end">{{ number_format((float) $f->$ec, 2) }}</td><td class="text-end fw-semibold">{{ number_format($f->balance($key), 2) }}</td></tr>
+                                        @endforeach
+                                    @endif
+                                </tbody></table></div>
+                            @empty
+                                <div class="text-sm text-secondary py-2">No fund details entered.</div>
+                            @endforelse
+                        @endif
                         @foreach ($questions[$n] as $q)
+                            @continue(str_starts_with($q['code'], 'BAS_'))
                             @continue(! \App\Questionnaire\InspectionValidator::visible($q, $answers))
                             <div class="answer-row">
                                 <div class="a-q">{{ $q['label'] }}
@@ -76,22 +111,6 @@
                                 <div class="a-v">{{ QD::optionLabel($q['code'], $answers[$q['code']] ?? null) }}</div>
                             </div>
                         @endforeach
-
-                        @if ($n === 4 && $inspection->absentTeachers->isNotEmpty())
-                            <div class="section-title mt-3">Absent teachers</div>
-                            @foreach ($inspection->absentTeachers as $t)
-                                <div class="answer-row"><div class="a-q">{{ $t->teacher_name }}@if ($t->remarks)<div class="text-xs text-secondary">{{ $t->remarks }}</div>@endif</div><div class="a-v">{{ $t->statusLabel() }}</div></div>
-                            @endforeach
-                        @endif
-
-                        @if ($n === 5 && $inspection->fundPositions->isNotEmpty())
-                            <div class="section-title mt-3">Fund position</div>
-                            <div class="table-responsive"><table class="table table-sm mb-2"><thead><tr><th>Year</th><th>Fund</th><th class="text-end">Received</th><th class="text-end">Utilised</th><th class="text-end">Balance</th></tr></thead><tbody>
-                                @foreach ($inspection->fundPositions as $f)
-                                    <tr><td>{{ $f->financial_year }}</td><td>{{ $f->category?->label }}</td><td class="text-end">₹{{ number_format((float) $f->amount_received, 2) }}</td><td class="text-end">₹{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="text-end fw-semibold">₹{{ number_format($f->balance(), 2) }}</td></tr>
-                                @endforeach
-                            </tbody></table></div>
-                        @endif
 
                         @if ($n === 6)
                             @php $sug = $inspection->remarks->where('type', 'suggestion'); @endphp
@@ -113,7 +132,8 @@
                         @foreach ($photos as $p)
                             <a href="{{ route('evidence.show', $p) }}" target="_blank" rel="noopener" class="photo-tile" title="{{ $p->caption }}">
                                 <img src="{{ route('evidence.show', $p) }}" alt="{{ $p->category?->label }}" loading="lazy">
-                                @unless ($p->hasLocation())<span class="badge text-bg-dark tile-status">No location</span>@endunless
+                                @if ($p->source === 'gallery')<span class="badge text-bg-info tile-status">Gallery</span>@endif
+                                @unless ($p->hasLocation())<span class="badge text-bg-dark tile-status" @if ($p->source === 'gallery') style="top:28px" @endif>No location</span>@endunless
                                 <div class="tile-cap">{{ $p->category?->label }}@if ($p->question_code) · {{ $p->question_code }}@endif</div>
                             </a>
                         @endforeach

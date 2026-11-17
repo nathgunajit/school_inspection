@@ -64,51 +64,71 @@
 </table>
 
 @foreach ($steps as $n => $st)
-    @continue($n === 1 || $n === 6)
-    <h2>{{ $n }}. {{ $st['title'] }}</h2>
-    <table class="ans">
-        @foreach ($questions[$n] as $i => $q)
-            @continue(! V::visible($q, $answers))
-            <tr>
-                <td class="no">{{ $n === 3 ? chr(97 + $i) : $i + 1 }}</td>
-                <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif</td>
-                <td class="v">{{ QD::optionLabel($q['code'], $answers[$q['code']] ?? null) }}</td>
-            </tr>
-        @endforeach
-    </table>
-
-    @if ($n === 4 && $inspection->absentTeachers->isNotEmpty())
-        <p style="margin:3mm 0 1mm"><strong>Absent teachers</strong></p>
-        <table class="grid"><tr><th>Name</th><th>Status</th><th>Remarks</th></tr>
-            @foreach ($inspection->absentTeachers as $t)<tr><td>{{ $t->teacher_name }}</td><td>{{ $t->statusLabel() }}</td><td>{{ $t->remarks }}</td></tr>@endforeach
+    @continue($n === count($steps))
+    <h2>{{ $n + 1 }}. {{ $st['title'] }}</h2>
+    @php $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_'))->filter(fn ($q) => V::visible($q, $answers))->values(); @endphp
+    @if ($qs->isNotEmpty())
+        <table class="ans">
+            @foreach ($qs as $i => $q)
+                <tr>
+                    <td class="no">{{ $i + 1 }}</td>
+                    <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif</td>
+                    <td class="v">{{ QD::optionLabel($q['code'], $answers[$q['code']] ?? null) }}</td>
+                </tr>
+            @endforeach
         </table>
     @endif
-    @if ($n === 5 && $inspection->fundPositions->isNotEmpty())
-        <p style="margin:3mm 0 1mm"><strong>Fund position</strong></p>
-        <table class="grid"><tr><th>Year</th><th>Fund</th><th class="r">Received (Rs)</th><th class="r">Utilised (Rs)</th><th class="r">Balance (Rs)</th></tr>
-            @foreach ($inspection->fundPositions as $f)<tr><td>{{ $f->financial_year }}</td><td>{{ $f->category?->label }}</td><td class="r">{{ number_format((float) $f->amount_received, 2) }}</td><td class="r">{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="r"><strong>{{ number_format($f->balance(), 2) }}</strong></td></tr>@endforeach
-        </table>
+
+    @if ($n === 3)
+        @if ($inspection->absentTeachers->isNotEmpty())
+            <table class="grid"><tr><th>Teacher's name</th><th>Teacher's type</th><th>Reason for absence</th><th>Remarks</th></tr>
+                @foreach ($inspection->absentTeachers as $t)<tr><td>{{ $t->teacher_name }}</td><td>{{ $t->typeLabel() }}</td><td>{{ $t->reasonLabel() }}</td><td>{{ $t->remarks }}</td></tr>@endforeach
+            </table>
+        @else <p class="muted">No absent teachers recorded.</p> @endif
+    @endif
+    @if ($n === 4)
+        @if ($inspection->classroomObservations->isNotEmpty())
+            <table class="grid"><tr><th>Teacher</th><th>Class</th><th>Subject</th><th>Use of TLM</th><th>Participation</th><th>Remarks</th></tr>
+                @foreach ($inspection->classroomObservations as $c)<tr><td>{{ $c->teacher_name }}</td><td>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }}</td><td>{{ $c->subject }}</td><td>{{ $c->tlm_used ? 'Yes' : 'No' }}</td><td>{{ $c->participationLabel() }}</td><td>{{ $c->remarks }}</td></tr>@endforeach
+            </table>
+        @else <p class="muted">No classroom records.</p> @endif
+    @endif
+    @if ($n === 5)
+        @forelse ($inspection->fundPositions as $f)
+            <p style="margin:2mm 0 1mm"><strong>{{ $f->financial_year }}</strong> <span class="muted">(amounts in Rs lakh)</span></p>
+            <table class="grid"><tr><th>Head</th><th class="r">Received</th><th class="r">Expenditure</th><th class="r">Balance</th></tr>
+                @if ($f->isLegacy())
+                    <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="r">{{ number_format((float) $f->amount_received, 2) }}</td><td class="r">{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="r"><strong>{{ number_format($f->balance(), 2) }}</strong></td></tr>
+                @else
+                    @foreach (\App\Models\InspectionFundPosition::HEADS as $key => [$label, $rc, $ec])
+                        <tr><td>{{ $label }}</td><td class="r">{{ number_format((float) $f->$rc, 2) }}</td><td class="r">{{ number_format((float) $f->$ec, 2) }}</td><td class="r"><strong>{{ number_format($f->balance($key), 2) }}</strong></td></tr>
+                    @endforeach
+                @endif
+            </table>
+        @empty
+            <p class="muted">No fund details entered.</p>
+        @endforelse
+    @endif
+    @if ($n === 6)
+        @php $sug = $inspection->remarks->where('type', 'suggestion'); @endphp
+        <p style="margin:3mm 0 1mm"><strong>Suggestions</strong></p>
+        @if ($sug->isNotEmpty())
+            <ol style="margin:0 0 2mm 5mm;padding:0">@foreach ($sug as $sg)<li style="margin-bottom:1mm">{{ $sg->body }}</li>@endforeach</ol>
+        @else
+            <p class="muted">No suggestions recorded.</p>
+        @endif
     @endif
 @endforeach
 
-<h2>6. Suggestions &amp; Remarks</h2>
-@php $sug = $inspection->remarks->where('type', 'suggestion'); @endphp
-@if ($sug->isNotEmpty())
-    <ol style="margin:0 0 2mm 5mm;padding:0">@foreach ($sug as $sg)<li style="margin-bottom:1mm">{{ $sg->body }}</li>@endforeach</ol>
-@else
-    <p class="muted">No suggestions recorded.</p>
-@endif
-<p><strong>General remarks:</strong> {{ $answers['FIN_GENERAL_REMARKS'] ?? '—' }}</p>
-
 @if ($photos->isNotEmpty())
-    <h2>Photographic Evidence ({{ $photos->count() }})</h2>
+    <h2>{{ count($steps) + 1 }}. Photographs of School ({{ $photos->count() }})</h2>
     <table class="photos">
         @foreach ($photos->chunk(2) as $pair)
             <tr>
                 @foreach ($pair as $p)
                     <td class="photo">
                         @if (! empty($images[$p->id]))<img src="{{ $images[$p->id] }}" alt="">@endif
-                        <div class="cap"><strong>{{ $p->category?->label }}</strong>@if ($p->question_code) · {{ $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
+                        <div class="cap"><strong>{{ $p->category?->label }}</strong>@if ($p->source === 'gallery') · <em>From gallery</em>@endif @if ($p->question_code) · {{ $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
                             {{ $p->taken_at?->format('d M Y, h:i:s A') }} ·
                             @if ($p->hasLocation()) {{ number_format($p->latitude, 6) }}, {{ number_format($p->longitude, 6) }}{{ $fmtDist($inspection->distanceFromSchool($p->latitude, $p->longitude)) }}
                             @else <strong>No location</strong>{{ $p->no_location_reason ? ': '.$p->no_location_reason : '' }} @endif<br>

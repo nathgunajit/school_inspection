@@ -39,6 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sidebar?.classList.contains('show') && !sidebar.contains(e.target)) sidebar.classList.remove('show');
     });
 
+    /* ---------- Collapsible sidebar (desktop), remembered per browser ---------- */
+    document.querySelectorAll('[data-sidebar-mini]').forEach((b) => b.addEventListener('click', () => {
+        const mini = document.documentElement.classList.toggle('sidebar-mini');
+        try { localStorage.setItem('si-sidebar', mini ? 'mini' : 'full'); } catch { /* private mode */ }
+    }));
+
     /* ---------- Flash messages -> toasts ---------- */
     document.querySelectorAll('[data-flash]').forEach((f) => toast(f.dataset.flash, f.dataset.type || 'success'));
 

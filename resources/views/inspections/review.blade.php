@@ -18,7 +18,7 @@
                                     @foreach ($items as $m)
                                         <li class="text-sm py-1 d-flex gap-2">
                                             <i class="bi bi-dot text-danger"></i>
-                                            @if ($m['code'] && ! str_starts_with($m['code'], 'PHOTO_') && $m['code'] !== 'FUND')
+                                            @if ($m['code'] && \App\Questionnaire\QuestionnaireDefinition::find($m['code']))
                                                 <a href="{{ route('inspections.step', [$inspection, $stepNo]) }}#q-{{ $m['code'] }}" class="text-body">{{ $m['message'] }}</a>
                                             @else
                                                 <a href="{{ route('inspections.step', [$inspection, $stepNo]) }}" class="text-body">{{ $m['message'] }}</a>
@@ -47,9 +47,10 @@
                 </div>
                 <div class="card-body border-top">
                     <div class="row text-center g-2">
-                        <div class="col-4"><div class="fw-bold fs-5">{{ $inspection->evidence->where('kind', 'photo')->count() }}</div><div class="text-xs text-secondary">Photographs</div></div>
-                        <div class="col-4"><div class="fw-bold fs-5">{{ $inspection->evidence->where('kind', 'document')->count() }}</div><div class="text-xs text-secondary">Documents</div></div>
-                        <div class="col-4"><div class="fw-bold fs-5">{{ $inspection->remarks->where('type', 'suggestion')->count() }}</div><div class="text-xs text-secondary">Suggestions</div></div>
+                        <div class="col-3"><div class="fw-bold fs-5">{{ $inspection->absentTeachers->count() }}</div><div class="text-xs text-secondary">Absentees</div></div>
+                        <div class="col-3"><div class="fw-bold fs-5">{{ $inspection->classroomObservations->count() }}</div><div class="text-xs text-secondary">Classrooms</div></div>
+                        <div class="col-3"><div class="fw-bold fs-5">{{ $inspection->fundPositions->count() }}</div><div class="text-xs text-secondary">Fund years</div></div>
+                        <div class="col-3"><div class="fw-bold fs-5">{{ $inspection->evidence->where('kind', 'photo')->count() }}</div><div class="text-xs text-secondary">Photos</div></div>
                     </div>
                 </div>
             </div>

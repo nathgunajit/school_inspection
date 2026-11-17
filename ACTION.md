@@ -84,3 +84,68 @@ Format: **#. Date · Action**, then files touched and the result.
 - **Guard:** `tests/TestCase.php::beforeRefreshingDatabase()` now exits unless the connection is `sqlite` with `:memory:`. I verified it by re-running tests with the config cached: the run was refused and a probe table in MySQL was untouched.
 - **Verification:** with the config cleared, `php artisan test` → 30 passed (280 assertions); MySQL still had 21 users afterwards.
 - Added a "Testing safety" section to `CLAUDE.md`.
+
+---
+## Round 2: "Modification of the ApplicationV1.docx" + pending quick fixes (2026-11-17)
+Plan approved by the user. Decisions:
+- Photos: camera **+ gallery** upload.
+- Step 1: compact info card + person met.
+- Seating arrangement: number of benches/desks.
+- Include the pending quick fixes.
+- Safety: MySQL backup taken before changes (`scratchpad/backup-before-v2.sql`, 67 KB).
+
+### 12. Questionnaire v2: schema
+- `2026_11_18_000001_questionnaire_v2.php` (additive):
+  - absentee `teacher_type` + `reason` (`status` made nullable);
+  - new `inspection_classroom_observations` table;
+  - fund columns `asg_*`, `mdm_*`, `govt_*`, `other_*` (DECIMAL lakh) plus UNIQUE(inspection, year);
+  - `inspection_evidence.source` ENUM(camera, gallery).
+- `2026_11_18_000002_widen_fund_financial_year.php`: `financial_year` VARCHAR(9) → 12 for "FY-2026-27" (found by the MySQL smoke test; SQLite does not enforce length).
+- Both migrations ran on MySQL; `SHOW COLUMNS` confirmed the changes.
+- `MasterValueSeeder` re-run: new photo categories `school`, `toilet_block`, `ict_smart`, `classroom_transaction` (v1 categories kept).
+- `config/inspection.php`: mandatory photos = those 4; `max_suggestions` = 3.
+
+### 13. Questionnaire v2: logic
+- `QuestionnaireDefinition` (VERSION 2): 7 steps.
+  - Step 1 `CND_01–26`. Conditionals: Internet → functional; ICT lab → functional; Tinkering lab → agency + functional.
+  - Step 2 `TSI_01–13` (numbers).
+  - Steps 3–5 are repeating sections.
+  - Step 6 `GOVR_01–24`; reasons shown/required when the answer is No (SMC, free textbooks, uniform, MDM); monthly SMC sitting only if SMC = Yes.
+  - Step 7 photographs.
+- New models: `InspectionClassroomObservation`; `InspectionAbsentTeacher` (types, leave reasons); `InspectionFundPosition` (heads, balances, FY list).
+- `InspectionValidator`:
+  - Blocking: at least one classroom record, the 4 mandatory photos, no pending uploads.
+  - Non-blocking warnings: teachers present > total; absentee rows fewer than implied absences.
+- `InspectionController`: absentee (type/reason), classroom add/remove, fund upsert per year. A v1 draft moves to v2 when opened.
+- `routes/web.php`: classroom routes.
+- `ReportController::export`: all v2 answers plus absentee/unauthorised-leave/classroom counts, fund totals, gallery photo count.
+- Report view and PDF render the absentee, classroom and fund (lakh) tables, "From gallery" badges, and a legacy-version notice for v1 records.
+
+### 14. Gallery upload
+- `camera.js`:
+  - A shared `processImage()` (resize ≤1600 px, JPEG ≤ ~1 MB, stamp strip; gallery photos get "· From gallery").
+  - `[data-gallery]` buttons plus a hidden file input; GPS read at upload, or the no-location reason is asked.
+  - Uploaded with `source=gallery`; "Gallery" badge on tiles.
+- Server: `source` validated (`in:camera,gallery`) and stored via `EvidenceStorage`; audit meta includes the source.
+
+### 15. Theme, branding, layout
+- `app.scss`:
+  - Samagra Shiksha palette (blue `#1565c0` / green `#1e9b4b` / orange `#f39223`) and a themed background (soft blue/green glow + dot grid).
+  - Base font 0.875rem; smaller headings.
+  - New components: info card, row lists/forms, fund groups, photo slots, CTA card, summary strip, registration sections, level pills.
+- Sidebar: 232 px with a deep-blue gradient, green active marker, SSA logo mark, both logos in the footer. Collapses to a 72 px icon rail (toggle saved in `localStorage`, applied before first paint).
+- Login and guest layout: Govt. of Assam + Samagra Shiksha logos in the card header and in the side panel; gradient-bordered card.
+- Registration: three compact sections (Personal / Jurisdiction / Sign-in), level pills, shorter hints, privacy notice collapsed. Validation unchanged.
+- Dashboard: removed the hero and 4 stat boxes. Now: greeting, "Start new inspection" card, one summary strip (Today / This month / Drafts), "Continue draft" cards only when drafts exist, recent submissions.
+
+### 16. Pending quick fixes
+- Session expiry: `wizard.js` / `camera.js` detect 401/419, show "session expired, answers saved", and redirect to login (`window.siHandleAuthError`).
+- Production hardening: `URL::forceScheme('https')` in production (AppServiceProvider); production checklist (debug off, secure cookie, ClamAV, mail, cache commands, Task Scheduler) appended to `.env.example`.
+- User List: Block filter (blocks of the chosen district, or the manager's own district); filter columns rebalanced.
+
+### 17. Verification
+- `npm run build` OK; `php artisan view:cache` OK.
+- `php artisan config:clear && php artisan test`: **32 passed (337 assertions)**. New/updated tests: v2 conditional rules, absentee/classroom/fund sections incl. per-year upsert, 4 mandatory photo categories, gallery source stored and shown, 401 JSON on expired session, unlock and resubmission with v2 answers.
+- MySQL smoke test on `:8010` as demo inspector 9000000031: login page shows both logos; dashboard, schools, profile 200; start inspection; steps 1–7 200 (28 question blocks on step 1); conditional answer saved; absentee, classroom and fund rows saved; gallery photo stored with `source=gallery`; review, show, PDF and Excel 200.
+- Cleanup: deleted my smoke-test inspection #2 and its photo. The user's draft #1 is untouched (it will continue on v2 when opened).
+- Not verified: visual check in a browser and on a phone (to be done by the user).

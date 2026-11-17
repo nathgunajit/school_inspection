@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#4338ca">
+    <meta name="theme-color" content="#1565c0">
     <title>{{ $title ?? 'Dashboard' }} · {{ config('app.name') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
+    <script>try { if (localStorage.getItem('si-sidebar') === 'mini') document.documentElement.classList.add('sidebar-mini'); } catch (e) {}</script>
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
@@ -22,52 +24,49 @@
 @endphp
 
 <aside class="app-sidebar" aria-label="Main navigation">
-    <a href="{{ route('dashboard') }}" class="brand">
-        <span class="brand-mark"><i class="bi bi-patch-check"></i></span>
-        <span>School Inspection<small class="d-block text-xs fw-normal text-secondary">Management System</small></span>
-    </a>
-    <nav class="flex-grow-1 overflow-auto py-2">
+    <div class="brand">
+        <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha, Assam"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha"></a>
+        <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha, Assam</small></a>
+        <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini title="Collapse / expand menu" aria-label="Collapse or expand menu"><i class="bi bi-chevron-double-left"></i></button>
+    </div>
+    @php
+        $link = fn ($route, $pattern, $icon, $label, $extra = '') => '<a href="'.route($route).'" class="nav-link '.(request()->routeIs($pattern) ? 'active' : '').'" title="'.e($label).'" data-mini-tip><i class="bi '.$icon.'"></i><span>'.e($label).'</span>'.$extra.'</a>';
+    @endphp
+    <nav class="flex-grow-1 overflow-auto py-1">
         <div class="nav-section">Inspection</div>
         @foreach ($nav as [$label, $route, $icon, $pattern, $perm])
-            @if (! $perm || $u->can($perm))
-                <a href="{{ route($route) }}" class="nav-link {{ request()->routeIs($pattern) ? 'active' : '' }}"><i class="bi {{ $icon }}"></i>{{ $label }}</a>
-            @endif
+            @if (! $perm || $u->can($perm)){!! $link($route, $pattern, $icon, $label) !!}@endif
         @endforeach
 
         @if ($u->can('approve_registrations') || $u->can('manage_users'))
             <div class="nav-section">Users</div>
             @can('approve_registrations')
-                <a href="{{ route('admin.approvals.index') }}" class="nav-link {{ request()->routeIs('admin.approvals.*') ? 'active' : '' }}">
-                    <i class="bi bi-person-check"></i>Pending Approvals
-                    @if ($pendingCount)<span class="badge rounded-pill text-bg-warning">{{ $pendingCount }}</span>@endif
-                </a>
+                {!! $link('admin.approvals.index', 'admin.approvals.*', 'bi-person-check', 'Pending Approvals', $pendingCount ? '<span class="badge rounded-pill text-bg-warning">'.$pendingCount.'</span>' : '') !!}
             @endcan
-            @can('manage_users')
-                <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"><i class="bi bi-people"></i>User List</a>
-            @endcan
-            @can('state_admin')
-                <a href="{{ route('admin.mobile-requests.index') }}" class="nav-link {{ request()->routeIs('admin.mobile-requests.*') ? 'active' : '' }}"><i class="bi bi-phone"></i>Mobile Changes</a>
-            @endcan
+            @can('manage_users'){!! $link('admin.users.index', 'admin.users.*', 'bi-people', 'User List') !!}@endcan
+            @can('state_admin'){!! $link('admin.mobile-requests.index', 'admin.mobile-requests.*', 'bi-phone', 'Mobile Changes') !!}@endcan
         @endif
 
         @can('manage_masters')
             <div class="nav-section">Masters</div>
-            <a href="{{ route('admin.locations.index') }}" class="nav-link {{ request()->routeIs('admin.locations.*') ? 'active' : '' }}"><i class="bi bi-geo-alt"></i>Location Master</a>
-            <a href="{{ route('admin.schools.index') }}" class="nav-link {{ request()->routeIs('admin.schools.*') ? 'active' : '' }}"><i class="bi bi-building"></i>School Master</a>
-            <a href="{{ route('admin.imports.index') }}" class="nav-link {{ request()->routeIs('admin.imports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-spreadsheet"></i>Excel Upload</a>
+            {!! $link('admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master') !!}
+            {!! $link('admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master') !!}
+            {!! $link('admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload') !!}
         @endcan
-        @can('state_admin')
-            <a href="{{ route('admin.audit.index') }}" class="nav-link {{ request()->routeIs('admin.audit.*') ? 'active' : '' }}"><i class="bi bi-shield-check"></i>Audit Log</a>
-        @endcan
+        @can('state_admin'){!! $link('admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log') !!}@endcan
     </nav>
+    <div class="sidebar-logos">
+        <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam">
+        <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha">
+    </div>
     <div class="sidebar-foot d-flex align-items-center gap-2">
-        <span class="avatar">{{ $u->initials() }}</span>
-        <div class="flex-grow-1 min-w-0">
+        <span class="avatar" style="background:rgba(255,255,255,.15);color:#fff">{{ $u->initials() }}</span>
+        <div class="flex-grow-1 min-w-0 foot-text">
             <div class="text-white text-sm fw-550 text-truncate">{{ $u->name }}</div>
-            <div class="text-xs text-secondary text-truncate">{{ $u->level->label() }}</div>
+            <div class="text-xs text-truncate" style="color:#9fb6dd">{{ $u->level->label() }}</div>
         </div>
         <form method="POST" action="{{ route('logout') }}">@csrf
-            <button class="btn btn-sm btn-link text-secondary" title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right fs-5"></i></button>
+            <button class="btn btn-sm btn-link p-1" style="color:#9fb6dd;min-height:32px" title="Sign out" aria-label="Sign out"><i class="bi bi-box-arrow-right fs-5"></i></button>
         </form>
     </div>
 </aside>

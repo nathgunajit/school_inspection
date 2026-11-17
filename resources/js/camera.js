@@ -39,7 +39,8 @@ function tile(e) {
     const statusBadge = {
         pending: '<span class="badge text-bg-warning tile-status"><span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem"></span>Uploading</span>',
         failed: '<span class="badge text-bg-danger tile-status">Failed</span>',
-        uploaded: e.has_location === false ? '<span class="badge text-bg-dark tile-status">No location</span>' : '',
+        uploaded: (e.source === 'gallery' ? '<span class="badge text-bg-info tile-status">Gallery</span>' : '')
+            + (e.has_location === false ? `<span class="badge text-bg-dark tile-status" style="${e.source === 'gallery' ? 'top:28px' : ''}">No location</span>` : ''),
     }[e.status] || '';
     const retry = e.status === 'failed' ? `<button type="button" class="btn" data-retry="${e.evidence_uid}" title="Retry" aria-label="Retry upload"><i class="bi bi-arrow-clockwise text-primary"></i></button>` : '';
     const src = e.local_url || e.url;
@@ -53,22 +54,25 @@ function tile(e) {
 
 function render() {
     const photos = SI.evidence.filter((e) => e.kind === 'photo');
+    const mandatoryCats = Object.keys(SI.mandatory || {});
     $$('[data-photo-grid]').forEach((grid) => {
         let list;
         if (grid.dataset.question) list = photos.filter((e) => e.question_code === grid.dataset.question);
-        else if (grid.dataset.category) list = photos.filter((e) => e.category === grid.dataset.category && !e.question_code);
+        else if (grid.dataset.category) list = photos.filter((e) => e.category === grid.dataset.category);
+        else if (grid.hasAttribute('data-extra')) list = photos.filter((e) => !mandatoryCats.includes(e.category) && !e.question_code);
         else list = photos;
-        const add = grid.querySelector('.photo-add');
+        const adds = [...grid.querySelectorAll('.photo-add')];
         grid.innerHTML = list.map(tile).join('');
-        if (add) grid.prepend(add);
+        adds.reverse().forEach((a) => grid.prepend(a));
     });
 
-    // Mandatory chips (step 6)
-    $$('[data-req-cat]').forEach((chip) => {
-        const n = photos.filter((e) => e.category === chip.dataset.reqCat && e.status === 'uploaded').length;
-        const ok = n >= parseInt(chip.dataset.min, 10);
-        chip.classList.toggle('done', ok);
-        chip.querySelector('i').className = `bi bi-${ok ? 'check-circle-fill' : 'circle'}`;
+    // Mandatory photo slots / chips
+    $$('[data-req-cat]').forEach((slot) => {
+        const n = photos.filter((e) => e.category === slot.dataset.reqCat && e.status === 'uploaded').length;
+        const ok = n >= parseInt(slot.dataset.min, 10);
+        slot.classList.toggle('done', ok);
+        const icon = slot.querySelector('i');
+        if (icon) icon.className = `bi bi-${ok ? 'check-circle-fill text-success' : 'circle'} me-1`;
     });
 
     // Documents
@@ -93,7 +97,7 @@ async function upload(item, attempt = 1) {
     uploading++;
     const fd = new FormData();
     fd.append('file', item.blob, item.filename);
-    for (const k of ['evidence_uid', 'kind', 'category', 'question_code', 'caption', 'taken_at', 'latitude', 'longitude', 'accuracy', 'no_location_reason', 'sha256']) {
+    for (const k of ['evidence_uid', 'kind', 'source', 'category', 'question_code', 'caption', 'taken_at', 'latitude', 'longitude', 'accuracy', 'no_location_reason', 'sha256']) {
         if (item[k] !== null && item[k] !== undefined && item[k] !== '') fd.append(k, item[k]);
     }
     try {
@@ -103,6 +107,7 @@ async function upload(item, attempt = 1) {
         window.siRefreshProgress?.();
     } catch (err) {
         const code = err.response?.status;
+        if (window.siHandleAuthError?.(err)) { uploading--; item.status = 'failed'; render(); return; }
         const permanent = code && code >= 400 && code < 500 && code !== 408 && code !== 429;
         if (!permanent && attempt < 4) {
             // Automatic retry on weak network: 3 s, 8 s, 20 s
@@ -222,26 +227,24 @@ function updateMeta() {
 }
 setInterval(() => { if (modalEl?.classList.contains('show')) updateMeta(); }, 1000);
 
-$('#cam-shutter')?.addEventListener('click', async () => {
-    if (!stream || !video.videoWidth) return;
-    const takenAt = new Date();
-    const g = geo ? { ...geo } : null;
-
-    // Resize so the longer side is at most maxSide (PRD 9.4)
-    const scale = Math.min(1, SI.maxSide / Math.max(video.videoWidth, video.videoHeight));
-    const w = Math.round(video.videoWidth * scale);
-    const h = Math.round(video.videoHeight * scale);
+/**
+ * Resize (longer side ≤ maxSide), print the stamp strip and encode as JPEG ≤ ~1 MB (PRD 9.4).
+ * Used for camera shots and for gallery uploads.
+ */
+async function processImage(source, srcW, srcH, takenAt, g, fromGallery = false) {
+    const scale = Math.min(1, SI.maxSide / Math.max(srcW, srcH));
+    const w = Math.round(srcW * scale);
+    const h = Math.round(srcH * scale);
     const canvas = document.createElement('canvas');
     canvas.width = w; canvas.height = h;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(source, 0, 0, w, h);
 
-    // Stamp strip: UDISE, school, date/time, lat/lng, officer
     const fs = Math.max(14, Math.round(w / 55));
     const lines = [
         `UDISE ${SI.stamp.udise} · ${SI.stamp.school}`,
         `${fmtDate(takenAt)} · ${g ? `Lat ${g.lat.toFixed(6)}, Lng ${g.lng.toFixed(6)} (±${g.acc} m)` : 'No location'}`,
-        `Officer: ${SI.stamp.officer}`,
+        `Officer: ${SI.stamp.officer}${fromGallery ? ' · From gallery' : ''}`,
     ];
     const stripH = Math.round(fs * 1.45 * lines.length + fs * 0.9);
     ctx.fillStyle = 'rgba(0,0,0,0.62)';
@@ -251,10 +254,17 @@ $('#cam-shutter')?.addEventListener('click', async () => {
     ctx.textBaseline = 'top';
     lines.forEach((t, i) => ctx.fillText(t, Math.round(fs * 0.7), h - stripH + Math.round(fs * 0.45) + i * Math.round(fs * 1.45), w - fs * 1.4));
 
-    // JPEG ~500 KB, never above 1 MB
     let q = 0.82;
     let blob = await toBlob(canvas, q);
     while (blob.size > 950 * 1024 && q > 0.4) { q -= 0.12; blob = await toBlob(canvas, q); }
+    return blob;
+}
+
+$('#cam-shutter')?.addEventListener('click', async () => {
+    if (!stream || !video.videoWidth) return;
+    const takenAt = new Date();
+    const g = geo ? { ...geo } : null;
+    const blob = await processImage(video, video.videoWidth, video.videoHeight, takenAt, g);
 
     shot = { blob, url: URL.createObjectURL(blob), takenAt, geo: g };
     preview.src = shot.url;
@@ -289,9 +299,79 @@ $('#cam-use')?.addEventListener('click', async () => {
         sha256: await sha256(shot.blob),
         status: 'pending',
     };
+    item.source = 'camera';
     shot = null; // keep object URL alive for the thumbnail
     SI.evidence.push(item);
     modal.hide();
+    upload(item);
+});
+
+/* ---------------- Gallery upload (Modification V1: camera + gallery) ---------------- */
+let galleryCategory = null;
+const currentPosition = () => new Promise((res) => {
+    if (geo) return res({ ...geo });
+    if (!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+        (p) => res({ lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) }),
+        () => res(null), { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+});
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-gallery]');
+    if (!btn) return;
+    if (SI.evidence.filter((x) => x.kind === 'photo').length >= SI.maxPhotos) {
+        return window.toast(`A maximum of ${SI.maxPhotos} photographs is allowed.`, 'warning');
+    }
+    galleryCategory = btn.dataset.category || 'other';
+    $('#gallery-input')?.click();
+});
+
+$('#gallery-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return window.toast('Please choose an image file.', 'danger');
+    if (file.size > 25 * 1024 * 1024) return window.toast('Image is too large (max 25 MB before resizing).', 'danger');
+
+    let bitmap;
+    try {
+        bitmap = await createImageBitmap(file);
+    } catch {
+        return window.toast('This image format cannot be read. Please choose a JPG or PNG photo.', 'danger');
+    }
+    window.toast('Processing photo…', 'info');
+    const takenAt = new Date();
+    const g = await currentPosition();
+    let reason = null;
+    if (!g) {
+        reason = (window.prompt('Location is not available. Enter a reason to continue:') || '').trim();
+        if (!reason) return window.toast('Upload cancelled: a reason is required when location is unavailable.', 'warning');
+    }
+    const blob = await processImage(bitmap, bitmap.width, bitmap.height, takenAt, g, true);
+    bitmap.close?.();
+
+    const label = catSel?.querySelector(`option[value="${galleryCategory}"]`)?.textContent || galleryCategory;
+    const item = {
+        evidence_uid: uuid(),
+        kind: 'photo',
+        source: 'gallery',
+        blob,
+        filename: `gallery-${Date.now()}.jpg`,
+        local_url: URL.createObjectURL(blob),
+        category: galleryCategory,
+        category_label: label,
+        question_code: null,
+        caption: null,
+        taken_at: takenAt.toISOString(),
+        latitude: g?.lat ?? null,
+        longitude: g?.lng ?? null,
+        accuracy: g?.acc ?? null,
+        no_location_reason: g ? null : reason,
+        has_location: !!g,
+        sha256: await sha256(blob),
+        status: 'pending',
+    };
+    SI.evidence.push(item);
     upload(item);
 });
 

@@ -56,7 +56,9 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/progress', [InspectionController::class, 'progress'])->name('inspections.progress');
             Route::post('/teachers', [InspectionController::class, 'addAbsentTeacher'])->name('inspections.teachers.store');
             Route::delete('/teachers/{teacher}', [InspectionController::class, 'removeAbsentTeacher'])->name('inspections.teachers.destroy');
-            Route::post('/funds', [InspectionController::class, 'addFund'])->name('inspections.funds.store');
+            Route::post('/classrooms', [InspectionController::class, 'addClassroom'])->name('inspections.classrooms.store');
+            Route::delete('/classrooms/{classroom}', [InspectionController::class, 'removeClassroom'])->name('inspections.classrooms.destroy');
+            Route::post('/funds',[InspectionController::class, 'addFund'])->name('inspections.funds.store');
             Route::delete('/funds/{fund}', [InspectionController::class, 'removeFund'])->name('inspections.funds.destroy');
             Route::post('/suggestions', [InspectionController::class, 'saveSuggestions'])->name('inspections.suggestions');
             Route::get('/review', [InspectionController::class, 'review'])->name('inspections.review');

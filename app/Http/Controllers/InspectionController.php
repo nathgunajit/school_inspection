@@ -6,6 +6,7 @@ use App\Enums\InspectionStatus;
 use App\Models\Inspection;
 use App\Models\InspectionAbsentTeacher;
 use App\Models\InspectionAnswer;
+use App\Models\InspectionClassroomObservation;
 use App\Models\InspectionFundPosition;
 use App\Models\MasterValue;
 use App\Models\School;
@@ -97,7 +98,13 @@ class InspectionController extends Controller
         $this->authorize('update', $inspection);
         abort_unless(isset(Q::steps()[$step]), 404);
 
-        $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation', 'answers', 'absentTeachers', 'fundPositions.category', 'evidence.category', 'remarks']);
+        // A v1 draft continues on the current questionnaire
+        if ($inspection->questionnaire_version < Q::VERSION) {
+            $inspection->update(['questionnaire_version' => Q::VERSION]);
+        }
+
+        $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation',
+            'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks']);
         $progress = (new InspectionValidator($inspection))->progress();
 
         return view('inspections.step', [
@@ -109,7 +116,10 @@ class InspectionController extends Controller
             'remarks' => $inspection->remarksMap(),
             'progress' => $progress,
             'photoCategories' => MasterValue::ofType('photo_category')->get(),
-            'fundCategories' => MasterValue::ofType('fund_category')->get(),
+            'teacherRows' => $this->teacherRows($inspection),
+            'classroomRows' => $this->classroomRows($inspection),
+            'fundRows' => $this->fundRows($inspection),
+            'financialYears' => InspectionFundPosition::financialYears(),
         ]);
     }
 
@@ -143,12 +153,14 @@ class InspectionController extends Controller
         return $this->progressResponse($inspection);
     }
 
+    /** Teachers Absentee Form row (v2 step 3). */
     public function addAbsentTeacher(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
         $data = $request->validate([
             'teacher_name' => ['required', 'string', 'max:120'],
-            'status' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::STATUSES))],
+            'teacher_type' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::TYPES))],
+            'reason' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::REASONS))],
             'remarks' => ['nullable', 'string', 'max:500'],
         ]);
         $inspection->absentTeachers()->create($data);
@@ -165,16 +177,46 @@ class InspectionController extends Controller
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
 
-    public function addFund(Request $request, Inspection $inspection)
+    /** Class Room Performance row (v2 step 4). */
+    public function addClassroom(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
         $data = $request->validate([
-            'financial_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-            'fund_category_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'fund_category')],
-            'amount_received' => ['required', 'numeric', 'min:0', 'max:9999999999'],
-            'amount_utilised' => ['required', 'numeric', 'min:0', 'max:9999999999'],
-        ], ['financial_year.regex' => 'Use the format 2026-2027.']);
-        $inspection->fundPositions()->create($data);
+            'teacher_name' => ['required', 'string', 'max:120'],
+            'class' => ['required', Rule::in(array_keys(InspectionClassroomObservation::CLASSES))],
+            'subject' => ['required', 'string', 'max:100'],
+            'tlm_used' => ['required', 'in:yes,no'],
+            'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
+            'remarks' => ['nullable', 'string', 'max:500'],
+        ]);
+        $data['tlm_used'] = $data['tlm_used'] === 'yes';
+        $inspection->classroomObservations()->create($data);
+
+        return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
+    }
+
+    public function removeClassroom(Inspection $inspection, InspectionClassroomObservation $classroom)
+    {
+        $this->authorize('update', $inspection);
+        abort_unless($classroom->inspection_id === $inspection->id, 404);
+        $classroom->delete();
+
+        return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
+    }
+
+    /** Fund received & expenditure for a financial year, in lakh; one row per year (v2 step 5). */
+    public function addFund(Request $request, Inspection $inspection)
+    {
+        $this->authorize('update', $inspection);
+        $amount = ['nullable', 'numeric', 'min:0', 'max:99999999'];
+        $data = $request->validate(
+            ['financial_year' => ['required', Rule::in(InspectionFundPosition::financialYears())]]
+            + array_fill_keys(InspectionFundPosition::AMOUNT_COLUMNS, $amount),
+            ['financial_year.in' => 'Select a financial year from the list.']
+        );
+        $values = collect(InspectionFundPosition::AMOUNT_COLUMNS)->mapWithKeys(fn ($c) => [$c => (float) ($data[$c] ?? 0)])->all();
+
+        $inspection->fundPositions()->updateOrCreate(['financial_year' => $data['financial_year']], $values);
 
         return $this->progressResponse($inspection, ['funds' => $this->fundRows($inspection)]);
     }
@@ -218,7 +260,7 @@ class InspectionController extends Controller
     public function review(Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $inspection->load(['school', 'answers', 'absentTeachers', 'fundPositions', 'evidence.category', 'remarks']);
+        $inspection->load(['school', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks']);
 
         return view('inspections.review', [
             'inspection' => $inspection,
@@ -333,24 +375,22 @@ class InspectionController extends Controller
             'pct' => $progress['pct'],
             'steps' => $progress['steps'],
             'missing' => $progress['missing'],
+            'warnings' => $progress['warnings'],
         ]);
     }
 
     private function teacherRows(Inspection $inspection): array
     {
-        return $inspection->absentTeachers()->get()->map(fn ($t) => [
-            'id' => $t->id, 'teacher_name' => $t->teacher_name, 'status' => $t->statusLabel(), 'remarks' => $t->remarks,
-            'delete_url' => route('inspections.teachers.destroy', [$inspection, $t]),
-        ])->all();
+        return $inspection->absentTeachers()->get()->map->toClientArray()->all();
+    }
+
+    private function classroomRows(Inspection $inspection): array
+    {
+        return $inspection->classroomObservations()->get()->map->toClientArray()->all();
     }
 
     private function fundRows(Inspection $inspection): array
     {
-        return $inspection->fundPositions()->with('category')->get()->map(fn ($f) => [
-            'id' => $f->id, 'financial_year' => $f->financial_year, 'category' => $f->category?->label,
-            'received' => number_format((float) $f->amount_received, 2), 'utilised' => number_format((float) $f->amount_utilised, 2),
-            'balance' => number_format($f->balance(), 2),
-            'delete_url' => route('inspections.funds.destroy', [$inspection, $f]),
-        ])->all();
+        return $inspection->fundPositions()->orderByDesc('financial_year')->get()->map->toClientArray()->all();
     }
 }

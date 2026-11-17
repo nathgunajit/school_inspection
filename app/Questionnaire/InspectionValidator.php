@@ -6,8 +6,8 @@ use App\Enums\EvidenceStatus;
 use App\Models\Inspection;
 
 /**
- * Server-side evaluation of the questionnaire rules: visibility, mandatory answers,
- * remarks, linked photos, attendance arithmetic and mandatory photographs (PRD 8.3, 9.3, 10.2).
+ * Server-side evaluation of the questionnaire rules (v2): visibility, mandatory answers,
+ * remarks, repeating sections, mandatory photographs and pending uploads.
  */
 class InspectionValidator
 {
@@ -18,7 +18,7 @@ class InspectionValidator
 
     public function __construct(private Inspection $inspection)
     {
-        $inspection->loadMissing(['answers', 'absentTeachers', 'fundPositions', 'evidence.category', 'remarks']);
+        $inspection->loadMissing(['answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks']);
         $this->answers = $inspection->answerMap();
         $this->remarks = $inspection->remarksMap();
 
@@ -29,8 +29,7 @@ class InspectionValidator
             if ($e->question_code) {
                 $this->uploadedByQuestion[$e->question_code] = ($this->uploadedByQuestion[$e->question_code] ?? 0) + 1;
             }
-            $cat = $e->category?->code;
-            if ($cat) {
+            if ($cat = $e->category?->code) {
                 $this->uploadedByCategory[$cat] = ($this->uploadedByCategory[$cat] ?? 0) + 1;
             }
         }
@@ -103,8 +102,14 @@ class InspectionValidator
         return false;
     }
 
+    /** Last step holds the photographs. */
+    public static function photoStep(): int
+    {
+        return max(array_keys(QuestionnaireDefinition::steps()));
+    }
+
     /**
-     * All missing / invalid items, grouped by step.
+     * Blocking missing items, grouped by step.
      *
      * @return array<int, array<int, array{code:?string, message:string}>>
      */
@@ -135,47 +140,48 @@ class InspectionValidator
             }
         }
 
-        // Step 4 arithmetic (PRD 8.3 step 4)
-        $a = $this->answers;
-        $num = fn ($c) => isset($a[$c]) && is_numeric($a[$c]) ? (int) $a[$c] : null;
-        [$sanc, $work, $pres, $abs] = [$num('ATT_SANCTIONED'), $num('ATT_WORKING'), $num('ATT_PRESENT'), $num('ATT_ABSENT')];
-        if ($work !== null && $pres !== null && $abs !== null && $pres + $abs !== $work) {
-            $add(4, 'ATT_ABSENT', 'Teachers present plus absent must equal working teachers');
-        }
-        if ($sanc !== null && $work !== null && $work > $sanc) {
-            $add(4, 'ATT_WORKING', 'Working teachers cannot exceed sanctioned posts');
-        }
-        if ($abs !== null && $abs !== $this->inspection->absentTeachers->count()) {
-            $add(4, 'ATT_ABSENT', "Details required for each absent teacher ({$this->inspection->absentTeachers->count()} of {$abs} entered)");
-        }
-        $enr = $num('ATT_ENROLLED');
-        $sp = $num('ATT_STUDENTS_PRESENT');
-        if ($enr !== null && $sp !== null && $sp > $enr) {
-            $add(4, 'ATT_STUDENTS_PRESENT', 'Students present cannot exceed enrolment');
+        // Step 4: at least one classroom observed
+        if ($this->inspection->classroomObservations->isEmpty()) {
+            $add(4, 'CLASSROOM', 'Add at least one classroom performance record');
         }
 
-        // Fund position: a cash-book photograph is required if a fund row was entered
-        if ($this->inspection->fundPositions->isNotEmpty() && empty($this->uploadedByCategory['cash_book'])) {
-            $add(5, 'FUND', 'Photograph of the cash book page required');
-        }
-
-        // Mandatory photographs (PRD 9.3)
-        $labels = ['school_front' => 'School front with name board', 'classroom' => 'Classroom in session', 'toilet' => 'Toilets', 'kitchen_mdm' => 'Kitchen or Mid-Day Meal'];
+        // Mandatory photographs
+        $photoStep = self::photoStep();
+        $labels = \App\Models\MasterValue::where('type', 'photo_category')->pluck('label', 'code');
         foreach (config('inspection.mandatory_photos') as $cat => $min) {
             if (($this->uploadedByCategory[$cat] ?? 0) < $min) {
-                $add(6, 'PHOTO_'.$cat, 'Photograph required: '.($labels[$cat] ?? $cat));
+                $add($photoStep, 'PHOTO_'.$cat, 'Photograph required: '.($labels[$cat] ?? $cat));
             }
         }
 
-        // Evidence still uploading
         $pending = $this->inspection->evidence->where('kind', 'photo')->filter(fn ($e) => $e->status !== EvidenceStatus::Uploaded)->count();
         if ($pending) {
-            $add(6, null, "{$pending} photograph(s) not yet uploaded");
+            $add($photoStep, null, "{$pending} photograph(s) not yet uploaded");
         }
 
         ksort($out);
 
         return $out;
+    }
+
+    /** Non-blocking hints (shown, but do not stop submission). */
+    public function warnings(): array
+    {
+        $w = [];
+        $total = QuestionnaireDefinition::totalTeachers($this->answers);
+        $present = $this->answers['TSI_09'] ?? null;
+        if ($total !== null && is_numeric($present) && (int) $present > $total) {
+            $w[2][] = "Teachers present ({$present}) is more than total teachers and tutors ({$total}).";
+        }
+        if ($total !== null && is_numeric($present)) {
+            $absent = $total - (int) $present;
+            $rows = $this->inspection->absentTeachers->count();
+            if ($absent > 0 && $rows < $absent) {
+                $w[3][] = "{$absent} teacher(s) appear absent; {$rows} entered in the absentee form.";
+            }
+        }
+
+        return $w;
     }
 
     /** Completion percentage per step and overall, based on required items. */
@@ -185,15 +191,19 @@ class InspectionValidator
         $steps = [];
         $totalReq = 0;
         $totalDone = 0;
+        $photoStep = self::photoStep();
 
-        foreach (QuestionnaireDefinition::questions() as $step => $qs) {
+        foreach (QuestionnaireDefinition::steps() as $step => $_) {
             $req = 0;
-            foreach ($qs as $q) {
+            foreach (QuestionnaireDefinition::questions()[$step] ?? [] as $q) {
                 if (self::required($q, $this->answers)) {
                     $req++;
                 }
             }
-            if ($step === 6) {
+            if ($step === 4) {
+                $req++;
+            }
+            if ($step === $photoStep) {
                 $req += count(config('inspection.mandatory_photos'));
             }
             $miss = count($missing[$step] ?? []);
@@ -213,6 +223,7 @@ class InspectionValidator
             'steps' => $steps,
             'pct' => $totalReq ? (int) floor($totalDone / $totalReq * 100) : 100,
             'missing' => $missing,
+            'warnings' => $this->warnings(),
             'can_submit' => empty($missing),
         ];
     }
