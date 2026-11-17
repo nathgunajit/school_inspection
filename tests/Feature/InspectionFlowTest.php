@@ -287,6 +287,27 @@ class InspectionFlowTest extends TestCase
         $this->assertStringNotContainsString('p.jpg', $e->storage_path);
     }
 
+    public function test_find_school_live_search_returns_scoped_results(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $officer = $this->officer(UserLevel::Cluster, $cluster);
+        $mine = $this->schoolIn($cluster);
+        $foreign = $this->schoolIn($this->otherCluster($cluster));
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest', 'Accept' => 'application/json'];
+
+        // by UDISE prefix: own school found and highlighted, foreign school never returned
+        $r = $this->actingAs($officer)->getJson(route('schools.index', ['q' => substr($mine->udise_code, 0, 8)]), $ajax)->assertOk();
+        $this->assertGreaterThanOrEqual(1, $r->json('total'));
+        $this->assertStringContainsString('<mark>'.substr($mine->udise_code, 0, 8).'</mark>', $r->json('html'));
+        $this->assertStringNotContainsString($foreign->name, $r->json('html'));
+
+        // exact foreign UDISE: nothing; no redirect for the live search
+        $this->actingAs($officer)->getJson(route('schools.index', ['q' => $foreign->udise_code]), $ajax)
+            ->assertOk()->assertJsonPath('total', 0);
+        // exact own UDISE via normal search still opens the school
+        $this->actingAs($officer)->get(route('schools.index', ['q' => $mine->udise_code]))->assertRedirect(route('schools.show', $mine));
+    }
+
     public function test_jurisdiction_isolation(): void
     {
         $cluster = Cluster::orderBy('id')->first();

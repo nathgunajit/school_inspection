@@ -24,6 +24,10 @@ class SchoolController extends Controller
         $schools = $searched
             ? $this->j->schools($user)
                 ->with(['block', 'cluster', 'category'])
+                // badges in the result list: my inspection today, last submitted inspection
+                ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
+                    ->whereDate('inspection_date', today())->where('status', '!=', InspectionStatus::Cancelled)])
+                ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])], 'inspection_date')
                 ->when($q !== '', fn ($w) => ctype_digit($q)
                     ? $w->where('udise_code', 'like', $q.'%')
                     : $w->where('name', 'like', '%'.$q.'%'))
@@ -33,6 +37,14 @@ class SchoolController extends Controller
                 ->orderByRaw("status = 'active' desc")->orderBy('name')
                 ->paginate(config('inspection.per_page'))->withQueryString()
             : null;
+
+        // Live search (typing): return only the result list
+        if ($request->ajax()) {
+            return response()->json([
+                'html' => view('schools._results', ['schools' => $schools, 'q' => $q])->render(),
+                'total' => $schools?->total() ?? 0,
+            ]);
+        }
 
         // Exact UDISE match -> go straight to the school
         if ($schools && ctype_digit($q) && strlen($q) === 11 && $schools->total() === 1) {
