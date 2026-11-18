@@ -430,3 +430,11 @@ Plan approved by the user. Decisions:
 - `ProfileController::show` adds the activity counts.
 - Files: `resources/views/profile.blade.php`, `resources/views/components/layouts/app.blade.php`, `app/Http/Controllers/ProfileController.php`, `resources/scss/app.scss`, `tests/Feature/RegistrationAndLoginTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 47 passed (612 assertions).
+
+## 52. Browser coverage check: Chrome, Edge, Firefox (Modification V3 item 7) (2026-11-18)
+- Build: `autoprefixer` (dev dependency) via new `postcss.config.js`; `browserslist` in `package.json` (Chrome/Edge/Firefox ≥ 100, Safari/iOS ≥ 15, Chrome Android ≥ 100); `vite.config.js` `build.target` set to the same browsers. Verified the built CSS gets prefixes (e.g. `-webkit-backdrop-filter`).
+- Fixes found in the code audit: number fields hide browser spin buttons everywhere (Firefox showed wide spinners over the "L" suffix of fund amounts); `:has()` fallbacks via JS classes (`.fund-bal.is-neg`, `.review-confirm.is-checked`) for Firefox < 121; standard `line-clamp` + `max-height` for the two-line tab labels; Firefox button focus inner border removed; date fields 44px high.
+- New `BROWSER_SUPPORT.md`: supported versions, what was checked per feature (layout, camera, gallery, hashing, lakh format, idle warning, review page, PDF, Excel) and a 10-point manual checklist per browser (Chrome / Edge / Firefox) to tick before release.
+- Note: real browsers cannot be run from this environment; the check is a code audit plus the automated server tests. The manual checklist is still to be done on devices.
+- Files: `package.json`, `package-lock.json`, `postcss.config.js` (new), `vite.config.js`, `resources/scss/app.scss`, `resources/js/wizard.js`, `BROWSER_SUPPORT.md` (new).
+- Verification: `npm run build` OK; `php artisan test` 47 passed (612 assertions).

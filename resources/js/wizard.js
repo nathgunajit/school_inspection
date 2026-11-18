@@ -503,6 +503,7 @@ function fundTotals() {
         const out = $('[data-bal]', row);
         out.textContent = fmt(bal);
         out.classList.toggle('neg', bal < 0);
+        out.closest('.fund-bal')?.classList.toggle('is-neg', bal < 0); // fallback for :has() in older browsers
         if (bal < 0) over.push(row.querySelector('.fund-head').textContent.trim());
     });
     $('[data-total="r"]', fundForm).textContent = fmt(r);
