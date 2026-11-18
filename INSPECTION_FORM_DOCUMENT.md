@@ -624,7 +624,4 @@ The screenshots were taken from the running app with headless Chrome, using the 
 
 Screens shown: `/login`, `/dashboard`, `/schools`, `/schools/2`, `/inspections/4/step/1` … `/step/7`, `/inspections/4/review` and `/inspections/5`.
 
-**Note on serving from a sub-folder:**
-- The built CSS (`public/build`) loads the icon font from `/build/...`, an absolute path.
-- So when the app is opened as `http://localhost/SCHOOLINSPECTION/public`, the icons do not appear.
-- They work when the app is at the root of a site, as with `php artisan serve` or a production virtual host.
+**Note on serving from a sub-folder:** the build uses relative asset URLs (`base: './'` in `vite.config.js`, ACTION.md #64). So icons and fonts load both at a site root and under a sub-folder such as `http://localhost/SCHOOLINSPECTION/public`. Run `npm run build` after pulling.

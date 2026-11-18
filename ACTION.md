@@ -621,3 +621,17 @@ Plan approved by the user. Decisions:
   - `INSPECTION_FORM_DOCUMENT.md`
   - `docs/screenshots/*.png`
   - `ACTION.md`
+
+## 64. Fix: icons missing when the app is served from a sub-folder (2026-11-18)
+- **Problem:** at `http://localhost/SCHOOLINSPECTION/public` every Bootstrap icon showed as an empty box. The built CSS loaded the icon font from the absolute path `/build/assets/bootstrap-icons-….woff2`, which resolves to `http://localhost/build/...` (404). This was found while taking the screenshots for #63.
+- **Fix:** `vite.config.js` sets `base: './'` for production builds. The built CSS now uses `url(./bootstrap-icons-….woff2)`, relative to the CSS file, and the JS chunks import each other relatively. The dev server (`npm run dev`) is unchanged, and Blade `@vite` tags already use `asset()`.
+- **Verified:**
+  - `npm run build` succeeded.
+  - No `/build/` absolute paths are left in `public/build/assets`.
+  - Headless Chrome on the Apache sub-folder URL shows all the login page icons.
+  - `php artisan test`: all tests pass.
+- **Deploy:** run `npm run build` after pulling. `public/build` is not in git.
+- Files:
+  - `vite.config.js`
+  - `INSPECTION_FORM_DOCUMENT.md` (section 12 note)
+  - `ACTION.md`
