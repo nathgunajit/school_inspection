@@ -1170,3 +1170,50 @@ $src-colors: (ssa: $primary, govt: $success, other: $warning);
     .fund-row[class*="src-"] { box-shadow: none; border-left-width: 4px; }
     @each $key, $c in $src-colors { .fund-row.src-#{$key} { border-left-color: $c; } }
 }
+
+// =============================================================
+//  Modification V2: readable fields (items 5, 9) and responsive questions (item 3)
+// =============================================================
+$field-fs: .9375rem;      // 15px desktop
+$field-fs-phone: 1rem;    // 16px phones (also stops iOS zoom on focus)
+$num-fs: 1.0625rem;       // numeric values
+
+// One font size for every field: wizard questions, add/edit forms, filters, auth forms
+.form-control, .form-select, .xsel-btn,
+.q-block .form-control, .q-block .form-select, .row-form .form-control, .row-form .form-select,
+.filter-bar .form-control, .filter-bar .form-select, .find-filters .form-select, .fund-input .form-control {
+    font-size: $field-fs; color: #0f172a; font-weight: 500;
+    @include media-breakpoint-down(md) { font-size: $field-fs-phone; } }
+// Placeholders: same standard size, lighter and normal weight, so they never look like an entered value
+.form-control::placeholder, textarea::placeholder, input::placeholder {
+    font-size: $field-fs; font-weight: 400; color: #9aa5b5; opacity: 1; font-style: normal;
+    @include media-breakpoint-down(md) { font-size: $field-fs-phone; } }
+.form-select.is-placeholder, .xsel-btn.is-placeholder { color: #9aa5b5; font-weight: 400; }
+.row-form .form-label, .q-extra .form-label { font-size: .8rem; }
+
+// Numbers: larger, bold, tabular figures, same alignment everywhere
+input[type="number"].form-control, .num-stepper .form-control, .fund-input .form-control {
+    font-size: $num-fs; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em;
+    &::placeholder { font-size: $num-fs; font-weight: 400; } }
+.num-stepper { min-height: 44px; .form-control { min-height: 42px; } }
+.num-btn { min-height: 42px; font-size: .9rem; }
+.fund-input .form-control { min-height: 44px; }
+
+// Choice buttons: never overflow; long labels wrap inside the button
+.choice-group { min-width: 0; max-width: 100%; }
+.choice-group label { font-size: .84rem; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.choice-group.seg { grid-auto-columns: minmax(0, 1fr); }
+.q-block { min-width: 0; .q-text { overflow-wrap: anywhere; } .q-input { min-width: 0; } }
+$q-choice-col-v2: 280px;
+@include media-breakpoint-up(md) {
+    .q-block.q-inline { grid-template-columns: minmax(0, 1fr) minmax(220px, $q-choice-col-v2); } }
+@include media-breakpoint-down(md) {
+    // short pairs (Yes/No) beside the question; everything else full width below it
+    .q-block.q-inline:not(.q-inline-2) { display: block;
+        .q-label { margin-bottom: .45rem; }
+        .choice-group.seg { width: 100%; } }
+    .q-block.q-inline-2 .choice-group.seg { width: 136px; }
+    .q-block textarea.form-control, .q-block .q-w-lg { width: 100%; max-width: none; } }
+// Suggestions: number + full-width input, wraps cleanly on phones
+.sug-row { min-width: 0; .form-control { flex: 1; min-width: 0; } }
+.wizard-body { overflow-wrap: anywhere; }

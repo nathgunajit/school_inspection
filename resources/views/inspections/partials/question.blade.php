@@ -14,8 +14,10 @@
     // Short choice lists (Yes/No, Satisfactory/Unsatisfactory, ...) sit on one line beside the question on wider screens
     // and become an equal-width segmented control on phones.
     $inline = $q['type'] === 'radio' && count($opts) <= 3 && collect($opts)->every(fn ($l) => mb_strlen($l) <= 16);
+    // Phones: only very short pairs (Yes/No) stay beside the question; longer ones (Satisfactory/Unsatisfactory) go full width below it
+    $compact = $inline && count($opts) === 2 && collect($opts)->every(fn ($l) => mb_strlen($l) <= 4);
 @endphp
-<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ $inline && count($opts) === 2 ? 'q-inline-2' : '' }} {{ $q['type'] === 'number' ? 'q-num' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }} {{ $enabled ? '' : 'is-disabled' }}"
+<div class="q-block {{ $inline ? 'q-inline' : '' }} {{ $compact ? 'q-inline-2' : '' }} {{ $q['type'] === 'number' ? 'q-num' : '' }} {{ V::isFilled($val) ? 'is-answered' : '' }} {{ $visible ? '' : 'd-none' }} {{ $enabled ? '' : 'is-disabled' }}"
      id="q-{{ $code }}" data-code="{{ $code }}" data-type="{{ $q['type'] }}" @unless($enabled) aria-disabled="true" @endunless>
     <div class="q-label">
         <span class="q-no" aria-hidden="true"><span class="n">{{ $n }}</span><i class="bi bi-check-lg"></i></span>

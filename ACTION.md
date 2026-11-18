@@ -341,3 +341,12 @@ Plan approved by the user. Decisions:
 - Helpers: `QuestionnaireDefinition::tone()` (shared with the question partial), `::totalStudents()`; `InspectionFundPosition::lakh()` (display only, stored values unchanged).
 - Files: `resources/views/inspections/review.blade.php`, `resources/views/inspections/partials/{fund-summary,question}.blade.php`, `app/Questionnaire/QuestionnaireDefinition.php`, `app/Models/InspectionFundPosition.php`, `app/Http/Controllers/InspectionController.php` (photo categories for review), `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 39 passed (520 assertions), 2 new (review page content, lakh format).
+
+## 42. Readable input/placeholder sizes and responsive School Governance layout (Modification V2 items 3, 5, 9) (2026-11-18)
+- Fields: one font size for every input and select (15px desktop, 16px phones, which also stops iOS zoom on focus); entered values darker and weight 500.
+- Placeholders: same standard size, lighter (#9aa5b5) and normal weight, so they are clearly different from entered values.
+- Numbers (question steppers, fund amounts): 17px, bold, tabular figures, 44px touch height.
+- Governance (and all choice questions): option buttons wrap long labels instead of overflowing; the answer column is wider (up to 280px) on tablet/desktop. On phones only Yes/No stays beside the question; longer pairs (Satisfactory/Unsatisfactory, Conventional/Non-Conventional) and 3-option questions go full width below it. Textareas and suggestion inputs take the full width.
+- `partials/question.blade.php`: new `$compact` rule (`q-inline-2` only for 2 options of ≤ 4 characters). Before, Satisfactory/Unsatisfactory was squeezed into 132px on phones.
+- Files: `resources/scss/app.scss`, `resources/views/inspections/partials/question.blade.php`, `ACTION.md`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 39 passed.
