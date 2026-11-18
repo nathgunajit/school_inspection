@@ -103,6 +103,18 @@ class InspectionFundPosition extends Model
         ];
     }
 
+    /** Amount in lakh with Indian digit grouping, e.g. 12345.5 → "12,345.50" (display only). */
+    public static function lakh(float $v): string
+    {
+        $neg = $v < 0;
+        [$int, $dec] = explode('.', number_format(abs($v), 2, '.', ''));
+        if (strlen($int) > 3) {
+            $int = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', substr($int, 0, -3)).','.substr($int, -3);
+        }
+
+        return ($neg ? '−' : '').$int.'.'.$dec;
+    }
+
     /** FY 2021-22 … current financial year (April start). */
     public static function financialYears(): array
     {

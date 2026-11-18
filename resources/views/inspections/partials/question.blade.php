@@ -9,12 +9,7 @@
     $photoRule = $q['photo'] ?? null;
     $photoOn = $photoRule === 'required' || $photoRule === 'optional' || (V::isFilled($val) && V::photoRequired($q, $val));
     $photoRequired = V::isFilled($val) && V::photoRequired($q, $val);
-    $tone = fn ($v) => match (true) {
-        in_array($v, ['unsatisfactory', 'not_available', 'not_received', 'not_held', 'no', 'poor', 'expired', 'inadequate'], true) => 'tone-bad',
-        in_array($v, ['satisfactory', 'some', 'irregular', 'partly', 'needs_improvement', 'not_in_use', 'cook_absent'], true) => 'tone-mid',
-        in_array($v, ['good', 'very_good', 'yes', 'all', 'monthly', 'daily', 'valid', 'adequate', 'in_use'], true) => 'tone-good',
-        default => '',
-    };
+    $tone = fn ($v) => \App\Questionnaire\QuestionnaireDefinition::tone($v);
     $opts = $q['options'] ?? [];
     // Short choice lists (Yes/No, Satisfactory/Unsatisfactory, ...) sit on one line beside the question on wider screens
     // and become an equal-width segmented control on phones.

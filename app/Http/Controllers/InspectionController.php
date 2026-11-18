@@ -344,6 +344,7 @@ class InspectionController extends Controller
             'questions' => Q::questions(),
             'answers' => $inspection->answers->pluck('value', 'question_code')->all(),
             'progress' => (new InspectionValidator($inspection))->progress(),
+            'photoCategories' => MasterValue::ofType('photo_category')->get(),
         ]);
     }
 

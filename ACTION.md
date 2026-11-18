@@ -333,3 +333,11 @@ Plan approved by the user. Decisions:
 - `.env`, `vendor/`, `node_modules/` and `storage/app/private/*` stay ignored (no secrets or uploads pushed).
 - Files: `.gitignore`, `ACTION.md`.
 - Verification: `git push -u origin main` succeeded; `git status` up to date with `origin/main`.
+## 41. Review page: photo gallery with viewer and clear question/answer display (Modification V2 items 1, 2) (2026-11-18)
+- Photos (step 7): grouped by category with a count and a "Required · done / missing" marker for the 4 mandatory categories; 4:3 thumbnails (object-fit cover), caption, "From gallery" and geo-tag labels. Tapping opens a full-size viewer (modal) with previous / next, arrow keys and swipe.
+- Answers: each question is a row with its number; the answer is a coloured pill (Yes/Satisfactory green, No/Unsatisfactory red, others amber/blue), numbers as large figures, text answers as a quoted block; "Not answered" (required) vs "Not applicable".
+- Step 2 shown as figure tiles plus automatic totals (Total students = Present + Absent; Total teachers; Teachers absent = Total − Present).
+- Steps 3 and 4 shown as the same cards as the wizard lists; step 5 as a year-wise fund summary (new partial `inspections/partials/fund-summary`) in ₹ lakh with Indian digit grouping, per-head lines by source colour and an all-years total.
+- Helpers: `QuestionnaireDefinition::tone()` (shared with the question partial), `::totalStudents()`; `InspectionFundPosition::lakh()` (display only, stored values unchanged).
+- Files: `resources/views/inspections/review.blade.php`, `resources/views/inspections/partials/{fund-summary,question}.blade.php`, `app/Questionnaire/QuestionnaireDefinition.php`, `app/Models/InspectionFundPosition.php`, `app/Http/Controllers/InspectionController.php` (photo categories for review), `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 39 passed (520 assertions), 2 new (review page content, lakh format).

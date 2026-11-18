@@ -186,4 +186,24 @@ class QuestionnaireDefinition
 
         return array_sum(array_map('intval', $vals));
     }
+
+    /** Total students = present (TSI_01) + absent (TSI_02); null until both are entered. */
+    public static function totalStudents(array $answers): ?int
+    {
+        $p = $answers['TSI_01'] ?? null;
+        $a = $answers['TSI_02'] ?? null;
+
+        return ($p === null || $p === '' || $a === null || $a === '') ? null : (int) $p + (int) $a;
+    }
+
+    /** Colour tone of a choice answer: tone-good / tone-mid / tone-bad (presentation only). */
+    public static function tone(mixed $value): string
+    {
+        return match (true) {
+            in_array($value, ['unsatisfactory', 'not_available', 'not_received', 'not_held', 'no', 'poor', 'expired', 'inadequate'], true) => 'tone-bad',
+            in_array($value, ['satisfactory', 'some', 'irregular', 'partly', 'needs_improvement', 'not_in_use', 'cook_absent'], true) => 'tone-mid',
+            in_array($value, ['good', 'very_good', 'yes', 'all', 'monthly', 'daily', 'valid', 'adequate', 'in_use'], true) => 'tone-good',
+            default => '',
+        };
+    }
 }

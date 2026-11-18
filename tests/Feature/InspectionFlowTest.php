@@ -248,6 +248,38 @@ class InspectionFlowTest extends TestCase
             ->assertSee('still to complete')->assertSee('Your answers')->assertSee('B. Devi')->assertSee('Fix');
     }
 
+    public function test_review_page_shows_answer_pills_totals_funds_and_photo_gallery(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->completeAll($i);
+        foreach (['TSI_01' => 120, 'TSI_02' => 15, 'TSI_04' => 6, 'TSI_05' => 2, 'TSI_06' => 1, 'TSI_07' => 1, 'TSI_08' => 0, 'TSI_09' => 8] as $c => $v) {
+            $this->answer($i, $c, $v)->assertOk();
+        }
+        $years = \App\Models\InspectionFundPosition::financialYears();
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $years[0], 'asg_received' => 1234.5, 'asg_expenditure' => 1000])->assertOk();
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $years[1], 'govt_received' => 2, 'govt_expenditure' => 3])->assertOk();
+
+        $this->get(route('inspections.review', $i))->assertOk()
+            ->assertSee('ans-pill tone-good', false)                 // Yes answers as green pills
+            ->assertSee('Total students')->assertSee('135')          // 120 + 15
+            ->assertSee('Total teachers')->assertSee('Teachers absent')
+            ->assertSee('1,234.50')                                  // Indian-format lakh
+            ->assertSee('All 2 years')->assertSee('−1.00')           // grand total row, negative balance
+            ->assertSee('rv-photo', false)->assertSee('Required · done')
+            ->assertSee(route('evidence.show', InspectionEvidence::first()), false);
+    }
+
+    public function test_lakh_format_uses_indian_grouping(): void
+    {
+        $fp = \App\Models\InspectionFundPosition::class;
+        $this->assertSame('0.00', $fp::lakh(0));
+        $this->assertSame('999.50', $fp::lakh(999.5));
+        $this->assertSame('1,234.50', $fp::lakh(1234.5));
+        $this->assertSame('12,34,567.00', $fp::lakh(1234567));
+        $this->assertSame('−2.25', $fp::lakh(-2.25));
+    }
+
     public function test_submission_blocked_without_mandatory_photos(): void
     {
         $officer = $this->officer(UserLevel::Cluster);
