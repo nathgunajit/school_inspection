@@ -1495,3 +1495,57 @@ input[type="date"].form-control { min-height: 44px; }
     .idle-text { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.35; strong { display: block; font-size: .875rem; } }
     .btn { flex-shrink: 0; font-weight: 600; color: #b45309; }
     @include media-breakpoint-up(lg) { bottom: 1.25rem; } }
+
+// =============================================================
+//  Map View (New Module 1) and schedule planner (New Module 2)
+// =============================================================
+$st-inspected: $success;
+$st-progress: $warning;
+$st-pending: $danger;
+$cov-mid: #e0a800;
+
+.si-map { height: clamp(360px, 62vh, 680px); border-radius: .6rem; background: #dfe7ef; z-index: 0; }
+.map-card { position: relative; }
+.map-loading { position: absolute; top: 4rem; right: 1.5rem; z-index: 500; background: #fff; border-radius: 2rem; padding: .3rem .8rem; box-shadow: 0 2px 8px rgba(0,0,0,.15); font-size: .8rem; }
+.map-crumbs { font-size: .85rem; flex-wrap: wrap; }
+.map-search-results { position: absolute; z-index: 1060; left: 0; right: 0; max-height: 18rem; overflow: auto; }
+.map-legend { font-size: .8rem; line-height: 1.9;
+    .dot { display: inline-block; width: .8rem; height: .8rem; border-radius: 50%; margin-right: .45rem; vertical-align: -1px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); } }
+.dot.st-inspected, .dot.cov-high { background: $st-inspected; }
+.dot.st-in_progress, .dot.cov-mid { background: $st-progress; }
+.dot.st-pending, .dot.cov-low { background: $st-pending; }
+.cursor-pointer { cursor: pointer; }
+
+.si-area-label { font-size: .72rem; font-weight: 600; padding: 1px 6px; }
+
+.cov-pill { display: inline-block; min-width: 3.6rem; padding: .1rem .45rem; border-radius: 1rem; font-weight: 600; font-size: .75rem; text-align: center;
+    &.cov-high { background: rgba($st-inspected, .14); color: darken($st-inspected, 8%); }
+    &.cov-mid { background: rgba($st-progress, .16); color: #a35a05; }
+    &.cov-low { background: rgba($st-pending, .12); color: #b3261e; } }
+
+.st-badge { font-weight: 600;
+    &.st-inspected { background: rgba($st-inspected, .14); color: darken($st-inspected, 8%); }
+    &.st-in_progress { background: rgba($st-progress, .16); color: #a35a05; }
+    &.st-pending { background: rgba($st-pending, .12); color: #b3261e; } }
+
+// school pins (divIcon)
+.si-pin { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); color: #fff; font-size: .8rem;
+    > i, > b { transform: rotate(45deg); line-height: 1; }
+    &.st-inspected { background: $st-inspected; }
+    &.st-in_progress { background: $st-progress; }
+    &.st-pending { background: $st-pending; }
+    &.st-planned { background: $primary; }
+    &.st-available { background: #64748b; } }
+
+.map-pop { min-width: 13rem; font-size: .8rem;
+    a.btn-primary, .btn-primary { color: #fff; }
+    a.btn-soft-primary { color: $primary; }
+    .table td { padding: .15rem .25rem; } }
+.leaflet-container { font-family: inherit; }
+.leaflet-popup-content { margin: .7rem .8rem; }
+
+@include media-breakpoint-down(lg) {
+    .si-map { height: 58vh; }
+    .map-stats .stat-card .card-body { padding: .6rem; }
+}

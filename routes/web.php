@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\LocationLookupController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchoolController;
@@ -82,6 +83,13 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::get('/inspections', [ReportController::class, 'area'])->middleware('can:view_reports')->name('inspections.area');
         Route::get('/export/{mode}', [ReportController::class, 'export'])->middleware('can:export_excel')->name('inspections.export');
+
+        /* ---------------- Map View (New Module 1) ---------------- */
+        Route::middleware('can:view_reports')->prefix('map')->name('map.')->group(function () {
+            Route::get('/', [MapController::class, 'index'])->name('index');
+            Route::get('/areas/{level}', [MapController::class, 'areas'])->middleware('throttle:120,1')->name('areas');
+            Route::get('/schools', [MapController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
+        });
 
         /* ---------------- Administration ---------------- */
         Route::prefix('admin')->name('admin.')->group(function () {

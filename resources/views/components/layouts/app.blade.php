@@ -22,7 +22,8 @@
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
         ['Find School', 'schools.index', 'bi-search', 'schools.*', 'conduct_inspections'],
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
-        ['Inspections in Area', 'inspections.area', 'bi-map', 'inspections.area', 'view_reports'],
+        ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
+        ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
     ];
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingFor($u)->count() : 0;
 @endphp

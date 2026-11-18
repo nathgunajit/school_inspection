@@ -652,3 +652,73 @@ Plan approved by the user. Decisions:
   - `Documents/Modification of the Application New Module.docx`
   - `Documents/Modification of the ApplicationV5.docx`
   - `ACTION.md`
+
+## 66. New Module 1: Interactive Map View (2026-11-18)
+- **Request:** New Module document, section 1. A GIS dashboard of the administrative hierarchy and inspection coverage across Assam (State → District → Block → Cluster → School).
+- **Done:**
+  - **Leaflet + OpenStreetMap,** bundled with Vite (`leaflet`, `leaflet.markercluster`; no CDN).
+  - **`MapDataService`:** all data through `JurisdictionService`.
+    - Area rows: schools, inspected (submitted in the period), in progress (draft or unlocked), pending, no-GPS, coverage %, and officers by level (active, with a current posting).
+    - School rows: status, and the last submitted inspection with its officer.
+    - Officer filter: only schools that officer inspected in the period.
+    - An area without coordinates is placed at the average of its schools' GPS.
+    - Results cached for 60 s (`MAP_CACHE_SECONDS`; 0 in tests).
+  - **`MapController`:**
+    - `GET /map`, `/map/areas/{district|block|cluster}?parent=` and `/map/schools?cluster=|q=`, with right `view_reports` and a 120/min throttle.
+    - An area or officer outside the user's jurisdiction returns 403.
+    - The map opens at the user's own level.
+  - **Page:**
+    - stat cards: registered officers, total schools, inspected, pending, coverage
+    - filters: District, Block, Cluster, school search, officer, period (an offcanvas on phones)
+    - breadcrumb drill-down
+    - area circles sized by school count and coloured by coverage
+    - school pins: green inspected, orange in progress, red not inspected
+    - popups with details and "View report" / "Open school"
+    - table: district-, block- or cluster-wise coverage and registered officers by level
+    - "Map View" menu item
+  - **Migration:** `clusters.latitude` / `longitude` (additive).
+  - **Boundaries:** new command `php artisan map:boundaries` (`ImportMapBoundaries`) converts the KML files supplied in `public/KML/Assam` into `public/geo/assam-state.geojson` and `assam-districts.geojson`.
+    - Douglas–Peucker simplification (about 150 m), coordinates rounded to 5 decimals.
+    - The output is 240 KB, from 17 MB of KML: 50 district files, 126 constituency polygons.
+    - The map always draws the state outline. At district level, district shapes are coloured by the coverage of the District Master row with the same name or code, and the rest are grey.
+    - The raw `public/KML` folder is not committed; the generated GeoJSON is.
+  - **Tile server:** configurable (`MAP_TILE_URL`, `MAP_TILE_ATTRIBUTION`).
+- **Verified:**
+  - `tests/Feature/MapViewTest.php` (9 tests) covers:
+    - the page for every level
+    - counts and coverage
+    - pin status and last inspection
+    - jurisdiction 403s, and the search scope
+    - the officer filter and its scope
+    - officer counts by level, inactive officers excluded
+    - the breadcrumb and coordinates
+    - input validation
+    - KML → GeoJSON conversion (name, constituency, simplification, closed rings)
+  - Full suite: 65 passed.
+  - Headless Chrome on the Apache URL as the demo District officer (9000000011):
+    - only North District is visible
+    - drill-down to schools works, and pins and popups show
+    - the phone layout works
+    - as the State officer (9000000001), the whole of Assam shows with the state outline and district shapes
+- Files:
+  - `app/Services/MapDataService.php`
+  - `app/Http/Controllers/MapController.php`
+  - `app/Console/Commands/ImportMapBoundaries.php`
+  - `public/geo/assam-state.geojson`, `assam-districts.geojson`
+  - `routes/web.php`
+  - `resources/views/map/index.blade.php`
+  - `resources/js/map.js`, `map-common.js`, `leaflet-global.js`
+  - `resources/scss/app.scss`
+  - `resources/views/components/layouts/app.blade.php`
+  - `vite.config.js`
+  - `package.json` and lock file
+  - `config/inspection.php`
+  - `phpunit.xml`
+  - `.env.example`
+  - `database/migrations/2026_11_19_000001_add_coordinates_to_clusters.php`
+  - `app/Models/Cluster.php`
+  - `tests/Feature/MapViewTest.php`
+  - `PROJECT_DOCUMENT.md` (4.8, tables, modules)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

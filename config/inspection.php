@@ -50,6 +50,22 @@ return [
     // Load testing only (V5 Step 2, LOAD_TEST.md): lifts the per-IP login rate limit. Always off in production.
     'loadtest' => (bool) env('LOADTEST_MODE', false) && env('APP_ENV') !== 'production',
 
+    // New Module 1, Map View: OpenStreetMap tiles through Leaflet (bundled, no CDN).
+    // For a self-hosted or commercial tile server set MAP_TILE_URL / MAP_TILE_ATTRIBUTION.
+    'map' => [
+        'tiles' => env('MAP_TILE_URL', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'attribution' => env('MAP_TILE_ATTRIBUTION', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'),
+        'center' => [26.2, 92.9],   // Assam
+        'zoom' => 7,
+        'cache_seconds' => (int) env('MAP_CACHE_SECONDS', 60),
+        // Boundaries drawn when the files exist. Built from the KML files by `php artisan map:boundaries`.
+        // District features match the District Master by property "code" or "name".
+        'geojson' => [
+            'state' => 'geo/assam-state.geojson',
+            'districts' => 'geo/assam-districts.geojson',
+        ],
+    ],
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,

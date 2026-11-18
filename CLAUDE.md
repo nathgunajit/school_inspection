@@ -6,7 +6,8 @@ Guidance for Claude Code (and developers) working in this repository.
 **School Inspection Management System, Phase 1.** Inspecting officers at State, District, Block and Cluster level register themselves and are approved by a higher officer. They pick schools by UDISE code, fill a fixed six-step questionnaire, capture geo-stamped photos with the in-app camera, and submit locked reports.
 - Spec: `Documents/School_Inspection_PRD.docx` (v3.0). The section numbers quoted in code comments (e.g. "PRD 8.2") refer to it.
 - Paper form screenshots: `Documents/*.png`.
-- Phase 2 (review, configurable questionnaire, scoring, offline, dashboards, notifications) is **out of scope**. Don't build it, but don't block it either.
+- Phase 2 (review, configurable questionnaire, offline, dashboards, notifications) is **out of scope**. Don't build it, but don't block it either.
+- **New Modules** (`Documents/Modification of the Application New Module.docx`, plan in `NEW_MODULES_PLAN.md`): 1 Map View (done), 2 map-based Inspection Scheduling, 3 Automatic Inspection Rating. These are requested now, even where they overlap Phase 2 (e.g. scoring).
 
 ## Stack
 - Laravel 12, PHP 8.2 (XAMPP at `D:\xampp\php`), MySQL database **`schoolinspection`** (root, no password locally)
@@ -39,7 +40,8 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 
 ## Layout
 - `app/Enums/`: UserLevel, UserStatus, InspectionStatus, EvidenceStatus
-- `app/Services/`: JurisdictionService, ApproverResolver, PermissionService, AuditLogger, InspectionNumberGenerator, EvidenceStorage, Otp/*
+- `app/Services/`: JurisdictionService, ApproverResolver, PermissionService, AuditLogger, InspectionNumberGenerator, EvidenceStorage, MapDataService, Otp/*
+- Map View: `MapController` (`/map`, `/map/areas/{level}`, `/map/schools`), `resources/js/map.js` + `map-common.js` (Leaflet + markercluster, bundled; `leaflet-global.js` exposes `L` for the plugin). Tiles, cache and boundary files in `config('inspection.map')`. `php artisan map:boundaries` rebuilds `public/geo/*.geojson` from `public/KML/Assam` (raw KML is not committed).
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)

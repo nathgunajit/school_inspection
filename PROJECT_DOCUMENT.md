@@ -236,6 +236,23 @@ flowchart LR
 ```
 Officers request a **mobile number change** from their profile; the State Admin decides it. **Transfers** keep past inspections in the old area.
 
+### 4.8 Map View (New Module 1)
+```mermaid
+flowchart LR
+    S[Assam<br/>districts] -->|click a district| D[Blocks of the district]
+    D -->|click a block| B[Clusters of the block]
+    B -->|click a cluster| C[Schools of the cluster<br/>green / orange / red pins]
+    C -->|click a pin| P[School details, last inspection,<br/>View report / Open school]
+```
+- Menu **Map View** (`/map`, right `view_reports`). The map opens at the user's own level: the State sees districts, a District officer sees the blocks of their district, a Block officer the clusters, a Cluster officer the schools.
+- **Area circles** are sized by the number of schools and coloured by coverage (green ≥ 75 %, orange 40–74 %, red below 40 %). An area with no coordinates is placed at the average of its schools' GPS.
+- **School pins:** green = submitted in the period, orange = draft or unlocked, red = not inspected. Schools without GPS are counted and listed but not drawn.
+- **Stat cards:** registered officers, total schools, inspected, pending, coverage. **Table:** district-, block- or cluster-wise coverage with officers by level.
+- **Filters:** District, Block, Cluster, school search (UDISE or name), inspection officer, period (default: this month).
+- **Access:** all data comes from `JurisdictionService`. An area or officer outside the user's jurisdiction returns 403.
+- **Slow networks:** one level per request (small JSON), Leaflet bundled with the app, pins grouped with marker clustering, server results cached for 60 s (`MAP_CACHE_SECONDS`).
+- **Tiles:** OpenStreetMap by default. `MAP_TILE_URL` and `MAP_TILE_ATTRIBUTION` point to another tile server (self-hosted or commercial) for heavy production use. **Boundaries:** the Assam state outline and the district shapes come from the KML files in `public/KML/Assam` (`Assam.kml`, `Assam Dist/<District>.kml`). `php artisan map:boundaries` converts them into small simplified GeoJSON files in `public/geo` (about 240 KB). The state outline is always drawn; at district level each district shape is coloured by the coverage of the District Master row with the same name (or `code`), and districts not in the master are grey. Run the command again when the KML files change.
+
 ---
 
 ## 5. Database schema
@@ -279,7 +296,7 @@ erDiagram
 | `states` | State (single-state deployment, code 18) | `code` UQ, `name`, `is_active` |
 | `districts` | Districts | `state_id` FK, `code` UQ (e.g. 1801), `name`, lat/lng, `is_active` |
 | `blocks` | Blocks | `district_id` FK, `code` UQ (180101), `name`, lat/lng, `is_active` |
-| `clusters` | Clusters | `block_id` FK, `code` UQ (18010101), `name`, `is_active` |
+| `clusters` | Clusters | `block_id` FK, `code` UQ (18010101), `name`, lat/lng (New Module 1), `is_active` |
 | `schools` | School master | `udise_code` CHAR(11) UQ, `name`, `state_id`/`district_id`/`block_id`/`cluster_id` FK, `management_id`/`category_id` → master_values, address, lat/lng, `status` (active/closed), soft delete |
 | `master_values` | Drop-down lists | `type` (designation, management, category, photo_category, fund_category, subject), `code`, `label`, `sort`, `is_active` |
 | `import_batches` | Excel imports of masters | `type` (location/school), file, `uploaded_by`, total/added/updated/rejected, `error_file_path` |
@@ -344,6 +361,7 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Submit / unlock / cancel | inspections | inspections (number, status, GPS), audit_logs |
 | Reports, PDF, Excel (`ReportController`) | inspections + children, schools, users, locations | audit_logs (pdf, export) |
 | Dashboard (`DashboardController`) | inspections, registration_requests | — |
+| Map View (`MapController`, `MapDataService`) | districts, blocks, clusters, schools, inspections, users, user_jurisdictions | — (read only, cached 60 s) |
 | Audit (`Admin\AuditLogController`, `AuditLogger`) | audit_logs | audit_logs (append only) |
 | Nightly job `inspections:expire-drafts` | inspections | inspections (cancelled), audit_logs |
 
