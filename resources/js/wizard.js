@@ -310,6 +310,33 @@ document.addEventListener('change', (e) => {
 
 /* ---------------- Repeating sections (absentee, classroom, fund) ---------------- */
 const fyShort = (fy) => String(fy).replace('FY-', '');
+// Amounts in lakh, Indian digit grouping (display only; stored values are unchanged)
+const fmt = (n) => {
+    const v = Math.round((Number(n) || 0) * 100) / 100;
+    return (v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+const toNum = (s) => { const v = parseFloat(String(s ?? '').replace(/,/g, '')); return Number.isFinite(v) ? v : 0; };
+function renderYearTable() {
+    const box = $('#fund-years');
+    if (!box) return;
+    const rows = [...(SI.funds || [])].sort((a, b) => String(b.financial_year).localeCompare(String(a.financial_year)));
+    box.classList.toggle('d-none', rows.length === 0);
+    const active = document.querySelector('#fund-form input[name="financial_year"]:checked')?.value;
+    let r = 0, e = 0;
+    $('[data-fy-rows]', box).innerHTML = rows.map((f) => {
+        const fr = toNum(f.total_received), fe = toNum(f.total_expenditure), fb = toNum(f.balance);
+        r += fr; e += fe;
+        return `<button type="button" class="fy-tr ${f.financial_year === active ? 'is-active' : ''}" role="row" data-fy-open="${esc(f.financial_year)}" aria-label="Open FY ${esc(fyShort(f.financial_year))}">
+            <span role="cell"><i class="bi bi-calendar3"></i>FY ${esc(fyShort(f.financial_year))}</span>
+            <span role="cell">${fmt(fr)}</span><span role="cell">${fmt(fe)}</span><span role="cell" class="${fb < 0 ? 'neg' : 'pos'}">${fmt(fb)}</span></button>`;
+    }).join('');
+    $('[data-fy-total="r"]', box).textContent = fmt(r);
+    $('[data-fy-total="e"]', box).textContent = fmt(e);
+    const tb = $('[data-fy-total="b"]', box);
+    tb.textContent = fmt(r - e);
+    tb.className = r - e < 0 ? 'neg' : 'pos';
+    $('.fy-tfoot', box).classList.toggle('d-none', rows.length < 2);
+}
 const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 const rowActions = (r, editAttr = 'data-edit') => `<div class="rs-actions">
     <button type="button" class="rs-btn" ${editAttr}="${esc(r.id)}" aria-label="Edit"><i class="bi bi-pencil"></i><span>Edit</span></button>
@@ -348,8 +375,8 @@ const sections = {
             <span class="rs-avatar tone-success"><i class="bi bi-calendar3"></i></span>
             <div class="rs-body">
                 <div class="rs-title">FY ${esc(fyShort(f.financial_year))}</div>
-                <div class="rs-chips">${chip('Received ' + esc(f.total_received) + ' L')}${chip('Spent ' + esc(f.total_expenditure) + ' L')}
-                    ${chip('Balance ' + esc(f.balance) + ' L', parseFloat(String(f.balance).replace(/,/g, '')) < 0 ? 'bad' : 'ok')}</div>
+                <div class="rs-chips">${chip('Received ₹ ' + esc(fmt(toNum(f.total_received))) + ' L')}${chip('Spent ₹ ' + esc(fmt(toNum(f.total_expenditure))) + ' L')}
+                    ${chip('Balance ₹ ' + esc(fmt(toNum(f.balance))) + ' L', toNum(f.balance) < 0 ? 'bad' : 'ok')}</div>
                 <div class="fund-saved-heads">${f.heads.filter((h) => h.received !== '0.00' || h.expenditure !== '0.00')
                     .map((h) => `<span class="src-${esc(h.source)}"><b>${SRC[h.source] || ''}</b>${esc(h.label.replace(/\s*\(SSA\)$/, ''))}: ${esc(h.received)} / ${esc(h.expenditure)}</span>`).join('')}</div>
             </div>${rowActions({ id: f.financial_year, delete_url: f.delete_url }, 'data-edit-fund')}</div>`,
@@ -364,7 +391,7 @@ function renderSection(s) {
     const count = $(`[data-count="${s.key}"]`);
     if (count) { count.textContent = rows.length; count.classList.toggle('has', rows.length > 0); }
     if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
-    if (s.key === 'funds') markSavedYears();
+    if (s.key === 'funds') { markSavedYears(); renderYearTable(); }
 }
 
 /** Add / edit mode for the absentee and classroom forms. */
@@ -446,8 +473,9 @@ for (const s of Object.values(sections)) {
 
 /* ---------------- Step 5: fund by year ---------------- */
 const fundForm = $('#fund-form');
-const fmt = (n) => (Math.round(n * 100) / 100).toFixed(2);
 const num = (el) => { const v = parseFloat(el?.value); return Number.isFinite(v) ? v : 0; };
+let fundIsDirty = false;
+let currentFy = null;
 
 function markSavedYears() {
     const saved = new Set((SI.funds || []).map((f) => f.financial_year));
@@ -474,6 +502,14 @@ function fundTotals() {
     const tb = $('[data-total="b"]', fundForm);
     tb.textContent = fmt(r - e);
     tb.classList.toggle('neg', r - e < 0);
+    const card = $('#fund-balance-card');
+    if (card) {
+        $('[data-fbc-year]', card).textContent = currentFy ? `FY ${fyShort(currentFy)}` : 'FY';
+        $('[data-fbc="r"]', card).textContent = fmt(r);
+        $('[data-fbc="e"]', card).textContent = fmt(e);
+        $('[data-fbc="b"]', card).textContent = fmt(r - e);
+        card.classList.toggle('is-neg', r - e < 0);
+    }
     const warn = $('#fund-warn');
     warn.classList.toggle('d-none', !over.length);
     if (over.length) warn.querySelector('span').textContent = `Expenditure is more than the amount received for ${over.join(', ')}. Please check the figures (you can still save).`;
@@ -482,6 +518,7 @@ function fundDirty(dirty) {
     const btn = $('#fund-save');
     const fy = fundForm.querySelector('input[name="financial_year"]:checked')?.value;
     const exists = (SI.funds || []).some((f) => f.financial_year === fy);
+    fundIsDirty = dirty;
     btn.classList.toggle('btn-success', !dirty);
     btn.classList.toggle('btn-primary', dirty);
     btn.innerHTML = dirty
@@ -508,6 +545,15 @@ if (fundForm) {
     fundForm.addEventListener('change', (e) => {
         if (e.target.name !== 'financial_year') return;
         const fy = e.target.value;
+        // Each year is kept separately: warn before leaving a year with amounts that are not saved yet
+        const hasInput = $$('#fund-amounts input').some((el) => el.value !== '');
+        if (currentFy && currentFy !== fy && fundIsDirty && hasInput
+            && !confirm(`FY ${fyShort(currentFy)} has amounts that are not saved. Switch to FY ${fyShort(fy)} and discard them?`)) {
+            const back = fundForm.querySelector(`input[name="financial_year"][value="${currentFy}"]`);
+            if (back) back.checked = true;
+            return;
+        }
+        currentFy = fy;
         const existing = (SI.funds || []).find((x) => x.financial_year === fy);
         $('#fund-amounts').disabled = false;
         $('#fund-amounts').classList.remove('d-none');
@@ -518,7 +564,14 @@ if (fundForm) {
         }
         fundTotals();
         fundDirty(!existing);
+        renderYearTable();
         $('#fund-amounts input')?.focus({ preventScroll: true });
+    });
+    $('#fund-years')?.addEventListener('click', (e) => {
+        const row = e.target.closest('[data-fy-open]');
+        if (!row) return;
+        selectYear(row.dataset.fyOpen);
+        fundForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     fundForm.addEventListener('input', (e) => { if (e.target.closest('#fund-amounts')) { fundTotals(); fundDirty(true); } });
     $('[data-fund-clear]')?.addEventListener('click', () => {

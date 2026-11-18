@@ -207,15 +207,24 @@
                                                             class="form-control" data-label="{{ $headLabel }} {{ strtolower($what) }}"><span>L</span></div>
                                                     </div>
                                                 @endforeach
-                                                <span class="fund-bal"><span class="fund-cell-lbl">Balance</span><span data-bal>0.00</span></span>
+                                                <span class="fund-bal"><span class="fund-cell-lbl">Balance</span><span class="fund-amt">₹ <span data-bal>0.00</span> <em>L</em></span></span>
                                             </div>
                                         @endforeach
                                     @endforeach
                                     <div class="fund-row fund-row-total">
-                                        <span class="fund-head">Total (lakh)</span>
+                                        <span class="fund-head">Total (₹ lakh)</span>
                                         <span><span class="fund-cell-lbl">Received</span><span data-total="r">0.00</span></span>
                                         <span><span class="fund-cell-lbl">Expenditure</span><span data-total="e">0.00</span></span>
                                         <span><span class="fund-cell-lbl">Balance</span><span data-total="b">0.00</span></span>
+                                    </div>
+                                </div>
+                                {{-- Balance summary for the selected year (display only) --}}
+                                <div class="fund-balance-card" id="fund-balance-card" aria-live="polite">
+                                    <div class="fbc-year"><i class="bi bi-calendar3"></i><span>Balance for <b data-fbc-year>FY</b></span></div>
+                                    <div class="fbc-figs">
+                                        <div><small>Received</small><span>₹ <b data-fbc="r">0.00</b> L</span></div>
+                                        <div><small>Expenditure</small><span>₹ <b data-fbc="e">0.00</b> L</span></div>
+                                        <div class="fbc-bal"><small>Balance</small><span>₹ <b data-fbc="b">0.00</b> L</span></div>
                                     </div>
                                 </div>
                                 <div id="fund-warn" class="fund-warn d-none"><i class="bi bi-exclamation-triangle"></i><span></span></div>
@@ -232,6 +241,16 @@
                             <span class="rs-count" data-count="funds">0</span>
                         </div>
                         <div id="fund-list" class="rs-list"></div>
+
+                        {{-- Year-wise summary of every saved year (tap a row to open that year) --}}
+                        <div id="fund-years" class="fund-years d-none">
+                            <div class="q-group"><span class="q-group-icon"><i class="bi bi-table"></i></span><span>Year-wise summary <span class="text-secondary fw-normal text-lowercase">(₹ lakh)</span></span></div>
+                            <div class="fy-table" role="table" aria-label="Year-wise fund summary">
+                                <div class="fy-tr fy-th" role="row"><span role="columnheader">Financial year</span><span role="columnheader">Received</span><span role="columnheader">Expenditure</span><span role="columnheader">Balance</span></div>
+                                <div data-fy-rows></div>
+                                <div class="fy-tr fy-tfoot" role="row"><span role="cell">All years</span><span role="cell" data-fy-total="r"></span><span role="cell" data-fy-total="e"></span><span role="cell" data-fy-total="b"></span></div>
+                            </div>
+                        </div>
                     @endif
 
                     {{-- ============ STEP 6: suggestions after governance questions ============ --}}

@@ -102,20 +102,37 @@
         @else <p class="muted">No classroom records.</p> @endif
     @endif
     @if ($n === 5)
-        @forelse ($inspection->fundPositions as $f)
-            <p style="margin:2mm 0 1mm"><strong>{{ $f->financial_year }}</strong> <span class="muted">(amounts in Rs lakh)</span></p>
+        @php
+            $FP = \App\Models\InspectionFundPosition::class;
+            $fundRows = $inspection->fundPositions->sortByDesc('financial_year')->values();
+            $rec = fn ($f) => $f->isLegacy() ? (float) $f->amount_received : $f->totalReceived();
+            $exp = fn ($f) => $f->isLegacy() ? (float) $f->amount_utilised : $f->totalExpenditure();
+        @endphp
+        @forelse ($fundRows as $f)
+            <p style="margin:2mm 0 1mm"><strong>{{ str_replace('FY-', 'FY ', $f->financial_year) }}</strong> <span class="muted">(amounts in Rs lakh)</span></p>
             <table class="grid"><tr><th>Head</th><th class="r">Received</th><th class="r">Expenditure</th><th class="r">Balance</th></tr>
                 @if ($f->isLegacy())
-                    <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="r">{{ number_format((float) $f->amount_received, 2) }}</td><td class="r">{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="r"><strong>{{ number_format($f->balance(), 2) }}</strong></td></tr>
+                    <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="r">{{ $FP::lakh((float) $f->amount_received) }}</td><td class="r">{{ $FP::lakh((float) $f->amount_utilised) }}</td><td class="r"><strong>{{ $FP::lakh($f->balance()) }}</strong></td></tr>
                 @else
-                    @foreach (\App\Models\InspectionFundPosition::HEADS as $key => [$label, $rc, $ec])
-                        <tr><td>{{ $label }}</td><td class="r">{{ number_format((float) $f->$rc, 2) }}</td><td class="r">{{ number_format((float) $f->$ec, 2) }}</td><td class="r"><strong>{{ number_format($f->balance($key), 2) }}</strong></td></tr>
+                    @foreach ($FP::HEADS as $key => [$label, $rc, $ec])
+                        <tr><td>{{ $label }}</td><td class="r">{{ $FP::lakh((float) $f->$rc) }}</td><td class="r">{{ $FP::lakh((float) $f->$ec) }}</td><td class="r"><strong>{{ $FP::lakh($f->balance($key)) }}</strong></td></tr>
                     @endforeach
+                    <tr><td><strong>Total</strong></td><td class="r"><strong>{{ $FP::lakh($rec($f)) }}</strong></td><td class="r"><strong>{{ $FP::lakh($exp($f)) }}</strong></td><td class="r"><strong>{{ $FP::lakh($f->balance()) }}</strong></td></tr>
                 @endif
             </table>
         @empty
             <p class="muted">No fund details entered.</p>
         @endforelse
+        @if ($fundRows->count() > 1)
+            @php $gr = $fundRows->sum($rec); $ge = $fundRows->sum($exp); @endphp
+            <p style="margin:2mm 0 1mm"><strong>Year-wise summary</strong> <span class="muted">(Rs lakh)</span></p>
+            <table class="grid"><tr><th>Financial year</th><th class="r">Received</th><th class="r">Expenditure</th><th class="r">Balance</th></tr>
+                @foreach ($fundRows as $f)
+                    <tr><td>{{ str_replace('FY-', 'FY ', $f->financial_year) }}</td><td class="r">{{ $FP::lakh($rec($f)) }}</td><td class="r">{{ $FP::lakh($exp($f)) }}</td><td class="r">{{ $FP::lakh($f->balance()) }}</td></tr>
+                @endforeach
+                <tr><td><strong>All years</strong></td><td class="r"><strong>{{ $FP::lakh($gr) }}</strong></td><td class="r"><strong>{{ $FP::lakh($ge) }}</strong></td><td class="r"><strong>{{ $FP::lakh($gr - $ge) }}</strong></td></tr>
+            </table>
+        @endif
     @endif
     @if ($n === 6)
         @php $sug = $inspection->remarks->where('type', 'suggestion'); @endphp

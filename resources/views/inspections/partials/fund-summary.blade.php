@@ -2,8 +2,11 @@
 @php
     use App\Models\InspectionFundPosition as FP;
     $funds = $funds->sortByDesc('financial_year')->values();
-    $gr = $funds->sum(fn ($f) => $f->totalReceived());
-    $ge = $funds->sum(fn ($f) => $f->totalExpenditure());
+    // legacy (v1) rows keep their amounts in amount_received / amount_utilised
+    $rec = fn ($f) => $f->isLegacy() ? (float) $f->amount_received : $f->totalReceived();
+    $exp = fn ($f) => $f->isLegacy() ? (float) $f->amount_utilised : $f->totalExpenditure();
+    $gr = $funds->sum($rec);
+    $ge = $funds->sum($exp);
     $tone = fn ($v) => $v < 0 ? 'neg' : 'pos';
 @endphp
 @if ($funds->isEmpty())
@@ -18,9 +21,12 @@
                     <span class="fy-bal {{ $tone($bal) }}"><small>Balance</small>₹ {{ FP::lakh($bal) }} <em>L</em></span>
                 </div>
                 <div class="fy-figs">
-                    <div><small>Received</small><b>₹ {{ FP::lakh($f->totalReceived()) }} <em>L</em></b></div>
-                    <div><small>Expenditure</small><b>₹ {{ FP::lakh($f->totalExpenditure()) }} <em>L</em></b></div>
+                    <div><small>Received</small><b>₹ {{ FP::lakh($rec($f)) }} <em>L</em></b></div>
+                    <div><small>Expenditure</small><b>₹ {{ FP::lakh($exp($f)) }} <em>L</em></b></div>
                 </div>
+                @if ($f->isLegacy())
+                    <div class="fy-heads"><div class="fy-head"><span class="fy-head-name">{{ $f->category?->label ?? 'Fund' }} (legacy)</span><span></span><span></span><span></span></div></div>
+                @endif
                 @unless ($f->isLegacy())
                     <div class="fy-heads">
                         <div class="fy-head fy-head-cols"><span>Fund head (₹ lakh)</span><span>Received</span><span>Spent</span><span>Balance</span></div>

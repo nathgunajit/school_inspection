@@ -86,20 +86,7 @@
                             @endforelse
                         @endif
                         @if ($n === 5)
-                            @forelse ($inspection->fundPositions as $f)
-                                <div class="fw-semibold mt-2">{{ $f->financial_year }}</div>
-                                <div class="table-responsive"><table class="table table-sm text-sm mb-2"><thead><tr><th>Head (₹ lakh)</th><th class="text-end">Received</th><th class="text-end">Expenditure</th><th class="text-end">Balance</th></tr></thead><tbody>
-                                    @if ($f->isLegacy())
-                                        <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="text-end">{{ number_format((float) $f->amount_received, 2) }}</td><td class="text-end">{{ number_format((float) $f->amount_utilised, 2) }}</td><td class="text-end fw-semibold">{{ number_format($f->balance(), 2) }}</td></tr>
-                                    @else
-                                        @foreach (\App\Models\InspectionFundPosition::HEADS as $key => [$label, $rc, $ec])
-                                            <tr><td>{{ $label }}</td><td class="text-end">{{ number_format((float) $f->$rc, 2) }}</td><td class="text-end">{{ number_format((float) $f->$ec, 2) }}</td><td class="text-end fw-semibold">{{ number_format($f->balance($key), 2) }}</td></tr>
-                                        @endforeach
-                                    @endif
-                                </tbody></table></div>
-                            @empty
-                                <div class="text-sm text-secondary py-2">No fund details entered.</div>
-                            @endforelse
+                            <div class="pb-2">@include('inspections.partials.fund-summary', ['funds' => $inspection->fundPositions])</div>
                         @endif
                         @foreach ($questions[$n] as $q)
                             @continue(str_starts_with($q['code'], 'BAS_'))

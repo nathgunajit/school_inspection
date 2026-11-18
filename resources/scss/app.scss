@@ -1230,3 +1230,41 @@ $q-choice-col-v2: 280px;
 .at-parts { grid-area: parts; display: flex; flex-wrap: wrap; gap: .1rem .9rem; font-size: .76rem; color: #475569;
     b { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; } }
 .at-value { grid-area: value; font-size: 1.75rem; font-weight: 700; color: #0d47a1; font-variant-numeric: tabular-nums; line-height: 1; min-width: 3ch; text-align: right; }
+
+// Fund step: larger figures in ₹ lakh, balance card, year-wise table (Modification V2 items 4, 8, 11)
+.fund-row { align-items: center; }
+.fund-bal { font-size: 1.125rem; font-weight: 700; color: #137a3a; padding-top: 0 !important;
+    .fund-amt em { font-style: normal; font-size: .72rem; font-weight: 600; color: #64748b; }
+    [data-bal].neg { color: $danger; } &:has(.neg) { color: $danger; } }
+.fund-row-total { font-size: 1.0625rem; font-weight: 700; color: #0f172a; [data-total] { font-variant-numeric: tabular-nums; }
+    [data-total="b"] { color: #137a3a; } [data-total="b"].neg { color: $danger; } }
+.fund-balance-card { display: grid; gap: .6rem; margin-top: .8rem; padding: .85rem 1rem; border-radius: .9rem; color: #fff;
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 55%, #1e9b4b 130%); box-shadow: 0 8px 20px -10px rgba($primary, .7);
+    @include media-breakpoint-up(md) { grid-template-columns: auto 1fr; align-items: center; }
+    &.is-neg { background: linear-gradient(135deg, #8e1c14, #d93025); } }
+.fbc-year { display: flex; align-items: center; gap: .5rem; font-size: .85rem; opacity: .95; b { font-weight: 700; } i { font-size: 1.1rem; } }
+.fbc-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem;
+    > div { text-align: right; min-width: 0; }
+    small { display: block; font-size: .64rem; text-transform: uppercase; letter-spacing: .07em; opacity: .75; }
+    span { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    b { font-size: 1.15rem; font-weight: 700; }
+    .fbc-bal b { font-size: 1.5rem; }
+    @include media-breakpoint-down(sm) { > div { text-align: left; } span { font-size: .85rem; } b { font-size: 1rem; } .fbc-bal b { font-size: 1.2rem; } } }
+.fund-years { margin-top: .5rem; }
+.fy-table { border: 1px solid #e3e8f0; border-radius: .8rem; overflow: hidden; background: #fff; margin-top: .5rem; }
+.fy-tr { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr)); gap: .5rem; align-items: center; width: 100%; padding: .6rem .85rem;
+    border: 0; border-top: 1px solid #eef1f6; background: #fff; text-align: left; font-size: .9375rem; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;
+    > span:not(:first-child) { text-align: right; }
+    > span:first-child { display: inline-flex; align-items: center; gap: .4rem; i { color: $success; } }
+    .pos { color: #137a3a; } .neg { color: $danger; } }
+button.fy-tr { cursor: pointer; &:hover { background: #f6f9fd; } &.is-active { background: rgba($primary, .07); box-shadow: inset 3px 0 0 $primary; } }
+.fy-th { border-top: 0; background: #f7f9fc; font-size: .68rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+.fy-tfoot { background: linear-gradient(135deg, #0d47a1, #1565c0); color: #fff; font-size: 1rem;
+    .pos { color: #b9f6ca; } .neg { color: #ffcdd2; } }
+@include media-breakpoint-down(sm) {
+    .fy-tr { grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: .84rem;
+        > span:first-child { grid-column: 1 / -1; }
+        > span:not(:first-child) { text-align: left; }
+        > span:nth-child(n+2)::before { display: block; font-size: .62rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; opacity: .65; }
+        > span:nth-child(2)::before { content: 'Received'; } > span:nth-child(3)::before { content: 'Expenditure'; } > span:nth-child(4)::before { content: 'Balance'; } }
+    .fy-th { display: none; } }

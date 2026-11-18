@@ -283,6 +283,22 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(57, Q::totalStudents(['TSI_01' => '50', 'TSI_02' => 7]));
     }
 
+    public function test_fund_years_are_kept_separately_and_shown_year_wise(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        [$y1, $y2] = \App\Models\InspectionFundPosition::financialYears();
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $y1, 'asg_received' => 5, 'asg_expenditure' => 2])->assertOk();
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $y2, 'mdm_received' => 1.5])->assertOk()->assertJsonCount(2, 'funds');
+        // saving one year never overwrites another
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => $y2, 'mdm_received' => 2])->assertOk()->assertJsonCount(2, 'funds');
+        $this->assertSame(5.0, (float) $i->fundPositions()->where('financial_year', $y1)->value('asg_received'));
+
+        $this->get(route('inspections.step', [$i, 5]))->assertOk()
+            ->assertSee('id="fund-balance-card"', false)->assertSee('Year-wise summary')->assertSee('data-fy-rows', false);
+        $this->get(route('inspections.show', $i))->assertOk()->assertSee('All 2 years')->assertSee('₹ 5.00');
+    }
+
     public function test_lakh_format_uses_indian_grouping(): void
     {
         $fp = \App\Models\InspectionFundPosition::class;

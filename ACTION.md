@@ -357,3 +357,11 @@ Plan approved by the user. Decisions:
 - The same totals appear on the review page, the report page (`show`) and in the PDF (server side, `QuestionnaireDefinition::totalStudents()` / `totalTeachers()`).
 - Files: `resources/views/inspections/{step,show,pdf}.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 40 passed (527 assertions).
+
+## 44. Larger fund figures in ₹ lakh, balance card and year-wise fund table (Modification V2 items 4, 8, 11) (2026-11-18)
+- Figures: per-head balance and totals larger (18px/17px, bold, tabular), positive balance green, negative red with "−"; all amounts shown as ₹ … L with Indian digit grouping (e.g. 12,34,567.00). Stored values and the lakh inputs are unchanged.
+- Balance card: highlighted "Balance for FY …" panel (Received / Expenditure / Balance) above Save; turns red when the balance is negative.
+- Multiple financial years: new "Year-wise summary" table under the saved years (one row per FY plus an "All years" total); the open year is highlighted and tapping a row opens it. Switching year with unsaved amounts asks before discarding them, so each year is kept separately.
+- Report page (`show`) now uses the shared `fund-summary` partial; PDF shows ₹ lakh in Indian format, a per-year total row and a year-wise summary when there is more than one year. Legacy (v1) fund rows are shown with their original amounts.
+- Files: `resources/views/inspections/{step,show,pdf}.blade.php`, `resources/views/inspections/partials/fund-summary.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 41 passed (540 assertions).
