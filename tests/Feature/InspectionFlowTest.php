@@ -299,6 +299,28 @@ class InspectionFlowTest extends TestCase
         $this->get(route('inspections.show', $i))->assertOk()->assertSee('All 2 years')->assertSee('₹ 5.00');
     }
 
+    public function test_subject_suggestions_from_master_and_free_text_still_allowed(): void
+    {
+        $this->seed(\Database\Seeders\MasterValueSeeder::class);
+        $officer = $this->officer(UserLevel::Cluster);
+
+        auth()->logout();
+        $this->getJson(route('subjects.suggest', ['q' => 'math']))->assertUnauthorized();
+
+        $this->actingAs($officer);
+        $r = $this->getJson(route('subjects.suggest', ['q' => 'math']))->assertOk();
+        $this->assertSame('Mathematics', $r->json('subjects.0'));        // starts-with matches come first
+        $this->assertContains('General Mathematics', $r->json('subjects'));
+        $this->assertNotContains('English', $r->json('subjects'));
+        $this->assertCount(10, $this->getJson(route('subjects.suggest'))->json('subjects')); // at most 10
+        $this->assertSame([], $this->getJson(route('subjects.suggest', ['q' => 'zzzz']))->json('subjects'));
+
+        // a subject that is not in the master can still be saved
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->classroom($i, ['subject' => 'Tea Garden Studies'])->assertOk()->assertJsonPath('classrooms.0.subject', 'Tea Garden Studies');
+        $this->get(route('inspections.step', [$i, 4]))->assertOk()->assertSee('data-ac', false)->assertSee(route('subjects.suggest'), false);
+    }
+
     public function test_lakh_format_uses_indian_grouping(): void
     {
         $fp = \App\Models\InspectionFundPosition::class;

@@ -348,6 +348,23 @@ class InspectionController extends Controller
         ]);
     }
 
+    /**
+     * Subject names from the subject master for the Classroom Performance autocomplete (Modification V2 item 10).
+     * Matches at the start of the name first, then anywhere; at most 10. Free text stays allowed on save.
+     */
+    public function subjectSuggestions(Request $request)
+    {
+        $q = trim(mb_substr((string) $request->query('q', ''), 0, 50));
+        $all = MasterValue::ofType('subject')->pluck('label');
+        if ($q !== '') {
+            $needle = mb_strtolower($q);
+            $all = $all->filter(fn ($l) => str_contains(mb_strtolower($l), $needle))
+                ->sortBy(fn ($l) => [str_starts_with(mb_strtolower($l), $needle) ? 0 : 1, $l]);
+        }
+
+        return response()->json(['subjects' => $all->take(10)->values()]);
+    }
+
     public function submit(Request $request, Inspection $inspection, InspectionNumberGenerator $numbers)
     {
         $this->authorize('update', $inspection);

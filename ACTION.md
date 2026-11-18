@@ -365,3 +365,11 @@ Plan approved by the user. Decisions:
 - Report page (`show`) now uses the shared `fund-summary` partial; PDF shows ₹ lakh in Indian format, a per-year total row and a year-wise summary when there is more than one year. Legacy (v1) fund rows are shown with their original amounts.
 - Files: `resources/views/inspections/{step,show,pdf}.blade.php`, `resources/views/inspections/partials/fund-summary.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 41 passed (540 assertions).
+
+## 45. Subject master and AJAX subject autocomplete in Classroom Performance (Modification V2 item 10) (2026-11-18)
+- Subject master: new `master_values` type `subject` (migration `2026_11_18_000005_add_subject_master_type` extends the type enum; existing rows untouched) seeded with 52 subjects taught in Assam Government schools (Assamese, English, Hindi, Bengali, Bodo, MIL, Mathematics, EVS, General Science, Social Science, Physics, Chemistry, Biology, History, Geography, Political Science, Economics, Logic & Philosophy, Education, Accountancy, Computer Science, Health & Physical Education, Work Education, Vocational Education, …). `MasterValueSeeder` stays idempotent.
+- Endpoint `GET /subjects/suggest?q=` (`subjects.suggest`, officers with `conduct_inspections`, throttle 120/min): up to 10 names, names starting with the typed text first.
+- Step 4 Subject field: suggestions appear while typing (250 ms debounce, cached per query, no page reload), matched text in bold, keyboard support (↑ ↓ Enter Esc) and 44px touch rows. Choosing fills the field, which stays editable; a "Not in the list? Keep … as typed" hint confirms free text is allowed (validation unchanged: `string|max:100`).
+- Deploy: `php artisan migrate` then `php artisan db:seed --class=MasterValueSeeder`.
+- Files: `database/migrations/2026_11_18_000005_add_subject_master_type.php`, `database/seeders/MasterValueSeeder.php`, `app/Http/Controllers/InspectionController.php` (`subjectSuggestions`), `routes/web.php`, `resources/views/inspections/step.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `php artisan test` 42 passed (552 assertions); local MySQL migrated and seeded (52 subjects); `npm run build` OK.

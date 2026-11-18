@@ -57,6 +57,23 @@ class MasterValueSeeder extends Seeder
                 'cash_book' => 'Cash book page',
                 'other' => 'Other',
             ],
+            // Subjects taught in Assam Government schools (Class I–XII); suggestions for Classroom Performance (Modification V2 item 10).
+            // Officers may still type a subject that is not in this list.
+            'subject' => [
+                'assamese' => 'Assamese', 'english' => 'English', 'hindi' => 'Hindi', 'bengali' => 'Bengali', 'bodo' => 'Bodo',
+                'sanskrit' => 'Sanskrit', 'arabic' => 'Arabic', 'urdu' => 'Urdu', 'nepali' => 'Nepali', 'manipuri' => 'Manipuri',
+                'mising' => 'Mising', 'karbi' => 'Karbi', 'garo' => 'Garo', 'mil' => 'Modern Indian Language (MIL)',
+                'mathematics' => 'Mathematics', 'general_mathematics' => 'General Mathematics', 'advanced_mathematics' => 'Advanced Mathematics',
+                'evs' => 'Environmental Studies (EVS)', 'general_science' => 'General Science', 'science' => 'Science', 'social_science' => 'Social Science',
+                'physics' => 'Physics', 'chemistry' => 'Chemistry', 'biology' => 'Biology', 'botany' => 'Botany', 'zoology' => 'Zoology',
+                'history' => 'History', 'geography' => 'Geography', 'political_science' => 'Political Science', 'economics' => 'Economics',
+                'logic_philosophy' => 'Logic & Philosophy', 'education' => 'Education', 'sociology' => 'Sociology', 'psychology' => 'Psychology',
+                'statistics' => 'Statistics', 'accountancy' => 'Accountancy', 'business_studies' => 'Business Studies', 'commerce' => 'Commerce',
+                'computer_science' => 'Computer Science', 'information_technology' => 'Information Technology', 'computer_education' => 'Computer Education',
+                'health_physical_education' => 'Health & Physical Education', 'art_education' => 'Art Education', 'work_education' => 'Work Education',
+                'music' => 'Music', 'fine_arts' => 'Fine Arts', 'home_science' => 'Home Science', 'moral_education' => 'Moral Education',
+                'yoga' => 'Yoga', 'vocational_education' => 'Vocational Education', 'general_knowledge' => 'General Knowledge', 'drawing' => 'Drawing',
+            ],
             'fund_category' => [
                 'composite_grant' => 'Composite School Grant',
                 'mdm' => 'Mid-Day Meal (Cooking Cost)',

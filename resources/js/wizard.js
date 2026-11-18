@@ -685,3 +685,78 @@ if (autoTotals.length) {
     document.addEventListener('input', (e) => { if (e.target.matches?.('input[name^="TSI_"]')) recalc(); });
     recalc();
 }
+
+/* ---------------- Step 4: subject autocomplete (AJAX, free text still allowed) ---------------- */
+$$('[data-ac]').forEach((wrap) => {
+    const input = $('input', wrap);
+    const list = $('.ac-list', wrap);
+    const cache = new Map();
+    let items = [], active = -1, timer = null, seq = 0;
+
+    const close = () => { list.classList.add('d-none'); input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; };
+    const mark = (label, q) => {
+        const i = q ? label.toLowerCase().indexOf(q.toLowerCase()) : -1;
+        return i < 0 ? esc(label) : `${esc(label.slice(0, i))}<b>${esc(label.slice(i, i + q.length))}</b>${esc(label.slice(i + q.length))}`;
+    };
+    const render = (q) => {
+        const typed = input.value.trim();
+        const exact = items.some((s) => s.toLowerCase() === typed.toLowerCase());
+        if (!items.length && !typed) { close(); return; }
+        list.innerHTML = items.map((s, i) => `<div class="ac-item" role="option" id="${input.id}_opt${i}" data-i="${i}" aria-selected="false"><i class="bi bi-book"></i><span>${mark(s, q)}</span></div>`).join('')
+            + (typed && !exact ? `<div class="ac-free"><i class="bi bi-pencil"></i>Not in the list? Keep “${esc(typed)}” as typed.</div>` : '');
+        list.classList.remove('d-none');
+        input.setAttribute('aria-expanded', 'true');
+        active = -1;
+    };
+    const highlight = (i) => {
+        const opts = $$('.ac-item', list);
+        if (!opts.length) return;
+        active = (i + opts.length) % opts.length;
+        opts.forEach((o, k) => { o.classList.toggle('is-active', k === active); o.setAttribute('aria-selected', k === active ? 'true' : 'false'); });
+        input.setAttribute('aria-activedescendant', opts[active].id);
+        opts[active].scrollIntoView({ block: 'nearest' });
+    };
+    const choose = (i) => {
+        if (items[i] === undefined) return;
+        input.value = items[i];
+        input.dispatchEvent(new Event('input', { bubbles: true })); // clears a shown validation message
+        close();
+    };
+    const fetchFor = (q) => {
+        const key = q.toLowerCase();
+        if (cache.has(key)) { items = cache.get(key); render(q); return; }
+        const my = ++seq;
+        axios.get(wrap.dataset.url, { params: { q } }).then((r) => {
+            cache.set(key, r.data.subjects || []);
+            if (my !== seq) return; // a newer request is on its way
+            items = cache.get(key);
+            render(q);
+        }).catch((err) => { handleAuthError(err); });
+    };
+
+    input.addEventListener('input', (e) => {
+        if (!e.isTrusted) return; // set by choose()
+        clearTimeout(timer);
+        const q = input.value.trim();
+        timer = setTimeout(() => fetchFor(q), 250);
+    });
+    input.addEventListener('focus', () => { if (!input.value.trim()) fetchFor(''); });
+    input.addEventListener('keydown', (e) => {
+        const open = !list.classList.contains('d-none');
+        if (e.key === 'ArrowDown') { e.preventDefault(); if (!open) fetchFor(input.value.trim()); else highlight(active + 1); }
+        else if (e.key === 'ArrowUp' && open) { e.preventDefault(); highlight(active - 1); }
+        else if (e.key === 'Enter' && open && active >= 0) { e.preventDefault(); choose(active); }
+        else if (e.key === 'Escape' && open) { e.preventDefault(); close(); }
+        else if (e.key === 'Tab') close();
+    });
+    // pointerdown so the choice happens before the input loses focus
+    list.addEventListener('pointerdown', (e) => {
+        const opt = e.target.closest('.ac-item');
+        e.preventDefault();
+        if (opt) choose(Number(opt.dataset.i));
+        else if (e.target.closest('.ac-free')) close();
+    });
+    input.addEventListener('blur', () => setTimeout(close, 120));
+    // the add/edit form resets the field: hide the list too
+    input.form?.addEventListener('reset', close);
+});

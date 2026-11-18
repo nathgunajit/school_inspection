@@ -49,6 +49,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/schools/{school}', [SchoolController::class, 'show'])->name('schools.show');
             Route::post('/schools/{school}/inspections', [InspectionController::class, 'start'])->name('inspections.start');
             Route::get('/my-inspections', [ReportController::class, 'mine'])->name('inspections.mine');
+            Route::get('/subjects/suggest', [InspectionController::class, 'subjectSuggestions'])->middleware('throttle:120,1')->name('subjects.suggest');
         });
 
         Route::prefix('inspections/{inspection}')->group(function () {

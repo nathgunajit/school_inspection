@@ -1231,6 +1231,16 @@ $q-choice-col-v2: 280px;
     b { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; } }
 .at-value { grid-area: value; font-size: 1.75rem; font-weight: 700; color: #0d47a1; font-variant-numeric: tabular-nums; line-height: 1; min-width: 3ch; text-align: right; }
 
+// Subject autocomplete (Modification V2 item 10)
+.ac-wrap { position: relative; }
+.ac-list { position: absolute; z-index: 1040; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: min(320px, 86vw); max-height: 264px; overflow-y: auto;
+    background: #fff; border: 1px solid #d5dce6; border-radius: .7rem; box-shadow: 0 12px 28px -10px rgba(15, 23, 42, .3); padding: .3rem; }
+.ac-item { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .4rem .65rem; border-radius: .5rem; cursor: pointer; font-size: .9rem; color: #334155;
+    i { color: #94a3b8; font-size: .85rem; } b { color: $primary; font-weight: 700; }
+    &:hover, &.is-active { background: rgba($primary, .08); color: #0f172a; i { color: $primary; } } }
+.ac-free { display: flex; align-items: center; gap: .45rem; padding: .45rem .65rem; margin-top: .2rem; border-top: 1px dashed #e3e8f0; font-size: .76rem; color: #64748b; cursor: pointer;
+    i { color: $warning; } }
+
 // Fund step: larger figures in ₹ lakh, balance card, year-wise table (Modification V2 items 4, 8, 11)
 .fund-row { align-items: center; }
 .fund-bal { font-size: 1.125rem; font-weight: 700; color: #137a3a; padding-top: 0 !important;

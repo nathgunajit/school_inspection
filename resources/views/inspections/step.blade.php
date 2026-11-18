@@ -162,7 +162,12 @@
                                 <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_class">Class <span class="req">*</span></label>
                                     <select id="c_class" name="class" class="form-select" required><option value="">Select</option>@foreach (CO::CLASSES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
-                                <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_subject">Subject <span class="req">*</span></label><input id="c_subject" name="subject" class="form-control" maxlength="100" placeholder="e.g. Mathematics" required></div>
+                                <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_subject">Subject <span class="req">*</span></label>
+                                    <div class="ac-wrap" data-ac data-url="{{ route('subjects.suggest') }}">
+                                        <input id="c_subject" name="subject" class="form-control" maxlength="100" placeholder="Type to search" required autocomplete="off"
+                                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="c_subject_list">
+                                        <div class="ac-list d-none" id="c_subject_list" role="listbox" aria-label="Subject suggestions"></div>
+                                    </div></div>
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Use of TLM by teacher <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="tlm_used"><input type="radio" name="tlm_used" id="tlm_yes" value="yes" required><label for="tlm_yes" class="tone-good">Yes</label>
                                         <input type="radio" name="tlm_used" id="tlm_no" value="no"><label for="tlm_no" class="tone-bad">No</label></div></div>
