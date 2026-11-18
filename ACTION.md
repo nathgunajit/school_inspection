@@ -635,3 +635,20 @@ Plan approved by the user. Decisions:
   - `vite.config.js`
   - `INSPECTION_FORM_DOCUMENT.md` (section 12 note)
   - `ACTION.md`
+
+## 65. New Module development plan (2026-11-18)
+- **Request:** `Documents/Modification of the Application New Module.docx` asks for three new modules: an interactive Map View, map-based Inspection Scheduling with drag and drop, and an Automatic Inspection Rating system. The user asked for a development plan first, and then each module built, committed and pushed one at a time.
+- **Done:** `NEW_MODULES_PLAN.md`, covering:
+  - for each module: scope, data model (additive migrations only), services, routes, screens, access rules, workflow and tests
+  - the delivery order: Map View (#66), Scheduling (#67), Rating (#68)
+  - rules for every module: jurisdiction scoping, mobile layout, slow networks, audit logs, existing data preserved
+- **Decisions:**
+  - Leaflet and OpenStreetMap are bundled through npm (no CDN).
+  - There is no external routing API. Distances are straight-line × a road factor, and route optimisation is nearest-neighbour + 2-opt.
+  - Rating schemes are versioned, so old ratings keep the scheme they were calculated with.
+  - Scoring was listed as Phase 2 in CLAUDE.md. It is now explicitly requested, so CLAUDE.md will be updated in #68.
+- Files:
+  - `NEW_MODULES_PLAN.md`
+  - `Documents/Modification of the Application New Module.docx`
+  - `Documents/Modification of the ApplicationV5.docx`
+  - `ACTION.md`
