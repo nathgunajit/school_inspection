@@ -88,10 +88,29 @@ class ReportController extends Controller
             return [$p->id => $disk->exists($p->storage_path) ? 'data:'.$p->mime.';base64,'.base64_encode($disk->get($p->storage_path)) : null];
         });
 
+        // Official header logos (Modification V4), embedded so DomPDF needs no file or remote access
+        $logo = function (string $file) {
+            $path = public_path('logo/'.$file);
+
+            return is_file($path) ? 'data:image/png;base64,'.base64_encode(file_get_contents($path)) : null;
+        };
+        $data['logos'] = ['assam' => $logo('ASSAM GOVT LOGO.png'), 'ssa' => $logo('SSA LOGO.png')];
+        $data['generatedAt'] = now(); // shown as DD-MM-YYYY HH:MM in the footer
+
         AuditLogger::log('inspection_pdf', $inspection);
         $name = str_replace('/', '-', $inspection->inspection_no ?: 'draft-'.$inspection->id).'.pdf';
 
-        return Pdf::loadView('inspections.pdf', $data)->setPaper('a4')->stream($name);
+        // Render first, then stamp "Page X of Y" on every page (the total is only known after rendering)
+        $dompdf = Pdf::loadView('inspections.pdf', $data)->setPaper('a4')->getDomPDF();
+        $dompdf->render();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $canvas = $dompdf->getCanvas();
+        $canvas->page_text($canvas->get_width() - 40 - 62, $canvas->get_height() - 30, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.28, 0.33, 0.41]);
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$name.'"',
+        ]);
     }
 
     public function export(Request $request, string $mode)
