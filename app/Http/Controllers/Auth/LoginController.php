@@ -12,12 +12,17 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Mobile + password login with CAPTCHA after 3 failures and a 15 minute lock after 5 (PRD 6.3).
+ * Mobile + password login (PRD 6.3, Modification V3): CAPTCHA after 2 failures and the account is
+ * locked for 20 minutes after 3 failures (values in config('inspection.login')).
  */
 class LoginController extends Controller
 {
     public function show(Request $request)
     {
+        if ($request->boolean('expired')) {
+            $request->session()->now('warning', 'You were signed out after '.config('session.lifetime').' minutes without activity. Please sign in again.');
+        }
+
         return view('auth.login', ['needsCaptcha' => $this->needsCaptcha($request), 'demoUsers' => $this->demoUsers()]);
     }
 
@@ -65,7 +70,9 @@ class LoginController extends Controller
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             $this->registerFailure($request, $user, $cfg);
-            throw ValidationException::withMessages(['mobile' => 'The mobile number or password is incorrect.']);
+            // Same wording whether or not the mobile exists (no account enumeration)
+            throw ValidationException::withMessages(['mobile' => 'The mobile number or password is incorrect. After '
+                .$cfg['lock_after_failures'].' wrong attempts the account is locked for '.$cfg['lock_minutes'].' minutes.']);
         }
 
         $message = match ($user->status) {

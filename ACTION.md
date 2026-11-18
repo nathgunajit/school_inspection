@@ -396,3 +396,11 @@ Plan approved by the user. Decisions:
 - Also: `.review-confirm.is-checked` class as a fallback for `:has()` on older browsers.
 - Files: `resources/js/review.js` (new), `resources/views/inspections/review.blade.php`, `vite.config.js`, `resources/scss/app.scss`, `Documents/Modification of the ApplicationV3.docx` (added).
 - Verification: `npm run build` (review chunk shares bootstrap with app.js), `view:cache` OK; `php artisan test` 42 passed.
+
+## 49. 20-minute session with idle warning; login locked after 3 wrong attempts for 20 minutes (Modification V3 items 5, 6) (2026-11-18)
+- Session: `SESSION_LIFETIME=20` in `.env` and `.env.example` (was 30). Every page load, auto-save and AJAX request refreshes it.
+- Idle warning (`app.js`, layout meta tags `session-lifetime`, `session-ping`, `session-expired-url`): 2 minutes before the end an orange panel counts down "You will be signed out in m:ss … Saved answers are kept" with **Stay signed in** (calls new `GET /session/ping`, auth, 204, throttle 30/min). Last activity is shared across tabs via localStorage. At 20 minutes the page goes to `/login?expired=1`, which shows "You were signed out after 20 minutes without activity".
+- Login: `config/inspection.php` `login` now `captcha_after_failures` 2, `lock_after_failures` 3, `lock_minutes` 20 (env `LOGIN_CAPTCHA_AFTER`, `LOGIN_LOCK_AFTER`, `LOGIN_LOCK_MINUTES`, documented in `.env.example`). The wrong-password message says "After 3 wrong attempts the account is locked for 20 minutes" (same text whether or not the mobile exists, so accounts cannot be guessed).
+- Tests: lock after 3 attempts, still locked at 19 min, open after 21 min; CAPTCHA from the 3rd attempt; session lifetime 20, meta tags, ping (204 signed in, redirect when signed out), expired notice. Replaces the old 5-attempt test.
+- Files: `config/inspection.php`, `.env.example` (and local `.env`), `app/Http/Controllers/Auth/LoginController.php`, `routes/web.php`, `resources/views/components/layouts/app.blade.php`, `resources/js/app.js`, `resources/scss/app.scss`, `tests/Feature/RegistrationAndLoginTest.php`.
+- Verification: `npm run build` OK; `php artisan test` 44 passed (579 assertions).

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1565c0">
+    {{-- Idle sign-out warning (Modification V3): minutes of inactivity before the session ends --}}
+    <meta name="session-lifetime" content="{{ (int) config('session.lifetime') }}">
+    <meta name="session-ping" content="{{ route('session.ping') }}">
+    <meta name="session-expired-url" content="{{ route('login', ['expired' => 1]) }}">
     <title>{{ $title ?? 'Dashboard' }} · {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
     <script>try { if (localStorage.getItem('si-sidebar') === 'mini') document.documentElement.classList.add('sidebar-mini'); } catch (e) {}</script>

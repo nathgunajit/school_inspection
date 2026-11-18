@@ -34,6 +34,8 @@ Route::middleware('guest')->group(function () {
 /* ---------------- Authenticated ---------------- */
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    // "Stay signed in" from the idle warning: any authenticated request refreshes the 20-minute session
+    Route::get('/session/ping', fn () => response()->noContent())->middleware('throttle:30,1')->name('session.ping');
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.change.update');
 

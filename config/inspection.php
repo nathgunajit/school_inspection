@@ -7,9 +7,10 @@ return [
     'draft_expiry_days' => (int) env('INSPECTION_DRAFT_EXPIRY_DAYS', 7),
 
     'login' => [
-        'captcha_after_failures' => 3,
-        'lock_after_failures' => 5,
-        'lock_minutes' => 15,
+        // Modification V3: lock after 3 wrong attempts for 20 minutes; CAPTCHA from the 3rd attempt
+        'captcha_after_failures' => (int) env('LOGIN_CAPTCHA_AFTER', 2),
+        'lock_after_failures' => (int) env('LOGIN_LOCK_AFTER', 3),
+        'lock_minutes' => (int) env('LOGIN_LOCK_MINUTES', 20),
     ],
 
     'id_proof' => [

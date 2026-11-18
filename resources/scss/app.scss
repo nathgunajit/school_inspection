@@ -1300,3 +1300,12 @@ button.fy-tr { cursor: pointer; &:hover { background: #f6f9fd; } &.is-active { b
         > span:nth-child(n+2)::before { display: block; font-size: .62rem; font-weight: 500; text-transform: uppercase; letter-spacing: .05em; opacity: .65; }
         > span:nth-child(2)::before { content: 'Received'; } > span:nth-child(3)::before { content: 'Expenditure'; } > span:nth-child(4)::before { content: 'Balance'; } }
     .fy-th { display: none; } }
+
+// Idle sign-out warning (Modification V3)
+.idle-warning { position: fixed; z-index: 1095; left: 50%; transform: translateX(-50%); bottom: calc(var(--si-bottomnav-h) + 1rem); width: min(94vw, 460px);
+    display: flex; align-items: center; gap: .75rem; padding: .8rem 1rem; border-radius: .9rem; color: #fff;
+    background: linear-gradient(135deg, #b45309, #f39223); box-shadow: 0 16px 36px -12px rgba(15, 23, 42, .45);
+    > i { font-size: 1.4rem; flex-shrink: 0; }
+    .idle-text { flex: 1; min-width: 0; font-size: .8rem; line-height: 1.35; strong { display: block; font-size: .875rem; } }
+    .btn { flex-shrink: 0; font-weight: 600; color: #b45309; }
+    @include media-breakpoint-up(lg) { bottom: 1.25rem; } }

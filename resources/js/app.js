@@ -261,3 +261,50 @@ document.addEventListener('click', (e) => {
 window.addEventListener('resize', () => { if (xselOpen.current && !document.body.classList.contains('xsel-sheet-open')) closeXsel(); });
 window.siSyncSelects = (root = document) => root.querySelectorAll('select.xsel-native').forEach((s) => s._xselSync?.());
 document.querySelectorAll('[data-enhance-selects] select.form-select').forEach(enhanceSelect);
+
+/* ---------- Idle sign-out warning (Modification V3: session ends after 20 minutes) ----------
+ * The server session is refreshed by every request (page load, auto-save, AJAX). The last activity
+ * time is shared between tabs through localStorage, so working in one tab keeps the others alive. */
+(() => {
+    const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content;
+    const lifetimeMin = parseInt(meta('session-lifetime'), 10);
+    const pingUrl = meta('session-ping');
+    const expiredUrl = meta('session-expired-url');
+    if (!lifetimeMin || !pingUrl) return; // guest pages
+    const LIFE = lifetimeMin * 60 * 1000;
+    const WARN_BEFORE = Math.min(2 * 60 * 1000, LIFE / 4);
+    const KEY = 'si-last-activity';
+    let box = null;
+
+    const now = () => Date.now();
+    const last = () => { try { return parseInt(localStorage.getItem(KEY), 10) || now(); } catch { return now(); } };
+    const touch = () => { try { localStorage.setItem(KEY, String(now())); } catch { /* private mode */ } hide(); };
+    const hide = () => { box?.remove(); box = null; };
+    const show = (msLeft) => {
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'idle-warning';
+            box.setAttribute('role', 'alertdialog');
+            box.setAttribute('aria-live', 'assertive');
+            box.innerHTML = `<i class="bi bi-hourglass-split"></i>
+                <div class="idle-text"><strong>Your session is about to end</strong><span data-idle-left></span></div>
+                <button type="button" class="btn btn-sm btn-light" data-idle-stay>Stay signed in</button>`;
+            document.body.appendChild(box);
+            box.querySelector('[data-idle-stay]').addEventListener('click', () => {
+                axios.get(pingUrl).then(touch).catch(() => { window.location.href = expiredUrl; });
+            });
+        }
+        const s = Math.max(0, Math.ceil(msLeft / 1000));
+        box.querySelector('[data-idle-left]').textContent = `You will be signed out in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} because of no activity. Saved answers are kept.`;
+    };
+
+    touch(); // this page load refreshed the session
+    axios.interceptors.response.use((r) => { touch(); return r; }, (e) => { if (e?.response && e.response.status < 500) touch(); return Promise.reject(e); });
+    window.addEventListener('storage', (e) => { if (e.key === KEY) hide(); });
+
+    setInterval(() => {
+        const left = last() + LIFE - now();
+        if (left <= 0) { window.location.href = expiredUrl; return; }
+        if (left <= WARN_BEFORE) show(left); else hide();
+    }, 1000);
+})();

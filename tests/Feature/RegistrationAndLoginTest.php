@@ -147,22 +147,54 @@ class RegistrationAndLoginTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'login', 'user_id' => $user->id]);
     }
 
-    public function test_account_locks_after_five_failed_attempts(): void
+    public function test_account_locks_after_three_failed_attempts_for_twenty_minutes(): void
     {
+        config(['inspection.captcha_enabled' => false]);
         $user = $this->officer(UserLevel::Cluster);
-        foreach (range(1, 5) as $_) {
-            $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong']);
+        foreach (range(1, 2) as $_) {
+            $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong'])
+                ->assertSessionHasErrors(['mobile' => 'The mobile number or password is incorrect. After 3 wrong attempts the account is locked for 20 minutes.']);
         }
+        $this->assertSame(UserStatus::Active, $user->fresh()->status);
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong']);
         $this->assertSame(UserStatus::Locked, $user->fresh()->status);
-        $this->assertSame(5, AuditLog::where('action', 'login_failed')->count());
+        $this->assertSame(3, AuditLog::where('action', 'login_failed')->count());
 
         // correct password is refused while locked
         $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'Secret@123'])->assertSessionHasErrors('mobile');
         $this->assertGuest();
+        $this->travel(19)->minutes();
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'Secret@123'])->assertSessionHasErrors('mobile');
+        $this->assertGuest();
 
-        // after the lock period it works again
-        $this->travel(16)->minutes();
+        // after the 20 minute lock it works again
+        $this->travel(2)->minutes();
         $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'Secret@123'])->assertRedirect(route('dashboard'));
+    }
+
+    public function test_captcha_is_required_from_the_third_attempt(): void
+    {
+        config(['inspection.captcha_enabled' => true]);
+        $user = $this->officer(UserLevel::Cluster);
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong'])->assertSessionDoesntHaveErrors('captcha');
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong'])->assertSessionDoesntHaveErrors('captcha');
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'wrong'])->assertSessionHasErrors('captcha');
+    }
+
+    public function test_session_lasts_twenty_minutes_with_idle_warning_and_ping(): void
+    {
+        $this->assertSame(20, (int) config('session.lifetime'));
+        $this->assertStringContainsString('SESSION_LIFETIME=20', file_get_contents(base_path('.env.example')));
+
+        $user = $this->officer(UserLevel::Cluster);
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertSee('<meta name="session-lifetime" content="20">', false)
+            ->assertSee(route('session.ping'), false);
+        $this->get(route('session.ping'))->assertNoContent();
+
+        auth()->logout();
+        $this->get(route('session.ping'))->assertRedirect(route('login'));
+        $this->get(route('login', ['expired' => 1]))->assertOk()->assertSee('signed out after 20 minutes without activity');
     }
 
     public function test_temporary_password_forces_change(): void
