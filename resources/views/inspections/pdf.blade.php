@@ -49,6 +49,25 @@
     .photo img { width: 100%; max-height: 62mm; border: 1px solid #e2e8f0; }
     .cap { font-size: 7.5pt; color: #475569; margin-top: 1mm; }
     .muted { color: #64748b; }
+    /* School identity card */
+    .sc { border: 1px solid #c7d8ee; border-radius: 2.5mm; margin-bottom: 2mm; }
+    .sc-head { background: #0d47a1; color: #fff; padding: 3mm 4mm 2.6mm; border-radius: 2.5mm 2.5mm 0 0; border-bottom: .9mm solid #1e9b4b; }
+    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #bbdefb; font-weight: bold; }
+    .sc-name { font-size: 15pt; font-weight: bold; line-height: 1.2; margin-top: .6mm; }
+    .sc-meta { margin-top: 1.6mm; }
+    .sc-chip { display: inline-block; padding: .5mm 2.2mm; margin-right: 1.2mm; border-radius: 2mm; background: #1565c0; border: .6px solid #64b5f6; color: #e3f2fd; font-size: 7.5pt; }
+    .sc-chip.st { background: #1e9b4b; border-color: #81c784; color: #fff; font-weight: bold; }
+    .sc-grid td { width: 25%; padding: 2.4mm 3mm; vertical-align: top; border-right: 1px solid #e2e8f0; background: #f8fbff; }
+    .sc-grid td.c4 { border-right: 0; }
+    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #64748b; font-weight: bold; padding-left: 1.6mm; }
+    .sc-grid .v { font-size: 10pt; font-weight: bold; color: #0f172a; margin-top: .8mm; padding-left: 1.6mm; }
+    .sc-grid .c1 .l { border-left: .9mm solid #1565c0; } .sc-grid .c2 .l { border-left: .9mm solid #1e9b4b; }
+    .sc-grid .c3 .l { border-left: .9mm solid #f39223; } .sc-grid .c4 .l { border-left: .9mm solid #7e57c2; }
+    .mono { font-family: DejaVu Sans Mono, monospace; letter-spacing: .6pt; color: #0d47a1 !important; }
+    /* Basic information: two label/value pairs per row */
+    .bi td { padding: 1.8mm 2.4mm; border: 1px solid #e2e8f0; vertical-align: top; }
+    .bi td.k { width: 17%; background: #f1f5f9; color: #475569; font-size: 8pt; }
+    .bi td.v { width: 33%; font-weight: bold; color: #0f172a; }
 </style>
 </head>
 <body>
@@ -78,18 +97,41 @@
     <div class="conf">CONFIDENTIAL – FOR OFFICIAL USE ONLY</div>
 </footer>
 
-<h1>{{ $s->name }}</h1>
-<div class="muted">UDISE {{ $s->udise_code }} · {{ $s->cluster?->name }}, {{ $s->block?->name }}, {{ $s->district?->name }}</div>
+{{-- School identity card: name, UDISE code and location (district / block / cluster) --}}
+<div class="sc">
+    <div class="sc-head">
+        <div class="sc-label">SCHOOL</div>
+        <div class="sc-name">{{ $s->name }}</div>
+        <div class="sc-meta">
+            <span class="sc-chip">{{ $s->management?->label ?? 'Management —' }}</span>
+            <span class="sc-chip">{{ $s->category?->label ?? 'Category —' }}</span>
+            <span class="sc-chip st">{{ $inspection->status->label() }}</span>
+        </div>
+    </div>
+    <table class="sc-grid"><tr>
+        <td class="c1"><div class="l">UDISE Code</div><div class="v mono">{{ $s->udise_code }}</div></td>
+        <td class="c2"><div class="l">District</div><div class="v">{{ $s->district?->name ?? '—' }}</div></td>
+        <td class="c3"><div class="l">Block</div><div class="v">{{ $s->block?->name ?? '—' }}</div></td>
+        <td class="c4"><div class="l">Cluster</div><div class="v">{{ $s->cluster?->name ?? '—' }}</div></td>
+    </tr></table>
+</div>
 
 <h2>1. Basic Information</h2>
-<table class="kv">
-    <tr><td class="k">Inspection ID</td><td><strong>{{ $inspection->inspection_no ?? '—' }}</strong> <span class="badge">{{ $inspection->status->label() }}</span></td></tr>
-    <tr><td class="k">Inspecting officer</td><td>{{ $inspection->officer->name }}, {{ $inspection->officer->designation?->label }}</td></tr>
-    <tr><td class="k">Date &amp; time of inspection</td><td>{{ $inspection->started_at->format('d M Y, h:i A') }} (submitted {{ $inspection->submitted_at?->format('d M Y, h:i A') ?? '—' }})</td></tr>
-    <tr><td class="k">School management / category</td><td>{{ $s->management?->label ?? '—' }} / {{ $s->category?->label ?? '—' }}</td></tr>
-    <tr><td class="k">Device location (start)</td><td>{{ $inspection->start_lat ? number_format($inspection->start_lat, 6).', '.number_format($inspection->start_lng, 6).$fmtDist($startDistance) : 'Not available' }}</td></tr>
-    <tr><td class="k">Device location (submit)</td><td>{{ $inspection->submit_lat ? number_format($inspection->submit_lat, 6).', '.number_format($inspection->submit_lng, 6).$fmtDist($submitDistance) : 'Not available' }}</td></tr>
-    <tr><td class="k">Person met</td><td>{{ $inspection->person_met_name }} {{ $inspection->person_met_designation ? '('.$inspection->person_met_designation.')' : '' }}</td></tr>
+@php
+    $loc = fn ($lat, $lng, $d) => $lat ? number_format($lat, 6).', '.number_format($lng, 6).$fmtDist($d) : 'Not available';
+    $basic = [
+        ['Inspection ID', $inspection->inspection_no ?? '—', 'Status', $inspection->status->label()],
+        ['Inspecting officer', $inspection->officer->name, 'Designation', $inspection->officer->designation?->label ?? '—'],
+        ['Inspection started', $inspection->started_at->format('d M Y, h:i A'), 'Submitted', $inspection->submitted_at?->format('d M Y, h:i A') ?? '—'],
+        ['Person met', $inspection->person_met_name ?: '—', 'Their designation', $inspection->person_met_designation ?: '—'],
+    ];
+@endphp
+<table class="bi">
+    @foreach ($basic as [$k1, $v1, $k2, $v2])
+        <tr><td class="k">{{ $k1 }}</td><td class="v">{{ $v1 }}</td><td class="k">{{ $k2 }}</td><td class="v">{{ $v2 }}</td></tr>
+    @endforeach
+    <tr><td class="k">Device location (start)</td><td class="v" colspan="3">{{ $loc($inspection->start_lat, $inspection->start_lng, $startDistance) }}</td></tr>
+    <tr><td class="k">Device location (submit)</td><td class="v" colspan="3">{{ $loc($inspection->submit_lat, $inspection->submit_lng, $submitDistance) }}</td></tr>
 </table>
 
 @foreach ($steps as $n => $st)

@@ -469,3 +469,10 @@ Plan approved by the user. Decisions:
 - Action plan (in `DB_INDEXING.md`): run the migration on the server in a quiet hour; re-check EXPLAIN and enable the slow query log after the pilot; FULLTEXT on school name only if needed; review again before Phase 2.
 - Files: `database/migrations/2026_11_18_000006_add_performance_indexes.php` (new), `app/Models/Inspection.php`, `app/Http/Controllers/{Dashboard,Inspection,Report,School}Controller.php`, `app/Services/InspectionStartGuard.php`, `tests/Feature/InspectionFlowTest.php`, `DB_INDEXING.md` (new).
 - Verification: `php artisan migrate` on local MySQL OK; `php artisan test` 48 passed (631 assertions).
+
+## 56. PDF report: school identity card and two-column basic information (2026-11-18)
+- The plain school name and UDISE line at the top of the PDF is replaced by a school card: a blue band with "SCHOOL", the school name, and chips for management, category and status, followed by four colour-coded tiles: **UDISE Code** (blue, monospace), **District** (green), **Block** (orange) and **Cluster** (purple).
+- "1. Basic Information" is now a bordered two-column grid with label cells and bold values: Inspection ID / Status, Inspecting officer / Designation, Inspection started / Submitted, Person met / Their designation. The start and submit device locations span the full width. Management and category moved into the school card.
+- Built from tables only (DomPDF has no flexbox) in the theme colours.
+- Files: `resources/views/inspections/pdf.blade.php`.
+- Verification: a real PDF rendered without errors (inspection 3, 4 photos); the template, rendered to HTML with live data, was screenshotted in headless Chrome; `php artisan test` 48 passed.
