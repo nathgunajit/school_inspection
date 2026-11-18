@@ -11,63 +11,58 @@
 <meta charset="utf-8">
 <title>Inspection Report {{ $inspection->inspection_no }}</title>
 <style>
-    /* Modification V4: official header, watermark and footer on every page */
+    /* Light, clean official style (Modification V4): white page, neutral greys, one blue accent */
     @page { margin: 40mm 14mm 26mm 14mm; }
-    body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #1e293b; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #1f2937; }
     header { position: fixed; top: -34mm; left: 0; right: 0; height: 30mm; }
     header table td { vertical-align: middle; }
     .hd-logo { width: 22mm; text-align: center; }
     .hd-logo img { height: 19mm; }
     .hd-logo.ssa img { height: auto; width: 30mm; }
     .hd-center { text-align: center; padding: 0 2mm; }
-    .hd-govt { font-size: 10pt; font-weight: bold; color: #0f172a; letter-spacing: .4pt; }
-    .hd-ssa { font-size: 8.5pt; color: #1e9b4b; font-weight: bold; margin-top: .4mm; }
-    .hd-title { font-size: 14pt; font-weight: bold; color: #0d47a1; letter-spacing: 1pt; margin-top: 1mm; }
-    .hd-sub { font-size: 7.5pt; color: #475569; margin-top: .3mm; }
-    .hd-rule { height: 1.2mm; margin-top: 1.5mm; background: #1565c0; border-bottom: .8mm solid #1e9b4b; }
-    .hd-ref { font-size: 7pt; color: #64748b; text-align: right; margin-top: .8mm; }
+    .hd-govt { font-size: 10pt; font-weight: bold; color: #1f2937; letter-spacing: .4pt; }
+    .hd-ssa { font-size: 8.5pt; color: #2e7d32; margin-top: .4mm; }
+    .hd-title { font-size: 13.5pt; font-weight: bold; color: #1565c0; letter-spacing: 1pt; margin-top: 1mm; }
+    .hd-sub { font-size: 7.5pt; color: #6b7280; margin-top: .3mm; }
+    .hd-rule { height: 0; margin-top: 1.5mm; border-top: 1px solid #90b4e0; }
+    .hd-ref { font-size: 7pt; color: #9ca3af; text-align: right; margin-top: .8mm; }
     .watermark { position: fixed; top: 92mm; left: -12mm; width: 206mm; text-align: center; transform: rotate(-35deg);
-        color: #1565c0; opacity: .07; font-weight: bold; line-height: 1.25; }
+        color: #1565c0; opacity: .05; font-weight: bold; line-height: 1.25; }
     .watermark .w1 { font-size: 34pt; letter-spacing: 2pt; }
     .watermark .w2 { font-size: 26pt; letter-spacing: 4pt; }
-    footer { position: fixed; bottom: -20mm; left: 0; right: 0; height: 16mm; font-size: 7.5pt; color: #475569; border-top: 1.2px solid #1565c0; padding-top: 1.6mm; }
-    footer .conf { margin-top: 1.4mm; text-align: center; font-size: 8pt; font-weight: bold; color: #b91c1c; letter-spacing: .6pt; }
-    h1 { font-size: 15pt; margin: 0 0 2mm; color: #0f172a; }
-    h2 { font-size: 11pt; margin: 6mm 0 2mm; padding: 1.6mm 2.5mm; background: #e8f1fb; color: #0d47a1; border-left: 3px solid #1565c0; }
+    footer { position: fixed; bottom: -20mm; left: 0; right: 0; height: 16mm; font-size: 7.5pt; color: #6b7280; border-top: 1px solid #d1d5db; padding-top: 1.6mm; }
+    footer strong { color: #374151; }
+    footer .conf { margin-top: 1.4mm; text-align: center; font-size: 7.5pt; font-weight: bold; color: #b91c1c; letter-spacing: .6pt; }
+    h2 { font-size: 10.5pt; margin: 6mm 0 2mm; padding: 0 0 1.2mm; color: #1565c0; border-bottom: 1px solid #cfe0f5; }
     table { width: 100%; border-collapse: collapse; }
-    .kv td { padding: 1.4mm 2mm; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-    .kv td.k { width: 30%; color: #64748b; }
-    .ans td { padding: 1.6mm 2mm; border-bottom: 1px solid #eef0f5; vertical-align: top; }
-    .ans td.no { width: 6%; color: #94a3b8; }
-    .ans td.v { width: 34%; font-weight: bold; }
+    .ans td { padding: 1.5mm 2mm; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
+    .ans td.no { width: 6%; color: #9ca3af; }
+    .ans td.v { width: 34%; font-weight: bold; color: #111827; }
     .rem { color: #b91c1c; font-size: 8.5pt; font-weight: normal; }
-    .grid th { background: #f1f5f9; text-align: left; font-size: 8pt; padding: 1.5mm 2mm; border: 1px solid #e2e8f0; }
-    .grid td { padding: 1.5mm 2mm; border: 1px solid #e2e8f0; }
+    .grid th { background: #f8fafc; color: #4b5563; text-align: left; font-size: 8pt; font-weight: bold; padding: 1.5mm 2mm; border: 1px solid #e5e7eb; }
+    .grid td { padding: 1.5mm 2mm; border: 1px solid #e5e7eb; }
     .r { text-align: right; }
-    .badge { display: inline-block; padding: 0.6mm 2mm; border-radius: 2mm; background: #dcfce7; color: #166534; font-size: 8pt; font-weight: bold; }
     .photos td { width: 50%; padding: 2mm; vertical-align: top; }
-    .photo img { width: 100%; max-height: 62mm; border: 1px solid #e2e8f0; }
-    .cap { font-size: 7.5pt; color: #475569; margin-top: 1mm; }
-    .muted { color: #64748b; }
-    /* School identity card */
-    .sc { border: 1px solid #c7d8ee; border-radius: 2.5mm; margin-bottom: 2mm; }
-    .sc-head { background: #0d47a1; color: #fff; padding: 3mm 4mm 2.6mm; border-radius: 2.5mm 2.5mm 0 0; border-bottom: .9mm solid #1e9b4b; }
-    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #bbdefb; font-weight: bold; }
-    .sc-name { font-size: 15pt; font-weight: bold; line-height: 1.2; margin-top: .6mm; }
+    .photo img { width: 100%; max-height: 62mm; border: 1px solid #e5e7eb; }
+    .cap { font-size: 7.5pt; color: #4b5563; margin-top: 1mm; }
+    .muted { color: #6b7280; }
+    /* School card */
+    .sc { border: 1px solid #e5e7eb; border-left: .9mm solid #1565c0; margin-bottom: 2mm; }
+    .sc-head { padding: 3mm 4mm 2.4mm; border-bottom: 1px solid #eef0f3; }
+    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #9ca3af; font-weight: bold; }
+    .sc-name { font-size: 14pt; font-weight: bold; color: #111827; line-height: 1.2; margin-top: .6mm; }
     .sc-meta { margin-top: 1.6mm; }
-    .sc-chip { display: inline-block; padding: .5mm 2.2mm; margin-right: 1.2mm; border-radius: 2mm; background: #1565c0; border: .6px solid #64b5f6; color: #e3f2fd; font-size: 7.5pt; }
-    .sc-chip.st { background: #1e9b4b; border-color: #81c784; color: #fff; font-weight: bold; }
-    .sc-grid td { width: 25%; padding: 2.4mm 3mm; vertical-align: top; border-right: 1px solid #e2e8f0; background: #f8fbff; }
+    .sc-chip { display: inline-block; padding: .4mm 2mm; margin-right: 1.2mm; border-radius: 2mm; border: 1px solid #d1d5db; color: #4b5563; font-size: 7.5pt; }
+    .sc-chip.st { border-color: #a7d7b5; color: #2e7d32; }
+    .sc-grid td { width: 25%; padding: 2.2mm 4mm; vertical-align: top; border-right: 1px solid #f0f2f5; }
     .sc-grid td.c4 { border-right: 0; }
-    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #64748b; font-weight: bold; padding-left: 1.6mm; }
-    .sc-grid .v { font-size: 10pt; font-weight: bold; color: #0f172a; margin-top: .8mm; padding-left: 1.6mm; }
-    .sc-grid .c1 .l { border-left: .9mm solid #1565c0; } .sc-grid .c2 .l { border-left: .9mm solid #1e9b4b; }
-    .sc-grid .c3 .l { border-left: .9mm solid #f39223; } .sc-grid .c4 .l { border-left: .9mm solid #7e57c2; }
-    .mono { font-family: DejaVu Sans Mono, monospace; letter-spacing: .6pt; color: #0d47a1 !important; }
+    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #9ca3af; }
+    .sc-grid .v { font-size: 10pt; font-weight: bold; color: #1f2937; margin-top: .6mm; }
+    .mono { font-family: DejaVu Sans Mono, monospace; letter-spacing: .6pt; }
     /* Basic information: two label/value pairs per row */
-    .bi td { padding: 1.8mm 2.4mm; border: 1px solid #e2e8f0; vertical-align: top; }
-    .bi td.k { width: 17%; background: #f1f5f9; color: #475569; font-size: 8pt; }
-    .bi td.v { width: 33%; font-weight: bold; color: #0f172a; }
+    .bi td { padding: 1.7mm 2.4mm; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
+    .bi td.k { width: 18%; color: #6b7280; font-size: 8pt; }
+    .bi td.v { width: 32%; font-weight: bold; color: #111827; }
 </style>
 </head>
 <body>

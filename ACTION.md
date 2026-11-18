@@ -476,3 +476,15 @@ Plan approved by the user. Decisions:
 - Built from tables only (DomPDF has no flexbox) in the theme colours.
 - Files: `resources/views/inspections/pdf.blade.php`.
 - Verification: a real PDF rendered without errors (inspection 3, 4 photos); the template, rendered to HTML with live data, was screenshotted in headless Chrome; `php artisan test` 48 passed.
+
+## 57. PDF report: light, clean colour scheme (2026-11-18)
+- The whole PDF now uses a white page with neutral greys and one blue accent.
+  - The dark blue school band is gone; the school card is white with a thin blue left edge and outlined chips.
+  - Section headings are blue text with a thin underline instead of a shaded bar.
+  - Basic Information and the answer rows use thin light row lines.
+  - Table headers are very light grey.
+  - The header rule is a thin line and the footer line is grey.
+  - The watermark is lighter (5% opacity).
+- The required header, watermark and footer text are unchanged.
+- Files: `resources/views/inspections/pdf.blade.php`.
+- Verification: a real PDF rendered without errors; the HTML render was screenshotted in headless Chrome; `php artisan test` 48 passed.
