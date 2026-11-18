@@ -389,3 +389,10 @@ Plan approved by the user. Decisions:
 - Responsive, no horizontal scrolling and no hidden tabs: ≥1200px one row with number beside the name; 768–1199px one row with number above the name; phones two rows of four tiles (name kept, status by colour, current step labelled). On phones the tab bar scrolls away instead of staying fixed, to leave room for the form.
 - Files: `resources/views/inspections/partials/stepper.blade.php`, `app/Questionnaire/QuestionnaireDefinition.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 42 passed (556 assertions).
+
+## 48. Fix review page "Expand all" and photo viewer (Modification V3 item 8) (2026-11-18)
+- Cause: the review page script was inline (`@push('scripts')`) and ran before the Vite module that sets `window.bootstrap`. The photo viewer called `bootstrap.Modal` at once; when photos were present this threw and the Expand-all handler was never attached.
+- Fix: the script moved to a new Vite entry `resources/js/review.js` (imports `Collapse` and `Modal` from the shared bootstrap chunk). Expand all / Collapse all opens or closes every step; the button label follows the real state, also when steps are opened by hand (`shown.bs.collapse` / `hidden.bs.collapse`). Confirm + submit with location and the photo viewer work as before; `canSubmit` is passed as `data-can-submit` on the form.
+- Also: `.review-confirm.is-checked` class as a fallback for `:has()` on older browsers.
+- Files: `resources/js/review.js` (new), `resources/views/inspections/review.blade.php`, `vite.config.js`, `resources/scss/app.scss`, `Documents/Modification of the ApplicationV3.docx` (added).
+- Verification: `npm run build` (review chunk shares bootstrap with app.js), `view:cache` OK; `php artisan test` 42 passed.

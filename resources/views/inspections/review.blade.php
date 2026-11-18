@@ -209,7 +209,7 @@
             </section>
 
             {{-- Submit --}}
-            <form method="POST" action="{{ route('inspections.submit', $inspection) }}" id="submit-form" class="review-card review-submit {{ $canSubmit ? '' : 'is-locked' }}">
+            <form method="POST" action="{{ route('inspections.submit', $inspection) }}" id="submit-form" data-can-submit="{{ $canSubmit ? 1 : 0 }}" class="review-card review-submit {{ $canSubmit ? '' : 'is-locked' }}">
                 @csrf
                 <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
                 <label class="review-confirm" for="confirm">
@@ -244,62 +244,6 @@
     </div>
 
     @push('scripts')
-    <script>
-        (function () {
-            // Photo viewer with previous / next (buttons, arrow keys and swipe)
-            const tiles = [...document.querySelectorAll('.rv-photo')];
-            const pv = document.getElementById('photoViewer');
-            if (tiles.length && pv) {
-                const modal = bootstrap.Modal.getOrCreateInstance(pv);
-                const img = document.getElementById('pv-img');
-                let at = 0;
-                const show = (i) => {
-                    at = (i + tiles.length) % tiles.length;
-                    const t = tiles[at];
-                    img.src = t.dataset.photo; img.alt = t.dataset.cap;
-                    document.getElementById('pv-cap').textContent = t.dataset.cap;
-                    document.getElementById('pv-meta').textContent = t.dataset.meta || '';
-                    document.getElementById('pv-pos').textContent = `${at + 1} / ${tiles.length}`;
-                    pv.querySelectorAll('.pv-nav').forEach((b) => b.classList.toggle('d-none', tiles.length < 2));
-                };
-                tiles.forEach((t, i) => t.addEventListener('click', () => { show(i); modal.show(); }));
-                pv.querySelectorAll('[data-pv]').forEach((b) => b.addEventListener('click', () => show(at + Number(b.dataset.pv))));
-                pv.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') show(at - 1); if (e.key === 'ArrowRight') show(at + 1); });
-                let x0 = null;
-                pv.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-                pv.addEventListener('touchend', (e) => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) show(at + (dx < 0 ? 1 : -1)); x0 = null; });
-            }
-
-            const f = document.getElementById('submit-form');
-            const box = document.getElementById('confirm');
-            const btn = document.getElementById('submit-btn');
-            const hint = document.getElementById('submit-hint');
-            const can = {{ $canSubmit ? 'true' : 'false' }};
-            box?.addEventListener('change', () => {
-                btn.disabled = !(can && box.checked);
-                if (can) hint.textContent = box.checked ? 'Ready. Your current location is recorded on submission.' : 'Tick the confirmation above to enable Submit.';
-            });
-            f?.addEventListener('submit', function (e) {
-                if (f.dataset.go) return;
-                e.preventDefault();
-                if (!box.checked) { window.toast('Please tick the confirmation first.', 'warning'); return; }
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…';
-                const go = () => { f.dataset.go = 1; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting…'; f.submit(); };
-                if (!navigator.geolocation) return go();
-                navigator.geolocation.getCurrentPosition((p) => {
-                    f.lat.value = p.coords.latitude; f.lng.value = p.coords.longitude; f.accuracy.value = Math.round(p.coords.accuracy); go();
-                }, go, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
-            });
-            // Expand / collapse all steps
-            const toggle = document.querySelector('[data-review-toggle-all]');
-            toggle?.addEventListener('click', () => {
-                const panels = [...document.querySelectorAll('#reviewAcc .collapse')];
-                const anyClosed = panels.some((p) => !p.classList.contains('show'));
-                panels.forEach((p) => bootstrap.Collapse.getOrCreateInstance(p, { toggle: false })[anyClosed ? 'show' : 'hide']());
-                toggle.textContent = anyClosed ? 'Collapse all' : 'Expand all';
-            });
-        })();
-    </script>
+        @vite('resources/js/review.js')
     @endpush
 </x-layouts.app>

@@ -973,7 +973,7 @@ $q-choice-col: 230px;   // all short answers line up in one column
     cursor: pointer; font-size: .8rem; color: #334155;
     .form-check-input { width: 1.25rem; height: 1.25rem; margin: 0; flex-shrink: 0; }
     small { display: block; color: #64748b; font-size: .72rem; margin-top: .15rem; }
-    &:has(input:checked) { border-color: rgba($success, .45); background: rgba($success, .05); } }
+    &:has(input:checked), &.is-checked { border-color: rgba($success, .45); background: rgba($success, .05); } }
 .review-submit-hint { text-align: center; font-size: .72rem; color: #64748b; margin-top: .5rem; }
 .review-submit .btn-lg { font-size: .9rem; min-height: 48px; }
 
