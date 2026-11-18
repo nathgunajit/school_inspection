@@ -326,3 +326,10 @@ Plan approved by the user. Decisions:
 - Fund step: heads grouped by source with coloured headers and row markers: Samagra Shiksha (SSA) blue (Annual School Grant, MDM Fund), Government green, Other Source orange. Saved-year cards show each head with an SSA / Govt / Other tag in the same colours. `InspectionFundPosition::SOURCES`, `SHORT`, `source()`.
 - Files: `app/Http/Controllers/InspectionController.php`, `routes/web.php`, `app/Models/{InspectionAbsentTeacher,InspectionClassroomObservation,InspectionFundPosition}.php`, `resources/views/inspections/step.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 37 passed (427 assertions); live steps 3, 4, 5 return 200.
+
+## 40. Project pushed to GitHub (2026-11-18)
+- Added remote `origin` = https://github.com/nathgunajit/school_inspection.git; `main` pushed and set to track `origin/main`.
+- Stopped tracking the Word lock file `Documents/~$ODUCT REQUIREMENTS DOCUMENT.docx`; `.gitignore` now ignores Office lock files (`~$*`).
+- `.env`, `vendor/`, `node_modules/` and `storage/app/private/*` stay ignored (no secrets or uploads pushed).
+- Files: `.gitignore`, `ACTION.md`.
+- Verification: `git push -u origin main` succeeded; `git status` up to date with `origin/main`.
