@@ -64,7 +64,7 @@ class InspectionController extends Controller
 
             // One inspection per officer, per school, per day (PRD 8.2): a cancelled draft of today is reopened
             $existing = Inspection::where('officer_id', $user->id)->where('school_id', $school->id)
-                ->whereDate('inspection_date', today())->first();
+                ->where('inspection_date', today()->toDateString())->first();
             if ($existing && $existing->status === InspectionStatus::Cancelled) {
                 $existing->update(['status' => InspectionStatus::Draft, 'cancelled_reason' => null]);
                 AuditLogger::log('inspection_restarted', $existing);
@@ -101,7 +101,7 @@ class InspectionController extends Controller
             ]);
         } catch (QueryException $e) {
             // concurrent double-tap hit the unique key
-            $inspection = Inspection::where('officer_id', $user->id)->where('school_id', $school->id)->whereDate('inspection_date', today())->firstOrFail();
+            $inspection = Inspection::where('officer_id', $user->id)->where('school_id', $school->id)->where('inspection_date', today()->toDateString())->firstOrFail();
         }
 
         AuditLogger::log('inspection_started', $inspection, ['school' => $school->udise_code, 'lat' => $loc['lat'] ?? null, 'lng' => $loc['lng'] ?? null]);

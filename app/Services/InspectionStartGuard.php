@@ -35,7 +35,7 @@ class InspectionStartGuard
                 ? 'Your draft for this school has been reopened.'
                 : 'Your draft for this school from '.$i->inspection_date->format('d M Y').' has been reopened. Finish it before starting a new one.');
         }
-        if ($i = $base()->where('officer_id', $officer->id)->where('status', InspectionStatus::Submitted)->whereDate('inspection_date', today())->first()) {
+        if ($i = $base()->where('officer_id', $officer->id)->where('status', InspectionStatus::Submitted)->where('inspection_date', today()->toDateString())->first()) {
             return $this->result(self::OWN_TODAY, $i, false, 'You have already submitted an inspection of this school today.');
         }
         if ($i = $base()->where('officer_id', '!=', $officer->id)->where('status', InspectionStatus::Draft)->latest('started_at')->first()) {

@@ -27,7 +27,7 @@ class SchoolController extends Controller
                 ->with(['block', 'cluster', 'category'])
                 // badges in the result list: my inspection today, last submitted inspection
                 ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
-                    ->whereDate('inspection_date', today())->where('status', '!=', InspectionStatus::Cancelled)])
+                    ->where('inspection_date', today()->toDateString())->where('status', '!=', InspectionStatus::Cancelled)])
                 // Modification V3: another officer's open draft / completed by another officer this month
                 ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
                 ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherThisMonth($user)])
@@ -80,7 +80,7 @@ class SchoolController extends Controller
         abort_unless($this->j->coversSchool($user, $school), 404);
         $school->load(['state', 'district', 'block', 'cluster', 'management', 'category']);
 
-        $today = $school->inspections()->where('officer_id', $user->id)->whereDate('inspection_date', today())->first();
+        $today = $school->inspections()->where('officer_id', $user->id)->where('inspection_date', today()->toDateString())->first();
         // own draft (any date), own submission today, or blocked by another officer (Modification V3)
         $start = $this->startGuard->check($user, $school);
         $history = $school->inspections()->with('officer')

@@ -36,7 +36,7 @@ class ReportController extends Controller
             'counts' => [
                 'draft' => Inspection::where('officer_id', $user->id)->whereIn('status', ['draft', 'unlocked'])->count(),
                 'submitted' => Inspection::where('officer_id', $user->id)->where('status', 'submitted')->count(),
-                'month' => Inspection::where('officer_id', $user->id)->where('status', 'submitted')->whereDate('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
+                'month' => Inspection::where('officer_id', $user->id)->where('status', 'submitted')->where('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
             ],
         ] + $this->filterOptions($request));
     }
@@ -191,7 +191,7 @@ class ReportController extends Controller
     {
         if (! $own || $request->filled('from') || $request->filled('to')) {
             [$from, $to] = $this->period($request);
-            $q->whereDate('inspection_date', '>=', $from)->whereDate('inspection_date', '<=', $to);
+            $q->where('inspection_date', '>=', $from)->where('inspection_date', '<=', $to);
         }
 
         return $q

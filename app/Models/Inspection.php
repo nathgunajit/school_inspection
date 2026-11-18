@@ -23,13 +23,25 @@ class Inspection extends Model
     {
         return [
             'status' => InspectionStatus::class,
-            'inspection_date' => 'date',
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'unlocked_at' => 'datetime',
             'start_lat' => 'float', 'start_lng' => 'float',
             'submit_lat' => 'float', 'submit_lng' => 'float',
         ];
+    }
+
+    /**
+     * inspection_date is a DATE column. It is always stored as Y-m-d (also on SQLite), so queries can compare
+     * the plain column (`where('inspection_date', '>=', '2026-11-01')`) and use its indexes, instead of
+     * whereDate(), which wraps the column in DATE() and prevents index use (Modification V4 indexing).
+     */
+    protected function inspectionDate(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn ($v) => $v === null ? null : \Illuminate\Support\Carbon::parse($v)->startOfDay(),
+            set: fn ($v) => $v === null ? null : \Illuminate\Support\Carbon::parse($v)->toDateString(),
+        );
     }
 
     public function officer() { return $this->belongsTo(User::class, 'officer_id')->withTrashed(); }

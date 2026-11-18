@@ -460,3 +460,12 @@ Plan approved by the user. Decisions:
 - Visual check: the template was rendered to HTML with live data and screenshotted in headless Chrome (header, watermark, footer as expected); the real PDF rendered without errors (1.36 MB with 4 photos). No PDF-to-image tool is available here, so the final PDF itself should be opened once to confirm.
 - Files: `resources/views/inspections/pdf.blade.php`, `app/Http/Controllers/ReportController.php`.
 - Verification: `php artisan test` 47 passed (PDF download returns `application/pdf`).
+
+## 55. Database indexing and indexing report (Modification V4 item 5) (2026-11-18)
+- Audit of all indexes and of every query the screens and jobs run; full report and action plan in new `DB_INDEXING.md`.
+- Fix: 9 queries used `whereDate('inspection_date', …)` (compiled to `DATE(column)`, which cannot use an index) in the dashboard, start rules, school page, search badges, reports and export. They now compare the plain column; `Inspection::inspectionDate()` (accessor + mutator, replaces the `date` cast) always stores `Y-m-d`, so this is correct on MySQL and SQLite.
+- New migration `2026_11_18_000006_add_performance_indexes` (adds only, skips existing, reversible): inspections (school/officer/district/block/cluster + status + inspection_date; status + started_at), schools (jurisdiction + status + name), inspection_answers (question_code), audit_logs (created_at; user_id + created_at; ip_address), user_jurisdictions (jurisdiction + end_date), registration_requests (approver_id + status), mobile_change_requests (status + created_at; user_id + status).
+- EXPLAIN on local MySQL: the new indexes are chosen for the open-draft rule, expire-drafts job, Find School, users of a district, approval queue and question answers; for the rest they are candidates (small local tables are scanned instead, as expected).
+- Action plan (in `DB_INDEXING.md`): run the migration on the server in a quiet hour; re-check EXPLAIN and enable the slow query log after the pilot; FULLTEXT on school name only if needed; review again before Phase 2.
+- Files: `database/migrations/2026_11_18_000006_add_performance_indexes.php` (new), `app/Models/Inspection.php`, `app/Http/Controllers/{Dashboard,Inspection,Report,School}Controller.php`, `app/Services/InspectionStartGuard.php`, `tests/Feature/InspectionFlowTest.php`, `DB_INDEXING.md` (new).
+- Verification: `php artisan migrate` on local MySQL OK; `php artisan test` 48 passed (631 assertions).

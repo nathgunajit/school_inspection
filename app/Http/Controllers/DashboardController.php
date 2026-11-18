@@ -16,8 +16,8 @@ class DashboardController extends Controller
         $mine = fn () => $user->inspections()->where('status', InspectionStatus::Submitted);
 
         $stats = [
-            'today' => $mine()->whereDate('inspection_date', today()->toDateString())->count(),
-            'month' => $mine()->whereDate('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
+            'today' => $mine()->where('inspection_date', today()->toDateString())->count(),
+            'month' => $mine()->where('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
             'total' => $mine()->count(),
             'my_drafts' => $user->inspections()->whereIn('status', [InspectionStatus::Draft, InspectionStatus::Unlocked])->count(),
         ];

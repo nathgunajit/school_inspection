@@ -392,6 +392,28 @@ class InspectionFlowTest extends TestCase
         $this->get(route('inspections.step', [$i, 4]))->assertOk()->assertSee('data-ac', false)->assertSee(route('subjects.suggest'), false);
     }
 
+    public function test_performance_indexes_exist_and_inspection_date_is_stored_as_plain_date(): void
+    {
+        foreach ([
+            'inspections' => ['insp_school_status_date_idx', 'insp_officer_status_date_idx', 'insp_district_status_date_idx', 'insp_status_started_idx'],
+            'schools' => ['schools_cluster_status_name_idx'],
+            'audit_logs' => ['audit_created_idx'],
+            'user_jurisdictions' => ['uj_district_end_idx'],
+            'inspection_answers' => ['answers_question_code_idx'],
+        ] as $table => $names) {
+            foreach ($names as $name) {
+                $this->assertTrue(\Illuminate\Support\Facades\Schema::hasIndex($table, $name), "$table.$name missing");
+            }
+        }
+
+        // stored as Y-m-d so plain comparisons (index-friendly) work on every database
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->assertSame(today()->toDateString(), \Illuminate\Support\Facades\DB::table('inspections')->where('id', $i->id)->value('inspection_date'));
+        $this->assertTrue($i->fresh()->inspection_date->isToday());
+        $this->assertSame(1, Inspection::where('inspection_date', today()->toDateString())->count());
+    }
+
     public function test_lakh_format_uses_indian_grouping(): void
     {
         $fp = \App\Models\InspectionFundPosition::class;
