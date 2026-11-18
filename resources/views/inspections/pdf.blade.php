@@ -13,7 +13,7 @@
 <style>
     /* Light, clean official style (Modification V4): white page, neutral greys, one blue accent */
     @page { margin: 40mm 14mm 26mm 14mm; }
-    body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #1f2937; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #111827; }
     header { position: fixed; top: -34mm; left: 0; right: 0; height: 30mm; }
     header table td { vertical-align: middle; }
     .hd-logo { width: 22mm; text-align: center; }
@@ -21,48 +21,48 @@
     .hd-logo.ssa img { height: auto; width: 30mm; }
     .hd-center { text-align: center; padding: 0 2mm; }
     .hd-govt { font-size: 10pt; font-weight: bold; color: #1f2937; letter-spacing: .4pt; }
-    .hd-ssa { font-size: 8.5pt; color: #2e7d32; margin-top: .4mm; }
-    .hd-title { font-size: 13.5pt; font-weight: bold; color: #1565c0; letter-spacing: 1pt; margin-top: 1mm; }
-    .hd-sub { font-size: 7.5pt; color: #6b7280; margin-top: .3mm; }
-    .hd-rule { height: 0; margin-top: 1.5mm; border-top: 1px solid #90b4e0; }
-    .hd-ref { font-size: 7pt; color: #9ca3af; text-align: right; margin-top: .8mm; }
+    .hd-ssa { font-size: 8.5pt; color: #1b5e20; font-weight: bold; margin-top: .4mm; }
+    .hd-title { font-size: 13.5pt; font-weight: bold; color: #0d47a1; letter-spacing: 1pt; margin-top: 1mm; }
+    .hd-sub { font-size: 8pt; color: #374151; margin-top: .3mm; }
+    .hd-rule { height: 0; margin-top: 1.5mm; border-top: 1.2px solid #1565c0; }
+    .hd-ref { font-size: 7.5pt; color: #374151; text-align: right; margin-top: .8mm; }
     .watermark { position: fixed; top: 92mm; left: -12mm; width: 206mm; text-align: center; transform: rotate(-35deg);
         color: #1565c0; opacity: .05; font-weight: bold; line-height: 1.25; }
     .watermark .w1 { font-size: 34pt; letter-spacing: 2pt; }
     .watermark .w2 { font-size: 26pt; letter-spacing: 4pt; }
-    footer { position: fixed; bottom: -20mm; left: 0; right: 0; height: 16mm; font-size: 7.5pt; color: #6b7280; border-top: 1px solid #d1d5db; padding-top: 1.6mm; }
-    footer strong { color: #374151; }
-    footer .conf { margin-top: 1.4mm; text-align: center; font-size: 7.5pt; font-weight: bold; color: #b91c1c; letter-spacing: .6pt; }
-    h2 { font-size: 10.5pt; margin: 6mm 0 2mm; padding: 0 0 1.2mm; color: #1565c0; border-bottom: 1px solid #cfe0f5; }
+    footer { position: fixed; bottom: -20mm; left: 0; right: 0; height: 16mm; font-size: 8pt; color: #374151; border-top: 1px solid #6b7280; padding-top: 1.6mm; }
+    footer strong { color: #111827; }
+    footer .conf { margin-top: 1.4mm; text-align: center; font-size: 8.5pt; font-weight: bold; color: #b91c1c; letter-spacing: .6pt; }
+    h2 { font-size: 11pt; margin: 6mm 0 2mm; padding: 0 0 1.2mm; color: #0d47a1; border-bottom: 1.2px solid #1565c0; }
     table { width: 100%; border-collapse: collapse; }
-    .ans td { padding: 1.5mm 2mm; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
-    .ans td.no { width: 6%; color: #9ca3af; }
-    .ans td.v { width: 34%; font-weight: bold; color: #111827; }
+    .ans td { padding: 1.5mm 2mm; border-bottom: 1px solid #cbd5e1; vertical-align: top; }
+    .ans td.no { width: 6%; color: #4b5563; }
+    .ans td.v { width: 34%; font-weight: bold; color: #000; }
     .rem { color: #b91c1c; font-size: 8.5pt; font-weight: normal; }
-    .grid th { background: #f8fafc; color: #4b5563; text-align: left; font-size: 8pt; font-weight: bold; padding: 1.5mm 2mm; border: 1px solid #e5e7eb; }
-    .grid td { padding: 1.5mm 2mm; border: 1px solid #e5e7eb; }
+    .grid th { background: #eef2f7; color: #111827; text-align: left; font-size: 8pt; font-weight: bold; padding: 1.5mm 2mm; border: 1px solid #94a3b8; }
+    .grid td { padding: 1.5mm 2mm; border: 1px solid #94a3b8; }
     .r { text-align: right; }
     .photos td { width: 50%; padding: 2mm; vertical-align: top; }
-    .photo img { width: 100%; max-height: 62mm; border: 1px solid #e5e7eb; }
-    .cap { font-size: 7.5pt; color: #4b5563; margin-top: 1mm; }
-    .muted { color: #6b7280; }
+    .photo img { width: 100%; max-height: 62mm; border: 1px solid #94a3b8; }
+    .cap { font-size: 8pt; color: #1f2937; margin-top: 1mm; }
+    .muted { color: #374151; }
     /* School card */
-    .sc { background: #eaf2fc; border: 1px solid #cfdff3; border-left: .9mm solid #1565c0; margin-bottom: 2mm; }
-    .sc-head { padding: 3mm 4mm 2.4mm; border-bottom: 1px solid #d6e4f5; }
-    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #1565c0; font-weight: bold; }
-    .sc-name { font-size: 14pt; font-weight: bold; color: #111827; line-height: 1.2; margin-top: .6mm; }
+    .sc { background: #eaf2fc; border: 1px solid #7fa6d6; border-left: .9mm solid #1565c0; margin-bottom: 2mm; }
+    .sc-head { padding: 3mm 4mm 2.4mm; border-bottom: 1px solid #7fa6d6; }
+    .sc-label { font-size: 7.5pt; letter-spacing: 1.5pt; color: #1565c0; font-weight: bold; }
+    .sc-name { font-size: 14pt; font-weight: bold; color: #000; line-height: 1.2; margin-top: .6mm; }
     .sc-meta { margin-top: 1.6mm; }
-    .sc-chip { display: inline-block; padding: .4mm 2mm; margin-right: 1.2mm; border-radius: 2mm; background: #fff; border: 1px solid #c9d8ea; color: #4b5563; font-size: 7.5pt; }
-    .sc-chip.st { border-color: #a7d7b5; color: #2e7d32; }
-    .sc-grid td { width: 25%; padding: 2.2mm 4mm; vertical-align: top; background: #f6f9fe; border-right: 1px solid #cfdff3; }
+    .sc-chip { display: inline-block; padding: .4mm 2mm; margin-right: 1.2mm; border-radius: 2mm; background: #fff; border: 1px solid #6b7280; color: #111827; font-size: 8pt; }
+    .sc-chip.st { border-color: #2e7d32; color: #1b5e20; font-weight: bold; }
+    .sc-grid td { width: 25%; padding: 2.2mm 4mm; vertical-align: top; background: #f6f9fe; border-right: 1px solid #7fa6d6; }
     .sc-grid td.c4 { border-right: 0; }
-    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #6b7f99; }
-    .sc-grid .v { font-size: 10pt; font-weight: bold; color: #1f2937; margin-top: .6mm; }
+    .sc-grid .l { font-size: 7.5pt; text-transform: uppercase; letter-spacing: .6pt; color: #1f3a5f; font-weight: bold; }
+    .sc-grid .v { font-size: 10.5pt; font-weight: bold; color: #000; margin-top: .6mm; }
     .mono { font-family: DejaVu Sans Mono, monospace; letter-spacing: .6pt; }
     /* Basic information: two label/value pairs per row */
-    .bi td { padding: 1.7mm 2.4mm; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
-    .bi td.k { width: 18%; color: #6b7280; font-size: 8pt; }
-    .bi td.v { width: 32%; font-weight: bold; color: #111827; }
+    .bi td { padding: 1.7mm 2.4mm; border-bottom: 1px solid #cbd5e1; vertical-align: top; }
+    .bi td.k { width: 18%; color: #374151; font-size: 8.5pt; }
+    .bi td.v { width: 32%; font-weight: bold; color: #000; }
 </style>
 </head>
 <body>

@@ -496,3 +496,21 @@ Plan approved by the user. Decisions:
 - The rest of the page stays white.
 - Files: `resources/views/inspections/pdf.blade.php`.
 - Verification: a real PDF rendered without errors; the HTML render was screenshotted; `php artisan test` 48 passed.
+
+## 59. PDF report: print legibility (2026-11-18)
+- All text and lines are now dark enough to stay clearly visible on paper, including black-and-white and low-toner printers.
+  - Labels, question numbers, captions, the reference line and the footer: from light grey (#9ca3af / #6b7280) to dark grey (#374151) or near-black.
+  - Answers and values: black.
+- Small text is at least 7.5–8pt:
+  - "SCHOOL" label and tile labels 7.5pt, bold.
+  - Chips, header subtitle, footer and captions 8pt.
+  - CONFIDENTIAL line 8.5pt.
+- Lines are visible in print:
+  - row lines #cbd5e1
+  - table and photo borders #94a3b8
+  - school card borders #7fa6d6
+  - section underline and header rule solid blue
+  - footer line grey #6b7280
+- The watermark stays at 5% so it never covers the text. The light blue SCHOOL background is kept.
+- Files: `resources/views/inspections/pdf.blade.php`.
+- Verification: a real PDF rendered without errors; the HTML render was screenshotted; `php artisan test` 48 passed.
