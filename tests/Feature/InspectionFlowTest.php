@@ -399,12 +399,14 @@ class InspectionFlowTest extends TestCase
             'schools' => ['schools_cluster_status_name_idx'],
             'audit_logs' => ['audit_created_idx'],
             'user_jurisdictions' => ['uj_district_end_idx'],
-            'inspection_answers' => ['answers_question_code_idx'],
+            'inspection_answers' => ['inspection_answers_inspection_id_question_code_unique'],
         ] as $table => $names) {
             foreach ($names as $name) {
                 $this->assertTrue(\Illuminate\Support\Facades\Schema::hasIndex($table, $name), "$table.$name missing");
             }
         }
+        // removed after the volume review (migration 2026_11_18_000007): no query reads answers by question_code alone
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasIndex('inspection_answers', 'answers_question_code_idx'));
 
         // stored as Y-m-d so plain comparisons (index-friendly) work on every database
         $officer = $this->officer(UserLevel::Cluster);

@@ -546,3 +546,25 @@ Plan approved by the user. Decisions:
   - `LOAD_TEST.md`
   - `.gitignore`
 - **Verification:** both scenarios ran on Apache (results in `storage/loadtest/*.json`); `php artisan test` 51 passed.
+
+## 61. Database indexing: check at volume and remove an unused index (V5 Step 2) (2026-11-18)
+- **Volume check:**
+  - Seeded the load-test volume on a backed-up database (10,006 inspections, 650,138 answers, 5,024 schools) and ran `ANALYZE TABLE`.
+  - Ran `EXPLAIN` and timed 19 main queries.
+  - Every screen and job query uses an index and takes under 7 ms.
+  - The district, block and cluster area-report indexes are now chosen; at the small local volume MySQL had read the whole table.
+- **Removed** `answers_question_code_idx` (migration `2026_11_18_000007`):
+  - no query reads answers by question alone
+  - it was 17.5 MB and added one more write to every auto-save
+  - `down()` restores it
+- **`DB_INDEXING.md`:**
+  - new section 8 (volume results)
+  - corrected the section 4 and 5 rows
+  - action plan items 8–12 (deployment migrate + ANALYZE, buffer pool 1–2 GB, how Phase 2 question-wise reports should query)
+- **Index test:** now checks the unique answer key, and that the removed index is gone.
+- The database was restored from the backup and the new migration applied (21 users).
+- **Files:**
+  - `database/migrations/2026_11_18_000007_drop_unused_answers_question_code_index.php`
+  - `tests/Feature/InspectionFlowTest.php`
+  - `DB_INDEXING.md`
+- **Verification:** `php artisan test` 51 passed.
