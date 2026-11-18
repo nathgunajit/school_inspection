@@ -19,9 +19,19 @@ class ProfileController extends Controller
     {
         $user = $request->user()->load(['designation', 'jurisdictions.state', 'jurisdictions.district', 'jurisdictions.block', 'jurisdictions.cluster', 'directPermissions']);
 
+        // "My activity" summary on the profile (Modification V3)
+        $mine = \App\Models\Inspection::where('officer_id', $user->id);
+        $done = [\App\Enums\InspectionStatus::Submitted]; // unlocked ones are open again, counted with drafts
+        $activity = [
+            'drafts' => (clone $mine)->whereIn('status', [\App\Enums\InspectionStatus::Draft, \App\Enums\InspectionStatus::Unlocked])->count(),
+            'month' => (clone $mine)->whereIn('status', $done)->whereBetween('inspection_date', [today()->startOfMonth()->toDateString(), today()->endOfMonth()->toDateString()])->count(),
+            'total' => (clone $mine)->whereIn('status', $done)->count(),
+        ];
+
         return view('profile', [
             'user' => $user,
             'pendingMobile' => MobileChangeRequest::where('user_id', $user->id)->where('status', 'pending')->first(),
+            'activity' => $activity,
         ]);
     }
 

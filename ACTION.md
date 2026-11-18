@@ -418,3 +418,15 @@ Plan approved by the user. Decisions:
 - Tests: own older draft reopened, another officer's draft blocks (cancelled does not), completed by another officer blocked for the month and open again next month, badges and cards shown. The absentee test now uses a school in another cluster for the "other inspection".
 - Files: `app/Services/InspectionStartGuard.php` (new), `app/Http/Controllers/{InspectionController,SchoolController}.php`, `resources/views/schools/{show,_results}.blade.php`, `resources/scss/app.scss`, `CLAUDE.md`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 47 passed (605 assertions).
+
+## 51. Redesigned profile page and header account menu (Modification V3 items 1, 2) (2026-11-18)
+- Profile (`profile.blade.php`), same features and routes, new layout in the theme colours:
+  - hero card with gradient band, large photo with the camera button (same photo form and JS), name, designation, level / status / jurisdiction chips, "Member since" and "Last sign-in", and quick actions (Change password, Change mobile, Sign out on phones);
+  - "Personal details" tiles (Employee ID, Mobile, Email, Designation, Jurisdiction, Extra rights) and the State-Administrator lock note;
+  - "Change mobile number" card with the current number, +91 prefix and a clear "Request pending approval" state;
+  - "My inspections" counters (open drafts, submitted this month, submitted in total; officers who can inspect), linking to My Inspections;
+  - "Jurisdiction history" as a timeline with the current posting highlighted.
+- Header: account button is a white pill with photo, green "signed in" dot, greeting (wide screens), name, designation · level and a turning chevron; on phones only the photo. Dropdown: gradient head with greeting, name, designation and level, jurisdiction and mobile, menu items with icons and short descriptions (My Profile, Change Password, Sign out in red), "Signed in …" footer.
+- `ProfileController::show` adds the activity counts.
+- Files: `resources/views/profile.blade.php`, `resources/views/components/layouts/app.blade.php`, `app/Http/Controllers/ProfileController.php`, `resources/scss/app.scss`, `tests/Feature/RegistrationAndLoginTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 47 passed (612 assertions).

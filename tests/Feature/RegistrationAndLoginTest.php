@@ -218,7 +218,10 @@ class RegistrationAndLoginTest extends TestCase
         Storage::fake('private');
         $user = $this->officer(UserLevel::Cluster);
 
-        $this->actingAs($user)->get(route('profile'))->assertOk()->assertSee('profile-photo-input', false);
+        $this->actingAs($user)->get(route('profile'))->assertOk()->assertSee('profile-photo-input', false)
+            // redesigned profile (Modification V3): details, mobile change, activity, postings; header account menu
+            ->assertSee('Personal details')->assertSee('Change mobile number')->assertSee('My inspections')->assertSee('Jurisdiction history')
+            ->assertSee('Submitted this month')->assertSee('account-link', false)->assertSee('Photo, details and postings');
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->create('x.pdf', 50, 'application/pdf')])
             ->assertSessionHasErrors('photo');
 

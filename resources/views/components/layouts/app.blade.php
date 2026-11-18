@@ -81,34 +81,43 @@
                     <i class="bi bi-bell"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>
                 </a>
             @endif
+            @php
+                $hour = (int) now()->format('G');
+                $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
+                $firstName = \Illuminate\Support\Str::of($u->name)->explode(' ')->first();
+            @endphp
             <div class="dropdown">
-                <button class="account-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
-                    <x-user-avatar :user="$u" class="account-avatar" />
+                {{-- Account pill (Modification V3 item 2): photo with status ring, greeting, name and role --}}
+                <button class="account-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for {{ $u->name }}">
+                    <span class="account-avatar-wrap"><x-user-avatar :user="$u" class="account-avatar" /><span class="account-online" title="Signed in"></span></span>
                     <span class="account-text d-none d-md-block">
+                        <span class="g d-none d-xl-block">{{ $greet }},</span>
                         <span class="n">{{ $u->name }}</span>
-                        <span class="r">{{ $u->designation?->label ?? $u->level->label() }}</span>
+                        <span class="r">{{ $u->designation?->label ?? 'Officer' }} · {{ $u->level->label() }}</span>
                     </span>
-                    <i class="bi bi-chevron-down text-xs text-secondary d-none d-md-inline"></i>
+                    <i class="bi bi-chevron-down account-caret d-none d-md-inline"></i>
                 </button>
                 <div class="dropdown-menu dropdown-menu-end account-menu">
                     <div class="account-head">
                         <x-user-avatar :user="$u" size="lg" />
                         <div class="min-w-0">
-                            <div class="fw-semibold text-truncate">{{ $u->name }}</div>
-                            <div class="text-xs text-secondary text-truncate">{{ $u->designation?->label }}</div>
-                            <span class="badge-soft badge-soft-primary mt-1 d-inline-block">{{ $u->level->label() }}</span>
+                            <div class="account-hi">{{ $greet }}, {{ $firstName }}</div>
+                            <div class="account-name text-truncate">{{ $u->name }}</div>
+                            <div class="account-role text-truncate">{{ $u->designation?->label ?? 'Officer' }}</div>
+                            <span class="account-level"><i class="bi bi-diagram-3"></i>{{ $u->level->label() }} level</span>
                         </div>
                     </div>
                     <div class="account-meta">
                         <div><i class="bi bi-geo-alt"></i><span class="text-truncate">{{ $u->currentJurisdiction?->label() ?: 'State' }}</span></div>
                         <div><i class="bi bi-phone"></i><span>+91 {{ $u->mobile }}</span></div>
                     </div>
-                    <div class="p-2">
-                        <a class="dropdown-item rounded" href="{{ route('profile') }}"><i class="bi bi-person-circle me-2"></i>My Profile</a>
-                        <a class="dropdown-item rounded" href="{{ route('password.change') }}"><i class="bi bi-key me-2"></i>Change Password</a>
-                        <hr class="dropdown-divider">
-                        <form method="POST" action="{{ route('logout') }}">@csrf<button class="dropdown-item rounded text-danger"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button></form>
+                    <div class="account-links">
+                        <a class="account-link" href="{{ route('profile') }}"><span class="al-icon"><i class="bi bi-person-circle"></i></span><span><b>My Profile</b><small>Photo, details and postings</small></span></a>
+                        <a class="account-link" href="{{ route('password.change') }}"><span class="al-icon"><i class="bi bi-key"></i></span><span><b>Change Password</b><small>Keep your account secure</small></span></a>
+                        <form method="POST" action="{{ route('logout') }}">@csrf
+                            <button class="account-link is-danger"><span class="al-icon"><i class="bi bi-box-arrow-right"></i></span><span><b>Sign out</b><small>End this session</small></span></button></form>
                     </div>
+                    <div class="account-foot"><i class="bi bi-clock-history"></i>Signed in {{ $u->last_login_at?->format('d M Y, h:i A') ?? '—' }}</div>
                 </div>
             </div>
         </div>
