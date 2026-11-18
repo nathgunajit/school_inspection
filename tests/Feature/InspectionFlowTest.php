@@ -106,7 +106,11 @@ class InspectionFlowTest extends TestCase
         $this->photo($i, 'other')->assertForbidden();
         $this->deleteJson(route('evidence.destroy', InspectionEvidence::first()))->assertForbidden();
 
-        $this->get(route('inspections.show', $i))->assertOk()->assertSee($i->inspection_no);
+        // redesigned report page (Modification V4): hero, details, section links, answer pills, gallery with downloads, summary
+        $this->get(route('inspections.show', $i))->assertOk()->assertSee($i->inspection_no)
+            ->assertSee('rp-hero', false)->assertSee('Inspection details')->assertSee('href="#rp-step-7"', false)
+            ->assertSee('ans-pill', false)->assertSee('rv-dl', false)->assertSee('At a glance')->assertSee('Download official PDF report')
+            ->assertDontSee('Name of the person met at the school');
         $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 

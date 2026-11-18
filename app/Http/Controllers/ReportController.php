@@ -156,6 +156,7 @@ class ReportController extends Controller
             'remarks' => $inspection->remarksMap(),
             'startDistance' => $inspection->distanceFromSchool($inspection->start_lat, $inspection->start_lng),
             'submitDistance' => $inspection->distanceFromSchool($inspection->submit_lat, $inspection->submit_lng),
+            'photoCategories' => \App\Models\MasterValue::ofType('photo_category')->get(),
         ];
     }
 

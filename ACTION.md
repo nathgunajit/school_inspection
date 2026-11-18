@@ -438,3 +438,16 @@ Plan approved by the user. Decisions:
 - Note: real browsers cannot be run from this environment; the check is a code audit plus the automated server tests. The manual checklist is still to be done on devices.
 - Files: `package.json`, `package-lock.json`, `postcss.config.js` (new), `vite.config.js`, `resources/scss/app.scss`, `resources/js/wizard.js`, `BROWSER_SUPPORT.md` (new).
 - Verification: `npm run build` OK; `php artisan test` 47 passed (612 assertions).
+
+## 53. Submitted report page redesigned, responsive on all screens (Modification V4 item 1) (2026-11-18)
+- `inspections/show.blade.php` rebuilt:
+  - gradient hero with status chip, inspection number, school name, UDISE and location, category / management tags, four key tiles (date, officer, photographs with required count, submitted time) and actions (Download PDF, Print, Continue editing for the officer while editable);
+  - unlock notice and the State Admin unlock form as compact bars;
+  - "Inspection details" tiles (officer, person met, started / submitted with coordinates and a distance-from-school badge, amber when over 500 m);
+  - section links (sticky on desktop) to every step;
+  - each step as a card using the same components as the review page: coloured answer pills, figure tiles with automatic totals, absentee / classroom cards, year-wise fund summary, suggestions, photo gallery by category with the full-size viewer and a download button per photo; remarks shown under the answer;
+  - "At a glance" summary (students, teachers present / absent, absentee and classroom counts, fund balance in ₹ lakh, required photographs ✓/✗), documents list, "Download official PDF report"; print styles.
+- Shared partials: `inspections/partials/step-answers.blade.php` (extracted from the review page; options `skipBasic`, `remarks`, `downloads`) and `inspections/partials/photo-viewer.blade.php`; both pages load `resources/js/review.js`.
+- `ReportController::reportData()` adds the photo categories.
+- Files: `resources/views/inspections/{show,review}.blade.php`, `resources/views/inspections/partials/{step-answers,photo-viewer}.blade.php`, `app/Http/Controllers/ReportController.php`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`, `Documents/Modification of the ApplicationV4.docx` (already committed).
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 47 passed.
