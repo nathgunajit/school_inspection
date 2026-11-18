@@ -24,3 +24,6 @@ yarn-error.log
 
 /storage/app/private/*
 !/storage/app/private/.gitignore
+
+# Office lock files
+~$*
