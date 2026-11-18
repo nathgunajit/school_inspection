@@ -373,3 +373,11 @@ Plan approved by the user. Decisions:
 - Deploy: `php artisan migrate` then `php artisan db:seed --class=MasterValueSeeder`.
 - Files: `database/migrations/2026_11_18_000005_add_subject_master_type.php`, `database/seeders/MasterValueSeeder.php`, `app/Http/Controllers/InspectionController.php` (`subjectSuggestions`), `routes/web.php`, `resources/views/inspections/step.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
 - Verification: `php artisan test` 42 passed (552 assertions); local MySQL migrated and seeded (52 subjects); `npm run build` OK.
+
+## 46. Standard 1rem font size for numeric inputs and placeholders (2026-11-18)
+- Request: numeric values and placeholders were too large; use the standard `font-size: 1rem`.
+- Numeric inputs (question −/+ steppers, fund amounts): 1.0625rem bold → 1rem, weight 500 (same as other fields), tabular figures kept.
+- Placeholders and all fields: 1rem on every screen size (desktop was 0.9375rem). Placeholders stay lighter and normal weight.
+- Display figures (totals, balances, review page) unchanged.
+- Files: `resources/scss/app.scss` (`$field-fs`, `$num-fs`), `ACTION.md`.
+- Verification: `npm run build` OK; `php artisan test` 42 passed.

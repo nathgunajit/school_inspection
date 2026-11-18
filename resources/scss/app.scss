@@ -1174,9 +1174,9 @@ $src-colors: (ssa: $primary, govt: $success, other: $warning);
 // =============================================================
 //  Modification V2: readable fields (items 5, 9) and responsive questions (item 3)
 // =============================================================
-$field-fs: .9375rem;      // 15px desktop
+$field-fs: 1rem;          // standard 16px for every field and placeholder
 $field-fs-phone: 1rem;    // 16px phones (also stops iOS zoom on focus)
-$num-fs: 1.0625rem;       // numeric values
+$num-fs: 1rem;            // numeric values: same standard size
 
 // One font size for every field: wizard questions, add/edit forms, filters, auth forms
 .form-control, .form-select, .xsel-btn,
@@ -1191,9 +1191,9 @@ $num-fs: 1.0625rem;       // numeric values
 .form-select.is-placeholder, .xsel-btn.is-placeholder { color: #9aa5b5; font-weight: 400; }
 .row-form .form-label, .q-extra .form-label { font-size: .8rem; }
 
-// Numbers: larger, bold, tabular figures, same alignment everywhere
+// Numbers: standard 1rem, tabular figures, same alignment everywhere
 input[type="number"].form-control, .num-stepper .form-control, .fund-input .form-control {
-    font-size: $num-fs; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em;
+    font-size: $num-fs; font-weight: 500; font-variant-numeric: tabular-nums;
     &::placeholder { font-size: $num-fs; font-weight: 400; } }
 .num-stepper { min-height: 44px; .form-control { min-height: 42px; } }
 .num-btn { min-height: 42px; font-size: .9rem; }
