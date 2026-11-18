@@ -29,13 +29,35 @@
         <div class="col-lg-5">
             <div class="card card-elevated mb-4">
                 <div class="card-body p-4">
-                    @if ($today && $today->isEditable())
-                        <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-pencil-square text-warning fs-5"></i><strong>You have a draft for today</strong></div>
-                        <div class="progress-thin progress mb-3"><div class="progress-bar" style="width: {{ $today->completion_pct }}%"></div></div>
-                        <a href="{{ route('inspections.step', [$today, 1]) }}" class="btn btn-primary btn-lg w-100"><i class="bi bi-arrow-right-circle"></i>Continue inspection</a>
-                    @elseif ($today && $today->status->value === 'submitted')
+                    @php $si = $start['inspection'] ?? null; $sType = $start['type'] ?? null; @endphp
+                    @if ($sType === \App\Services\InspectionStartGuard::OWN_DRAFT)
+                        <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-pencil-square text-warning fs-5"></i>
+                            <strong>{{ $si->inspection_date->isToday() ? 'You have a draft for today' : 'You have a draft from '.$si->inspection_date->format('d M Y') }}</strong></div>
+                        @unless ($si->inspection_date->isToday())<p class="text-secondary text-sm mb-2">Finish this draft before starting a new inspection of this school.</p>@endunless
+                        <div class="progress-thin progress mb-3"><div class="progress-bar" style="width: {{ $si->completion_pct }}%"></div></div>
+                        <a href="{{ route('inspections.step', [$si, 1]) }}" class="btn btn-primary btn-lg w-100"><i class="bi bi-arrow-right-circle"></i>Continue inspection</a>
+                    @elseif ($sType === \App\Services\InspectionStartGuard::OWN_TODAY)
                         <div class="d-flex align-items-center gap-2 mb-3"><i class="bi bi-check-circle-fill text-success fs-5"></i><strong>Inspected by you today</strong></div>
-                        <a href="{{ route('inspections.show', $today) }}" class="btn btn-soft-primary w-100"><i class="bi bi-file-earmark-text"></i>View report {{ $today->inspection_no }}</a>
+                        <a href="{{ route('inspections.show', $si) }}" class="btn btn-soft-primary w-100"><i class="bi bi-file-earmark-text"></i>View report {{ $si->inspection_no }}</a>
+                    @elseif ($sType === \App\Services\InspectionStartGuard::OTHER_DRAFT)
+                        <div class="start-block is-draft">
+                            <div class="sb-head"><i class="bi bi-hourglass-split"></i><strong>Inspection in progress by another officer</strong></div>
+                            <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
+                                <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
+                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation?->label ?? $si->officer?->level?->label() }}</div></div></div>
+                            <div class="sb-meta"><i class="bi bi-calendar3"></i>Draft started {{ $si->started_at->format('d M Y, h:i A') }}</div>
+                            <p class="sb-note">You cannot start another inspection of this school while this draft is open.</p>
+                        </div>
+                    @elseif ($sType === \App\Services\InspectionStartGuard::OTHER_MONTH)
+                        <div class="start-block is-done">
+                            <div class="sb-head"><i class="bi bi-patch-check-fill"></i><strong>Already inspected this month</strong></div>
+                            <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
+                                <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
+                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation?->label ?? $si->officer?->level?->label() }}</div></div></div>
+                            <div class="sb-meta"><i class="bi bi-calendar-check"></i>Inspected on {{ $si->inspection_date->format('d M Y') }}@if ($si->inspection_no) · <span class="font-monospace">{{ $si->inspection_no }}</span>@endif</div>
+                            <p class="sb-note">It can be inspected again from <strong>{{ \App\Services\InspectionStartGuard::reopensOn()->format('d M Y') }}</strong>.</p>
+                            @can('view', $si)<a href="{{ route('inspections.show', $si) }}" class="btn btn-soft-primary w-100"><i class="bi bi-file-earmark-text"></i>View report</a>@endcan
+                        </div>
                     @elseif (! $school->isActive())
                         <div class="alert alert-secondary border-0 mb-0"><i class="bi bi-slash-circle me-1"></i>This school is closed and cannot be inspected.</div>
                     @else

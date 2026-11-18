@@ -10,10 +10,12 @@ use App\Models\InspectionClassroomObservation;
 use App\Models\InspectionFundPosition;
 use App\Models\MasterValue;
 use App\Models\School;
+use App\Models\User;
 use App\Questionnaire\InspectionValidator;
 use App\Questionnaire\QuestionnaireDefinition as Q;
 use App\Services\AuditLogger;
 use App\Services\InspectionNumberGenerator;
+use App\Services\InspectionStartGuard;
 use App\Services\JurisdictionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -24,7 +26,7 @@ use Illuminate\Validation\ValidationException;
 /** Inspection workflow: start, six-step questionnaire with auto-save, review, submit (PRD 8, 10). */
 class InspectionController extends Controller
 {
-    public function __construct(private JurisdictionService $j) {}
+    public function __construct(private JurisdictionService $j, private InspectionStartGuard $startGuard) {}
 
     /* ======================= Start ======================= */
 
@@ -42,24 +44,40 @@ class InspectionController extends Controller
             'accuracy' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        // One inspection per officer, per school, per day (PRD 8.2)
-        $existing = Inspection::where('officer_id', $user->id)->where('school_id', $school->id)
-            ->whereDate('inspection_date', today())->first();
+        // Serialise starts for one school, so two officers cannot both start it at the same moment
+        return DB::transaction(function () use ($user, $school, $loc) {
+            School::whereKey($school->id)->lockForUpdate()->first();
 
-        if ($existing) {
-            if ($existing->isEditable()) {
-                return redirect()->route('inspections.step', [$existing, 1])->with('info', 'Your draft for this school today has been reopened.');
+            // Own draft (any date), own submission today, another officer's draft, or completed by another officer this month
+            if ($block = $this->startGuard->check($user, $school)) {
+                $found = $block['inspection'];
+                if ($block['type'] === InspectionStartGuard::OWN_DRAFT) {
+                    return redirect()->route('inspections.step', [$found, 1])->with('info', $block['message']);
+                }
+                if ($block['type'] === InspectionStartGuard::OWN_TODAY) {
+                    return redirect()->route('inspections.show', $found)->with('warning', $block['message']);
+                }
+                AuditLogger::log('inspection_start_blocked', $school, ['reason' => $block['type'], 'inspection_id' => $found->id, 'by_officer' => $found->officer_id]);
+
+                return redirect()->route('schools.show', $school)->with('warning', $block['message']);
             }
-            if ($existing->status === InspectionStatus::Cancelled) {
+
+            // One inspection per officer, per school, per day (PRD 8.2): a cancelled draft of today is reopened
+            $existing = Inspection::where('officer_id', $user->id)->where('school_id', $school->id)
+                ->whereDate('inspection_date', today())->first();
+            if ($existing && $existing->status === InspectionStatus::Cancelled) {
                 $existing->update(['status' => InspectionStatus::Draft, 'cancelled_reason' => null]);
                 AuditLogger::log('inspection_restarted', $existing);
 
                 return redirect()->route('inspections.step', [$existing, 1])->with('info', 'Your cancelled draft for today has been reopened.');
             }
 
-            return redirect()->route('inspections.show', $existing)->with('warning', 'You have already submitted an inspection of this school today.');
-        }
+            return $this->createInspection($user, $school, $loc);
+        });
+    }
 
+    private function createInspection(User $user, School $school, array $loc)
+    {
         $school->load(['state', 'district', 'block', 'cluster']);
 
         try {

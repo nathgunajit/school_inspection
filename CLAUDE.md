@@ -59,7 +59,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 2. **Users cannot change their own level or jurisdiction.** Transfers end the old `user_jurisdictions` row and create a new one.
 3. **Question codes** (e.g. `GOVR_02`) are stable identifiers stored with each answer. Never rename or reuse a code.
 4. **Submitted inspections are locked.** Only the State Admin can unlock, and only with a reason; every unlock is audited.
-5. **One inspection per officer, per school, per day** (DB unique key). An existing draft is reopened instead of creating a new one.
+5. **One inspection per officer, per school, per day** (DB unique key). Starting goes through `InspectionStartGuard` (Modification V3):
+   - The officer's own open draft (any date) is reopened, never duplicated.
+   - Another officer's open draft blocks the school ("being inspected by …").
+   - A school submitted by another officer is blocked for the rest of that calendar month.
+   - Cancelled inspections never block.
+   - Blocked attempts are audited (`inspection_start_blocked`).
 6. **Evidence lives on the `private` disk** under random names. It is served only through a controller that checks permission. Photos come from the in-app camera **or the phone gallery** (Modification V1). Both go through the same browser pipeline: resize to ≤1600 px, JPEG, stamp strip, SHA-256. Gallery photos are stored with `source = gallery` and labelled "From gallery" in the report and PDF. An upload with the same `evidence_uid` is idempotent.
 7. **The audit log is append-only.** Use `AuditLogger::log()`; never update or delete rows.
 8. **Server time** is the source of truth for inspection date and time.

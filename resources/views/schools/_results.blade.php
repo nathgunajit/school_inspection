@@ -41,6 +41,8 @@
                     <span class="school-tags">
                         @if ($s->category)<span class="school-tag">{{ $s->category->label }}</span>@endif
                         @if ($s->mine_today)<span class="school-tag warn"><i class="bi bi-pencil-square"></i> Your inspection today</span>@endif
+                        @if ($s->other_draft)<span class="school-tag lock"><i class="bi bi-hourglass-split"></i> Draft by another officer</span>
+                        @elseif ($s->other_this_month)<span class="school-tag lock-done"><i class="bi bi-patch-check"></i> Inspected this month</span>@endif
                         @if ($s->last_inspected_on)<span class="school-tag ok"><i class="bi bi-check2"></i> Last inspected {{ \Illuminate\Support\Carbon::parse($s->last_inspected_on)->format('d M Y') }}</span>
                         @else<span class="school-tag">Not inspected yet</span>@endif
                         @unless ($s->isActive())<span class="school-tag off">Closed</span>@endunless

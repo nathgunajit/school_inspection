@@ -404,3 +404,17 @@ Plan approved by the user. Decisions:
 - Tests: lock after 3 attempts, still locked at 19 min, open after 21 min; CAPTCHA from the 3rd attempt; session lifetime 20, meta tags, ping (204 signed in, redirect when signed out), expired notice. Replaces the old 5-attempt test.
 - Files: `config/inspection.php`, `.env.example` (and local `.env`), `app/Http/Controllers/Auth/LoginController.php`, `routes/web.php`, `resources/views/components/layouts/app.blade.php`, `resources/js/app.js`, `resources/scss/app.scss`, `tests/Feature/RegistrationAndLoginTest.php`.
 - Verification: `npm run build` OK; `php artisan test` 44 passed (579 assertions).
+
+## 50. Block duplicate inspections of a school: own draft reopened, other officers' drafts and same-month completions blocked (Modification V3 items 3, 4) (2026-11-18)
+- Decisions (user): a school completed by another officer is blocked for the **rest of that calendar month**; **both** own and other officers' drafts block a new start.
+- New `app/Services/InspectionStartGuard.php`, rules in order (cancelled inspections never count):
+  1. own open draft (draft/unlocked, any date) → reopened ("Your draft for this school from 12 Nov 2026 has been reopened"), never a second one;
+  2. own submission today → that report (rule 5 unchanged);
+  3. another officer's open draft → blocked: "This school is being inspected by Name (Designation). Their draft was started on …";
+  4. submitted/unlocked by another officer this calendar month → blocked: "already inspected by Name (Designation) on … (SI/…). It can be inspected again from 1 Dec 2026".
+- `InspectionController::start()` checks the guard inside a transaction with `lockForUpdate` on the school row (two officers cannot start the same school at the same moment); blocked attempts are audited as `inspection_start_blocked` (reason, inspection id, officer id).
+- School page: new cards "Inspection in progress by another officer" (amber) and "Already inspected this month" (blue, reopen date, report link if the user may view it), no Start button; own older draft shows "You have a draft from …". Search results: badges "Draft by another officer" / "Inspected this month".
+- CLAUDE.md domain rule 5 updated.
+- Tests: own older draft reopened, another officer's draft blocks (cancelled does not), completed by another officer blocked for the month and open again next month, badges and cards shown. The absentee test now uses a school in another cluster for the "other inspection".
+- Files: `app/Services/InspectionStartGuard.php` (new), `app/Http/Controllers/{InspectionController,SchoolController}.php`, `resources/views/schools/{show,_results}.blade.php`, `resources/scss/app.scss`, `CLAUDE.md`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 47 passed (605 assertions).

@@ -130,6 +130,68 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(2, Inspection::count());
     }
 
+    public function test_own_older_draft_is_reopened_instead_of_a_new_inspection(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $school = $this->schoolIn($officer->currentJurisdiction->cluster);
+        $first = $this->startInspection($officer, $school);
+
+        $this->travel(2)->days();
+        $this->post(route('inspections.start', $school))
+            ->assertRedirect(route('inspections.step', [$first, 1]))
+            ->assertSessionHas('info', fn ($m) => str_contains($m, 'from '.$first->inspection_date->format('d M Y')));
+        $this->assertSame(1, Inspection::count());
+        $this->get(route('schools.show', $school))->assertOk()->assertSee('You have a draft from');
+    }
+
+    public function test_another_officers_draft_blocks_the_school(): void
+    {
+        $a = $this->officer(UserLevel::Cluster);
+        $cluster = $a->currentJurisdiction->cluster;
+        $b = $this->officer(UserLevel::Cluster, $cluster);
+        $school = $this->schoolIn($cluster);
+        $draft = $this->startInspection($a, $school);
+
+        $this->actingAs($b)->post(route('inspections.start', $school))
+            ->assertRedirect(route('schools.show', $school))
+            ->assertSessionHas('warning', fn ($m) => str_contains($m, 'being inspected by '.$a->name));
+        $this->assertSame(1, Inspection::count());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_start_blocked']);
+        $this->get(route('schools.show', $school))->assertOk()->assertSee('Inspection in progress by another officer')->assertSee($a->name)
+            ->assertDontSee('id="start-btn"', false);
+        $this->get(route('schools.index', ['q' => $school->udise_code]), ['X-Requested-With' => 'XMLHttpRequest'])->assertSee('Draft by another officer');
+
+        // a cancelled draft does not block
+        $draft->update(['status' => InspectionStatus::Cancelled]);
+        $this->actingAs($b)->post(route('inspections.start', $school));
+        $this->assertSame(2, Inspection::count());
+    }
+
+    public function test_school_completed_by_another_officer_is_blocked_for_the_rest_of_the_month(): void
+    {
+        $this->travelTo(now()->startOfMonth()->addDays(9)->setTime(10, 0));
+        $a = $this->officer(UserLevel::Cluster);
+        $cluster = $a->currentJurisdiction->cluster;
+        $b = $this->officer(UserLevel::Cluster, $cluster);
+        $school = $this->schoolIn($cluster);
+        $done = $this->startInspection($a, $school);
+        $done->update(['status' => InspectionStatus::Submitted, 'inspection_no' => 'SI/2026/0001/000001', 'submitted_at' => now()]);
+
+        $this->travel(5)->days();
+        $this->actingAs($b)->post(route('inspections.start', $school))
+            ->assertRedirect(route('schools.show', $school))
+            ->assertSessionHas('warning', fn ($m) => str_contains($m, 'already inspected by '.$a->name) && str_contains($m, 'SI/2026/0001/000001'));
+        $this->get(route('schools.show', $school))->assertOk()->assertSee('Already inspected this month')
+            ->assertSee(now()->addMonthNoOverflow()->startOfMonth()->format('d M Y'));
+        $this->get(route('schools.index', ['q' => $school->udise_code]), ['X-Requested-With' => 'XMLHttpRequest'])->assertSee('Inspected this month');
+        $this->assertSame(1, Inspection::count());
+
+        // next month the school is open again
+        $this->travelTo(now()->addMonthNoOverflow()->startOfMonth()->setTime(9, 0));
+        $this->actingAs($b)->post(route('inspections.start', $school));
+        $this->assertSame(2, Inspection::count());
+    }
+
     private function missingCodes(Inspection $i, int $step)
     {
         return collect((new InspectionValidator($i->fresh()))->missing()[$step] ?? [])->pluck('code');
@@ -238,7 +300,9 @@ class InspectionFlowTest extends TestCase
         $c = $i->classroomObservations()->first();
         $this->putJson(route('inspections.classrooms.update', [$i, $c]), ['teacher_name' => 'B. Devi', 'class' => 'VII', 'subject' => 'Science', 'tlm_used' => 'no', 'participation' => 'not_satisfactory'])
             ->assertOk()->assertJsonCount(1, 'classrooms')->assertJsonPath('classrooms.0.values.class', 'VII')->assertJsonPath('classrooms.0.tlm_ok', false);
-        $other = $this->startInspection($this->officer(UserLevel::Cluster), $this->schoolIn($officer->currentJurisdiction->cluster));
+        // another officer's inspection of a school in another cluster (the same school would now be blocked)
+        $oc = $this->otherCluster($officer->currentJurisdiction->cluster);
+        $other = $this->startInspection($this->officer(UserLevel::Cluster, $oc), $this->schoolIn($oc));
         $this->putJson(route('inspections.classrooms.update', [$other, $c]), ['teacher_name' => 'X Y', 'class' => 'I', 'subject' => 'Maths', 'tlm_used' => 'yes', 'participation' => 'satisfactory'])->assertNotFound();
         $this->assertSame('Science', $c->fresh()->subject);
         $this->actingAs($officer)->get(route('inspections.step', [$i, 5]))->assertOk()->assertSee('Samagra Shiksha (SSA)')->assertSee('fund-src src-govt', false);

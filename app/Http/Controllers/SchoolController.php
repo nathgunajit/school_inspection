@@ -7,13 +7,14 @@ use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
 use App\Models\School;
+use App\Services\InspectionStartGuard;
 use App\Services\JurisdictionService;
 use Illuminate\Http\Request;
 
 /** School search within the officer's jurisdiction (PRD 7.4). */
 class SchoolController extends Controller
 {
-    public function __construct(private JurisdictionService $j) {}
+    public function __construct(private JurisdictionService $j, private InspectionStartGuard $startGuard) {}
 
     public function index(Request $request)
     {
@@ -27,6 +28,9 @@ class SchoolController extends Controller
                 // badges in the result list: my inspection today, last submitted inspection
                 ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
                     ->whereDate('inspection_date', today())->where('status', '!=', InspectionStatus::Cancelled)])
+                // Modification V3: another officer's open draft / completed by another officer this month
+                ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
+                ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherThisMonth($user)])
                 ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])], 'inspection_date')
                 ->when($q !== '', fn ($w) => ctype_digit($q)
                     ? $w->where('udise_code', 'like', $q.'%')
@@ -77,10 +81,12 @@ class SchoolController extends Controller
         $school->load(['state', 'district', 'block', 'cluster', 'management', 'category']);
 
         $today = $school->inspections()->where('officer_id', $user->id)->whereDate('inspection_date', today())->first();
+        // own draft (any date), own submission today, or blocked by another officer (Modification V3)
+        $start = $this->startGuard->check($user, $school);
         $history = $school->inspections()->with('officer')
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->latest('inspection_date')->take(10)->get();
 
-        return view('schools.show', compact('school', 'today', 'history'));
+        return view('schools.show', compact('school', 'today', 'history', 'start'));
     }
 }
