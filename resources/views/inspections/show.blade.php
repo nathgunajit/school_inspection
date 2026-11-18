@@ -112,6 +112,18 @@
                             </div>
                         @endforeach
 
+                        @if ($n === 2)
+                            @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $presT = $answers['TSI_09'] ?? null; @endphp
+                            <div class="fig-totals mb-2">
+                                <div class="fig-total"><i class="bi bi-backpack"></i><span>Total students <small>Present + Absent</small></span><b>{{ $totS === null ? '—' : number_format($totS) }}</b></div>
+                                <div class="fig-total"><i class="bi bi-person-workspace"></i><span>Total teachers <small>Regular + Contractual + SSA + Tutors</small></span><b>{{ $totT === null ? '—' : number_format($totT) }}</b></div>
+                                @if ($totT !== null && $presT !== null && $presT !== '')
+                                    @php $absT = $totT - (int) $presT; @endphp
+                                    <div class="fig-total {{ $absT < 0 ? 'is-bad' : '' }}"><i class="bi bi-person-x"></i><span>Teachers absent <small>Total − Present ({{ (int) $presT }})</small></span><b>{{ $absT < 0 ? '−'.abs($absT) : $absT }}</b></div>
+                                @endif
+                            </div>
+                        @endif
+
                         @if ($n === 6)
                             @php $sug = $inspection->remarks->where('type', 'suggestion'); @endphp
                             @if ($sug->isNotEmpty())

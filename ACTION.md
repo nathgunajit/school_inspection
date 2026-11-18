@@ -350,3 +350,10 @@ Plan approved by the user. Decisions:
 - `partials/question.blade.php`: new `$compact` rule (`q-inline-2` only for 2 options of ≤ 4 characters). Before, Satisfactory/Unsatisfactory was squeezed into 132px on phones.
 - Files: `resources/scss/app.scss`, `resources/views/inspections/partials/question.blade.php`, `ACTION.md`.
 - Verification: `npm run build`, `view:cache` OK; `php artisan test` 39 passed.
+
+## 43. Automatic student and teacher totals on step 2 (Modification V2 items 6, 7) (2026-11-18)
+- Step 2: a "Total students" panel after Absent shows Total = Present (TSI_01) + Absent (TSI_02) and the attendance %; a "Total teachers" panel after TSI_09 shows Total = Regular + Contractual + SSA + Provincialised + Newly accorded tutors (TSI_04–08), Present (TSI_09) and Absent = Total − Present, turning red when Present > Total.
+- Both update live while typing and with the − / + buttons. Display only: no new question codes, nothing extra is stored.
+- The same totals appear on the review page, the report page (`show`) and in the PDF (server side, `QuestionnaireDefinition::totalStudents()` / `totalTeachers()`).
+- Files: `resources/views/inspections/{step,show,pdf}.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 40 passed (527 assertions).

@@ -79,6 +79,14 @@
         </table>
     @endif
 
+    @if ($n === 2)
+        @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $presT = $answers['TSI_09'] ?? null; @endphp
+        <table class="grid"><tr><th>Total students (Present + Absent)</th><th>Total teachers (Regular + Contractual + SSA + Tutors)</th><th>Teachers absent (Total − Present)</th></tr>
+            <tr><td class="r"><strong>{{ $totS ?? '—' }}</strong></td><td class="r"><strong>{{ $totT ?? '—' }}</strong></td>
+                <td class="r"><strong>{{ ($totT !== null && $presT !== null && $presT !== '') ? $totT - (int) $presT : '—' }}</strong></td></tr>
+        </table>
+    @endif
+
     @if ($n === 3)
         @if ($inspection->absentTeachers->isNotEmpty())
             <table class="grid"><tr><th>Teacher's name</th><th>Teacher's type</th><th>Reason for absence</th><th>Remarks</th></tr>

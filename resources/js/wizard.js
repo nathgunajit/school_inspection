@@ -592,3 +592,43 @@ if (location.hash.startsWith('#q-')) {
 }
 
 refreshRules();
+
+/* ---------------- Step 2: automatic totals (display only) ---------------- */
+const autoTotals = $$('[data-auto-total]');
+if (autoTotals.length) {
+    const val = (code) => {
+        const el = document.querySelector(`input[name="${code}"]`);
+        if (!el || el.value === '') return null;
+        const n = parseInt(el.value, 10);
+        return Number.isFinite(n) ? n : null;
+    };
+    const fmtInt = (n) => (n === null ? '–' : n.toLocaleString('en-IN'));
+    const TEACHER_CODES = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
+    const paint = (box, { total, present, absent, extra = '', bad = false }) => {
+        $('[data-at="total"]', box).textContent = fmtInt(total);
+        $('[data-at="present"]', box).textContent = fmtInt(present);
+        $('[data-at="absent"]', box).textContent = absent === null ? '–' : (absent < 0 ? '−' + Math.abs(absent).toLocaleString('en-IN') : fmtInt(absent));
+        $('[data-at-extra]', box).textContent = extra;
+        box.classList.toggle('is-bad', bad);
+        box.classList.toggle('is-ready', total !== null && !bad);
+    };
+    const recalc = () => {
+        const s = $('[data-auto-total="students"]');
+        if (s) {
+            const p = val('TSI_01'), a = val('TSI_02');
+            const total = p !== null && a !== null ? p + a : null;
+            paint(s, { total, present: p, absent: a, extra: total ? `Attendance ${Math.round((p / total) * 100)}%` : '' });
+        }
+        const t = $('[data-auto-total="teachers"]');
+        if (t) {
+            const parts = TEACHER_CODES.map(val);
+            const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
+            const present = val('TSI_09');
+            const absent = total !== null && present !== null ? total - present : null;
+            const bad = absent !== null && absent < 0;
+            paint(t, { total, present, absent, bad, extra: bad ? 'Present is more than the total. Please check.' : '' });
+        }
+    };
+    document.addEventListener('input', (e) => { if (e.target.matches?.('input[name^="TSI_"]')) recalc(); });
+    recalc();
+}

@@ -270,6 +270,19 @@ class InspectionFlowTest extends TestCase
             ->assertSee(route('evidence.show', InspectionEvidence::first()), false);
     }
 
+    public function test_step_two_shows_automatic_student_and_teacher_totals(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
+        $this->get(route('inspections.step', [$i, 2]))->assertOk()
+            ->assertSee('data-auto-total="students"', false)->assertSee('data-auto-total="teachers"', false)
+            ->assertSee('Present + Absent');
+
+        $this->assertNull(Q::totalStudents(['TSI_01' => 10]));
+        $this->assertSame(0, Q::totalStudents(['TSI_01' => 0, 'TSI_02' => '0']));
+        $this->assertSame(57, Q::totalStudents(['TSI_01' => '50', 'TSI_02' => 7]));
+    }
+
     public function test_lakh_format_uses_indian_grouping(): void
     {
         $fp = \App\Models\InspectionFundPosition::class;

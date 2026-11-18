@@ -97,6 +97,22 @@
                             @foreach ($questions as $i => $q)
                                 @if ($groupHead($q['code']))<div class="col-12">{!! $groupHead($q['code']) !!}</div>@endif
                                 <div class="col-md-6">@include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])</div>
+                                {{-- Automatic totals (display only, nothing extra is stored) --}}
+                                @if ($q['code'] === 'TSI_02')
+                                    <div class="col-12"><div class="auto-total" data-auto-total="students" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                        <span class="at-label">Total students<small>Present + Absent · calculated automatically</small></span>
+                                        <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
+                                        <span class="at-value" data-at="total">–</span>
+                                    </div></div>
+                                @elseif ($q['code'] === 'TSI_09')
+                                    <div class="col-12"><div class="auto-total" data-auto-total="teachers" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                        <span class="at-label">Total teachers<small>Regular + Contractual + SSA + Provincialised + Newly accorded tutors</small></span>
+                                        <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
+                                        <span class="at-value" data-at="total">–</span>
+                                    </div></div>
+                                @endif
                             @endforeach
                         </div>
                     @else
