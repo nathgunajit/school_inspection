@@ -568,3 +568,28 @@ Plan approved by the user. Decisions:
   - `tests/Feature/InspectionFlowTest.php`
   - `DB_INDEXING.md`
 - **Verification:** `php artisan test` 51 passed.
+
+## 62. Project document: database schema, functional flow and user type check (V5 Step 1) (2026-11-18)
+- Reviewed the project and wrote **`PROJECT_DOCUMENT.md`**, for developers and users. It covers:
+  - the system overview
+  - terms
+  - user levels, rights and the approval chain
+  - flow charts (Mermaid) for:
+    - registration and approval
+    - sign-in security
+    - the start rules
+    - the 7-step form
+    - the inspection life cycle
+    - reports, PDF and Excel
+    - administration
+  - the database: ER diagram and all 32 tables, with keys and the rules the database enforces
+  - a table of modules and the tables they read and write, with an auto-save example
+  - a developer guide (layout, request path, rules, commands, testing)
+  - statuses
+- **User type check:** new `tests/Feature/UserTypeAccessTest.php` (5 tests, 99 assertions):
+  - every level against the officer and admin screens
+  - rights granted to one user
+  - area visibility of a submitted inspection for the same and other district, block and cluster
+  - drafts visible only to their officer
+- **Files:** `PROJECT_DOCUMENT.md`, `tests/Feature/UserTypeAccessTest.php`.
+- **Verification:** `php artisan test` 56 passed.
