@@ -48,7 +48,9 @@ class AppServiceProvider extends ServiceProvider
         }
         Gate::define('state_admin', fn (User $user) => $user->isStateAdmin() && $user->isActive());
 
-        RateLimiter::for('login', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
+        RateLimiter::for('login', fn (Request $r) => config('inspection.loadtest') && ! app()->isProduction()
+            ? Limit::none() // load test from one machine (LOAD_TEST.md); never in production
+            : Limit::perMinute(10)->by($r->ip()));
         RateLimiter::for('register', fn (Request $r) => Limit::perHour(10)->by($r->ip()));
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(60)->by($r->user()?->id ?: $r->ip()));
 

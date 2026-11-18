@@ -514,3 +514,35 @@ Plan approved by the user. Decisions:
 - The watermark stays at 5% so it never covers the text. The light blue SCHOOL background is kept.
 - Files: `resources/views/inspections/pdf.blade.php`.
 - Verification: a real PDF rendered without errors; the HTML render was screenshotted; `php artisan test` 48 passed.
+
+## 60. Load test: concurrent login and inspection form (V5 Step 2) (2026-11-18)
+- **`LoadTestSeeder`** (local and testing only) creates:
+  - 500 officers (mobiles `7000000001…`, password `Load@1234`), each with their own school
+  - 5,000 schools
+  - 10,000 submitted inspections with 650,000 answers
+- **`tools/loadtest/loadtest.php`** is a `curl_multi` driver. Every virtual officer has their own cookies and CSRF token.
+  - Login scenario: 3 requests.
+  - Form scenario: start, step 1, 10 auto-saves, step 2, progress (17 requests).
+  - Steps up from 10 users; stops when errors go above 1 % or P95 goes over the limit.
+  - Records MariaDB connections, slow queries and lock waits.
+  - Warms up Blade views first.
+- **`LOADTEST_MODE`** (`config('inspection.loadtest')`) lifts the 10-per-minute login limit for a test from one machine. It is ignored in production.
+- **Results:**
+  - The server handles about 18 requests per second. 10 officers acting at the same instant get answers in under 1 s; 25 within 2 s.
+  - At 100 officers there are no errors, but they wait 5–9 s.
+  - Officers filling forms at a normal pace: about 250 at the same time. That supports about 2,500 registered officers on this laptop.
+  - The database is not the bottleneck. The limit is PHP time per request, because OPcache is off.
+- **Found:**
+  - Windows Apache runs PHP in threads, and the `.env` loading is not thread-safe. This gave random 500 and 419 errors. `config:cache` is required on such a server.
+  - Blade compilation collides between threads on Windows.
+  - The buffer pool (16 MB) is too small for production.
+- **Clean-up:** the database was backed up before seeding and restored afterwards (21 users, 24 schools, 5 inspections). `.env` was restored and the caches cleared.
+- **Files:**
+  - `database/seeders/LoadTestSeeder.php`
+  - `tools/loadtest/loadtest.php`
+  - `config/inspection.php`
+  - `app/Providers/AppServiceProvider.php`
+  - `tests/Feature/LoadTestModeTest.php`
+  - `LOAD_TEST.md`
+  - `.gitignore`
+- **Verification:** both scenarios ran on Apache (results in `storage/loadtest/*.json`); `php artisan test` 51 passed.

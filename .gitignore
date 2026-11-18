@@ -27,3 +27,6 @@ yarn-error.log
 
 # Office lock files
 ~$*
+
+# Load-test results (tools/loadtest)
+/storage/loadtest
