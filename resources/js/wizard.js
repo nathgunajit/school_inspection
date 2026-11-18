@@ -68,8 +68,16 @@ function applyProgress(d) {
         if (!link) continue;
         link.classList.toggle('complete', s.complete);
         const dot = link.querySelector('.dot');
-        if (!link.classList.contains('active')) dot.innerHTML = s.complete ? '<i class="bi bi-check-lg"></i>' : n;
+        const active = link.classList.contains('active');
+        if (!active) dot.innerHTML = s.complete ? '<i class="bi bi-check-lg"></i>' : n;
+        const st = link.querySelector('[data-step-status]');
+        if (st && !active) {
+            st.textContent = s.complete ? 'Done' : (s.pct > 0 ? `In progress · ${s.pct}%` : 'Not started');
+            st.className = `st ${s.complete ? 'is-done' : (s.pct > 0 ? 'is-partial' : '')}`;
+        }
     }
+    const doneEl = $('#steps-done');
+    if (doneEl) doneEl.textContent = Object.values(d.steps || {}).filter((s) => s.complete).length;
     const miss = (d.missing || {})[SI.step] || [];
     SI.missingNow = miss;
     const sm = $('#step-missing');

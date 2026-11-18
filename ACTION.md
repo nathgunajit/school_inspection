@@ -381,3 +381,11 @@ Plan approved by the user. Decisions:
 - Display figures (totals, balances, review page) unchanged.
 - Files: `resources/scss/app.scss` (`$field-fs`, `$num-fs`), `ACTION.md`.
 - Verification: `npm run build` OK; `php artisan test` 42 passed.
+
+## 47. Clearer form step tabs, all visible on every screen size (2026-11-18)
+- Request: the form tabs should have easier-to-understand text and all of them should be shown on every screen.
+- Tab names (new `tab` key in `QuestionnaireDefinition::steps()`, presentation only; step keys/codes unchanged): School Condition, Students & Teachers, Absent Teachers, Classroom Observation, Fund Details, School Governance, Photographs, Review & Submit.
+- Each tab shows its number (✓ when done) and a status line: "You are here", "Done", "In progress · n%" or "Not started"; Review shows "Ready to submit" / "Check & submit". Status and the "n of 7 steps done" counter update live after each saved answer.
+- Responsive, no horizontal scrolling and no hidden tabs: ≥1200px one row with number beside the name; 768–1199px one row with number above the name; phones two rows of four tiles (name kept, status by colour, current step labelled). On phones the tab bar scrolls away instead of staying fixed, to leave room for the form.
+- Files: `resources/views/inspections/partials/stepper.blade.php`, `app/Questionnaire/QuestionnaireDefinition.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `tests/Feature/InspectionFlowTest.php`.
+- Verification: `npm run build`, `view:cache` OK; `php artisan test` 42 passed (556 assertions).

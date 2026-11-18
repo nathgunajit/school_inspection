@@ -276,7 +276,10 @@ class InspectionFlowTest extends TestCase
         $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
         $this->get(route('inspections.step', [$i, 2]))->assertOk()
             ->assertSee('data-auto-total="students"', false)->assertSee('data-auto-total="teachers"', false)
-            ->assertSee('Present + Absent');
+            ->assertSee('Present + Absent')
+            // step tabs: full names for all 7 steps + review, with a status line
+            ->assertSeeInOrder(['School Condition', 'Students & Teachers', 'Absent Teachers', 'Classroom Observation', 'Fund Details', 'School Governance', 'Photographs', 'Review & Submit'])
+            ->assertSee('You are here')->assertSee('Not started')->assertSee('steps done');
 
         $this->assertNull(Q::totalStudents(['TSI_01' => 10]));
         $this->assertSame(0, Q::totalStudents(['TSI_01' => 0, 'TSI_02' => '0']));

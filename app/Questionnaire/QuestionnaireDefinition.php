@@ -27,13 +27,13 @@ class QuestionnaireDefinition
     public static function steps(): array
     {
         return [
-            1 => ['key' => 'condition', 'title' => 'Condition of the School', 'short' => 'Condition', 'icon' => 'bi-building'],
-            2 => ['key' => 'strength', 'title' => "Teacher's & Student's Information", 'short' => 'Strength', 'icon' => 'bi-people'],
-            3 => ['key' => 'absentee', 'title' => 'Teachers Absentee Form', 'short' => 'Absentee', 'icon' => 'bi-person-x'],
-            4 => ['key' => 'classroom', 'title' => 'Class Room Performance', 'short' => 'Classroom', 'icon' => 'bi-easel'],
-            5 => ['key' => 'fund', 'title' => 'Fund Received & Expenditure', 'short' => 'Fund', 'icon' => 'bi-cash-coin'],
-            6 => ['key' => 'governance', 'title' => 'School Governance', 'short' => 'Governance', 'icon' => 'bi-diagram-3'],
-            7 => ['key' => 'photos', 'title' => 'Photographs of School', 'short' => 'Photos', 'icon' => 'bi-camera'],
+            1 => ['key' => 'condition', 'title' => 'Condition of the School', 'short' => 'Condition', 'tab' => 'School Condition', 'icon' => 'bi-building'],
+            2 => ['key' => 'strength', 'title' => "Teacher's & Student's Information", 'short' => 'Strength', 'tab' => 'Students & Teachers', 'icon' => 'bi-people'],
+            3 => ['key' => 'absentee', 'title' => 'Teachers Absentee Form', 'short' => 'Absentee', 'tab' => 'Absent Teachers', 'icon' => 'bi-person-x'],
+            4 => ['key' => 'classroom', 'title' => 'Class Room Performance', 'short' => 'Classroom', 'tab' => 'Classroom Observation', 'icon' => 'bi-easel'],
+            5 => ['key' => 'fund', 'title' => 'Fund Received & Expenditure', 'short' => 'Fund', 'tab' => 'Fund Details', 'icon' => 'bi-cash-coin'],
+            6 => ['key' => 'governance', 'title' => 'School Governance', 'short' => 'Governance', 'tab' => 'School Governance', 'icon' => 'bi-diagram-3'],
+            7 => ['key' => 'photos', 'title' => 'Photographs of School', 'short' => 'Photos', 'tab' => 'Photographs', 'icon' => 'bi-camera'],
         ];
     }
 

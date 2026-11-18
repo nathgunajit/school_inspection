@@ -385,21 +385,43 @@ $q-choice-col: 230px;   // all short answers line up in one column
 .stepper-meta { font-size: .68rem; color: #64748b; }
 .stepper-progress { display: flex; align-items: center; gap: .6rem; flex-shrink: 0; }
 .stepper-pct { font-weight: 600; color: $primary; font-size: .85rem; font-variant-numeric: tabular-nums; }
-// Steps always fit the width: no horizontal scrollbar
-.stepper-track { display: flex; gap: .25rem; overflow: hidden; }
-.stepper-item { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .25rem .4rem; border-radius: 999px;
-    color: #64748b; font-size: .72rem; font-weight: 500; white-space: nowrap; transition: background .15s, color .15s;
-    .lbl { overflow: hidden; text-overflow: ellipsis; }
-    .dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #eef2f7; font-size: .66rem; font-weight: 600; flex-shrink: 0; }
-    &:hover { background: #f1f5f9; color: #334155; }
-    &.complete .dot { background: rgba($success, .14); color: $success; }
-    &.active { background: rgba($primary, .08); color: $primary; .dot { background: $primary; color: #fff; } } }
-// Phones/tablets: numbers only, label for the current step
-@include media-breakpoint-down(lg) {
-    .stepper-item { padding: .2rem; .lbl { display: none; }
-        &.active { flex: 2.6 1 0; .lbl { display: inline; } } }
-}
-@include media-breakpoint-down(md) { .stepper .save-indicator { display: none; } }
+// Step tabs: every tab (7 steps + Review) is always visible with its full name; no horizontal scrollbar.
+//  ≥1200px: one row, number beside the name and status
+//  768–1199px: one row, number above the name
+//  <768px: two rows of four tiles
+.stepper-count { font-size: .72rem; color: #64748b; white-space: nowrap; }
+.stepper-track { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .35rem; }
+.stepper-item { position: relative; min-width: 0; display: flex; align-items: center; gap: .5rem; padding: .45rem .55rem; border-radius: .7rem;
+    border: 1px solid #e3e8f0; background: #fff; color: #475569; transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+    .dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #eef2f7; color: #64748b; font-size: .75rem; font-weight: 600; flex-shrink: 0; }
+    .txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+    .lbl { font-size: .78rem; font-weight: 600; color: #1e293b; overflow-wrap: break-word; hyphens: auto;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .st { font-size: .66rem; color: #94a3b8; margin-top: .1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        &.is-done { color: $success; } &.is-partial { color: #b45309; } }
+    &:hover { border-color: rgba($primary, .35); background: #f8fbff; }
+    &:focus-visible { outline: 0; box-shadow: $input-focus-box-shadow; }
+    &.complete { border-color: rgba($success, .3); .dot { background: rgba($success, .14); color: $success; } }
+    &.active { border-color: $primary; background: rgba($primary, .07); box-shadow: inset 0 -3px 0 $primary;
+        .dot { background: $primary; color: #fff; } .lbl { color: #0d47a1; } .st { color: $primary; font-weight: 500; } }
+    &.is-review { .dot { background: rgba($warning, .15); color: #b45309; } &.active .dot { background: $warning; color: #fff; } } }
+// Tablets and small laptops: number above the name, centred
+@include media-breakpoint-down(xl) {
+    .stepper-item { flex-direction: column; justify-content: flex-start; text-align: center; gap: .25rem; padding: .4rem .3rem;
+        .txt { align-items: center; width: 100%; }
+        .lbl { font-size: .72rem; }
+        .st { font-size: .62rem; max-width: 100%; } } }
+// Phones: two rows of four, status shown by the dot colour; the bar scrolls away to save space
+@include media-breakpoint-down(md) {
+    .stepper { position: static; }
+    .stepper .save-indicator, .stepper-count { display: none; }
+    .stepper-track { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .3rem; }
+    .stepper-item { min-height: 62px; padding: .35rem .2rem;
+        .dot { width: 24px; height: 24px; font-size: .7rem; }
+        .lbl { font-size: .68rem; font-weight: 600; }
+        .st { display: none; }
+        &.active .st { display: block; } } }
+@media (max-width: 359.98px) { .stepper-item .lbl { font-size: .62rem; } }
 .progress-thin { height: 3px; border-radius: 999px; background: #e9eef5;
     .progress-bar { border-radius: 999px; background: var(--si-grad); transition: width .4s ease; } }
 
