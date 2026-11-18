@@ -108,6 +108,9 @@
         {{-- ============ Summary aside ============ --}}
         <div class="col-xl-4">
             <aside class="rp-aside">
+                @if ($inspection->status === \App\Enums\InspectionStatus::Submitted || $rating)
+                    @include('inspections.partials.rating')
+                @endif
                 <section class="card rp-card mb-4">
                     <div class="rp-card-head"><span class="rp-card-icon tone-green"><i class="bi bi-clipboard-data"></i></span><h3>At a glance</h3></div>
                     <div class="rp-glance">

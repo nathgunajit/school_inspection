@@ -803,3 +803,84 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 68. New Module 3: Automatic Inspection Rating (2026-11-18)
+- **Request:** New Module document, section 3. Automatic weighted scoring of every inspection, with section and overall scores, colour bands, strengths and weaknesses, a performance summary in the report, history per school, re-rating after authorised changes, and admin-configurable criteria.
+- **Done:**
+  - **Tables (additive migration):**
+    - `rating_schemes`: versioned, one active.
+    - `rating_criteria`: answer or metric, weight, points per answer.
+    - `inspection_ratings`: one per inspection, with score, band, sections, details, strengths and weaknesses.
+  - **`App\Rating\RatingCalculator`** (pure):
+    - Score % = Σ(weight × points) ÷ Σ(weight of applicable items) × 100, per section and overall.
+    - Not Applicable items are excluded from the denominator: hidden or disabled questions (`show_if` / `enable_if`), an answer not in the points list (e.g. "na"), or a metric with a zero denominator.
+    - 7 metrics: student attendance, teacher attendance, trained teachers, authorised absences, TLM use, participation, fund utilisation.
+    - Bands are configurable, and the boundaries are exact (89.99 = Very Good, 90 = Excellent).
+    - Strengths, weaknesses, areas requiring improvement (sections below 60 %), and a summary paragraph.
+  - **`App\Rating\DefaultScheme`:** version 1, with 59 criteria. Condition and governance answers weigh 1; metrics weigh 3. Default bands follow the document: 90/75/60/40 with green, blue, yellow, orange and red.
+  - **`RatingService`:**
+    - `rate()` is called from `InspectionController::submit`, so it runs on the first submit and on resubmit after a State Admin unlock. It is wrapped in try/catch, so a rating error never blocks a submission.
+    - Old and new scores are audited (`inspection_rated`, `inspection_rerated`).
+    - Legacy v1 inspections are not rated.
+    - Version 1 is created on first use.
+    - `saveNewVersion()`: settings are never changed in place.
+  - **`php artisan ratings:recalculate [--all]`:** back-fill, or re-rate everything.
+  - **Rating Settings (`/admin/rating`, `manage_masters`):**
+    - Weights per item and points per answer, grouped by section; the band editor.
+    - Saving creates version n+1, with an optional "re-rate all".
+    - Version list with rated counts; "Recalculate all".
+    - Validation: one band must start at 0, no duplicate starts, points 0–1, weights 0–100.
+  - **Display:**
+    - Report: score dial, band, section bars, summary, strengths, weaknesses, areas requiring improvement.
+    - PDF: "School Performance Summary".
+    - School page: rating history with the change since the previous rated inspection.
+    - My Inspections and Inspections in Area: a rating column (`<x-rating-badge>`).
+    - Excel export: "Rating score (%)" and "Rating" columns.
+    - Menu: "Rating Settings".
+  - CLAUDE.md no longer lists scoring as out of scope (New Module), and rule 11 was added: ratings are derived and schemes are versioned.
+- **Verified:**
+  - `tests/Feature/InspectionRatingTest.php` (9 tests) covers:
+    - the formula and weights
+    - N/A exclusion and "not rated"
+    - band boundaries
+    - metrics and their zero denominators
+    - service rating of v2 only; report, list and PDF
+    - admin save → version 2, old rating kept, then recalculate
+    - 403 for non-admin levels
+    - the recalculate command
+    - default scheme codes and values exist in the questionnaire
+  - `InspectionFlowTest` (unlock and resubmit) now also checks:
+    - rated on submit
+    - re-rated after the correction (score rises, `inspection_rerated` audited)
+    - only one rating row
+  - Full suite: 84 passed.
+  - Browser (Apache URL, demo officer 9000000031):
+    - the report of SI/2026/1801/000001 shows 66.7 % "Good", with section bars, summary, strengths and weaknesses
+    - the PDF returns 200 application/pdf
+    - The database was backed up and restored afterwards (ratings 0).
+- **Deploy:**
+  - `php artisan migrate`
+  - `php artisan ratings:recalculate`, to rate inspections submitted before this module
+  - `npm run build`
+- Files:
+  - `database/migrations/2026_11_19_000003_create_rating_tables.php`
+  - `app/Rating/RatingCalculator.php`, `DefaultScheme.php`
+  - `app/Models/RatingScheme.php`, `RatingCriterion.php`, `InspectionRating.php`
+  - `app/Models/Inspection.php` (`rating()`)
+  - `app/Services/RatingService.php`
+  - `app/Console/Commands/RecalculateRatings.php`
+  - `app/Http/Controllers/Admin/RatingController.php`
+  - `app/Http/Controllers/InspectionController.php`, `ReportController.php`, `SchoolController.php`
+  - `routes/web.php`
+  - `resources/views/admin/rating/index.blade.php`
+  - `resources/views/inspections/partials/rating.blade.php`
+  - `resources/views/components/rating-badge.blade.php`
+  - `resources/views/inspections/show.blade.php`, `pdf.blade.php`, `index.blade.php`
+  - `resources/views/schools/show.blade.php`
+  - `resources/views/components/layouts/app.blade.php`
+  - `resources/scss/app.scss`
+  - `tests/Feature/InspectionRatingTest.php`, `InspectionFlowTest.php`
+  - `PROJECT_DOCUMENT.md` (4.10, tables, modules)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

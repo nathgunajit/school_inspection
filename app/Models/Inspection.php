@@ -57,6 +57,7 @@ class Inspection extends Model
     public function photos() { return $this->evidence()->where('kind', 'photo'); }
     public function documents() { return $this->evidence()->where('kind', 'document'); }
     public function remarks() { return $this->hasMany(InspectionRemark::class)->orderBy('sort'); }
+    public function rating() { return $this->hasOne(InspectionRating::class); } // New Module 3
     public function unlocker() { return $this->belongsTo(User::class, 'unlocked_by'); }
 
     public function isEditable(): bool

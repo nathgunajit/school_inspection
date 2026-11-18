@@ -83,7 +83,7 @@ class SchoolController extends Controller
         $today = $school->inspections()->where('officer_id', $user->id)->where('inspection_date', today()->toDateString())->first();
         // own draft (any date), own submission today, or blocked by another officer (Modification V3)
         $start = $this->startGuard->check($user, $school);
-        $history = $school->inspections()->with('officer')
+        $history = $school->inspections()->with(['officer', 'rating'])
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->latest('inspection_date')->take(10)->get();
 

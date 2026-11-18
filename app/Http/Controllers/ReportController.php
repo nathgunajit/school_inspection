@@ -32,7 +32,7 @@ class ReportController extends Controller
 
         return view('inspections.index', [
             'mode' => 'mine',
-            'inspections' => $query->clone()->with(['school'])->latest('inspection_date')->latest('id')->paginate(config('inspection.per_page'))->withQueryString(),
+            'inspections' => $query->clone()->with(['school', 'rating'])->latest('inspection_date')->latest('id')->paginate(config('inspection.per_page'))->withQueryString(),
             'counts' => [
                 'draft' => Inspection::where('officer_id', $user->id)->whereIn('status', ['draft', 'unlocked'])->count(),
                 'submitted' => Inspection::where('officer_id', $user->id)->where('status', 'submitted')->count(),
@@ -57,7 +57,7 @@ class ReportController extends Controller
 
         return view('inspections.index', [
             'mode' => 'area',
-            'inspections' => $query->clone()->with(['school', 'officer'])->latest('submitted_at')->paginate(config('inspection.per_page'))->withQueryString(),
+            'inspections' => $query->clone()->with(['school', 'officer', 'rating'])->latest('submitted_at')->paginate(config('inspection.per_page'))->withQueryString(),
             'counts' => [
                 'schools' => $schoolsQ->count(),
                 'inspected' => $query->clone()->distinct('school_id')->count('school_id'),
@@ -125,14 +125,14 @@ class ReportController extends Controller
             : $this->j->inspections($user)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
 
         $rows = $this->filtered($base, $request, own: $mode === 'mine')
-            ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos'])
+            ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos', 'rating'])
             ->orderBy('inspection_date')->limit(20000)->get();
 
         // All questionnaire answers (steps 1, 2, 6) in definition order, except the person-met fields shown separately
         $codes = array_values(array_filter(array_keys(Q::all()), fn ($c) => ! str_starts_with($c, 'BAS_')));
         $headings = ['Inspection ID', 'Status', 'Questionnaire', 'Date', 'Submitted at', 'District', 'Block', 'Cluster', 'UDISE Code', 'School', 'Category',
             'Officer', 'Designation', 'Person met', 'Absentee entries', 'Unauthorised leave', 'Classrooms observed',
-            'Fund years', 'Fund received (lakh)', 'Fund expenditure (lakh)', 'Photos', 'Photos from gallery'];
+            'Fund years', 'Fund received (lakh)', 'Fund expenditure (lakh)', 'Photos', 'Photos from gallery', 'Rating score (%)', 'Rating'];
         foreach ($codes as $c) {
             $headings[] = Q::find($c)['label'];
         }
@@ -147,6 +147,7 @@ class ReportController extends Controller
                 $i->fundPositions->pluck('financial_year')->implode(', '),
                 round($i->fundPositions->sum(fn ($f) => $f->totalReceived()), 2), round($i->fundPositions->sum(fn ($f) => $f->totalExpenditure()), 2),
                 $i->photos->count(), $i->photos->where('source', 'gallery')->count(),
+                $i->rating?->score_percent, $i->rating?->band ?? '—',
             ];
             foreach ($codes as $c) {
                 $row[] = Q::optionLabel($c, $a[$c] ?? null);
@@ -176,6 +177,7 @@ class ReportController extends Controller
             'startDistance' => $inspection->distanceFromSchool($inspection->start_lat, $inspection->start_lng),
             'submitDistance' => $inspection->distanceFromSchool($inspection->submit_lat, $inspection->submit_lng),
             'photoCategories' => \App\Models\MasterValue::ofType('photo_category')->get(),
+            'rating' => $inspection->rating()->with('scheme:id,version')->first(), // New Module 3
         ];
     }
 

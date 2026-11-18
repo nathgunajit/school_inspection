@@ -83,7 +83,13 @@
                                 <div class="fw-semibold text-sm">{{ $h->inspection_date->format('d M Y') }}</div>
                                 <div class="text-xs text-secondary">{{ $h->officer->name }} · {{ $h->inspection_no }}</div>
                             </div>
-                            <x-status-badge :status="$h->status" />
+                            @php $prev = $history->slice($loop->index + 1)->first(fn ($x) => $x->rating?->score_percent !== null); $diff = $h->rating?->score_percent !== null && $prev ? $h->rating->score_percent - $prev->rating->score_percent : null; @endphp
+                            @if ($h->rating?->score_percent !== null)
+                                <span class="text-end"><x-rating-badge :rating="$h->rating" />
+                                    @if ($diff !== null)<span class="d-block text-xs {{ $diff >= 0 ? 'text-success' : 'text-danger' }}" title="Change since the previous rated inspection"><i class="bi {{ $diff >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }}"></i>{{ rtrim(rtrim(number_format(abs($diff), 1), '0'), '.') }} pts</span>@endif</span>
+                            @else
+                                <x-status-badge :status="$h->status" />
+                            @endif
                         </a>
                     @empty
                         <x-empty-state icon="bi-calendar-x" title="No previous inspections" />

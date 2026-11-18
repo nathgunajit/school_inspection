@@ -143,6 +143,11 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/schools', [Admin\SchoolMasterController::class, 'store'])->name('schools.store');
                 Route::get('/schools/{school}/edit', [Admin\SchoolMasterController::class, 'edit'])->name('schools.edit');
                 Route::put('/schools/{school}', [Admin\SchoolMasterController::class, 'update'])->name('schools.update');
+                // Rating Settings (New Module 3)
+                Route::get('/rating', [Admin\RatingController::class, 'index'])->name('rating.index');
+                Route::post('/rating', [Admin\RatingController::class, 'update'])->name('rating.update');
+                Route::post('/rating/recalculate', [Admin\RatingController::class, 'recalculate'])->middleware('throttle:5,1')->name('rating.recalculate');
+
                 Route::get('/imports', [Admin\ImportController::class, 'index'])->name('imports.index');
                 Route::post('/imports', [Admin\ImportController::class, 'store'])->name('imports.store');
                 Route::get('/imports/template/{type}', [Admin\ImportController::class, 'template'])->name('imports.template');

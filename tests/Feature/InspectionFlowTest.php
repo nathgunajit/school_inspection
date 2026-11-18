@@ -539,6 +539,10 @@ class InspectionFlowTest extends TestCase
         $this->completeAll($i);
         $this->post(route('inspections.submit', $i), ['confirm' => 1]);
         $no = $i->fresh()->inspection_no;
+        // New Module 3: rated on submit
+        $first = $i->fresh()->rating;
+        $this->assertNotNull($first?->score_percent);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_rated', 'auditable_id' => $i->id]);
 
         $district = $this->officer(UserLevel::District);
         $this->actingAs($district)->post(route('inspections.unlock', $i), ['reason' => 'Correction needed'])->assertForbidden();
@@ -552,6 +556,10 @@ class InspectionFlowTest extends TestCase
         $this->actingAs($officer)->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect();
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);
         $this->assertSame($no, $i->fresh()->inspection_no);
+        // re-rated after the authorised change: student attendance went from 1/2 to 121/122
+        $this->assertGreaterThan($first->score_percent, $i->fresh()->rating->score_percent);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_rerated', 'auditable_id' => $i->id]);
+        $this->assertSame(1, \App\Models\InspectionRating::where('inspection_id', $i->id)->count());
     }
 
     public function test_draft_expiry_command(): void

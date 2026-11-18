@@ -9,7 +9,7 @@ Delivery is one module at a time. Each module is committed and pushed on its own
 | 0 | Development plan (this document) | #65 | Done |
 | 1 | Interactive Map View | #66 | Done |
 | 2 | Map-based Inspection Scheduling (drag and drop) | #67 | Done |
-| 3 | Automatic Inspection Rating | #68 | Planned |
+| 3 | Automatic Inspection Rating | #68 | Done |
 
 
 ## Context

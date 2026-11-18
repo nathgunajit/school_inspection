@@ -275,6 +275,33 @@ flowchart LR
 - **Distances and times:** straight-line distance × 1.3 road factor, 25 km/h average speed, 60 minutes per visit, day starts 09:30 (all in `config/inspection.php` → `schedule`). Route optimisation is nearest neighbour + 2-opt (`App\Support\RouteOptimizer`, same algorithm in the browser). No external routing service is used; **Directions** opens the route in the phone's maps app.
 - **Conducting:** on the plan day the officer starts each inspection from the plan. Submitting the inspection marks that visit *inspected*; a visit can be *skipped* with a reason; when nothing is left the plan is *Completed*. The dashboard shows **Today's plan**.
 - **History:** every step (created, changed, submitted, approved, sent back, published, reassigned, visit inspected or skipped, cancelled, completed) is written to the audit log and shown on the plan page.
+### 4.10 Automatic Inspection Rating (New Module 3)
+```mermaid
+flowchart LR
+    SUB[Inspection submitted<br/>or resubmitted after unlock] --> CALC[RatingCalculator<br/>active scheme]
+    CALC --> SEC[Section scores<br/>Condition, Strength, Absentee,<br/>Classroom, Fund, Governance]
+    SEC --> OV[Overall score % and band]
+    OV --> R[Report, PDF, school history,<br/>lists and Excel]
+    ADM[State Admin: Rating Settings] -->|save = new version| CALC
+```
+- **Formula:** Score % = Σ(weight × points) ÷ Σ(weight of the applicable items) × 100. The same formula gives each section's score. Points run from 0 to 1.
+- **Not Applicable** items are left out of the denominator: a question hidden or disabled by its parent (`show_if` / `enable_if`), an answer not in the points list (e.g. “Not Applicable”), or a metric with nothing to divide by (no absentees, no classrooms observed, no fund received, no students). A section with nothing applicable shows “N/A”; an inspection with nothing applicable is “Not rated”.
+- **Default scheme (version 1):**
+
+| Section | Scored items |
+|---|---|
+| Condition | CND_02–CND_24 yes = 1, no = 0 (CND_12 “additional classroom required” is inverted); CND_01 Pucca 1, Semi-pucca 0.5, Others 0; CND_26 yes/no (“na” = N/A). Weight 1 each |
+| Strength | Student attendance (present ÷ enrolled), teacher attendance (present ÷ total), trained teachers. Weight 3 each |
+| Absentee | Share of absences on authorised leave (not UL). Weight 3 |
+| Classroom | Share of classrooms using TLM; share with satisfactory participation. Weight 3 each |
+| Fund | Utilisation = expenditure ÷ received, capped at 100 %. Weight 3 |
+| Governance | GOVR yes/no items and satisfactory/unsatisfactory items; GOVR_01 non-conventional 1, conventional 0.5. Reason boxes are not scored. Weight 1 each |
+
+- **Bands:** Excellent ≥ 90 (green), Very Good 75–89.99 (blue), Good 60–74.99 (yellow), Needs Improvement 40–59.99 (orange), Unsatisfactory below 40 (red).
+- **Shown:** report page (score dial, band, section bars, summary, strengths, weaknesses, areas requiring improvement = sections below 60 %), PDF (“School Performance Summary”), school page history (score and change since the previous rated inspection), My Inspections / Inspections in Area (rating column) and the Excel export (score and band).
+- **Updates:** rated on submit; an authorised correction (State Admin unlock, officer resubmits) re-rates it. The old and new scores are written to the audit log (`inspection_rated`, `inspection_rerated`).
+- **Rating Settings** (`/admin/rating`, right `manage_masters`): change weights, points per answer and bands. Saving creates a **new version**; earlier ratings keep the version they were calculated with until “Recalculate all” (or `php artisan ratings:recalculate --all`). Legacy v1 inspections are not rated.
+- **Deploy:** run `php artisan ratings:recalculate` once to rate inspections submitted before this module.
 ---
 
 ## 5. Database schema
@@ -353,6 +380,13 @@ erDiagram
 | `inspection_schedules` | One plan per officer per day | `officer_id` FK, `schedule_date`, UQ (officer, date), `status` (draft, submitted, rejected, published, completed, cancelled), `created_by`, `submitted_at`, `reviewed_by`/`reviewed_at`/`review_note`, `published_at`, start lat/lng, `total_distance_km`, `total_minutes`, `notes` |
 | `inspection_schedule_items` | Schools of a plan in visit order | `schedule_id` FK (cascade), `school_id` FK, `schedule_date` (copy), `sequence`, `distance_km`, `travel_minutes`, `planned_arrival`, `status` (planned, inspected, skipped), `inspection_id`; UQ (schedule, school) and **UQ (school, date)**: a school is on one plan per day |
 
+**Automatic rating (New Module 3)**
+| Table | Purpose | Key columns |
+|---|---|---|
+| `rating_schemes` | Versioned scoring set-ups; one active | `version` UQ, `name`, `is_active`, `bands` JSON (min, label, color), `created_by`, `activated_at` |
+| `rating_criteria` | Scored items of a scheme | `scheme_id` FK, `section`, `code` (question code or metric key), `label`, `kind` (answer/metric), `weight`, `points` JSON (answer → 0..1), `sort`; UQ (scheme, code) |
+| `inspection_ratings` | One rating per inspection | `inspection_id` UQ FK, `scheme_id` FK, `obtained`, `applicable`, `score_percent` (null = not rated), `band`, `color`, `sections`, `details`, `strengths`, `weaknesses` JSON, `calculated_at` |
+
 **Audit and system**
 | Table | Purpose |
 |---|---|
@@ -389,6 +423,7 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Submit / unlock / cancel | inspections | inspections (number, status, GPS), audit_logs |
 | Reports, PDF, Excel (`ReportController`) | inspections + children, schools, users, locations | audit_logs (pdf, export) |
 | Dashboard (`DashboardController`) | inspections, registration_requests | — |
+| Rating (`RatingService`, `App\Rating\RatingCalculator`, `Admin\RatingController`) | inspections + answers, absentees, classrooms, funds, rating_schemes, rating_criteria | inspection_ratings, rating_schemes, rating_criteria, audit_logs |
 | Schedules (`ScheduleController`, `ScheduleService`, `RouteOptimizer`) | users, user_jurisdictions, schools, inspections, schedules | inspection_schedules, inspection_schedule_items, audit_logs |
 | Map View (`MapController`, `MapDataService`) | districts, blocks, clusters, schools, inspections, users, user_jurisdictions | — (read only, cached 60 s) |
 | Audit (`Admin\AuditLogController`, `AuditLogger`) | audit_logs | audit_logs (append only) |
