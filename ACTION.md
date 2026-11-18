@@ -593,3 +593,31 @@ Plan approved by the user. Decisions:
   - drafts visible only to their officer
 - **Files:** `PROJECT_DOCUMENT.md`, `tests/Feature/UserTypeAccessTest.php`.
 - **Verification:** `php artisan test` 56 passed.
+
+## 63. Inspection form document: screens, flow charts, code and database (2026-11-18)
+- Wrote **`INSPECTION_FORM_DOCUMENT.md`**, a detailed explanation of the inspection form for users and developers:
+  - the form at a glance: 7 steps, what each step records, where it is stored, and whether it is required
+  - the screens, with **16 screenshots** in `docs/screenshots/`:
+    - login, dashboard, Find School and the school page
+    - steps 1–7, the missing-items dialog, review and the submitted report
+    - steps 1 and 7 on a phone
+  - flow charts (Mermaid):
+    - end-to-end flow
+    - start rules
+    - auto-save sequence
+    - photo pipeline
+    - submit
+    - life cycle
+  - the database schema of the form: ER diagram, and every column of `inspections`, `inspection_answers`, `inspection_absent_teachers`, `inspection_classroom_observations`, `inspection_fund_positions`, `inspection_remarks` and `inspection_evidence`
+  - the action → request → controller → tables matrix, and the progress JSON
+  - the code walkthrough: files, how a question is defined, rendered and checked, the progress calculation, concurrency protections
+  - security rules and the tests covering the form
+- **How the screenshots were taken:**
+  - headless Chrome against `php artisan serve --port=8010`, signed in as demo officer 9000000031
+  - the database was backed up before and restored after (users 21, inspections 6)
+  - evidence photos are blurred in the images
+- **Found:** under the XAMPP sub-folder URL (`/SCHOOLINSPECTION/public`), the built CSS loads the Bootstrap Icons font from `/build/...`, so the icons do not show. They do show at a site root (artisan serve or a production vhost). Not changed; noted in the document, section 12.
+- Files:
+  - `INSPECTION_FORM_DOCUMENT.md`
+  - `docs/screenshots/*.png`
+  - `ACTION.md`
