@@ -32,7 +32,11 @@ class DashboardController extends Controller
 
         $pending = $user->can('approve_registrations') ? $approvers->pendingFor($user)->count() : 0;
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending') + [
+        // New Module 2: the officer's published (or completed) plan for today
+        $todayPlan = \App\Models\InspectionSchedule::query()->where('officer_id', $user->id)->where('schedule_date', today()->toDateString())
+            ->whereIn('status', [\App\Enums\ScheduleStatus::Published, \App\Enums\ScheduleStatus::Completed])->with('items.school:id,name')->first();
+
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

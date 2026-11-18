@@ -722,3 +722,84 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 67. New Module 2: Map-based Inspection Scheduling with drag and drop (2026-11-18)
+- **Request:** New Module document, section 2. Officers plan daily school visits on a map with drag and drop, with route optimisation and approval. District and Block officers assign and reassign plans, and the history of each plan is kept.
+- **Done:**
+  - **Tables (additive migration):**
+    - `inspection_schedules`: one per officer and day, status, review and publish fields, start point, totals.
+    - `inspection_schedule_items`: schools in visit order, with km, travel minutes, planned arrival, visit status and the linked inspection.
+    - DB unique keys: (officer, date) and **(school, date)**, so a school cannot be on two officers' plans the same day.
+  - **`ScheduleService`:**
+    - Rules: date today or later (up to 92 days ahead); at most 8 schools a day; schools active and inside the officer's jurisdiction; not planned by another officer that day; not being inspected by another officer; not already inspected by another officer in the plan's month. Checked on save, on approval and on reassignment.
+    - Draft → submit → approve (publishes) or send back with a note → published → completed. When `SCHEDULE_APPROVAL_REQUIRED=false`, the officer publishes directly.
+    - Higher officers (their jurisdiction covers the officer, and their rank is higher) plan for officers below them (published at once), change, reassign (rules checked for the new officer), approve or reject. Cluster officers cannot plan for others.
+    - Cancel frees the schools for that day. A visit can be skipped with a reason.
+    - `markInspected()` is called from `InspectionController::submit`: today's visit on the officer's published plan becomes *inspected*. When nothing is left to visit, the plan is *Completed*.
+    - Every step is audit-logged (`schedule_*`) and shown as the plan's history.
+  - **`App\Support\RouteOptimizer`:**
+    - Nearest neighbour + 2-opt on an open route.
+    - Road km = straight line × 1.3; time from 25 km/h plus 60 minutes per visit, starting 09:30 (config `inspection.schedule`).
+    - No external routing service. "Directions" opens the route in the phone's maps app.
+  - **Screens:**
+    - `/schedules`: Day, Week and Month calendar, filtered by officer and status.
+    - `/schedules/plan`: the planner.
+      - Leaflet map with status pins and the numbered route line.
+      - "Available schools", nearest first, dragged into the "Day plan" (SortableJS, touch-friendly) and reordered there.
+      - "Add to plan" from the map popup.
+      - km and arrival time per stop, and totals.
+      - "Optimise route" and "Start from my location".
+      - Save draft / Submit for approval, or Assign & publish for higher officers.
+    - `/schedules/approvals`: plans waiting for the user.
+    - `/schedules/{id}`:
+      - route map and visits in order
+      - Start inspection on the plan day (with GPS)
+      - skip a visit
+      - approve or send back, reassign, cancel
+      - history
+    - "Inspection Schedules" menu item, and a "Today's plan" panel on the dashboard.
+  - `schedule_date` is stored as plain Y-m-d (accessor), like `inspection_date`.
+- **Difference from the plan:** there is no separate "approved" status. Approving a plan publishes it, so the statuses are draft, submitted, rejected, published, completed, cancelled.
+- **Verified:**
+  - `tests/Feature/InspectionScheduleTest.php` (10 tests) covers:
+    - a draft with distances and times, and the calendar, plan and planner pages
+    - past date, outside jurisdiction, the per-day limit, and a duplicate school for another officer
+    - the month rule
+    - submit → reject → resubmit → approve, and the audit trail
+    - publishing directly without approval
+    - assigning and reassigning by a higher officer, and a cluster officer cannot assign
+    - submitting an inspection marks the visit; a skip completes the plan
+    - cancel frees the schools
+    - the planner school list's flags and scope
+    - the optimiser's order and uncrossing
+  - Full suite: 75 passed.
+  - Headless Chrome on the Apache URL:
+    - Arjun Saikia (9000000031) planned and submitted.
+    - Rakesh Baruah (9000000011) saw it in Approvals, approved it, and it was published with its history.
+    - The Week calendar shows the plan.
+  - The database was backed up before the browser run and restored after it (users 21, inspections 6, plans 0).
+  - During the run, demo Block officer 9000000021 was locked after failed sign-ins. The restore undid this, and the approval was done as the District officer instead.
+- Files:
+  - `database/migrations/2026_11_19_000002_create_inspection_schedule_tables.php`
+  - `app/Enums/ScheduleStatus.php`
+  - `app/Models/InspectionSchedule.php`, `InspectionScheduleItem.php`
+  - `app/Services/ScheduleService.php`
+  - `app/Support/RouteOptimizer.php`
+  - `app/Http/Controllers/ScheduleController.php`
+  - `app/Http/Controllers/InspectionController.php` (submit hook)
+  - `app/Http/Controllers/DashboardController.php`
+  - `routes/web.php`
+  - `resources/views/schedules/*.blade.php`
+  - `resources/views/dashboard.blade.php`
+  - `resources/views/components/layouts/app.blade.php`
+  - `resources/js/schedule-planner.js`, `schedule-route.js`
+  - `resources/scss/app.scss`
+  - `vite.config.js`
+  - `package.json` and lock file (sortablejs)
+  - `config/inspection.php`
+  - `.env.example`
+  - `tests/Feature/InspectionScheduleTest.php`
+  - `PROJECT_DOCUMENT.md` (4.9, tables, modules)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

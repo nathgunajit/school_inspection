@@ -1549,3 +1549,43 @@ $cov-mid: #e0a800;
     .si-map { height: 58vh; }
     .map-stats .stat-card .card-body { padding: .6rem; }
 }
+
+// ---------- Inspection schedules (New Module 2) ----------
+.si-pin-mini { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; vertical-align: -1px; flex: 0 0 auto;
+    &.st-available { background: #64748b; } &.st-inspected { background: $success; } &.st-pending { background: $danger; } &.st-planned { background: $primary; } }
+.plan-map { height: clamp(340px, 64vh, 640px); }
+.route-map { height: clamp(300px, 55vh, 560px); }
+.plan-list { min-height: 3rem; max-height: 46vh; overflow: auto; }
+.plan-item { display: flex; align-items: center; gap: .6rem; cursor: grab; touch-action: pan-y;
+    .drag-handle { color: #94a3b8; font-size: 1.1rem; } }
+.plan-no { flex: 0 0 auto; display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: $primary; color: #fff; font-weight: 700; font-size: .8rem;
+    &.is-done { background: $success; } &.is-skipped { background: #94a3b8; } }
+.plan-empty { border: 2px dashed #cbd5e1; border-radius: .5rem; margin: .75rem; text-align: center; min-height: 3.5rem; }
+.avail-list { max-height: 40vh; overflow: auto; }
+.avail-item { display: flex; align-items: center; gap: .5rem; cursor: grab; min-height: 44px;
+    &.is-blocked { cursor: not-allowed; opacity: .65; } }
+.drag-ghost { opacity: .5; background: rgba($primary, .08) !important; }
+
+.sched-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .4rem;
+    .sched-head { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: #64748b; padding: 0 .3rem; }
+    .sched-day { background: #fff; border: 1px solid #e2e8f0; border-radius: .5rem; padding: .4rem; min-height: 6.5rem; min-width: 0;
+        &.is-today { border-color: $primary; box-shadow: 0 0 0 1px $primary inset; }
+        &.is-out { background: #f8fafc; opacity: .7; } }
+    &.week .sched-day { min-height: 12rem; }
+    .sched-date { font-weight: 700; font-size: .8rem; }
+    .sched-add { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; color: $primary; text-decoration: none;
+        &:hover { background: rgba($primary, .1); } } }
+.sched-chip { display: flex; flex-direction: column; gap: .05rem; padding: .3rem .45rem; border-radius: .4rem; margin-bottom: .3rem; text-decoration: none; font-size: .78rem; min-width: 0;
+    border-left: 3px solid; color: $body-color;
+    &.sched-draft { background: rgba($warning, .12); border-color: $warning; }
+    &.sched-submitted { background: rgba($info, .1); border-color: $info; }
+    &.sched-rejected { background: rgba($danger, .08); border-color: $danger; }
+    &.sched-published { background: rgba($primary, .08); border-color: $primary; }
+    &.sched-completed { background: rgba($success, .1); border-color: $success; }
+    &.sched-cancelled { background: #f1f5f9; border-color: #94a3b8; text-decoration: line-through; } }
+.sched-history .list-group-item { padding: .5rem .9rem; }
+
+@include media-breakpoint-down(md) {
+    .sched-grid { grid-template-columns: 1fr; .sched-day { min-height: 0; } &.week .sched-day { min-height: 0; } .sched-day.is-out { display: none; } }
+    .plan-list, .avail-list { max-height: none; }
+}

@@ -8,7 +8,7 @@ export default defineConfig(({ command }) => ({
     base: command === 'build' ? './' : undefined,
     plugins: [
         laravel({
-            input: ['resources/scss/app.scss', 'resources/js/app.js', 'resources/js/wizard.js', 'resources/js/camera.js', 'resources/js/register.js', 'resources/js/review.js', 'resources/js/map.js'],
+            input: ['resources/scss/app.scss', 'resources/js/app.js', 'resources/js/wizard.js', 'resources/js/camera.js', 'resources/js/register.js', 'resources/js/review.js', 'resources/js/map.js', 'resources/js/schedule-planner.js', 'resources/js/schedule-route.js'],
             refresh: true,
         }),
     ],

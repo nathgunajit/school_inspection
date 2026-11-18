@@ -24,6 +24,7 @@
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
         ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
+        ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
     ];
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingFor($u)->count() : 0;
 @endphp

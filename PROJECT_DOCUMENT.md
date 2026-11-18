@@ -253,6 +253,28 @@ flowchart LR
 - **Slow networks:** one level per request (small JSON), Leaflet bundled with the app, pins grouped with marker clustering, server results cached for 60 s (`MAP_CACHE_SECONDS`).
 - **Tiles:** OpenStreetMap by default. `MAP_TILE_URL` and `MAP_TILE_ATTRIBUTION` point to another tile server (self-hosted or commercial) for heavy production use. **Boundaries:** the Assam state outline and the district shapes come from the KML files in `public/KML/Assam` (`Assam.kml`, `Assam Dist/<District>.kml`). `php artisan map:boundaries` converts them into small simplified GeoJSON files in `public/geo` (about 240 KB). The state outline is always drawn; at district level each district shape is coloured by the coverage of the District Master row with the same name (or `code`), and districts not in the master are grey. Run the command again when the KML files change.
 
+### 4.9 Inspection Scheduling (New Module 2)
+```mermaid
+flowchart LR
+    D[Select date] --> M[Open planner map] --> B[Choose block<br/>District/State officers]
+    B --> DD[Drag schools into the day plan<br/>or Add from the map]
+    DD --> O[Arrange order / Optimise route]
+    O --> S{Who plans?}
+    S -->|the officer| SUB[Submit for approval]
+    SUB --> AP{Higher officer}
+    AP -->|approve| PUB[Published]
+    AP -->|send back with note| REJ[Rejected → change → submit again]
+    S -->|higher officer assigns| PUB
+    PUB --> C[Conduct inspections:<br/>Start inspection from the plan]
+    C --> DONE[Visits marked inspected on submit;<br/>all done or skipped → Completed]
+```
+- Menu **Inspection Schedules** (`/schedules`): Day, Week and Month calendar of the user's own plans and the plans of officers below them; filter by officer and status. **Approvals** lists plans waiting for the user.
+- **Planner** (`/schedules/plan?date=&officer=`): Leaflet map of the schools the officer may inspect (grey can be planned, green inspected this month, red not available, blue on this plan, numbered in visit order) with the route line from the start point. **Available schools** (nearest first) are dragged into the **Day plan** (SortableJS, works with touch) and reordered there; a map popup also has “Add to plan”. The plan shows km and arrival time per stop, totals, “Optimise route” and “Start from my location”.
+- **Rules** (checked on save and again on approval): date today or later (up to 92 days ahead); at most 8 schools a day; each school active and inside the officer's jurisdiction; not on another officer's plan that day (also a database unique key on school + date); not being inspected by another officer, and not already inspected by another officer in the plan's month (the start rules of Modification V3).
+- **Who:** an officer plans their own days. A higher officer whose jurisdiction covers the officer (State Admin, State, District, Block) can plan for them (published at once), change, **reassign** to another officer below them (the schools are checked against the new officer), approve or send back. Cluster officers cannot plan for others. With `SCHEDULE_APPROVAL_REQUIRED=false` an officer's own plan is published directly.
+- **Distances and times:** straight-line distance × 1.3 road factor, 25 km/h average speed, 60 minutes per visit, day starts 09:30 (all in `config/inspection.php` → `schedule`). Route optimisation is nearest neighbour + 2-opt (`App\Support\RouteOptimizer`, same algorithm in the browser). No external routing service is used; **Directions** opens the route in the phone's maps app.
+- **Conducting:** on the plan day the officer starts each inspection from the plan. Submitting the inspection marks that visit *inspected*; a visit can be *skipped* with a reason; when nothing is left the plan is *Completed*. The dashboard shows **Today's plan**.
+- **History:** every step (created, changed, submitted, approved, sent back, published, reassigned, visit inspected or skipped, cancelled, completed) is written to the audit log and shown on the plan page.
 ---
 
 ## 5. Database schema
@@ -325,6 +347,12 @@ erDiagram
 | `inspection_remarks` | Suggestions and notes | `type` (suggestion, general, classroom_note, inspection_remark), `sort`, `body` |
 | `inspection_evidence` | Photos and documents | `evidence_uid` UQ (idempotent upload), `kind`, `source` (camera/gallery), `category_id`, `question_code`, `caption`, `taken_at`, `received_at`, GPS, `no_location_reason`, `mime`, `size_bytes`, `storage_path` (private disk, random name), `sha256`, `status` (pending, uploaded, failed), `uploaded_by` |
 
+**Inspection schedules (New Module 2)**
+| Table | Purpose | Key columns |
+|---|---|---|
+| `inspection_schedules` | One plan per officer per day | `officer_id` FK, `schedule_date`, UQ (officer, date), `status` (draft, submitted, rejected, published, completed, cancelled), `created_by`, `submitted_at`, `reviewed_by`/`reviewed_at`/`review_note`, `published_at`, start lat/lng, `total_distance_km`, `total_minutes`, `notes` |
+| `inspection_schedule_items` | Schools of a plan in visit order | `schedule_id` FK (cascade), `school_id` FK, `schedule_date` (copy), `sequence`, `distance_km`, `travel_minutes`, `planned_arrival`, `status` (planned, inspected, skipped), `inspection_id`; UQ (schedule, school) and **UQ (school, date)**: a school is on one plan per day |
+
 **Audit and system**
 | Table | Purpose |
 |---|---|
@@ -361,6 +389,7 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Submit / unlock / cancel | inspections | inspections (number, status, GPS), audit_logs |
 | Reports, PDF, Excel (`ReportController`) | inspections + children, schools, users, locations | audit_logs (pdf, export) |
 | Dashboard (`DashboardController`) | inspections, registration_requests | — |
+| Schedules (`ScheduleController`, `ScheduleService`, `RouteOptimizer`) | users, user_jurisdictions, schools, inspections, schedules | inspection_schedules, inspection_schedule_items, audit_logs |
 | Map View (`MapController`, `MapDataService`) | districts, blocks, clusters, schools, inspections, users, user_jurisdictions | — (read only, cached 60 s) |
 | Audit (`Admin\AuditLogController`, `AuditLogger`) | audit_logs | audit_logs (append only) |
 | Nightly job `inspections:expire-drafts` | inspections | inspections (cancelled), audit_logs |

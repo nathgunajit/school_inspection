@@ -66,6 +66,17 @@ return [
         ],
     ],
 
+    // New Module 2, inspection scheduling
+    'schedule' => [
+        'approval_required' => (bool) env('SCHEDULE_APPROVAL_REQUIRED', true), // an officer's own plan needs a higher officer's approval
+        'max_per_day' => (int) env('SCHEDULE_MAX_PER_DAY', 8),
+        'max_days_ahead' => 92,         // plans can be made up to about 3 months ahead
+        'road_factor' => 1.3,           // straight-line km × factor ≈ road km
+        'avg_speed_kmh' => 25,          // rural roads, for the estimated travel time
+        'visit_minutes' => 60,          // time spent at each school
+        'day_start' => '09:30',         // planned start of the day's visits
+    ],
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,

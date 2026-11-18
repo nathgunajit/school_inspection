@@ -418,6 +418,7 @@ class InspectionController extends Controller
         });
 
         AuditLogger::log($wasUnlocked ? 'inspection_resubmitted' : 'inspection_submitted', $inspection, ['inspection_no' => $inspection->inspection_no]);
+        app(\App\Services\ScheduleService::class)->markInspected($inspection); // New Module 2: the visit on today's published plan is done
 
         return redirect()->route('inspections.submitted', $inspection);
     }

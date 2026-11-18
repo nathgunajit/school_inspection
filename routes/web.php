@@ -11,6 +11,7 @@ use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SchoolController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +90,21 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [MapController::class, 'index'])->name('index');
             Route::get('/areas/{level}', [MapController::class, 'areas'])->middleware('throttle:120,1')->name('areas');
             Route::get('/schools', [MapController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
+        });
+
+        /* ---------------- Inspection schedules (New Module 2) ---------------- */
+        Route::middleware('can:view_reports')->prefix('schedules')->name('schedules.')->group(function () {
+            Route::get('/', [ScheduleController::class, 'index'])->name('index');
+            Route::get('/plan', [ScheduleController::class, 'plan'])->name('plan');
+            Route::get('/plan/schools', [ScheduleController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
+            Route::post('/', [ScheduleController::class, 'store'])->middleware('throttle:60,1')->name('store');
+            Route::get('/approvals', [ScheduleController::class, 'approvals'])->name('approvals');
+            Route::post('/items/{item}/skip', [ScheduleController::class, 'skip'])->name('skip');
+            Route::get('/{schedule}', [ScheduleController::class, 'show'])->whereNumber('schedule')->name('show');
+            Route::post('/{schedule}/approve', [ScheduleController::class, 'approve'])->name('approve');
+            Route::post('/{schedule}/reject', [ScheduleController::class, 'reject'])->name('reject');
+            Route::post('/{schedule}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');
+            Route::post('/{schedule}/reassign', [ScheduleController::class, 'reassign'])->name('reassign');
         });
 
         /* ---------------- Administration ---------------- */
