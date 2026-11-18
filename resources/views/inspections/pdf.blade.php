@@ -47,16 +47,16 @@
     .cap { font-size: 7.5pt; color: #4b5563; margin-top: 1mm; }
     .muted { color: #6b7280; }
     /* School card */
-    .sc { border: 1px solid #e5e7eb; border-left: .9mm solid #1565c0; margin-bottom: 2mm; }
-    .sc-head { padding: 3mm 4mm 2.4mm; border-bottom: 1px solid #eef0f3; }
-    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #9ca3af; font-weight: bold; }
+    .sc { background: #eaf2fc; border: 1px solid #cfdff3; border-left: .9mm solid #1565c0; margin-bottom: 2mm; }
+    .sc-head { padding: 3mm 4mm 2.4mm; border-bottom: 1px solid #d6e4f5; }
+    .sc-label { font-size: 6.5pt; letter-spacing: 1.5pt; color: #1565c0; font-weight: bold; }
     .sc-name { font-size: 14pt; font-weight: bold; color: #111827; line-height: 1.2; margin-top: .6mm; }
     .sc-meta { margin-top: 1.6mm; }
-    .sc-chip { display: inline-block; padding: .4mm 2mm; margin-right: 1.2mm; border-radius: 2mm; border: 1px solid #d1d5db; color: #4b5563; font-size: 7.5pt; }
+    .sc-chip { display: inline-block; padding: .4mm 2mm; margin-right: 1.2mm; border-radius: 2mm; background: #fff; border: 1px solid #c9d8ea; color: #4b5563; font-size: 7.5pt; }
     .sc-chip.st { border-color: #a7d7b5; color: #2e7d32; }
-    .sc-grid td { width: 25%; padding: 2.2mm 4mm; vertical-align: top; border-right: 1px solid #f0f2f5; }
+    .sc-grid td { width: 25%; padding: 2.2mm 4mm; vertical-align: top; background: #f6f9fe; border-right: 1px solid #cfdff3; }
     .sc-grid td.c4 { border-right: 0; }
-    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #9ca3af; }
+    .sc-grid .l { font-size: 6.8pt; text-transform: uppercase; letter-spacing: .8pt; color: #6b7f99; }
     .sc-grid .v { font-size: 10pt; font-weight: bold; color: #1f2937; margin-top: .6mm; }
     .mono { font-family: DejaVu Sans Mono, monospace; letter-spacing: .6pt; }
     /* Basic information: two label/value pairs per row */

@@ -488,3 +488,11 @@ Plan approved by the user. Decisions:
 - The required header, watermark and footer text are unchanged.
 - Files: `resources/views/inspections/pdf.blade.php`.
 - Verification: a real PDF rendered without errors; the HTML render was screenshotted in headless Chrome; `php artisan test` 48 passed.
+
+## 58. PDF report: distinct background for the SCHOOL section (2026-11-18)
+- The SCHOOL card now has its own light blue background (`#eaf2fc`), so it stands apart from the white page.
+  - The UDISE / District / Block / Cluster tiles use a paler blue.
+  - Borders are blue-grey, the "SCHOOL" label is blue, and the chips are white.
+- The rest of the page stays white.
+- Files: `resources/views/inspections/pdf.blade.php`.
+- Verification: a real PDF rendered without errors; the HTML render was screenshotted; `php artisan test` 48 passed.
