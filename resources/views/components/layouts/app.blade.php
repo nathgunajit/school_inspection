@@ -24,6 +24,7 @@
         ['Find School', 'schools.index', 'bi-search', 'schools.*', 'conduct_inspections'],
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
         ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
+        ['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'view_reports'],
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
     ];

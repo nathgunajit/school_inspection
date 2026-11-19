@@ -55,6 +55,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - V6 Module 9: `School::latestRatedInspection` (latest submitted rated inspection; eager-load `latestRatedInspection.rating`) and `latestRating()` feed the school page header, the Find School list and the map.
   - `MapDataService` adds `rating` to school rows and a period average to area rows (`areaRatings()`).
   - The map has a "Colour schools by Status / Rating" switch.
+- Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`, `/pdf`; views in `resources/views/reports/ratings/`).
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)

@@ -1631,3 +1631,6 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 .rating-swatch { display: inline-block; flex: 0 0 auto; width: .9rem; height: .9rem; border-radius: 50%; }
 .rating-point { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem;
     input { width: 4.6rem; } }
+
+/* V6 Module 10: rating report; sections are one measure, so one hue */
+.rating-bar .report-section-bar { background: $primary; }

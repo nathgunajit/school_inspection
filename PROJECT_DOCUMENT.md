@@ -363,6 +363,23 @@ flowchart LR
   - the switch *Colour schools by Status / Rating* colours the pins by band, with the score in the pin and a band legend
   - district, block and cluster rows, popups and tooltips show the average rating of the inspections submitted in the period, banded with the active scheme
 
+**Rating report (V6 Module 10): menu *Rating Report*, `/reports/ratings` (right `view_reports`).** It covers only rated, submitted inspections inside the user's jurisdiction (`RatingReportService`, built on `JurisdictionService`).
+- **Filters:**
+  - dates (default: the last three months)
+  - district / block / cluster, limited to the user's area
+  - rating band, school category, rating scheme version
+- **Shown:**
+  - tiles: rated inspections, schools rated, average score with its band, lowest to highest
+  - band distribution: bars in the band colours with counts and share; a click filters by that band
+  - average by questionnaire section
+  - one row per area below the current scope (district, block or cluster), with rated, schools, average and a count per band; a click drills down
+  - best and lowest five schools
+  - a school table (25 per page) with each school's latest rating in the period, the rating before it (any earlier date) and the change in points; it can be sorted by score, change or name
+- **Exports:**
+  - **Excel** (right `export_excel`): one row per rated inspection, with each section's %
+  - **PDF:** official header and footer, page numbers, up to 500 schools
+  - Both exports are audited (`rating_report_exported`).
+
 ## 5. Database schema
 MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 32 tables, all created by `database/migrations`. The location masters run first (`0001_01_00_*`).
 

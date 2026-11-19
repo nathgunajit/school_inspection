@@ -10,6 +10,7 @@ use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RatingReportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SchoolController;
@@ -83,6 +84,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/evidence/{evidence}', [EvidenceController::class, 'destroy'])->name('evidence.destroy');
 
         Route::get('/inspections', [ReportController::class, 'area'])->middleware('can:view_reports')->name('inspections.area');
+        // V6 Module 10: rating report
+        Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
+            Route::get('/', [RatingReportController::class, 'index'])->name('');
+            Route::get('/export', [RatingReportController::class, 'export'])->name('.export');
+            Route::get('/pdf', [RatingReportController::class, 'pdf'])->name('.pdf');
+        });
         Route::get('/export/{mode}', [ReportController::class, 'export'])->middleware('can:export_excel')->name('inspections.export');
 
         /* ---------------- Map View (New Module 1) ---------------- */

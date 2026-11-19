@@ -1184,3 +1184,42 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 76. V6 Module 10: rating report (2026-11-19)
+- **Request:** V6 item "Rating Report".
+- **Done:**
+  - **`RatingReportService`:**
+    - **Base query:** `JurisdictionService::inspections()` joined with `inspection_ratings`; submitted, scored, in the period.
+    - **Filters:** district, block, cluster (all on `inspections.*`, so a filter outside the user's area simply returns nothing), band, school category, scheme version, sort.
+    - **`summary()`:** rated, schools, average (banded), low and high; the band distribution (every active band, zeros included, plus bands only found in older versions); section averages from `sections` JSON, with N/A sections left out.
+    - **`areas()`:** one level below the scope (district → block → cluster): rated, schools, average and band, a count per band.
+    - **`schools()`:** each school's latest rated inspection in the set, the previous rating (any earlier date, same jurisdiction) and the change.
+    - Sorting and paging (25 per page); filter lists limited to the user's area; Excel rows.
+  - **`RatingReportController`:** routes `reports.ratings` (page), `.export` (Excel, also needs `export_excel`) and `.pdf`, under `can:view_reports`. Both exports are audited as `rating_report_exported`. "Rating Report" is in the sidebar.
+  - **Page:**
+    - tiles; band bars in the scheme colours with count and share (a click filters by that band)
+    - section average bars (one hue, as one measure, following the dataviz rule) with values beside every bar and tooltips
+    - area table with drill-down links; best and lowest five
+    - school table: rating, previous, change arrows, sort select; phone list
+  - **PDF:** official header and footer (like the inspection report), "Page X of Y", tiles, band and section tables with bars, area table, up to 500 schools.
+- **Verification:**
+  - New `RatingReportTest` (4 tests):
+    - state view: period default, average, bands, sections, district rows, previous rating older than the period and the change, wider period
+    - a District officer sees only their district (a filter for another district shows "No rated inspections"); a Cluster officer has no area table
+    - band, cluster, sort, validation
+    - Excel and PDF responses and audit; without `export_excel` the Excel gives 403; without `view_reports` the page and PDF give 403
+  - Full suite: 113 passed.
+  - **Headless Chrome on Apache,** as State officer 9000000001: the page shows 1 rated inspection, 66.7 % Good, the band bars, six section averages, North District and the school row. PDF 200 (read back: one page, header, tables, bars); Excel 200 xlsx. No page errors.
+  - **Fix from the PDF:** empty bands drew a sliver bar; bars now draw only above zero.
+- Files:
+  - `app/Services/RatingReportService.php`
+  - `app/Http/Controllers/RatingReportController.php`
+  - `routes/web.php`
+  - `resources/views/reports/ratings/index.blade.php`, `pdf.blade.php`
+  - `resources/views/components/layouts/app.blade.php`
+  - `resources/scss/app.scss`
+  - `tests/Feature/RatingReportTest.php`
+  - `PROJECT_DOCUMENT.md` (4.10)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md` (all V6 modules done)
+  - `ACTION.md`
