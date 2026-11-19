@@ -282,3 +282,10 @@ Facts found:
   - submit an inspection, and the report shows the score, band, section bars and strengths/weaknesses
   - unlock as the State Admin and change answers, then resubmit, and the score changes and the audit log has old and new
   - edit the weights in the admin screen, and version 2 is created
+
+## Follow-up: teacher totals and working without network (19-11-2026)
+
+| # | Module | Request | Decision | Status |
+|---|---|---|---|---|
+| T1 | Teacher totals must agree | Trained / untrained teachers not validated against Total teachers; same for male and female | Blocking rule in `InspectionValidator::missing()`: TSI_10–13 must add up to Total teachers (TSI_04–08), present (TSI_09) ≤ total; live box on step 2 | Done (#85) |
+| T2 | Work without network | "If network is not available, what should happen" (responsive web app) | Unsent answers, rows and photos kept in the browser (IndexedDB), offline banner, automatic sync; Submit waits for sync | Planned |

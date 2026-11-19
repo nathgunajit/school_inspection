@@ -1445,3 +1445,33 @@ Plan approved by the user. Decisions:
   - `PROJECT_DOCUMENT.md`
   - `CLAUDE.md`
   - `ACTION.md`
+
+## 85. T1: Trained/untrained and male/female must equal Total teachers (2026-11-19)
+- **Request:** on step 2 (Teacher/Student Information), trained and untrained teachers were not checked against Total teachers, and neither were male and female. The user chose a **blocking** rule.
+- **Rule:**
+  - When Total teachers (TSI_04–08) and all four breakdown fields are entered, Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) must equal Total teachers. This one check covers both Trained + Untrained and Male + Female.
+  - Teachers present (TSI_09) more than Total teachers is now blocking too (it was only a warning).
+- **Server:**
+  - `QuestionnaireDefinition`: `TEACHER_TOTAL_CODES`, `TEACHER_BREAKDOWN_CODES`, `teacherBreakdown()`.
+  - `InspectionValidator::teacherConsistency()` feeds `missing()[2]` (codes TSI_10 / TSI_09), so the step badge, the "still to fill" modal, the review page and Submit all block. The message reads, for example: "Trained (7) + Untrained (2) = 9 and Male (4) + Female (5) = 9, but Total teachers is 10."
+  - `warnings()` keeps only the absentee-rows hint.
+- **UI:**
+  - A new live box on step 2 after TSI_13 shows Trained, Untrained, Male and Female. It turns red ("Does not match Total teachers (10)") or green ("Matches"); it is filled by `wizard.js` `recalc()`.
+  - "Show me" now shows the rule's own message instead of "This question needs an answer".
+  - The report (`step-answers`) and the PDF show the trained/untrained and male/female totals.
+- **Tests:**
+  - New `TeacherTotalsTest` (5 tests): the sums; a mismatch blocks the step and Submit and is shown on the review page; fixing a number clears it; present > total blocks; no error until the numbers are entered; the box is on the page.
+  - `InspectionFlowTest`: the complete-all fixture now has a consistent breakdown, and "present > total" is asserted as blocking.
+  - Full suite: 129 passed.
+- **Browser:** demo officer 9000000031, draft #8, step 2. 9 vs 10 showed the red box ("10 left in this step"); after correcting it, the box turned green. MySQL was backed up first and restored afterwards (draft #8 has no TSI answers again).
+- Files:
+  - `app/Questionnaire/QuestionnaireDefinition.php`
+  - `app/Questionnaire/InspectionValidator.php`
+  - `resources/views/inspections/step.blade.php`
+  - `resources/views/inspections/partials/step-answers.blade.php`
+  - `resources/views/inspections/pdf.blade.php`
+  - `resources/js/wizard.js`
+  - `resources/scss/app.scss`
+  - `tests/Feature/TeacherTotalsTest.php`
+  - `tests/Feature/InspectionFlowTest.php`
+  - `NEW_MODULES_PLAN.md`

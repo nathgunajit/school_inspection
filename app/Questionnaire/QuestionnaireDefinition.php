@@ -175,16 +175,47 @@ class QuestionnaireDefinition
         return is_array($value) ? implode(', ', $value) : (string) $value;
     }
 
+    /** Step 2 codes that make up Total teachers (regular, contractual, SSA, provincialised, newly accorded). */
+    public const TEACHER_TOTAL_CODES = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
+
+    /** Step 2 breakdown: male trained, male untrained, female trained, female untrained. */
+    public const TEACHER_BREAKDOWN_CODES = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'];
+
     /** Teaching staff total from step 2 (regular + contractual + SSA + tutors). */
     public static function totalTeachers(array $answers): ?int
     {
-        $codes = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
-        $vals = array_map(fn ($c) => $answers[$c] ?? null, $codes);
-        if (in_array(null, $vals, true)) {
+        $vals = array_map(fn ($c) => $answers[$c] ?? null, self::TEACHER_TOTAL_CODES);
+        if (in_array(null, $vals, true) || in_array('', $vals, true)) {
             return null;
         }
 
         return array_sum(array_map('intval', $vals));
+    }
+
+    /**
+     * Trained / untrained and male / female sums of the step 2 breakdown; null until all four are entered.
+     * Both pairs add up the same four numbers, so `sum` must equal Total teachers.
+     *
+     * @return array{trained:int, untrained:int, male:int, female:int, sum:int}|null
+     */
+    public static function teacherBreakdown(array $answers): ?array
+    {
+        $v = [];
+        foreach (self::TEACHER_BREAKDOWN_CODES as $c) {
+            $x = $answers[$c] ?? null;
+            if ($x === null || $x === '' || ! is_numeric($x)) {
+                return null;
+            }
+            $v[$c] = (int) $x;
+        }
+
+        return [
+            'trained' => $v['TSI_10'] + $v['TSI_12'],
+            'untrained' => $v['TSI_11'] + $v['TSI_13'],
+            'male' => $v['TSI_10'] + $v['TSI_11'],
+            'female' => $v['TSI_12'] + $v['TSI_13'],
+            'sum' => array_sum($v),
+        ];
     }
 
     /** Total students = present (TSI_01) + absent (TSI_02); null until both are entered. */

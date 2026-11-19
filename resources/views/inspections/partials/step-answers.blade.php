@@ -27,6 +27,11 @@
             @php $absT = $totT - (int) $presT; @endphp
             <div class="fig-total {{ $absT < 0 ? 'is-bad' : '' }}"><i class="bi bi-person-x"></i><span>Teachers absent <small>Total − Present ({{ (int) $presT }})</small></span><b>{{ $absT < 0 ? '−'.abs($absT) : $absT }}</b></div>
         @endif
+        @if ($bd = Q::teacherBreakdown($answers))
+            @php $bdBad = $totT !== null && $bd['sum'] !== $totT; @endphp
+            <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>
+                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>Male {{ $bd['male'] }} · Female {{ $bd['female'] }}{{ $bdBad ? ' · does not match Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+        @endif
     </div>
 @elseif (! empty($questions[$n]))
     {{-- Question → answer rows; the answer is shown as a coloured pill / figure / text block --}}

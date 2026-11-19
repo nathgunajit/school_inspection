@@ -112,6 +112,18 @@
                                         <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
+                                @elseif ($q['code'] === 'TSI_13')
+                                    {{-- Trained/untrained and male/female must add up to Total teachers (blocking rule) --}}
+                                    <div class="col-12"><div class="auto-total" data-auto-total="breakdown" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                        <span class="at-label">Trained / untrained and male / female<small>Each pair must add up to Total teachers</small></span>
+                                        <span class="at-parts">
+                                            <span>Trained <b data-at="trained">–</b></span><span>Untrained <b data-at="untrained">–</b></span>
+                                            <span>Male <b data-at="male">–</b></span><span>Female <b data-at="female">–</b></span>
+                                            <span data-at-extra></span>
+                                        </span>
+                                        <span class="at-value" data-at="sum">–</span>
+                                    </div></div>
                                 @endif
                             @endforeach
                         </div>

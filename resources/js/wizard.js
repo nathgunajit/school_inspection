@@ -611,7 +611,8 @@ function highlightMissing() {
     for (const m of SI.missingNow) {
         const block = m.code && document.getElementById(`q-${m.code}`);
         if (block && !block.classList.contains('d-none')) {
-            questionError(block, 'This question needs an answer.', true);
+            // a blank answer gets the short text; a consistency rule (e.g. teacher totals) shows its own message
+            questionError(block, /: answer required$/.test(m.message) ? 'This question needs an answer.' : m.message, true);
             first = first || block;
         }
     }
@@ -689,6 +690,28 @@ if (autoTotals.length) {
             const absent = total !== null && present !== null ? total - present : null;
             const bad = absent !== null && absent < 0;
             paint(t, { total, present, absent, bad, extra: bad ? 'Present is more than the total. Please check.' : '' });
+        }
+        // Trained/untrained and male/female (TSI_10..13) must each add up to Total teachers
+        const bd = $('[data-auto-total="breakdown"]');
+        if (bd) {
+            const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
+            const parts = TEACHER_CODES.map(val);
+            const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
+            const all = [mt, mu, ft, fu].every((x) => x !== null);
+            const sum = (...xs) => (xs.every((x) => x !== null) ? xs.reduce((a, b) => a + b, 0) : null);
+            $('[data-at="trained"]', bd).textContent = fmtInt(sum(mt, ft));
+            $('[data-at="untrained"]', bd).textContent = fmtInt(sum(mu, fu));
+            $('[data-at="male"]', bd).textContent = fmtInt(sum(mt, mu));
+            $('[data-at="female"]', bd).textContent = fmtInt(sum(ft, fu));
+            const s = all ? mt + mu + ft + fu : null;
+            $('[data-at="sum"]', bd).textContent = fmtInt(s);
+            const checked = all && total !== null;
+            const bad = checked && s !== total;
+            $('[data-at-extra]', bd).innerHTML = !checked ? (total === null ? 'Enter the teacher numbers above first.' : '')
+                : bad ? `<i class="bi bi-x-circle-fill"></i> Does not match Total teachers (${fmtInt(total)})`
+                    : `<i class="bi bi-check-circle-fill"></i> Matches Total teachers (${fmtInt(total)})`;
+            bd.classList.toggle('is-bad', bad);
+            bd.classList.toggle('is-ready', checked && !bad);
         }
     };
     document.addEventListener('input', (e) => { if (e.target.matches?.('input[name^="TSI_"]')) recalc(); });

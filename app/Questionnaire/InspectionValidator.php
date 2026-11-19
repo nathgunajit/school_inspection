@@ -151,6 +151,11 @@ class InspectionValidator
             }
         }
 
+        // Step 2: teacher numbers must agree (blocking). Checked only once the numbers are entered.
+        foreach ($this->teacherConsistency() as [$code, $msg]) {
+            $add(2, $code, $msg);
+        }
+
         // Step 4: at least one classroom observed
         if ($this->inspection->classroomObservations->isEmpty()) {
             $add(4, 'CLASSROOM', 'Add at least one classroom performance record');
@@ -175,15 +180,38 @@ class InspectionValidator
         return $out;
     }
 
+    /**
+     * Step 2 consistency (blocking):
+     *  - Trained + Untrained and Male + Female (TSI_10..13) must equal Total teachers (TSI_04..08);
+     *  - teachers present (TSI_09) cannot be more than Total teachers.
+     *
+     * @return array<int, array{0:string, 1:string}> [code, message]
+     */
+    public function teacherConsistency(): array
+    {
+        $out = [];
+        $total = QuestionnaireDefinition::totalTeachers($this->answers);
+        if ($total === null) {
+            return $out;
+        }
+        $present = $this->answers['TSI_09'] ?? null;
+        if (is_numeric($present) && (int) $present > $total) {
+            $out[] = ['TSI_09', "Teachers present ({$present}) cannot be more than Total teachers ({$total})."];
+        }
+        $b = QuestionnaireDefinition::teacherBreakdown($this->answers);
+        if ($b !== null && $b['sum'] !== $total) {
+            $out[] = ['TSI_10', "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']} and Male ({$b['male']}) + Female ({$b['female']}) = {$b['sum']}, but Total teachers is {$total}. They must be equal."];
+        }
+
+        return $out;
+    }
+
     /** Non-blocking hints (shown, but do not stop submission). */
     public function warnings(): array
     {
         $w = [];
         $total = QuestionnaireDefinition::totalTeachers($this->answers);
         $present = $this->answers['TSI_09'] ?? null;
-        if ($total !== null && is_numeric($present) && (int) $present > $total) {
-            $w[2][] = "Teachers present ({$present}) is more than total teachers and tutors ({$total}).";
-        }
         if ($total !== null && is_numeric($present)) {
             $absent = $total - (int) $present;
             $rows = $this->inspection->absentTeachers->count();

@@ -59,7 +59,8 @@ class InspectionFlowTest extends TestCase
     /** Fill every question (v2) with a valid answer, one classroom record and the 4 mandatory photos. */
     private function completeAll(Inspection $i): void
     {
-        $overrides = ['TSI_09' => 4];
+        // every number is 1, so Total teachers = 5; the trained/untrained breakdown must add up to it
+        $overrides = ['TSI_09' => 4, 'TSI_10' => 2];
         $answers = [];
         foreach (Q::all() as $code => $q) {
             if (! InspectionValidator::visible($q, $answers)) {
@@ -265,8 +266,9 @@ class InspectionFlowTest extends TestCase
         }
         $warn = (new InspectionValidator($i->fresh()))->warnings();
         $this->assertStringContainsString('4 teacher(s) appear absent; 2 entered', implode(' ', $warn[3] ?? []));
+        // present > total is blocking (teacher totals rule)
         $this->answer($i, 'TSI_09', 9);
-        $this->assertStringContainsString('more than total', implode(' ', (new InspectionValidator($i->fresh()))->warnings()[2] ?? []));
+        $this->assertContains('TSI_09', $this->missingCodes($i, 2));
 
         // At least one classroom record is required
         $this->assertContains('CLASSROOM', $this->missingCodes($i, 4));

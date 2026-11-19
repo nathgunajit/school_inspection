@@ -1266,7 +1266,7 @@ $q-choice-col-v2: 280px;
 .auto-total { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "icon label value" "icon parts value"; align-items: center; gap: .15rem .75rem;
     margin: .55rem 0 .35rem; padding: .7rem .9rem; border-radius: .85rem; border: 1px solid rgba($primary, .2);
     background: linear-gradient(135deg, rgba($primary, .07), rgba($success, .06)); transition: border-color .2s, background .2s;
-    &.is-ready { border-color: rgba($success, .35); }
+    &.is-ready { border-color: rgba($success, .35); [data-at-extra] { color: darken($success, 6%); font-weight: 600; } }
     &.is-bad { border-color: rgba($danger, .4); background: rgba($danger, .05); .at-value, .at-icon { color: $danger; } [data-at-extra] { color: $danger; font-weight: 500; } } }
 .at-icon { grid-area: icon; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: #fff; color: $primary; font-size: 1.05rem;
     box-shadow: 0 1px 2px rgba(15, 23, 42, .06); }
