@@ -15,7 +15,7 @@ class InspectionClassroomObservation extends Model
 
     public const PARTICIPATION = ['satisfactory' => 'Satisfactory', 'not_satisfactory' => 'Not Satisfactory'];
 
-    protected $fillable = ['inspection_id', 'teacher_name', 'class', 'subject', 'tlm_used', 'participation', 'remarks'];
+    protected $fillable = ['inspection_id', 'row_uid', 'teacher_name', 'class', 'subject', 'tlm_used', 'participation', 'remarks'];
 
     protected $casts = ['tlm_used' => 'boolean'];
 

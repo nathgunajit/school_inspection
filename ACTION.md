@@ -1475,3 +1475,57 @@ Plan approved by the user. Decisions:
   - `tests/Feature/TeacherTotalsTest.php`
   - `tests/Feature/InspectionFlowTest.php`
   - `NEW_MODULES_PLAN.md`
+
+## 86. T2: Working without network: keep on the device, sync automatically (2026-11-19)
+- **Request:** "If network is not available, what should happen?" The app is a responsive web application (browser on desktop and phone).
+  - **Before:** an answer saved with no network was lost ("will be saved when you edit it again"); photos waiting to upload were lost on reload.
+- **Built:**
+  - **New `resources/js/offline-queue.js`:**
+    - IndexedDB store `si-offline` with `ops` (unsent requests, in order; a newer save of the same answer replaces the older one) and `photos` (blob and stamp data), per inspection
+    - `syncAll()` replays them in order: it stops while offline, drops a change the server refuses (422/403/404) with a message, and sends the officer to sign in on 401/419
+    - the banner: offline / sending / all saved
+  - **`wizard.js`:**
+    - `queue(fn, onInvalid, op)` keeps a failed save on the device when there is no network, and later saves join that queue so the order is kept
+    - ops for answers, remarks, suggestions, new absent-teacher and classroom rows (`row_uid`) and fund years
+    - provisional rows are shown as "Saved on this device · waiting for network"
+    - kept answers are put back on screen when the page opens
+    - sync on `online`, every 20 s and on load
+    - editing or removing a saved row needs the network (clear message)
+  - **`camera.js`:**
+    - each photo is written to the device before upload and removed after the server confirms it
+    - with no network it is shown as "On this device · waiting for network" right away (no 30 s retry loop)
+    - it is restored and uploaded after a reload
+  - **`review.js`:** Submit is locked while anything is still on the device. It syncs and then refreshes, and retries every 20 s.
+  - **Server:**
+    - migration `2026_11_19_000009_add_row_uid_to_inspection_rows` (nullable `row_uid`, unique per inspection, on absent teachers and classroom observations)
+    - `InspectionController::addRow()` uses `createOrFirst`, so a replayed row is stored once
+    - answers, fund years, suggestions and photos were already safe to replay
+  - **Config:** `SI.inspectionKey` on the step page and `data-inspection-key` / `data-evidence-url` on the submit form.
+  - **SCSS:** `.offline-bar`, `.rs-item.is-pending`, `.save-indicator.offline`.
+- **Tests:** new `OfflineReplayTest` (2 tests):
+  - a repeated answer is stored once
+  - a repeated row with the same `row_uid` (any case) is stored once; without one, rows are added as before
+  - a bad `row_uid` gets 422; the same uid in another inspection is a separate row
+  - the pages carry the offline key
+  - Full suite: 131 passed.
+- **Browser (demo officer 9000000031, draft #8; MySQL backed up and restored afterwards):**
+  1. Offline on step 2, two answers: "Saved on this device" and the banner "No network. 2 changes saved on this device".
+  2. The tab was closed and reopened online: the value came back and was sent (DB had TSI_01 = 77, TSI_02 = 3).
+  3. Offline gallery photo on step 7: "On this device · waiting for network".
+  4. The review page with the server unreachable: Submit was locked with "1 photo saved on this device still to send…".
+  5. Back online, the photo uploaded.
+  6. Offline absent-teacher row: a dashed pending row, then after sync one real row with its `row_uid`.
+  7. The test photos' files were deleted and the DB restored, then `row_uid` migrated again.
+- **Docs:** `PROJECT_DOCUMENT.md` section 11 (rules table, offline behaviour table, flow, limits, deploy) and `CLAUDE.md` notes.
+- Files:
+  - `resources/js/offline-queue.js`
+  - `resources/js/{wizard,camera,review}.js`
+  - `resources/views/inspections/{step,review}.blade.php`
+  - `resources/scss/app.scss`
+  - `app/Http/Controllers/InspectionController.php`
+  - `app/Models/{InspectionAbsentTeacher,InspectionClassroomObservation}.php`
+  - `database/migrations/2026_11_19_000009_add_row_uid_to_inspection_rows.php`
+  - `tests/Feature/OfflineReplayTest.php`
+  - `PROJECT_DOCUMENT.md`
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`

@@ -33,7 +33,7 @@ class InspectionAbsentTeacher extends Model
         'absent_without_info' => 'Absent without information',
     ];
 
-    protected $fillable = ['inspection_id', 'teacher_name', 'teacher_type', 'reason', 'status', 'remarks'];
+    protected $fillable = ['inspection_id', 'row_uid', 'teacher_name', 'teacher_type', 'reason', 'status', 'remarks'];
 
     public function typeLabel(): string
     {

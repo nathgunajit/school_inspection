@@ -1,6 +1,11 @@
 // In-app camera, stamping, fingerprint and background upload with retry (PRD 9.2 – 9.6)
+import { offlineStore } from './offline-queue';
+
 const SI = window.SI;
 const esc = window.escapeHtml;
+const INSP = SI.inspectionKey;
+let storeOk = false; // photos are kept in this browser until the server has them (T2: working without network)
+let warnedOffline = false;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -39,6 +44,7 @@ function tile(e) {
     const statusBadge = {
         pending: '<span class="badge text-bg-warning tile-status"><span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem"></span>Uploading</span>',
         failed: '<span class="badge text-bg-danger tile-status">Failed</span>',
+        waiting: '<span class="badge text-bg-warning tile-status"><i class="bi bi-phone me-1"></i>On this device · waiting for network</span>',
         uploaded: (e.source === 'gallery' ? '<span class="badge text-bg-info tile-status">Gallery</span>' : '')
             + (e.has_location === false ? `<span class="badge text-bg-dark tile-status" style="${e.source === 'gallery' ? 'top:28px' : ''}">No location</span>` : ''),
     }[e.status] || '';
@@ -94,6 +100,10 @@ async function upload(item, attempt = 1) {
     item.status = 'pending';
     item.error = null;
     render();
+    // Keep the photo in this browser first, so it survives no network, a reload or a closed tab
+    if (storeOk && item.blob && !item.stored) {
+        try { await offlineStore.putPhoto(INSP, item); item.stored = true; } catch { /* storage full or refused: upload as before */ }
+    }
     uploading++;
     const fd = new FormData();
     fd.append('file', item.blob, item.filename);
@@ -104,20 +114,36 @@ async function upload(item, attempt = 1) {
         const { data } = await axios.post(SI.evidenceUrl, fd, { timeout: 120000 });
         Object.assign(item, data, { status: 'uploaded' });
         delete item.blob;
+        if (item.stored) { offlineStore.removePhoto(INSP, item.evidence_uid).catch(() => {}); item.stored = false; }
         window.siRefreshProgress?.();
     } catch (err) {
         const code = err.response?.status;
         if (window.siHandleAuthError?.(err)) { uploading--; item.status = 'failed'; render(); return; }
         const permanent = code && code >= 400 && code < 500 && code !== 408 && code !== 429;
+        if (!err.response && item.stored) {
+            // no network: no point retrying now; the 'online' event and a 20 s check upload it later
+            uploading--;
+            item.status = 'waiting';
+            if (!warnedOffline) { warnedOffline = true; window.toast('No network. Photos are kept on this device and will upload automatically.', 'warning'); }
+            render();
+            return;
+        }
         if (!permanent && attempt < 4) {
             // Automatic retry on weak network: 3 s, 8 s, 20 s
             uploading--;
             setTimeout(() => upload(item, attempt + 1), [3000, 8000, 20000][attempt - 1]);
             return;
         }
-        item.status = 'failed';
-        item.error = err.response?.data?.message || 'Upload failed';
-        window.toast(item.error, 'danger');
+        if (!err.response && item.stored) {
+            // No network: the photo is safe on this device and is sent when the network returns
+            item.status = 'waiting';
+            if (!warnedOffline) { warnedOffline = true; window.toast('No network. Photos are kept on this device and will upload automatically.', 'warning'); }
+        } else {
+            item.status = 'failed';
+            item.error = err.response?.data?.message || 'Upload failed';
+            if (item.stored && permanent) { offlineStore.removePhoto(INSP, item.evidence_uid).catch(() => {}); item.stored = false; }
+            window.toast(item.error, 'danger');
+        }
     }
     uploading--;
     render();
@@ -137,6 +163,7 @@ document.addEventListener('click', async (e) => {
         if (item.status === 'uploaded' && item.delete_url) {
             try { await axios.delete(item.delete_url); } catch { window.toast('Could not delete', 'danger'); return; }
         }
+        if (item.stored) offlineStore.removePhoto(INSP, item.evidence_uid).catch(() => {});
         SI.evidence = SI.evidence.filter((x) => x !== item);
         render();
         window.siRefreshProgress?.();
@@ -375,4 +402,25 @@ $('#gallery-input')?.addEventListener('change', async (e) => {
     upload(item);
 });
 
-render();
+
+/* ---------------- Working without network (T2): restore kept photos and upload them when online ---------------- */
+const retryWaiting = () => {
+    if (!navigator.onLine) return;
+    SI.evidence.filter((e) => e.status === 'waiting' && e.blob).forEach((e) => upload(e));
+};
+(async () => {
+    storeOk = !!INSP && await offlineStore.available();
+    if (storeOk) {
+        try {
+            const known = new Set(SI.evidence.map((e) => e.evidence_uid));
+            for (const rec of await offlineStore.photos(INSP)) {
+                if (known.has(rec.evidence_uid)) { offlineStore.removePhoto(INSP, rec.evidence_uid).catch(() => {}); continue; } // already on the server
+                SI.evidence.push({ ...rec, local_url: URL.createObjectURL(rec.blob), stored: true, status: navigator.onLine ? 'pending' : 'waiting' });
+            }
+        } catch { /* nothing kept */ }
+        window.addEventListener('online', retryWaiting);
+        setInterval(retryWaiting, 20000);
+    }
+    render();
+    SI.evidence.filter((e) => e.stored && e.status === 'pending').forEach((e) => upload(e));
+})();

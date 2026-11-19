@@ -8,6 +8,7 @@ Modification of the Application V5, Step 1, updated for the New Modules (Map Vie
 | Developers | All sections, then 5–9 |
 | What changed in V6 | Section 9 |
 | What changed in V7 | Section 10 |
+| Teacher totals and working without network | Section 11 |
 
 Related documents:
 - `Documents/School_Inspection_PRD.docx`: the requirements
@@ -611,7 +612,7 @@ php artisan map:boundaries --check | --assign # V6: which outline each District 
 ```
 
 ### 7.5 Testing
-- 124 feature tests (V6 and V7 included; V7: `RegistrationV7Test`, `RatingCardTest`), run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
+- 131 feature tests (V6, V7 and section 11 included; V7: `RegistrationV7Test`, `RatingCardTest`; section 11: `TeacherTotalsTest`, `OfflineReplayTest`), run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
 - **Never run the tests while the config is cached.**
 - Demo data for manual tests: `DemoUserSeeder`.
 - Volume data: `LoadTestSeeder`. Use it only on a database you have backed up.
@@ -729,3 +730,62 @@ flowchart TD
 - **Kept files:** they live only for the visitor's session. If the session expires, the files must be chosen again; the purge removes them after 24 h.
 - **Grey placeholders:** these use CSS `:has()`. Very old browsers show the "Select …" text in the normal colour, but the form still works.
 - **CHECK constraints:** these are MySQL/MariaDB only. Tests on SQLite rely on the application rules.
+
+## 11. Teacher totals and working without network (19-11-2026)
+Two follow-up requests from users of the inspection questionnaire. Each was built as one module, committed and pushed, and logged in `ACTION.md` (#85, #86).
+
+### 11.1 Teacher totals must agree (step 2)
+| Rule | Checked when | Effect |
+|---|---|---|
+| Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) = Total teachers (TSI_04–08). This covers both Trained + Untrained and Male + Female. | Total teachers and all four breakdown numbers are entered | **Blocking**: step 2 is not complete and Submit is refused |
+| Teachers present (TSI_09) ≤ Total teachers | Both are entered | **Blocking** (it was a warning before) |
+
+- **On screen:**
+  - A live box under the breakdown shows Trained, Untrained, Male, Female and their sum, with "Matches Total teachers (n)" in green or "Does not match Total teachers (n)" in red.
+  - "Show me" and the review page show the exact message, e.g. "Trained (7) + Untrained (2) = 9 and Male (4) + Female (5) = 9, but Total teachers is 10."
+  - The report and the PDF list the trained/untrained and male/female totals.
+- **Code:**
+  - `QuestionnaireDefinition::teacherBreakdown()`, `TEACHER_TOTAL_CODES`, `TEACHER_BREAKDOWN_CODES`
+  - `InspectionValidator::teacherConsistency()`, used by `missing()`
+- **Already-submitted inspections are not changed;** the rule applies to new submissions.
+
+### 11.2 Working without network
+The application stays a responsive **web** application, used in the browser on desktop and phone with nothing to install. When the network drops during an inspection, unsent work is kept in the browser's own storage (IndexedDB) and sent automatically when the network returns.
+
+| Situation | What happens |
+|---|---|
+| Answer, remark or suggestions saved with no network | Kept on the device. The save indicator says "Saved on this device" and an orange banner says "No network. n changes saved on this device…" |
+| New absent-teacher, classroom or fund-year row with no network | Kept on the device and shown in the list as "Saved on this device · waiting for network" |
+| Editing or removing a row that is already saved | Needs the network; the officer is told to try again |
+| Photo taken or chosen with no network | Kept on the device and shown as "On this device · waiting for network"; uploaded when the network returns |
+| Tab closed or phone browser reloaded | Kept data is restored the next time the inspection is opened (opening a page itself needs the network) |
+| Network returns | Sent in the order made (the `online` event, every 20 s, and when a page opens). The banner shows "Back online: sending…" and then "All changes saved to the server." |
+| Review & Submit | Locked while anything is still on the device: "n changes and p photos saved on this device still to send". When they are sent, the page refreshes and Submit unlocks |
+| Starting an inspection, submitting | Need the network (server time and location are recorded by the server) |
+
+```mermaid
+flowchart LR
+    A[Officer saves an answer / row / photo] --> B{Server reachable?}
+    B -- Yes --> S[(Server)]
+    B -- No --> D[(This browser: IndexedDB<br/>ops + photos)]
+    D -->|online event · every 20 s · page open| R[Replay in order]
+    R --> S
+    S -->|after all sent| U[Submit unlocked]
+```
+
+- **Safe replays:**
+  - answers, fund years and suggestions are upserts
+  - photos carry `evidence_uid`
+  - new rows carry a `row_uid` (new nullable unique column on `inspection_absent_teachers` and `inspection_classroom_observations`, migration `2026_11_19_000009`), so a row sent twice is stored once
+- **Code:**
+  - `resources/js/offline-queue.js`: storage, `syncAll()` and the banner
+  - `wizard.js`: `queue()` with ops, provisional rows, restoring kept answers
+  - `camera.js`: photos kept until uploaded
+  - `review.js`: Submit lock and sync
+  - `InspectionController::addRow()`: `createOrFirst` by `row_uid`
+- **Limits:**
+  - Pages cannot be opened with no network. A full offline app (service worker) remains Phase 2.
+  - Data kept in one browser is not visible in another browser or device.
+  - A browser in private mode or with no free storage falls back to the old behaviour and says so.
+  - A change kept offline that the server later refuses (e.g. the inspection was cancelled) is dropped with a message.
+- **Deploy:** run `php artisan migrate` (adds `row_uid`), then `npm run build`.

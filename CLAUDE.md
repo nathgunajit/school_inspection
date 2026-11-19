@@ -61,6 +61,11 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
+- Step 2 teacher totals (blocking): TSI_10–13 must add up to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
+- Working without network: `resources/js/offline-queue.js` keeps unsent answers, rows and photos in IndexedDB per inspection (`SI.inspectionKey`) and replays them in order. `wizard.js` `queue(fn, onInvalid, op)` needs an `op` for anything that may wait offline.
+  - New rows send a `row_uid`, so replays never duplicate (`InspectionController::addRow`).
+  - `review.js` locks Submit until the device queue is empty.
+  - Any new save endpoint used by the wizard must be safe to replay.
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)

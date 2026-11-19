@@ -211,7 +211,7 @@ class InspectionController extends Controller
     public function addAbsentTeacher(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $inspection->absentTeachers()->create($this->teacherData($request));
+        $this->addRow($inspection->absentTeachers(), $this->teacherData($request), $request);
 
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
@@ -234,6 +234,21 @@ class InspectionController extends Controller
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
 
+    /**
+     * Adds a repeating-section row. A row sent again with the same `row_uid` (replayed after a lost network
+     * answer, see resources/js/offline-queue.js) is not added twice.
+     */
+    private function addRow(\Illuminate\Database\Eloquent\Relations\HasMany $rows, array $data, Request $request): void
+    {
+        $uid = $request->validate(['row_uid' => ['nullable', 'uuid']])['row_uid'] ?? null;
+        if ($uid === null) {
+            $rows->create($data);
+
+            return;
+        }
+        $rows->createOrFirst(['row_uid' => strtolower($uid)], $data); // safe even if two copies arrive at once
+    }
+
     private function teacherData(Request $request): array
     {
         return $request->validate([
@@ -248,7 +263,7 @@ class InspectionController extends Controller
     public function addClassroom(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $inspection->classroomObservations()->create($this->classroomData($request));
+        $this->addRow($inspection->classroomObservations(), $this->classroomData($request), $request);
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
     }

@@ -1,5 +1,7 @@
 // Inspection questionnaire (v2): auto-save after every answer, conditional rules, repeating sections,
 // inline validation messages, progress
+import { offlineStore, syncAll, mountBanner, isNetworkError } from './offline-queue';
+
 const SI = window.SI;
 const esc = window.escapeHtml;
 const $ = (s, r = document) => r.querySelector(s);
@@ -28,7 +30,7 @@ function indicator(state, text) {
     const el = $('#save-indicator');
     if (!el) return;
     el.className = `save-indicator ${state}`;
-    const icon = { saving: 'arrow-repeat', saved: 'cloud-check', error: 'exclamation-triangle' }[state];
+    const icon = { saving: 'arrow-repeat', saved: 'cloud-check', error: 'exclamation-triangle', offline: 'phone' }[state];
     el.innerHTML = `<i class="bi bi-${icon}"></i>${esc(text)}`;
 }
 
@@ -36,26 +38,50 @@ function indicator(state, text) {
  * Serialise requests so answers are saved in order.
  * onInvalid(errors, message) handles 422 responses (inline messages); everything else becomes a toast.
  */
-function queue(fn, onInvalid) {
+function queue(fn, onInvalid, op) {
     pending++;
     indicator('saving', 'Saving…');
-    chain = chain.then(fn).then((res) => {
+    // While earlier changes are still waiting on this device, new ones join the end of that queue,
+    // so they reach the server in the order they were made.
+    const direct = () => (op && offline.ok && offline.queued > 0 ? keepOnDevice(op) : fn());
+    chain = chain.then(direct).then((res) => {
         if (res?.data?.ok) {
             applyProgress(res.data);
             indicator('saved', `Saved ${res.data.saved_at}`);
         }
         return res;
-    }).catch((err) => {
-        indicator('error', 'Not saved');
-        if (handleAuthError(err)) return;
+    }).catch(async (err) => {
+        if (handleAuthError(err)) { indicator('error', 'Not saved'); return; }
         if (err.response?.status === 422 && onInvalid) {
+            indicator('error', 'Not saved');
             onInvalid(err.response.data.errors || {}, err.response.data.message);
             return;
         }
-        const msg = err.response?.data?.message || (err.response ? 'Could not save. Please try again.' : 'No connection. Your change will be saved when you edit it again.');
+        if (isNetworkError(err) && op && offline.ok) {
+            try { await keepOnDevice(op); return; } catch { /* storage refused: fall through */ }
+        }
+        indicator('error', 'Not saved');
+        const msg = err.response?.data?.message || (err.response ? 'Could not save. Please try again.'
+            : (op ? 'No network, and this browser cannot keep data offline. Please try again when you are back online.'
+                : 'Editing or removing a saved record needs the network. Please try again when you are back online.'));
         window.toast(msg, 'danger');
     }).finally(() => { pending--; });
     return chain;
+}
+
+/* ---------------- Working without network (T2): keep changes on this device, sync later ---------------- */
+const offline = { ok: false, queued: 0, ops: [], warned: false, banner: null };
+async function keepOnDevice(op) {
+    const { onQueued, ...stored } = op;
+    await offlineStore.addOp(SI.inspectionKey, stored);
+    indicator('offline', 'Saved on this device');
+    onQueued?.();
+    offline.banner?.set(navigator.onLine ? 'syncing' : 'offline');
+    if (!offline.warned) {
+        offline.warned = true;
+        window.toast('No network. Your answers are kept on this device and will be sent automatically.', 'warning');
+    }
+    return { offline: true };
 }
 
 /* ---------------- Progress UI ---------------- */
@@ -195,7 +221,7 @@ function saveAnswer(block, value) {
     return queue(() => axios.post(SI.saveUrl, { code, value }), (errors, message) => {
         questionError(block, (errors.value || [])[0] || message || 'Please check this answer.');
         refreshRules();
-    });
+    }, { method: 'post', url: SI.saveUrl, body: { code, value }, key: `a:${code}` });
 }
 
 $$('.q-block').forEach((block) => {
@@ -220,7 +246,8 @@ $$('.q-block').forEach((block) => {
     const remarks = block.querySelector('[data-remarks]');
     if (remarks) {
         const k = `${code}__r`;
-        const send = () => queue(() => axios.post(SI.saveUrl, { code, remarks: remarks.value }));
+        const send = () => queue(() => axios.post(SI.saveUrl, { code, remarks: remarks.value }), null,
+            { method: 'post', url: SI.saveUrl, body: { code, remarks: remarks.value }, key: `r:${code}` });
         remarks.addEventListener('input', () => { clearTimeout(timers[k]); timers[k] = setTimeout(send, 800); });
         remarks.addEventListener('blur', () => { if (timers[k]) { clearTimeout(timers[k]); timers[k] = null; send(); } });
     }
@@ -391,13 +418,24 @@ const sections = {
     },
 };
 
+/** A row added without network: shown until it reaches the server (no edit / remove yet). */
+function pendingRow(key, b) {
+    const title = key === 'teachers' ? esc(b.teacher_name || 'Teacher')
+        : key === 'classrooms' ? `${esc(b.subject || 'Classroom')} <span class="rs-muted">· Class ${esc(b.class || '')}</span>`
+            : `FY ${esc(fyShort(b.financial_year || ''))}`;
+    return `<div class="rs-item is-pending"><span class="rs-avatar tone-warning"><i class="bi bi-cloud-arrow-up"></i></span>
+        <div class="rs-body"><div class="rs-title">${title}</div>
+        <div class="rs-chips">${chip('<i class="bi bi-phone"></i>Saved on this device · waiting for network', 'warn')}</div></div></div>`;
+}
+
 function renderSection(s) {
     const list = $(s.list);
     if (!list) return;
     const rows = SI[s.key] || [];
-    list.innerHTML = rows.length ? rows.map(s.row).join('') : `<div class="rs-empty">${s.empty}</div>`;
+    const waiting = offline.ops.filter((o) => o.section === s.key);
+    list.innerHTML = rows.length || waiting.length ? rows.map(s.row).join('') + waiting.map((o) => pendingRow(s.key, o.body)).join('') : `<div class="rs-empty">${s.empty}</div>`;
     const count = $(`[data-count="${s.key}"]`);
-    if (count) { count.textContent = rows.length; count.classList.toggle('has', rows.length > 0); }
+    if (count) { count.textContent = rows.length + waiting.length; count.classList.toggle('has', rows.length + waiting.length > 0); }
     if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
     if (s.key === 'funds') { markSavedYears(); renderYearTable(); }
 }
@@ -440,6 +478,16 @@ for (const s of Object.values(sections)) {
         btn.disabled = true;
         const data = Object.fromEntries(new FormData(form));
         const editing = s.key !== 'funds' && form.dataset.editUrl;
+        if (!editing && s.key !== 'funds') data.row_uid = newUid(); // a replayed add never creates a duplicate
+        // Only new rows and fund years can wait on this device; editing or removing needs the network.
+        const op = editing ? null : {
+            method: 'post', url: form.dataset.url, body: data, section: s.key,
+            key: s.key === 'funds' ? `fund:${data.financial_year}` : null,
+            onQueued: () => {
+                if (s.key !== 'funds') { form.reset(); window.siSyncSelects?.(form); }
+                window.toast(`${s.key === 'funds' ? `FY ${fyShort(data.financial_year)}` : 'Record'} saved on this device; it will be sent when the network is back.`, 'warning');
+            },
+        };
         queue(() => (editing ? axios.put(form.dataset.editUrl, data) : axios.post(form.dataset.url, data)).then((r) => {
             SI[s.key] = r.data[s.key];
             if (s.key === 'funds') {
@@ -452,7 +500,7 @@ for (const s of Object.values(sections)) {
                 form.querySelector('input,select')?.focus({ preventScroll: !!editing });
             }
             return r;
-        }), (errors, message) => showServerErrors(form, errors, message)).finally(() => { btn.disabled = false; });
+        }), (errors, message) => showServerErrors(form, errors, message), op).finally(() => { btn.disabled = false; });
     });
     $('[data-cancel-edit]', form)?.addEventListener('click', () => setEditMode(s, form, null));
     $(s.list).addEventListener('click', (e) => {
@@ -595,7 +643,10 @@ if (fundForm) {
 const sugBox = $('#suggestions');
 if (sugBox) {
     let t;
-    const send = () => queue(() => axios.post(sugBox.dataset.url, { suggestions: $$('[data-suggestion]', sugBox).map((i) => i.value) }));
+    const send = () => {
+        const body = { suggestions: $$('[data-suggestion]', sugBox).map((i) => i.value) };
+        return queue(() => axios.post(sugBox.dataset.url, body), null, { method: 'post', url: sugBox.dataset.url, body, key: 'suggestions' });
+    };
     sugBox.addEventListener('input', () => { clearTimeout(t); t = setTimeout(send, 900); });
     sugBox.addEventListener('focusout', () => { if (t) { clearTimeout(t); t = null; send(); } });
 }
@@ -714,6 +765,7 @@ if (autoTotals.length) {
             bd.classList.toggle('is-ready', checked && !bad);
         }
     };
+    window.siRecalcTotals = recalc;
     document.addEventListener('input', (e) => { if (e.target.matches?.('input[name^="TSI_"]')) recalc(); });
     recalc();
 }
@@ -792,3 +844,80 @@ $$('[data-ac]').forEach((wrap) => {
     // the add/edit form resets the field: hide the list too
     input.form?.addEventListener('reset', close);
 });
+
+/* ---------------- Working without network (T2): restore and sync ---------------- */
+function newUid() {
+    return crypto.randomUUID ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = (Math.random() * 16) | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); });
+}
+
+/** Put an answer / remark / suggestions kept on this device back on screen (the page shows server data). */
+function restoreOp(op) {
+    const b = op.body || {};
+    if (op.key === 'suggestions') {
+        $$('[data-suggestion]').forEach((el, i) => { el.value = (b.suggestions || [])[i] ?? ''; });
+        return;
+    }
+    if (!b.code) return;
+    const block = document.getElementById(`q-${b.code}`);
+    if ('remarks' in b) { const r = block?.querySelector('[data-remarks]'); if (r) r.value = b.remarks ?? ''; return; }
+    SI.answers[b.code] = b.value;
+    if (!block) return;
+    const type = block.dataset.type;
+    if (type === 'radio') $$(`input[name="${b.code}"]`, block).forEach((i) => { i.checked = i.value === String(b.value); });
+    else if (type === 'multi') $$(`input[name="${b.code}[]"]`, block).forEach((i) => { i.checked = [].concat(b.value ?? []).map(String).includes(i.value); });
+    else { const el = $('[data-answer]', block); if (el) el.value = b.value ?? ''; }
+}
+
+const syncHooks = {
+    onOp: (op, res) => {
+        if (res?.data?.ok) { applyProgress(res.data); indicator('saved', `Saved ${res.data.saved_at}`); }
+        for (const s of Object.values(sections)) {
+            if (res?.data?.[s.key]) { SI[s.key] = res.data[s.key]; }
+        }
+    },
+    onInvalid: (op, err) => {
+        const what = op.section ? 'A record' : (op.body?.code ? `The answer to ${SI.questions[op.body.code]?.label || op.body.code}` : 'A change');
+        window.toast(`${what} saved offline could not be accepted: ${err.response?.data?.message || 'please enter it again.'}`, 'danger');
+    },
+    onAuth: (err) => handleAuthError(err),
+};
+
+async function refreshOffline() {
+    try { offline.ops = await offlineStore.ops(SI.inspectionKey); } catch { offline.ops = []; }
+    offline.queued = offline.ops.length;
+    Object.values(sections).forEach((s) => renderSection(s));
+}
+
+async function trySync() {
+    if (!offline.ok || !navigator.onLine) return;
+    const c = await offlineStore.counts(SI.inspectionKey);
+    if (!c.ops) return; // photos are sent by camera.js
+    offline.banner?.set('syncing');
+    const r = await syncAll(SI.inspectionKey, { hooks: syncHooks });
+    await refreshOffline();
+    offline.banner?.set(r.left ? (navigator.onLine ? 'syncing' : 'offline') : 'synced');
+    if (!r.left) { indicator('saved', 'All changes saved'); window.siRefreshProgress?.(); }
+}
+window.siSyncOffline = trySync;
+
+(async () => {
+    offline.ok = !!SI.inspectionKey && await offlineStore.available();
+    if (!offline.ok) return;
+    offline.banner = mountBanner(SI.inspectionKey, document.querySelector('.wizard-card')?.parentElement);
+    document.addEventListener('si:offline-counts', (e) => {
+        if (e.detail.insp !== SI.inspectionKey) return;
+        if (e.detail.ops !== offline.queued) refreshOffline();
+    });
+    await refreshOffline();
+    if (offline.ops.length) {
+        offline.ops.forEach(restoreOp);
+        refreshRules();
+        window.siSyncSelects?.();
+        window.siRecalcTotals?.();
+        indicator('offline', `${offline.ops.length} change${offline.ops.length === 1 ? '' : 's'} saved on this device`);
+    }
+    window.addEventListener('online', () => trySync());
+    setInterval(trySync, 20000);
+    trySync();
+})();

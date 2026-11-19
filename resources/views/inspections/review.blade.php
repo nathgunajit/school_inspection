@@ -84,7 +84,7 @@
             </section>
 
             {{-- Submit --}}
-            <form method="POST" action="{{ route('inspections.submit', $inspection) }}" id="submit-form" data-can-submit="{{ $canSubmit ? 1 : 0 }}" class="review-card review-submit {{ $canSubmit ? '' : 'is-locked' }}">
+            <form method="POST" action="{{ route('inspections.submit', $inspection) }}" id="submit-form" data-can-submit="{{ $canSubmit ? 1 : 0 }}" data-inspection-key="{{ $inspection->getRouteKey() }}" data-evidence-url="{{ route('evidence.store', $inspection) }}" class="review-card review-submit {{ $canSubmit ? '' : 'is-locked' }}">
                 @csrf
                 <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
                 <label class="review-confirm" for="confirm">

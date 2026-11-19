@@ -2,6 +2,7 @@
 // Loaded as a Vite module (after app.js has set window.bootstrap). Inline scripts ran before
 // bootstrap was available, which broke "Expand all" whenever photos were present (Modification V3 item 8).
 import { Collapse, Modal } from 'bootstrap';
+import { offlineStore, syncAll } from './offline-queue';
 
 /* ---------------- Expand / collapse all steps ---------------- */
 const acc = document.getElementById('reviewAcc');
@@ -65,15 +66,50 @@ if (f) {
     const box = document.getElementById('confirm');
     const btn = document.getElementById('submit-btn');
     const hint = document.getElementById('submit-hint');
-    const can = f.dataset.canSubmit === '1';
+    let can = f.dataset.canSubmit === '1';
+    let waiting = false; // changes or photos still on this device (T2)
     box?.addEventListener('change', () => {
+        if (waiting) return;
         btn.disabled = !(can && box.checked);
         box.closest('.review-confirm')?.classList.toggle('is-checked', box.checked); // :has() fallback
         if (can) hint.textContent = box.checked ? 'Ready. Your current location is recorded on submission.' : 'Tick the confirmation above to enable Submit.';
     });
+    // Working without network (T2): anything still kept on this device must reach the server before Submit.
+    const insp = f.dataset.inspectionKey;
+    const lockForSync = (c, failed = false) => {
+        const parts = [];
+        if (c.ops) parts.push(`${c.ops} change${c.ops === 1 ? '' : 's'}`);
+        if (c.photos) parts.push(`${c.photos} photo${c.photos === 1 ? '' : 's'}`);
+        waiting = true;
+        btn.disabled = true;
+        f.classList.add('is-locked');
+        hint.innerHTML = `<i class="bi bi-phone"></i> ${parts.join(' and ')} saved on this device still to send. `
+            + (!navigator.onLine ? 'Connect to the network to submit; they will be sent automatically.'
+                : failed ? 'The server could not be reached; trying again every 20 seconds.' : 'Sending now…');
+    };
+    const checkDevice = async () => {
+        if (!insp || !(await offlineStore.available())) return;
+        const c = await offlineStore.counts(insp);
+        if (!c.ops && !c.photos) return;
+        lockForSync(c);
+        if (!navigator.onLine) return;
+        const r = await syncAll(insp, { evidenceUrl: f.dataset.evidenceUrl });
+        if (!r.left) {
+            // the server now has everything: reload so the checklist and Submit reflect it
+            window.toast('Saved changes sent. Refreshing…', 'success');
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            lockForSync(await offlineStore.counts(insp), true);
+        }
+    };
+    checkDevice();
+    setInterval(() => { if (waiting) checkDevice(); }, 20000);
+    window.addEventListener('online', checkDevice);
+
     f.addEventListener('submit', (e) => {
         if (f.dataset.go) return;
         e.preventDefault();
+        if (waiting) { window.toast('Some changes are still on this device. Connect to the network to send them first.', 'warning'); return; }
         if (!box.checked) { window.toast('Please tick the confirmation first.', 'warning'); return; }
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…';

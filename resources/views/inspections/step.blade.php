@@ -38,6 +38,7 @@
         : '';
     $clientConfig = [
         'step' => $step,
+        'inspectionKey' => $inspection->getRouteKey(), // offline storage key (T2)
         'saveUrl' => route('inspections.answers', $inspection),
         'progressUrl' => route('inspections.progress', $inspection),
         'evidenceUrl' => route('evidence.store', $inspection),

@@ -453,7 +453,7 @@ $q-choice-col: 230px;   // all short answers line up in one column
 .action-status { flex: 1; min-width: 0; text-align: center; font-size: .7rem; color: #b45309; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     #step-missing.is-done { color: $success; } }
 .save-indicator { font-size: .68rem; color: #64748b; display: inline-flex; align-items: center; gap: .3rem;
-    &.saving { color: $warning; } &.saved { color: $success; } &.error { color: $danger; } }
+    &.saving { color: $warning; } &.saved { color: $success; } &.error { color: $danger; } &.offline { color: darken($warning, 12%); font-weight: 600; } }
 
 // ---------- Photo grid & camera ----------
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .75rem; }
@@ -1720,3 +1720,13 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 @media print {
     .rating-card { .rt-hero, .rt-dial { box-shadow: none; } .rt-toggle { display: none; } .rt-items li.collapse { display: flex !important; } }
 }
+
+// ---------- Working without network (T2) ----------
+.offline-bar { position: sticky; top: calc(var(--si-topbar-h, 56px) + .25rem); z-index: 1020; display: flex; align-items: center; gap: .6rem;
+    margin: 0 0 .75rem; padding: .6rem .9rem; border-radius: .75rem; font-size: .82rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(15, 23, 42, .08);
+    i { font-size: 1.05rem; flex: 0 0 auto; }
+    &.is-offline { background: #fff7e6; border: 1px solid rgba($warning, .5); color: #7a4a00; }
+    &.is-syncing { background: rgba($primary, .07); border: 1px solid rgba($primary, .3); color: darken($primary, 10%); }
+    &.is-synced { background: rgba($success, .08); border: 1px solid rgba($success, .35); color: darken($success, 10%); } }
+.rs-item.is-pending { border-style: dashed; background: #fffbf2; }
+.review-submit-hint .bi-phone { color: darken($warning, 12%); }
