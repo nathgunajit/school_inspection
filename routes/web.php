@@ -132,6 +132,10 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/mobile-requests', [Admin\MobileRequestController::class, 'index'])->name('mobile-requests.index');
                 Route::post('/mobile-requests/{mobileRequest}', [Admin\MobileRequestController::class, 'decide'])->name('mobile-requests.decide');
                 Route::get('/audit', [Admin\AuditLogController::class, 'index'])->name('audit.index');
+                // V6 Module 6: login user monitoring
+                Route::get('/login-report', [Admin\LoginReportController::class, 'index'])->name('login-report.index');
+                Route::get('/login-report/export', [Admin\LoginReportController::class, 'export'])->name('login-report.export');
+                Route::get('/login-report/users/{user}', [Admin\LoginReportController::class, 'user'])->name('login-report.user');
             });
 
             Route::middleware('can:manage_masters')->group(function () {

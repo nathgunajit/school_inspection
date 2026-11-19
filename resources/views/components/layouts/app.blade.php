@@ -66,7 +66,10 @@
             {!! $link('admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload') !!}
             {!! $link('admin.rating.index', 'admin.rating.*', 'bi-star-half', 'Rating Settings') !!}
         @endcan
-        @can('state_admin'){!! $link('admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log') !!}@endcan
+        @can('state_admin')
+            {!! $link('admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring') !!}
+            {!! $link('admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log') !!}
+        @endcan
     </nav>
     <div class="sidebar-note">Government of Assam</div>
 </aside>

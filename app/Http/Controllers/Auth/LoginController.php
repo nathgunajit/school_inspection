@@ -6,6 +6,7 @@ use App\Enums\UserStatus;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\LoginMonitorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +18,8 @@ use Illuminate\Validation\ValidationException;
  */
 class LoginController extends Controller
 {
+    public function __construct(private LoginMonitorService $monitor) {}
+
     public function show(Request $request)
     {
         if ($request->boolean('expired')) {
@@ -64,6 +67,7 @@ class LoginController extends Controller
         }
 
         if ($user && $user->status === UserStatus::Locked) {
+            $this->monitor->refused($request, $user, 'locked', 'Account locked');
             $mins = max(1, (int) ceil(now()->diffInSeconds($user->locked_until, false) / 60));
             throw ValidationException::withMessages(['mobile' => "Account locked after repeated failed attempts. Try again in {$mins} minute(s)."]);
         }
@@ -82,6 +86,7 @@ class LoginController extends Controller
             default => null,
         };
         if ($message) {
+            $this->monitor->refused($request, $user, 'denied', 'Account '.$user->status->value);
             throw ValidationException::withMessages(['mobile' => $message]);
         }
 
@@ -91,12 +96,14 @@ class LoginController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
         AuditLogger::log('login', $user, [], $user);
+        $this->monitor->success($request, $user);
 
         return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request)
     {
+        $this->monitor->logout($request);
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -121,6 +128,8 @@ class LoginController extends Controller
             }
             $user->forceFill($update)->save();
         }
+        $locked = isset($update['locked_until']);
+        $this->monitor->refused($request, $user, $locked ? 'locked' : 'failed', $locked ? 'Locked after '.$cfg['lock_after_failures'].' failures' : ($user ? 'Wrong password' : 'Unknown mobile number'));
 
         AuditLogger::log('login_failed', $user, ['mobile' => $request->input('mobile')], $user);
     }

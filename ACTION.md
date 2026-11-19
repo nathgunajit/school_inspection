@@ -1003,3 +1003,60 @@ Plan approved by the user. Decisions:
   - `PROJECT_DOCUMENT.md` (4.2)
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 72. V6 Module 6: login user monitoring report for the State Administrator (2026-11-19)
+- **Request:** V6 item "Login User Monitoring Report State Administrator user type".
+- **Done:**
+  - **Migration** `2026_11_19_000004_create_user_login_logs_table` (additive), model `UserLoginLog`.
+    - One row per sign-in attempt: status `success` / `failed` / `locked` / `denied` plus a reason; session, IP, user agent; browser, platform and device (new `App\Support\UserAgent`, no dependency); `login_at`, `last_seen_at`, `logout_at`, `logout_reason`.
+    - It is an operational table. The append-only `audit_logs` still receive `login` / `login_failed`.
+  - **`LoginMonitorService`:**
+    - `success()` (after session regenerate), `refused()`, `touch()` and `logout()`.
+    - Wrapped so that a monitoring error never blocks a sign-in.
+    - Report queries: `filters()`, `query()`, `summary()`, `onlineScope()`.
+  - **`LoginController` records:**
+    - unknown number and wrong password (`failed`)
+    - the attempt that locks the account, and attempts while locked (`locked`)
+    - pending, rejected and inactive accounts (`denied`)
+    - success and sign-out
+  - **`TouchLastSeen` web middleware:** `last_seen_at` at most once a minute per session. Online means not signed out and active within `session.lifetime`; otherwise the session is timed out.
+  - **`Admin\LoginReportController`:** `/admin/login-report`, `/export`, `/users/{user}` under `can:state_admin`; "Login Monitoring" in the sidebar.
+    - Tiles: sign-ins, officers signed in, online now, refused attempts, accounts locked now, never signed in.
+    - Officers signed in by level against active officers, and the top refused numbers.
+    - Sign-in log (25 per page; desktop table, phone list) with date, level, district, result and officer filters.
+    - Per-officer history with devices; Excel export.
+- **Verification:**
+  - New `LoginReportTest` (5 tests):
+    - sign-in, activity after 2 minutes, sign-out, duration and UA parsing
+    - six refused cases with their reasons
+    - summary numbers, every filter, validation, user page and export; 403 for State and District officers
+    - online now
+    - UA reader
+  - Full suite: 99 passed.
+  - **Headless Chrome against Apache/MySQL:**
+    - demo officer 9000000034 on an Android UA signed in and out
+    - 9000000035: one wrong password, then signed in
+    - 4 rows recorded correctly (Chrome 120 / Android 13 / mobile, signed out; the failed one with reason)
+  - The State Admin's password and mobile are no longer the defaults, so the report was rendered in-process as the State Admin on the real data (200; user page 200; export 200 xlsx) and screenshotted on desktop and phone.
+  - **Fixes after the screenshots:**
+    - The result label for `failed` is now "Failed", because the reason can be "Unknown mobile number".
+    - Badges no longer wrap.
+    - The "Online now" tile now has a colour.
+  - The test attempt with 9999999999 shows in the log as an unknown number; no account was affected.
+- **Deploy:** `php artisan migrate`
+- Files:
+  - `database/migrations/2026_11_19_000004_create_user_login_logs_table.php`
+  - `app/Models/UserLoginLog.php`
+  - `app/Support/UserAgent.php`
+  - `app/Services/LoginMonitorService.php`
+  - `app/Http/Middleware/TouchLastSeen.php`
+  - `bootstrap/app.php`
+  - `app/Http/Controllers/Auth/LoginController.php`, `Admin/LoginReportController.php`
+  - `routes/web.php`
+  - `resources/views/admin/login-report/{index,row,user}.blade.php`
+  - `resources/views/components/layouts/app.blade.php`
+  - `tests/Feature/LoginReportTest.php`
+  - `PROJECT_DOCUMENT.md` (4.7, tables, modules)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

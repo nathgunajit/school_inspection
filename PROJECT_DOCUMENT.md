@@ -255,9 +255,26 @@ flowchart LR
     subgraph Other [State Admin]
       O1[Mobile change requests: approve / reject]
       O2[Audit log: filter by user, action, IP, date]
+      O3[Login monitoring: sign-ins, online now,<br/>refused attempts, per-officer history, Excel]
     end
 ```
 Officers request a **mobile number change** from their profile; the State Admin decides it. **Transfers** keep past inspections in the old area.
+
+**Login monitoring (V6 Module 6), State Admin only: `/admin/login-report`.**
+- **What is recorded:** every sign-in attempt goes into `user_login_logs`.
+  - The result: **Signed in**, **Failed** (wrong password or unknown number), **Locked** (the attempt that locked the account, or an attempt while locked), or **Not allowed** (pending, rejected or inactive), with the reason.
+  - The IP address, plus the browser, platform and device read from the user agent.
+  - For a sign-in: its session, the last activity (updated at most once a minute) and the sign-out time.
+- **Session state:** a session is **Online** while it is active within the session lifetime; after that it is **Timed out**.
+- **The report:**
+  - tiles: sign-ins, officers signed in, online now, refused attempts, accounts locked now, active officers who never signed in
+  - officers who signed in, by level, against active officers
+  - the numbers with the most refused attempts (a sign of guessing)
+  - the sign-in log, 25 per page, with filters for dates (default today), level, district, result and officer
+  - a per-officer history with the devices used
+  - Excel export
+
+  Monitoring never blocks a sign-in: write errors are only reported. The append-only `audit_logs` keep their `login` / `login_failed` entries as before.
 
 ### 4.8 Map View (New Module 1)
 ```mermaid
@@ -413,6 +430,7 @@ erDiagram
 **Audit and system**
 | Table | Purpose |
 |---|---|
+| `user_login_logs` | **V6 login monitoring**: one row per sign-in attempt. `user_id` (null for an unknown number), `mobile`, `status` (success, failed, locked, denied), `reason`, `session_id`, `ip_address`, `user_agent`, `browser`, `platform`, `device`, `login_at`, `last_seen_at`, `logout_at`, `logout_reason`. Operational (a sign-in row is updated on activity and sign-out); not the audit log |
 | `audit_logs` | **Append-only** log: `user_id`, `action` (e.g. login, login_failed, registration_approved, inspection_started, inspection_submitted, inspection_unlocked, inspection_pdf, evidence_downloaded), `auditable_type`/`_id`, `meta` JSON, `ip_address`, `user_agent`, `created_at`. Kept for 5 years |
 | `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `migrations` | Laravel cache, queue and migration tables |
 
@@ -434,7 +452,8 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Module (controller / service) | Reads | Writes |
 |---|---|---|
 | Registration (`Auth\RegisterController`) | locations, master_values | users, user_jurisdictions, registration_requests, audit_logs |
-| Login, password (`Auth\LoginController`, `PasswordController`) | users | users (failures, lock, last_login), sessions, password_reset_tokens, audit_logs |
+| Login, password (`Auth\LoginController`, `PasswordController`, `LoginMonitorService`) | users | users (failures, lock, last_login), sessions, password_reset_tokens, user_login_logs, audit_logs |
+| Login monitoring (`Admin\LoginReportController`) | user_login_logs, users, user_jurisdictions | — |
 | Approvals (`Admin\ApprovalController`, `ApproverResolver`) | registration_requests, users, user_jurisdictions, user_permissions | registration_requests, users.status, audit_logs |
 | Users (`Admin\UserController`) | users, user_jurisdictions, permissions | users, user_jurisdictions (transfer), user_permissions, audit_logs |
 | Profile, mobile change (`ProfileController`, `Admin\MobileRequestController`) | users, user_jurisdictions, inspections (counts) | users.photo_path, mobile_change_requests, users.mobile, audit_logs |
