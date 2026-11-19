@@ -292,6 +292,11 @@ flowchart LR
 - **Access:** all data comes from `JurisdictionService`. An area or officer outside the user's jurisdiction returns 403.
 - **Slow networks:** one level per request (small JSON), Leaflet bundled with the app, pins grouped with marker clustering, server results cached for 60 s (`MAP_CACHE_SECONDS`).
 - **Tiles:** OpenStreetMap by default. `MAP_TILE_URL` and `MAP_TILE_ATTRIBUTION` point to another tile server (self-hosted or commercial) for heavy production use. **Boundaries:** the Assam state outline and the district shapes come from the KML files in `public/KML/Assam` (`Assam.kml`, `Assam Dist/<District>.kml`). `php artisan map:boundaries` converts them into small simplified GeoJSON files in `public/geo` (about 240 KB). The state outline is always drawn; at district level each district shape is coloured by the coverage of the District Master row with the same name (or `code`), and districts not in the master are grey. Run the command again when the KML files change.
+- **District outline (V6 Module 7).** The command also writes one outline per district: `public/geo/districts/<slug>.geojson` plus `index.json`.
+  - **How the outline is built:** the constituency polygons of the district KML are *dissolved*. Edges shared by two constituencies are dropped, the rest are chained back into rings, and the result is simplified to about 40 m.
+  - **On the maps:** whenever a district is in view, the map draws its outline in bold and greys the land outside it. A District, Block or Cluster officer's map opens that way, and so does a State user who opens a district. The district view zooms to the outline. The schedule planner and the route map draw the officer's district too.
+  - **Matching to the District Master:** a district uses its **Map boundary** (`districts.boundary_name`, chosen in the Location Master), otherwise the outline with the same name.
+  - **Checking the matches:** `php artisan map:boundaries --check` lists which outline every district uses, and suggests one for the unmatched rows from the outline that contains the district headquarters or the average position of its schools. `--assign` saves those suggestions, each one audited.
 
 ### 4.9 Inspection Scheduling (New Module 2)
 ```mermaid
@@ -383,7 +388,7 @@ erDiagram
 | Table | Purpose | Key columns |
 |---|---|---|
 | `states` | State (single-state deployment, code 18) | `code` UQ, `name`, `is_active` |
-| `districts` | Districts | `state_id` FK, `code` UQ (e.g. 1801), `name`, lat/lng, `is_active` |
+| `districts` | Districts | `state_id` FK, `code` UQ (e.g. 1801), `name`, lat/lng, `boundary_name` (KML outline, V6), `is_active` |
 | `blocks` | Blocks | `district_id` FK, `code` UQ (180101), `name`, lat/lng, `is_active` |
 | `clusters` | Clusters | `block_id` FK, `code` UQ (18010101), `name`, lat/lng (New Module 1), `is_active` |
 | `schools` | School master | `udise_code` CHAR(11) UQ, `name`, `state_id`/`district_id`/`block_id`/`cluster_id` FK, `management_id`/`category_id` → master_values, address, lat/lng, `status` (active/closed), soft delete |

@@ -8,13 +8,15 @@
 import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import Sortable from 'sortablejs';
-import { createMap, schoolIcon, esc, fitTo } from './map-common';
+import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline } from './map-common';
 
 const root = document.getElementById('planner');
 if (root) {
     const cfg = JSON.parse(root.dataset.config);
     const readonly = root.dataset.readonly === '1';
     const map = createMap(document.getElementById('planMap'), cfg);
+    // V6 Module 7: the officer's district outline; it frames the map until schools are drawn
+    drawDistrictOutline(map, cfg.outline, { fit: !cfg.planned.length }).then((o) => o?.layer.bringToBack());
     const layer = L.layerGroup().addTo(map);
     const routeLine = L.polyline([], { color: '#1565c0', weight: 3, opacity: 0.8, dashArray: '6 6' }).addTo(map);
     let start = cfg.start; // [lat, lng] or null

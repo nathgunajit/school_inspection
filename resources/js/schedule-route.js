@@ -1,7 +1,7 @@
 /* Route map of one schedule (New Module 2), and GPS capture for "Start inspection" from the plan. */
 import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
-import { createMap, schoolIcon, esc, fitTo } from './map-common';
+import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline } from './map-common';
 
 const el = document.getElementById('routeMap');
 if (el) {
@@ -9,6 +9,7 @@ if (el) {
     const start = JSON.parse(el.dataset.start || 'null');
     const stops = JSON.parse(el.dataset.stops);
     const map = createMap(el, cfg);
+    drawDistrictOutline(map, cfg.outline, { mask: false }).then((o) => o?.layer.bringToBack()); // V6 Module 7
     const pts = [];
     if (start) {
         L.circleMarker(start, { radius: 7, color: '#fff', weight: 2, fillColor: '#0f172a', fillOpacity: 1 }).bindTooltip('Start').addTo(map);

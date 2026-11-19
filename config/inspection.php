@@ -63,6 +63,8 @@ return [
         'geojson' => [
             'state' => 'geo/assam-state.geojson',
             'districts' => 'geo/assam-districts.geojson',
+            // V6 Module 7: one dissolved outline per KML district, plus index.json (name, slug, bbox)
+            'district_dir' => 'geo/districts',
         ],
     ],
 

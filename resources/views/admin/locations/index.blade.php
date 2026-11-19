@@ -37,6 +37,10 @@
                                     <span class="geo-chip is-empty d-none d-sm-inline-flex"><i class="bi bi-geo"></i>No coordinates</span>
                                 @endif
                             @endif
+                            @if ($type === 'districts' && $boundaryNames)
+                                @php $bn = $boundaries->nameFor($item); @endphp
+                                <span class="geo-chip d-none d-md-inline-flex {{ $bn ? '' : 'is-empty' }}" title="Map boundary (KML)"><i class="bi bi-bounding-box"></i>{{ $bn ?? 'No boundary' }}</span>
+                            @endif
                             <span class="badge-soft badge-soft-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span>
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" aria-label="Actions"><i class="bi bi-three-dots-vertical"></i></button>
@@ -50,6 +54,14 @@
                                                 <div class="col-6"><label class="form-label text-sm">Latitude</label><input name="latitude" value="{{ $item->latitude }}" inputmode="decimal" class="form-control" placeholder="26.1445"></div>
                                                 <div class="col-6"><label class="form-label text-sm">Longitude</label><input name="longitude" value="{{ $item->longitude }}" inputmode="decimal" class="form-control" placeholder="91.7362"></div>
                                             </div>
+                                        @endif
+                                        @if ($type === 'districts' && $boundaryNames)
+                                            {{-- V6 Module 7: KML outline drawn for this district on the maps --}}
+                                            <label class="form-label text-sm">Map boundary</label>
+                                            <select name="boundary_name" class="form-select mb-2">
+                                                <option value="">Match by name{{ $boundaries->nameFor($item) && ! $item->boundary_name ? ' ('.$boundaries->nameFor($item).')' : '' }}</option>
+                                                @foreach ($boundaryNames as $bn)<option value="{{ $bn }}" @selected($item->boundary_name === $bn)>{{ $bn }}</option>@endforeach
+                                            </select>
                                         @endif
                                         @if ($fk)<input type="hidden" name="{{ $fk }}" value="{{ $item->$fk }}">@endif
                                         <button class="btn btn-primary btn-sm w-100">Save</button>

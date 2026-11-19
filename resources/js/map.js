@@ -7,7 +7,7 @@ import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
-import { createMap, schoolIcon, esc, coverageClass, coverageColors, fitTo } from './map-common';
+import { createMap, schoolIcon, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline } from './map-common';
 
 const el = document.getElementById('map');
 if (el) {
@@ -19,6 +19,7 @@ if (el) {
     let boundaries = null;
     const geo = { state: null, districts: null };
     let stateLayer = null;
+    let outline = null; // V6 Module 7: { url, layer, bounds } of the district in view
     let current = { ...start };
     let lastRows = [];
     const markers = new Map();
@@ -54,10 +55,33 @@ if (el) {
             level === 'school' ? renderSchools(data.rows, focusSchool) : renderAreas(data.rows, level);
             renderTable(data.rows, level);
             syncSelects(data.breadcrumb, level, data.rows);
+            syncOutline(data.outline || null, level);
         } catch (e) {
             window.toast?.(e.message, 'danger');
         } finally {
             loading(false);
+        }
+    }
+
+    /**
+     * V6 Module 7: outline the district being viewed (from its KML), greying the land outside it.
+     * The district view (its blocks) zooms to the outline; deeper levels keep their own zoom.
+     */
+    async function syncOutline(url, level) {
+        if (outline && outline.url !== url) { map.removeLayer(outline.layer); outline = null; }
+        if (url && !outline) {
+            const drawn = await drawDistrictOutline(map, url);
+            if (!drawn) return;
+            if (current.level !== level) { map.removeLayer(drawn.layer); return; } // the user moved on meanwhile
+            outline = { url, ...drawn };
+            outline.layer.bringToBack();
+            boundaries?.bringToBack();
+        }
+        if (outline && level === 'block') {
+            const pts = [...markers.values()].map((m) => m.getLatLng());
+            const box = L.latLngBounds(outline.bounds.getSouthWest(), outline.bounds.getNorthEast()); // a copy: extend() mutates
+            if (pts.length) box.extend(L.latLngBounds(pts));
+            map.fitBounds(box, { padding: [20, 20], maxZoom: 11 });
         }
     }
 
@@ -125,9 +149,11 @@ if (el) {
             const norm = (v) => String(v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
             const byCode = new Map(rows.map((r) => [String(r.code), r]));
             const byName = new Map(rows.map((r) => [norm(r.name), r]));
+            // V6 Module 7: a District Master row linked to a KML outline (boundary_name) wins over name matching
+            const byBoundary = new Map(rows.filter((r) => r.boundary).map((r) => [norm(r.boundary), r]));
             const find = (p) => {
                 const n = norm(p.name ?? p.district);
-                return byCode.get(String(p.code ?? p.district_code ?? '')) || byName.get(n)
+                return byBoundary.get(n) || byCode.get(String(p.code ?? p.district_code ?? '')) || byName.get(n)
                     || (n.length >= 5 ? rows.find((r) => norm(r.name).startsWith(n) || n.startsWith(norm(r.name))) : undefined);
             };
             matched = L.featureGroup();

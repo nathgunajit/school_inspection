@@ -1060,3 +1060,56 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 73. V6 Module 7: district outline from the district KML (2026-11-19)
+- **Request:** V6 item "Use District KML for District". Decision: officers see their own district's boundary.
+- **Done:**
+  - **`map:boundaries` now also writes `public/geo/districts/<slug>.geojson`** (one per district) and `index.json` (name, slug, bbox).
+    - Each outline is the district's constituency polygons **dissolved**: edges shared by two polygons are dropped and the remaining edges are chained into rings. If a vertex has an odd number of outline edges, the command falls back to the raw polygons.
+    - The outlines are simplified with `--detail` (default 0.0004°, about 40 m).
+    - On the real KML: all 50 districts dissolved, 344 KB in total. `assam-districts.geojson` is unchanged.
+  - **`--check`** lists every District Master row with its outline (set, by name, or a suggestion). **`--assign`** saves the suggestions, each audited as `district_boundary_assigned`.
+  - **Migration** `2026_11_19_000005_add_boundary_name_to_districts` (additive).
+  - **`DistrictBoundaryService`:**
+    - `nameFor()`: `boundary_name`, else the name with case and punctuation ignored.
+    - `urlFor()` / `urlForId()`.
+    - `locate()`: bbox, then even-odd ray casting.
+    - `suggest()`: from the headquarters, else the average of the district's schools.
+  - **Location Master (districts):** a "Map boundary" select, validated against the outline list, and a chip showing the matched outline.
+  - **Map:**
+    - `/map/areas` and `/map/schools` return `outline`, the URL of the district in view (null at state level); district rows carry `boundary`.
+    - `drawDistrictOutline()` in `map-common.js` draws a bold outline with an even-odd mask that greys the land outside, cached per page.
+    - `map.js` draws it on every load and zooms to it in the district view. State-level shading now also matches the District Master through `boundary`.
+  - **Schedules:** the planner and the route map draw the officer's district outline. The planner frames it until schools are drawn.
+  - **Local demo data:** `php artisan map:boundaries --assign` linked North District to Kamrup Metro and South District to Darrang, from their schools' positions (audited; can be changed in the Location Master).
+- **Verification:**
+  - New `DistrictBoundaryTest` (5 tests), using fixture KML in a temp folder:
+    - two adjacent constituencies dissolve into one 4-corner ring; index bbox
+    - matching by `boundary_name` and by name; locate; suggest
+    - `--check` changes nothing; `--assign` sets the names and audits them
+    - map JSON `outline` and `boundary`; the planner page carries the outline
+    - the Location Master select accepts only listed names, and empty clears the link
+  - `MapViewTest` still passes. Full suite: 104 passed.
+  - **Headless Chrome on Apache** (screenshots checked; no page errors):
+    - District officer 9000000011: `/map` loads `kamrup-metro.geojson`, opens on the Kamrup Metro outline with the outside greyed, and shows Riverside and Hillview blocks
+    - Cluster officer 9000000031: map and planner load the outline
+    - State officer 9000000001: state view as before, no outline
+- **Deploy:**
+  - `php artisan migrate`
+  - `php artisan map:boundaries`, then `php artisan map:boundaries --check` (and `--assign`, or set the boundaries in the Location Master)
+  - `npm run build`
+- Files:
+  - `app/Console/Commands/ImportMapBoundaries.php`
+  - `app/Services/DistrictBoundaryService.php`, `MapDataService.php`
+  - `database/migrations/2026_11_19_000005_add_boundary_name_to_districts.php`
+  - `app/Models/District.php`
+  - `app/Http/Controllers/MapController.php`, `ScheduleController.php`, `Admin/LocationController.php`
+  - `config/inspection.php`
+  - `resources/js/map-common.js`, `map.js`, `schedule-planner.js`, `schedule-route.js`
+  - `resources/views/admin/locations/index.blade.php`
+  - `public/geo/districts/*`
+  - `tests/Feature/DistrictBoundaryTest.php`
+  - `PROJECT_DOCUMENT.md` (4.8, tables)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

@@ -7,6 +7,7 @@ use App\Models\Block;
 use App\Models\InspectionSchedule;
 use App\Models\InspectionScheduleItem;
 use App\Models\User;
+use App\Services\DistrictBoundaryService;
 use App\Services\JurisdictionService;
 use App\Services\ScheduleService;
 use Illuminate\Http\Request;
@@ -84,6 +85,8 @@ class ScheduleController extends Controller
                 'dayStart' => config('inspection.schedule.day_start'),
                 'max' => (int) config('inspection.schedule.max_per_day'),
                 'needsBlock' => $blocks->isNotEmpty(),
+                // V6 Module 7: the officer's district outline from the KML
+                'outline' => app(DistrictBoundaryService::class)->urlForId($jur?->district_id),
                 'urls' => ['schools' => route('schedules.schools'), 'store' => route('schedules.store')],
                 'officer' => $officer->id,
                 'date' => $date->toDateString(),
@@ -160,6 +163,7 @@ class ScheduleController extends Controller
             'mapConfig' => [
                 'tiles' => config('inspection.map.tiles'), 'attribution' => config('inspection.map.attribution'),
                 'center' => config('inspection.map.center'), 'zoom' => config('inspection.map.zoom'),
+                'outline' => app(DistrictBoundaryService::class)->urlForId($this->j->current($schedule->officer)?->district_id),
             ],
         ]);
     }

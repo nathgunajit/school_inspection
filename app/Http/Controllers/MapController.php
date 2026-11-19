@@ -58,6 +58,7 @@ class MapController extends Controller
             'level' => $level,
             'parent' => $parent,
             'breadcrumb' => $this->map->breadcrumb($level, $parent),
+            'outline' => $this->map->outlineUrl($level, $parent),
             'rows' => $rows,
             'totals' => $this->map->totals($rows, count($this->map->officers($user, $level, $parent))),
         ]);
@@ -86,6 +87,7 @@ class MapController extends Controller
             'level' => 'school',
             'parent' => $cluster,
             'breadcrumb' => $cluster !== null ? $this->map->breadcrumb('school', $cluster) : [],
+            'outline' => $cluster !== null ? $this->map->outlineUrl('school', $cluster) : null,
             'rows' => $rows,
             'totals' => $this->map->schoolTotals($rows, $cluster !== null ? count($this->map->officers($user, 'school', $cluster)) : 0),
         ]);

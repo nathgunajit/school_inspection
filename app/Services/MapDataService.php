@@ -9,6 +9,7 @@ use App\Models\Cluster;
 use App\Models\District;
 use App\Models\Inspection;
 use App\Models\User;
+use App\Services\DistrictBoundaryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,15 @@ class MapDataService
         return $crumbs;
     }
 
+    /** V6 Module 7: URL of the outline of the district that contains the area being viewed (null at state level). */
+    public function outlineUrl(string $level, ?int $parent): ?string
+    {
+        $type = $this->parentType($level);
+        $chain = $type && $parent !== null ? $this->chain($type, $parent) : null;
+
+        return app(DistrictBoundaryService::class)->urlForId($chain['district_id'] ?? null);
+    }
+
     public function parentType(string $level): ?string
     {
         return ['district' => null, 'block' => 'district', 'cluster' => 'block', 'school' => 'cluster'][$level] ?? null;
@@ -133,11 +143,12 @@ class MapDataService
             $areas = $model::query()->where('is_active', true)
                 ->when($parent !== null, fn ($q) => $q->where($fk, $parent))
                 ->whereIn('id', $rows->keys()->merge($this->visibleAreaIds($user, $level)))
-                ->orderBy('name')->get(['id', 'code', 'name', 'latitude', 'longitude']);
+                ->orderBy('name')->get(['id', 'code', 'name', 'latitude', 'longitude', ...($level === 'district' ? ['boundary_name'] : [])]);
+            $boundaries = app(DistrictBoundaryService::class);
 
             $officers = $this->officerCounts($user, $level, $areas->pluck('id')->all());
 
-            return $areas->map(function ($a) use ($rows, $officers) {
+            return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries) {
                 $r = $rows->get($a->id);
                 $total = (int) ($r->schools ?? 0);
                 $inspected = (int) ($r->inspected ?? 0);
@@ -156,6 +167,8 @@ class MapDataService
                     'no_gps' => (int) ($r->no_gps ?? 0),
                     'coverage' => $total ? round($inspected * 100 / $total, 1) : 0.0,
                     'officers' => $officers[$a->id] ?? ['total' => 0, 'district' => 0, 'block' => 0, 'cluster' => 0],
+                    // V6 Module 7: the KML outline this District Master row is drawn with
+                    'boundary' => $level === 'district' ? $boundaries->nameFor($a) : null,
                 ];
             })->values()->all();
         });

@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\State;
 use App\Models\UserJurisdiction;
 use App\Services\AuditLogger;
+use App\Services\DistrictBoundaryService;
 use App\Support\UrlId;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -43,6 +44,9 @@ class LocationController extends Controller
             'geo' => in_array($type, self::WITH_COORDINATES, true),
             'parents' => $parentModel ? $parentModel::orderBy('name')->get() : collect(),
             'counts' => collect(self::TYPES)->map(fn ($t) => $t[0]::count()),
+            // V6 Module 7: KML district outlines that a district can be linked to
+            'boundaries' => app(DistrictBoundaryService::class),
+            'boundaryNames' => $type === 'districts' ? app(DistrictBoundaryService::class)->names() : [],
         ]);
     }
 
@@ -93,6 +97,9 @@ class LocationController extends Controller
             // optional headquarters location; both or neither
             $rules['latitude'] = ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'];
             $rules['longitude'] = ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'];
+        }
+        if ($type === 'districts') {
+            $rules['boundary_name'] = ['nullable', Rule::in(app(DistrictBoundaryService::class)->names())];
         }
 
         return $rules;
