@@ -43,7 +43,7 @@ class RegisterRequest extends FormRequest
         $cfg = config('inspection.id_proof');
 
         $rules = [
-            'name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
             // Modification V7: Employee ID and identity proof are optional
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
@@ -56,7 +56,7 @@ class RegisterRequest extends FormRequest
             'cluster_id' => [$level?->needsCluster() ? 'required' : 'nullable', 'integer'],
             'mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/', Rule::unique('users', 'mobile')->ignore($ignore)],
             'email' => ['nullable', 'email:rfc', 'max:150'],
-            'password' => ['required', 'confirmed', Password::min(8)->mixedCase()->numbers()->symbols()],
+            'password' => ['required', 'confirmed', 'max:64', Password::min(8)->mixedCase()->numbers()->symbols()],
             'privacy' => ['accepted'],
         ];
         if (config('inspection.captcha_enabled')) {
@@ -69,7 +69,7 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mobile.regex' => 'Enter a valid 10-digit Indian mobile number.',
+            'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.',
             'mobile.unique' => 'This mobile number is already registered.',
             'employee_id.unique' => 'This Employee ID is already registered.',
             'id_proof.max' => 'Identity proof must be 2 MB or smaller.',
@@ -78,6 +78,8 @@ class RegisterRequest extends FormRequest
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
             'captcha.captcha' => 'The CAPTCHA code is incorrect.',
             'privacy.accepted' => 'Please accept the privacy notice.',
+            'name.regex' => 'Name may contain only letters, spaces, dots, apostrophes and hyphens.',
+            'employee_id.regex' => 'Employee ID may contain only letters, digits and / - _ .',
         ];
     }
 

@@ -1290,3 +1290,45 @@ Plan approved by the user. Decisions:
   - `resources/views/admin/users/show.blade.php`
   - `resources/views/admin/users/index.blade.php`
   - `tests/Feature/RegistrationV7Test.php`
+
+## 80. V7-2: Mobile 6–9 everywhere, and the validation audit (2026-11-19)
+- **Mobile (6, 7, 8 or 9 first):**
+  - **UI:** new `resources/js/mobile-input.js` (imported in `app.js`) for every `input[data-mobile]`: register, login, forgot and reset password, profile mobile change.
+    - digits only, at most 10
+    - a wrong first digit is refused as it is typed, with "Mobile number must start with 6, 7, 8 or 9."
+    - a short number shows "must be 10 digits (n entered)"
+    - the submit is blocked before password encryption runs
+    - inputs carry `pattern="[6-9][0-9]{9}"`
+    - the old digits-only handler in `register.js` was removed
+  - **Server:** registration and profile already had `regex:/^[6-9]\d{9}$/` (kept, clearer message). **Added** to login, forgot password and reset password.
+  - **Database:** migration `2026_11_19_000007_add_mobile_check_constraints` adds `CHECK (mobile REGEXP '^[6-9][0-9]{9}$')` on `users.mobile` and `mobile_change_requests.new_mobile`.
+    - MySQL/MariaDB only; skipped on SQLite tests.
+    - It refuses to run if existing rows are invalid; the local DB had 0.
+    - Verified: `UPDATE users SET mobile='5123456789'` fails with error 4025.
+- **Audit of the other registration fields:**
+
+  | Field | Already correct (skipped) | Fixed |
+  |---|---|---|
+  | name | required, max 120 = column | **New:** min 3, letters / spaces / `. ' -` only (server regex, UI pattern; also the admin edit) |
+  | email | `email:rfc`, max 150 = column | UI `maxlength="150"` |
+  | password | strength rule, confirmation | max 64 (register, change, reset; UI maxlength), within the 214-byte RSA limit; hint text updated |
+  | designation, level, state, district, block, cluster | DB `exists` and hierarchy check | — |
+  | Employee ID | format, max 40 = column, unique | — |
+  | photo, ID proof | type and size | — |
+  | captcha, privacy | — | — |
+- **Tests:** `RegistrationV7Test` gains 2 tests: a mobile starting 5 or 0, short or non-digit, is refused on register, login, forgot and profile; 6–9 is accepted; name, email and password limits. Full suite: 118 passed.
+- **Browser (login page):**
+  - typing "5" leaves the field empty with the message
+  - submitting 5 digits is blocked with "(5 entered)"
+  - a real login (9000000031) still reaches the dashboard
+- Files:
+  - `resources/js/mobile-input.js`
+  - `resources/js/app.js`
+  - `resources/js/register.js`
+  - `resources/views/auth/{login,register,forgot-password,reset-password}.blade.php`
+  - `resources/views/profile.blade.php`
+  - `app/Http/Controllers/Auth/{LoginController,PasswordController}.php`
+  - `app/Http/Controllers/{ProfileController,Admin/UserController}.php`
+  - `app/Http/Requests/RegisterRequest.php`
+  - `database/migrations/2026_11_19_000007_add_mobile_check_constraints.php`
+  - `tests/Feature/RegistrationV7Test.php`

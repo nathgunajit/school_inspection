@@ -51,13 +51,13 @@ class LoginController extends Controller
     {
         $cfg = config('inspection.login');
         $rules = [
-            'mobile' => ['required', 'digits:10'],
+            'mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/'],
             'password' => ['required', 'string'],
         ];
         if ($this->needsCaptcha($request) && config('inspection.captcha_enabled')) {
             $rules['captcha'] = ['required', 'captcha'];
         }
-        $data = $request->validate($rules, ['captcha.captcha' => 'The CAPTCHA code is incorrect.']);
+        $data = $request->validate($rules, ['captcha.captcha' => 'The CAPTCHA code is incorrect.', 'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
 
         $user = User::where('mobile', $data['mobile'])->first();
 

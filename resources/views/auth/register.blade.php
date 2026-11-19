@@ -34,7 +34,7 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label" for="name">Full name <span class="req">*</span></label>
-                            <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required maxlength="120" autocomplete="name" placeholder="e.g. Ananya Sharma">
+                            <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required minlength="3" maxlength="120" pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*" title="Letters, spaces, dots, apostrophes and hyphens" autocomplete="name" placeholder="e.g. Ananya Sharma">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
@@ -175,26 +175,26 @@
                             <label class="form-label" for="mobile">Mobile number <span class="req">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">+91</span>
-                                <input type="tel" inputmode="numeric" maxlength="10" id="mobile" name="mobile" value="{{ old('mobile') }}" class="form-control @error('mobile') is-invalid @enderror" required autocomplete="tel" placeholder="10-digit number">
+                                <input type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" data-mobile id="mobile" name="mobile" value="{{ old('mobile') }}" class="form-control @error('mobile') is-invalid @enderror" required autocomplete="tel" placeholder="10-digit number">
                                 @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="email">Email address <span class="opt">(optional)</span></label>
-                            <input type="email" id="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" autocomplete="email" placeholder="name@example.com">
+                            <input type="email" id="email" name="email" value="{{ old('email') }}" class="form-control @error('email') is-invalid @enderror" maxlength="150" autocomplete="email" placeholder="name@example.com">
                             <div class="form-text">Used only for self-service password reset.</div>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="password">Password <span class="req">*</span></label>
-                            <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
+                            <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" required minlength="8" maxlength="64" autocomplete="new-password">
                             <div class="progress-thin progress mt-2" style="height:4px"><div class="progress-bar" id="pw-meter" style="width:0"></div></div>
-                            <div class="form-text">At least 8 characters with A–Z, a–z, 0–9 and a symbol.</div>
+                            <div class="form-text">8 to 64 characters with A–Z, a–z, 0–9 and a symbol.</div>
                             @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="password_confirmation">Confirm password <span class="req">*</span></label>
-                            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required autocomplete="new-password">
+                            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required maxlength="64" autocomplete="new-password">
                         </div>
                         @if (config('inspection.captcha_enabled'))
                             <div class="col-md-8 col-lg-6">@include('partials.captcha')</div>

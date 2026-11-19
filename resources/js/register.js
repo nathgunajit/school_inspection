@@ -95,6 +95,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('is-drag')));
     });
 
-    // Mobile: digits only
-    form.querySelector('#mobile').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); });
 });

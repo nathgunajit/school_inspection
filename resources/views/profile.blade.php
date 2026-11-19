@@ -87,7 +87,7 @@
                                 <label class="form-label" for="new_mobile">New mobile number</label>
                                 <div class="input-group">
                                     <span class="input-group-text">+91</span>
-                                    <input type="tel" inputmode="numeric" maxlength="10" name="new_mobile" id="new_mobile" value="{{ old('new_mobile') }}" placeholder="10-digit number"
+                                    <input type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" data-mobile name="new_mobile" id="new_mobile" value="{{ old('new_mobile') }}" placeholder="10-digit number"
                                            class="form-control @error('new_mobile') is-invalid @enderror" required>
                                     @error('new_mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>

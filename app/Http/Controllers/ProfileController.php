@@ -66,7 +66,7 @@ class ProfileController extends Controller
         $data = $request->validate([
             'new_mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/', 'different:current', Rule::unique('users', 'mobile')],
             'reason' => ['required', 'string', 'max:255'],
-        ], ['new_mobile.unique' => 'This mobile number is already registered.']);
+        ], ['new_mobile.unique' => 'This mobile number is already registered.', 'new_mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
 
         if (MobileChangeRequest::where('user_id', $user->id)->where('status', 'pending')->exists()) {
             return back()->with('warning', 'You already have a pending mobile change request.');

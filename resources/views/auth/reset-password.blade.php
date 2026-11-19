@@ -19,7 +19,7 @@
                 <label class="form-label" for="mobile">Mobile number <span class="req">*</span></label>
                 <div class="input-group">
                     <span class="input-group-text">+91</span>
-                    <input type="tel" inputmode="numeric" maxlength="10" name="mobile" id="mobile" value="{{ old('mobile') }}" class="form-control @error('mobile') is-invalid @enderror" required>
+                    <input type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" data-mobile name="mobile" id="mobile" value="{{ old('mobile') }}" class="form-control @error('mobile') is-invalid @enderror" required>
                     @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

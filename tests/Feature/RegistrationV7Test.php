@@ -88,4 +88,35 @@ class RegistrationV7Test extends TestCase
         ])->assertSessionHasNoErrors();
         $this->assertNull($officer->fresh()->employee_id);
     }
+
+    /** V7-2: a mobile number must start with 6, 7, 8 or 9 everywhere it is entered. */
+    public function test_mobile_must_start_with_six_to_nine(): void
+    {
+        foreach (['5876543210', '0876543210', '987654321', '98765432a0'] as $bad) {
+            $this->post(route('register'), $this->payload(['mobile' => $bad]))->assertSessionHasErrors('mobile');
+        }
+        $this->post(route('register'), $this->payload(['mobile' => '5876543210']))
+            ->assertSessionHasErrors(['mobile' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
+        foreach (['6876543210', '7876543210', '8876543210', '9876543210'] as $good) {
+            $this->post(route('register'), $this->payload(['mobile' => $good]))->assertSessionHasNoErrors();
+        }
+
+        $this->post(route('login'), ['mobile' => '5876543210', 'password' => 'Whatever@1'])->assertSessionHasErrors('mobile');
+        $this->post(route('password.email'), ['mobile' => '5876543210'])->assertSessionHasErrors('mobile');
+
+        $officer = $this->officer(UserLevel::Cluster);
+        $this->actingAs($officer)->post(route('profile.mobile'), ['current' => $officer->mobile, 'new_mobile' => '5876543210', 'reason' => 'New SIM'])
+            ->assertSessionHasErrors('new_mobile');
+    }
+
+    /** V7-2: the other registration fields are checked on the server as well as in the form. */
+    public function test_name_email_and_password_limits(): void
+    {
+        $this->post(route('register'), $this->payload(['name' => 'Asha 123']))->assertSessionHasErrors('name');
+        $this->post(route('register'), $this->payload(['name' => 'A']))->assertSessionHasErrors('name');
+        $this->post(route('register'), $this->payload(['email' => str_repeat('a', 145).'@x.org']))->assertSessionHasErrors('email');
+        $long = 'Aa1@'.str_repeat('x', 61);
+        $this->post(route('register'), $this->payload(['password' => $long, 'password_confirmation' => $long]))->assertSessionHasErrors('password');
+        $this->post(route('register'), $this->payload(['name' => "Rina D'Souza-Bora Jr."]))->assertSessionHasNoErrors();
+    }
 }

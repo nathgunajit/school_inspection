@@ -32,7 +32,7 @@ Source: `Documents/Modification of the ApplicationV7.docx`. Date: 19-11-2026. Th
 | # | Module | V7 item | Decision | Status |
 |---|---|---|---|---|
 | V7-1 | Optional Employee ID and identity proof | Employee ID and Identity proof not mandatory | `users.employee_id` nullable (still unique); both fields optional on the form and in admin edit; "Not provided" where empty | Done (#79) |
-| V7-2 | Mobile 6–9 and validation audit | Mobile must start with 6, 7, 8, 9; check DB and UI validation | UI pattern and live message; server regex on login and reset too; MySQL CHECK constraint; every registration field's UI, server and column limits aligned (already-correct ones skipped) | Planned |
+| V7-2 | Mobile 6–9 and validation audit | Mobile must start with 6, 7, 8, 9; check DB and UI validation | UI pattern and live message; server regex on login and reset too; MySQL CHECK constraint; every registration field's UI, server and column limits aligned (already-correct ones skipped) | Done (#80) |
 | V7-3 | Form polish | Dropdown placeholder colour; standard file size; designation "Other"; highlighted privacy checkbox | Grey placeholder on every empty select; sizes from config ("Max 1 MB"); "Other" designation with a text box (`users.designation_other`, `User::designation_label`); consent panel | Planned |
 | V7-4 | Keep uploads after an error | Uploaded files not removed when the form fails | Valid files are stashed on the private disk for the session and shown as "kept from your last attempt"; purged after 24 h | Planned |
 | V7-5 | Rating card redesign | Rating on the inspection view more attractive and clean | New hero (dial, band, change against the previous rating, band scale), section tiles, strengths / weaknesses / improvement cards | Planned |

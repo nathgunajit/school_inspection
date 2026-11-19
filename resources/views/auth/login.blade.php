@@ -30,7 +30,7 @@
                     <label class="form-label" for="mobile">Mobile number <span class="req">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text">+91</span>
-                        <input type="tel" inputmode="numeric" maxlength="10" pattern="\d{10}" id="mobile" name="mobile" value="{{ old('mobile') }}"
+                        <input type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" data-mobile id="mobile" name="mobile" value="{{ old('mobile') }}"
                                class="form-control @error('mobile') is-invalid @enderror" placeholder="10-digit mobile number" autocomplete="username" required autofocus>
                         @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

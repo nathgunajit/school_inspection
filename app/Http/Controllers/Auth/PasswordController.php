@@ -28,7 +28,7 @@ class PasswordController extends Controller
         $user = $request->user();
         $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', 'different:current_password', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
+            'password' => ['required', 'confirmed', 'max:64', 'different:current_password', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
         ]);
 
         $user->forceFill(['password' => $request->password, 'must_change_password' => false])->save();
@@ -44,7 +44,7 @@ class PasswordController extends Controller
 
     public function sendLink(Request $request)
     {
-        $request->validate(['mobile' => ['required', 'digits:10']]);
+        $request->validate(['mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/']], ['mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
         $user = User::where('mobile', $request->mobile)->whereNotNull('email')->first();
 
         if ($user) {
@@ -66,9 +66,9 @@ class PasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'mobile' => 'required|digits:10',
-            'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
-        ]);
+            'mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/'],
+            'password' => ['required', 'confirmed', 'max:64', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
+        ], ['mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
 
         $status = Password::broker()->reset(
             $request->only('email', 'mobile', 'password', 'password_confirmation', 'token'),
