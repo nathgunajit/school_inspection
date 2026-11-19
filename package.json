@@ -16,6 +16,7 @@
         "laravel-vite-plugin": "^1.2.0",
         "leaflet": "^1.9.4",
         "leaflet.markercluster": "^1.5.3",
+        "node-forge": "^1.4.3",
         "sass": "^1.99.0",
         "sortablejs": "^1.15.7",
         "vite": "^6.0.11"

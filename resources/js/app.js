@@ -1,5 +1,6 @@
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import './password-encrypt';
 
 window.bootstrap = bootstrap;
 window.axios = axios;

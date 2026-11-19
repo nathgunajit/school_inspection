@@ -77,6 +77,14 @@ return [
         'day_start' => '09:30',         // planned start of the day's visits
     ],
 
+    // V6 Module 5: passwords are RSA-encrypted in the browser before submit (App\Services\PasswordCrypto)
+    'security' => [
+        'encrypt_passwords' => (bool) env('PASSWORD_ENCRYPTION', true),
+        // refuse a plain-text password (off in phpunit.xml; also accepted in load-test mode)
+        'require_encrypted_password' => (bool) env('PASSWORD_ENCRYPTION_REQUIRED', true),
+        'key_dir' => 'keys', // on the private disk: storage/app/private/keys
+    ],
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,

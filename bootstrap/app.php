@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'password.fresh' => \App\Http\Middleware\ForcePasswordChange::class,
         ]);
+        // V6 Module 5: password fields arrive RSA-encrypted from the browser
+        $middleware->web(append: [\App\Http\Middleware\DecryptPasswordFields::class]);
         $middleware->redirectGuestsTo('/login');
         $middleware->redirectUsersTo('/dashboard');
     })

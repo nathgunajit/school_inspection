@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(PermissionService::class);
         $this->app->scoped(JurisdictionService::class);
+        $this->app->singleton(\App\Services\PasswordCrypto::class);
         $this->app->bind(OtpSender::class, LogOtpSender::class);
     }
 

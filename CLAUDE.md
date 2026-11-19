@@ -81,6 +81,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - JSON for JS carries a `key` field for URL placeholders (`__ID__`).
     - A new route-bound model must use the trait.
     - Query-string filters (`?cluster=`) stay numeric and are scoped by `JurisdictionService`.
+14. **Passwords are RSA-encrypted in the browser** (V6 Module 5).
+    - `resources/js/password-encrypt.js` handles every form with `password`, `password_confirmation` or `current_password`.
+    - The global web middleware `DecryptPasswordFields` decrypts them before validation (`App\Services\PasswordCrypto`, keys from `php artisan security:keys` in `storage/app/private/keys`).
+    - Plain text is refused unless `PASSWORD_ENCRYPTION_REQUIRED=false` (as in phpunit.xml) or load-test mode is on.
+    - In tests, post `app(PasswordCrypto::class)->encryptForSession($pw)` after a GET, which creates the nonce.
+    - Never submit a password form with `form.submit()`: it skips the submit event, so the password is not encrypted.
 
 ## Conventions
 - Validate with Form Requests and authorize with policies/gates; keep controllers thin and put logic in services.

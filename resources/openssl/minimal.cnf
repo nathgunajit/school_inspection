@@ -1,0 +1,4 @@
+# Minimal OpenSSL config for RSA key generation on Windows/XAMPP, where no default openssl.cnf is found.
+[ req ]
+distinguished_name = req_dn
+[ req_dn ]

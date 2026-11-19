@@ -945,3 +945,61 @@ Plan approved by the user. Decisions:
   - `PROJECT_DOCUMENT.md` (4.2, 7.3)
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 71. V6 Module 5: password encrypted in the browser before submit (2026-11-19)
+- **Request:** V6 item "Password When Submitted Automatically Encrypted". The plain password must not travel in the request.
+- **Done:**
+  - **`App\Services\PasswordCrypto`** (singleton):
+    - The RSA-2048 key pair is kept on the private disk (`storage/app/private/keys/password.key|.pub`), created on first use or by the new command `php artisan security:keys [--force]`.
+    - A minimal `resources/openssl/minimal.cnf` is used for key generation, because XAMPP on Windows has no default `openssl.cnf`.
+    - Per-session nonce; decryption with RSA-OAEP. OAEP uses SHA-1, the only OAEP hash PHP's openssl supports.
+  - **`partials/password-key.blade.php`:** `<meta name="pw-key" content="<SPKI>" data-nonce="…">` in the portal and app layouts.
+  - **`resources/js/password-encrypt.js`** (imported by `app.js`):
+    - A document-level submit handler runs after the form's own handlers.
+    - It encrypts `password`, `password_confirmation` and `current_password` as `enc:` + base64(RSA-OAEP(JSON {p, n})) into hidden copies. The visible inputs lose their name, so password managers still work.
+    - It keeps the submitter's name and value; it restores the form on a bfcache restore; it shows a toast on failure.
+    - It uses WebCrypto. In an insecure context (plain HTTP on a LAN IP) it loads `node-forge` on demand, as a separate chunk (new dev dependency).
+  - **`DecryptPasswordFields`** (appended to the web middleware group):
+    - It decrypts before validation, so the Form Requests and bcrypt are unchanged.
+    - It refuses a wrong nonce, a damaged value, or plain text (when `inspection.security.require_encrypted_password` is on) with "Your password could not be sent securely…". A refused value is not counted as a failed login.
+  - **Config:** `inspection.security` (`PASSWORD_ENCRYPTION`, `PASSWORD_ENCRYPTION_REQUIRED`).
+    - `phpunit.xml` turns off the "required" switch for the older tests.
+    - Load-test mode accepts plain passwords, because `tools/loadtest` posts plain text.
+  - **`.env.example`:** production checklist and settings.
+- **Verification:**
+  - New `PasswordEncryptionTest` (6 tests):
+    - meta key and nonce
+    - encrypted login works; plain refused and not counted as a failure
+    - wrong nonce or damaged value refused
+    - encrypted change password works, and no plain text is in the audit log
+    - plain accepted when not required
+    - the key command keeps an existing pair
+  - Full suite: 94 passed.
+  - **Node against the live Apache login:** WebCrypto (RSA-OAEP SHA-1) and node-forge ciphertexts both log in; plain text is refused.
+  - **Headless Chrome** (puppeteer-core, scratch only, not added to the project), demo officer 9000000033:
+    - login reaches `/dashboard`; the POST body has `password=enc:…` (370 characters) and no plain password
+    - change password Demo@1234 → Temp@98765 → Demo@1234: 3 encrypted fields each time, no plain text; the password is back to Demo@1234
+    - with `isSecureContext` forced off, the forge chunk loads and login still works
+  - The real `audit_logs` table gained the matching `login` and `password_changed` rows (append-only, left as is).
+- **Deploy:**
+  - `npm install && npm run build`
+  - `php artisan security:keys`, then back up `storage/app/private/keys`
+- Files:
+  - `app/Services/PasswordCrypto.php`
+  - `app/Http/Middleware/DecryptPasswordFields.php`
+  - `app/Console/Commands/GeneratePasswordKeys.php`
+  - `app/Providers/AppServiceProvider.php`
+  - `bootstrap/app.php`
+  - `config/inspection.php`
+  - `phpunit.xml`
+  - `resources/openssl/minimal.cnf`
+  - `resources/views/partials/password-key.blade.php`
+  - `resources/views/components/layouts/app.blade.php`, `portal.blade.php`
+  - `resources/js/password-encrypt.js`, `app.js`
+  - `package.json`, `package-lock.json`
+  - `tests/Feature/PasswordEncryptionTest.php`
+  - `.env.example`
+  - `CLAUDE.md` (rule 14)
+  - `PROJECT_DOCUMENT.md` (4.2)
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

@@ -151,6 +151,21 @@ flowchart TD
 ```
 The login form allows 10 attempts per minute from one IP address. Forgot password sends a reset link by email.
 
+**Password encrypted before submit (V6 Module 5).** The browser never sends a password in plain text, not even over plain HTTP.
+- **Forms covered:** login, registration, change password and reset password. In fact, any form with a `password`, `password_confirmation` or `current_password` field.
+- **How it works:**
+  1. Every page carries the server's RSA-2048 public key and a per-session nonce (`<meta name="pw-key">`).
+  2. `resources/js/password-encrypt.js` replaces each field with `enc:` + RSA-OAEP(password + nonce).
+     - It uses WebCrypto.
+     - On plain HTTP over a LAN address, where WebCrypto is unavailable, it loads `node-forge` on demand.
+  3. The `DecryptPasswordFields` middleware decrypts the value before validation. Storage stays bcrypt.
+- **What is refused:**
+  - a value from another session (wrong nonce), or a damaged value
+  - a plain-text value, when `PASSWORD_ENCRYPTION_REQUIRED=true` (default; load-test mode excepted)
+
+  The user sees "Your password could not be sent securely. Please reload the page and try again." A refused value is not counted as a wrong password.
+- **Keys:** `php artisan security:keys` creates the pair in `storage/app/private/keys` (also created on first use); `--force` replaces it. Back up `password.key` with the server.
+
 **Encrypted record IDs in URLs (V6 Module 4).** Records never appear in a URL by their database number. `/schools/203` is now `/schools/FJyzzv-_Vd03dtnCGFS8opNNXg-x3KyMhWuQQ4ueHOI`.
 - **What it covers:** every model bound in a route (inspections and their rows, schools, users, registrations, schedules and items, evidence, mobile requests, import batches) uses the trait `HasEncryptedRouteKey`. The admin location editor uses the same token.
 - **The token:** `App\Support\UrlId` builds it with AES-256 under keys derived from `APP_KEY`, plus an HMAC check.

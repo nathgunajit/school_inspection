@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1565c0">
+    @include('partials.password-key')
     <title>{{ $title }} · {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
