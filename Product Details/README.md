@@ -15,6 +15,7 @@ The technical chapters (Part A) were prepared on 19-11-2026, as asked in `Requir
 | A6 | [System_Architecture_and_Workflow.md](System_Architecture_and_Workflow.md) | Architects | 8 Mermaid diagrams: architecture, ER, access, hierarchy, workflows, data flow, modules |
 | A7 | [Technical_Audit_and_Recommendations.md](Technical_Audit_and_Recommendations.md) | Management, developers | Security, DB, code and performance findings; inconsistencies; fixes |
 | A8 | [Future_Recommendations_Gaps_and_Roadmap.md](Future_Recommendations_Gaps_and_Roadmap.md) | Management | Functional and technical gaps, technology choices, phased roadmap |
+| A9 | [Installed_Packages_and_Libraries.md](Installed_Packages_and_Libraries.md) | Developers, operations | Every installed package and library, versions, licences, use case and where used; audit and update status |
 
 ## Part B: Project documents (kept up to date with each modification)
 | # | Document | Contents |

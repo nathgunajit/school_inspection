@@ -1614,3 +1614,22 @@ Plan approved by the user. Decisions:
   - `php -l` is clean on every PHP file touched (comment-only changes).
   - The `.docx` XML parses: 15 chapters plus the appendix, 141 tables, every image resolved, no zip folder entries.
   - It was not rendered visually, because Word and LibreOffice are not installed.
+
+## 90. Report: installed packages and libraries with use cases (2026-11-19)
+- **Added:** `Product Details/Installed_Packages_and_Libraries.md`, also chapter **A9** of the combined Word file and listed in the folder README. It covers:
+  - the runtime and the PHP extensions each package needs
+  - Composer packages: 6 production and 7 development direct, 129 installed
+  - npm packages: 14 direct, 157 installed, split into bundled libraries and build tools
+  - the docs builder
+  - the browser APIs used, and the external services
+  - a table from each use case to the packages behind it
+  - recommendations
+- **Facts checked:**
+  - Versions come from `composer.lock` and `package-lock.json`.
+  - Where each package is used was found by grepping `app/`, `resources/` and `tests/`.
+  - `composer audit` and `npm audit` found no vulnerabilities.
+  - `composer outdated --direct` lists laravel/framework 12.73 (patch), sail 1.71 and tinker 3.2 (major); `npm outdated` lists nothing.
+  - Installed but unused: `@fontsource-variable/inter`, `laravel/sail`, `mockery/mockery`.
+- **Also:** the new `Documents/Modification of the ApplicationV8.docx` was copied to `Product Details/Requirements/`, and the Word file was rebuilt (`tools/docs`). It now has 154 tables, A9 and the V8 row in the appendix, and its XML parses.
+- The Word file was locked by another program at first. It was not among the documents open in Word, and the lock was released before the rebuild.
+- A PDF render through Word automation failed (COM interface error; Word shows "Product Activation Failed"). The hidden Word instance that the attempt started was stopped.
