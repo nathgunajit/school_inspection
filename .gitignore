@@ -30,3 +30,6 @@ yarn-error.log
 
 # Load-test results (tools/loadtest)
 /storage/loadtest
+
+# Raw boundary KML (17 MB); only the GeoJSON built by `php artisan map:boundaries` is committed
+/public/KML

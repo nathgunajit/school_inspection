@@ -11,6 +11,20 @@ Delivery is one module at a time. Each module is committed and pushed on its own
 | 2 | Map-based Inspection Scheduling (drag and drop) | #67 | Done |
 | 3 | Automatic Inspection Rating | #68 | Done |
 
+## V6 modules (Modification of the Application V6)
+
+Source: `Documents/Modification of the ApplicationV6.docx`. Date: 19-11-2026. The same delivery rule applies: one module at a time, each committed and pushed, each with an ACTION.md entry.
+
+| # | Module | V6 item | Decision | Status |
+|---|---|---|---|---|
+| 4 | URL encryption | Security for URL Encryption | Record IDs in URLs become deterministic, tamper-proof AES tokens (`App\Support\UrlId`, trait `HasEncryptedRouteKey`); a numeric or edited ID returns 404 | Planned |
+| 5 | Password encryption on submit | Password When Submitted Automatically Encrypted | The browser encrypts password fields with RSA-OAEP (WebCrypto, `node-forge` fallback on plain HTTP) plus a session nonce; `DecryptPasswordFields` middleware decrypts before validation; storage stays bcrypt | Planned |
+| 6 | Login monitoring report | Login User Monitoring Report (State Administrator) | `user_login_logs` table (login, logout, last seen, device, IP, failures); `/admin/login-report` with tiles, filters, per-user history, Excel | Planned |
+| 7 | District boundary from KML | Use District KML for District | Per-district GeoJSON from `public/KML/Assam/Assam Dist`; District, Block and Cluster officers see their own district outlined and zoomed; `map:boundaries --check` lists unmatched districts | Planned |
+| 8 | My location, distance and road route | Showing My Current Location in Map and distance from the school if selected and road view | GPS "My location" control; straight-line and road distance and drive time with the route drawn (OSRM, configurable); "Open in Google Maps" link; on `/map` and the school page | Planned |
+| 9 | Rating shown for the school | Rating Display the School | Latest rating badge and trend on the school list and page; map markers can be coloured by rating band; average rating per area | Planned |
+| 10 | Rating report | Rating Report | `/reports/ratings`: summary, band distribution, area drill-down, section averages, school table, Excel and PDF, scoped by jurisdiction | Planned |
+
 
 ## Context
 The new document asks for three modules on top of the existing Laravel/MySQL app:

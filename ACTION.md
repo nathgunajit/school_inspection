@@ -884,3 +884,20 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 69. V6 module development plan (2026-11-19)
+- **Request:** `Documents/Modification of the ApplicationV6.docx` lists 7 items: URL encryption, password encryption on submit, a login monitoring report for the State Admin, the district KML for districts, my location with distance and road route, the rating shown for schools, and a rating report.
+- **Done:**
+  - Agreed the meaning of the unclear items with the user:
+    - URLs: encrypt the record IDs.
+    - Passwords: RSA encryption in the browser before submit.
+    - "District form the school": distance from the school, plus the road route (OSRM) and a Google Maps link.
+    - District KML: show the officer's own district boundary.
+  - Planned modules 4 to 10 in `NEW_MODULES_PLAN.md` ("V6 modules" table). Each is built one at a time, then committed and pushed with its own ACTION entry.
+  - `.gitignore`: added `/public/KML`. The raw KML (17 MB) stays local; only the generated GeoJSON is committed, as CLAUDE.md requires.
+  - Committed the V6 source document.
+- Files:
+  - `NEW_MODULES_PLAN.md`
+  - `.gitignore`
+  - `Documents/Modification of the ApplicationV6.docx`
+  - `ACTION.md`
