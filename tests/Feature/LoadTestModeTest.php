@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
-/** The load-test switch (LOAD_TEST.md) only lifts the login rate limit outside production. */
+/** The load-test switch (Product Details/LOAD_TEST.md) only lifts the login rate limit outside production. */
 class LoadTestModeTest extends TestCase
 {
     private function loginLimit(): int

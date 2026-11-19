@@ -9,7 +9,7 @@ use App\Models\Permission;
 use Tests\TestCase;
 
 /**
- * Check of every user type (Modification V5 Step 1, PROJECT_DOCUMENT.md section 3):
+ * Check of every user type (Modification V5 Step 1, Product Details/PROJECT_DOCUMENT.md section 3):
  * which screens each level can open, and which inspections each level can see.
  */
 class UserTypeAccessTest extends TestCase

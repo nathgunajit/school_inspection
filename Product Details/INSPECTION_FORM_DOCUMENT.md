@@ -53,7 +53,7 @@ This document goes deeper into the form than `PROJECT_DOCUMENT.md` (section 4.4)
 ### 2.1 Sign in and dashboard
 | Login | Dashboard |
 |---|---|
-| ![Login](docs/screenshots/01-login.png) | ![Dashboard](docs/screenshots/02-dashboard.png) |
+| ![Login](../docs/screenshots/01-login.png) | ![Dashboard](../docs/screenshots/02-dashboard.png) |
 
 The dashboard shows:
 - **Start inspection** and **New inspection** buttons
@@ -61,14 +61,14 @@ The dashboard shows:
 - **Continue where you left off**: open drafts with their completion %
 
 ### 2.2 Find the school
-![Find school](docs/screenshots/03-find-school.png)
+![Find school](../docs/screenshots/03-find-school.png)
 
 - **Find School** lists only the schools in the officer's own area (`JurisdictionService`).
 - Search by UDISE code or name, or filter by block and cluster.
 - Badges warn when a school is being inspected by another officer, or was already inspected this month.
 
 ### 2.3 School page and the Start button
-![School detail](docs/screenshots/04-school-detail.png)
+![School detail](../docs/screenshots/04-school-detail.png)
 
 The right-hand card changes with the start rules:
 - **Start inspection:** no blocking inspection exists.
@@ -88,7 +88,7 @@ Every step page has the same frame:
 - **Bottom bar:** Back, "n left in this step", and Next (Review on step 7). Below it is **Cancel this draft**.
 
 ### Step 1: Condition of the School
-![Step 1](docs/screenshots/05-step1-condition.png)
+![Step 1](../docs/screenshots/05-step1-condition.png)
 
 - **Person met:** name and designation (`BAS_PERSON_NAME`, `BAS_PERSON_DESIG`). They are also copied to `inspections.person_met_name` and `person_met_designation` for lists.
 - **Building and basic facilities:** `CND_01` building type (Pucca / Semi Pucca / Others) and `CND_02`–`CND_08` Yes/No.
@@ -100,7 +100,7 @@ Every step page has the same frame:
 - A tick next to a question means it is saved. A red star means it is required.
 
 ### Step 2: Teacher's & Student's Information
-![Step 2](docs/screenshots/06-step2-strength.png)
+![Step 2](../docs/screenshots/06-step2-strength.png)
 
 - 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
 - **Automatic totals (display only, not stored):**
@@ -110,7 +110,7 @@ Every step page has the same frame:
 - **Warning (does not block):** teachers present is more than the total.
 
 ### Step 3: Teachers Absentee Form
-![Step 3](docs/screenshots/07-step3-absentee.png)
+![Step 3](../docs/screenshots/07-step3-absentee.png)
 
 - Add one row per absent teacher:
   - **name** (2–120 characters)
@@ -121,7 +121,7 @@ Every step page has the same frame:
 - **Warning (does not block):** step 2 shows 3 teachers absent but only 1 row was entered.
 
 ### Step 4: Class Room Performance
-![Step 4](docs/screenshots/08-step4-classroom.png)
+![Step 4](../docs/screenshots/08-step4-classroom.png)
 
 - One row per class observed:
   - **teacher name**
@@ -133,7 +133,7 @@ Every step page has the same frame:
 - **At least one row is required** to submit.
 
 ### Step 5: Fund Received & Expenditure
-![Step 5](docs/screenshots/09-step5-fund.png)
+![Step 5](../docs/screenshots/09-step5-fund.png)
 
 1. **Choose the financial year:** the current one and the 5 before it, e.g. `FY-2026-27`.
 2. **Enter the amounts in lakh** (up to 2 decimals, 0–99,999), received and expenditure for each head:
@@ -145,7 +145,7 @@ Every step page has the same frame:
 At least one amount is needed per year. Saving the same year again **updates** that year; there is one row per year (unique key). The **year-wise summary** shows received, expenditure and balance. The step is optional.
 
 ### Step 6: School Governance
-![Step 6](docs/screenshots/10-step6-governance.png)
+![Step 6](../docs/screenshots/10-step6-governance.png)
 
 - `GOVR_01` Method of Teaching, `GOVR_02`–`GOVR_19` Yes/No, and `GOVR_20`–`GOVR_24` Satisfactory / Unsatisfactory.
 - **Reason boxes appear only when the answer is No,** and are then required:
@@ -157,7 +157,7 @@ At least one amount is needed per year. Saving the same year again **updates** t
 - **Suggestions:** up to 3 free-text lines, each up to 500 characters. They are saved 0.9 s after typing stops.
 
 ### Step 7: Photographs of School
-![Step 7](docs/screenshots/11-step7-photos.png)
+![Step 7](../docs/screenshots/11-step7-photos.png)
 
 - **Four mandatory slots** (from `config('inspection.mandatory_photos')`): Photograph of School, Toilet Block, ICT Lab / Smart Classroom / Tele Education, Classroom Transaction. Each slot has **Camera** (the in-app camera) and **Gallery** (the phone gallery).
 - **Additional photographs:** optional, up to 20 photos in total.
@@ -172,7 +172,7 @@ At least one amount is needed per year. Saving the same year again **updates** t
 
 | Phone: step 1 | Phone: step 7 |
 |---|---|
-| ![Mobile step 1](docs/screenshots/15-mobile-step1.png) | ![Mobile step 7](docs/screenshots/16-mobile-photos.png) |
+| ![Mobile step 1](../docs/screenshots/15-mobile-step1.png) | ![Mobile step 7](../docs/screenshots/16-mobile-photos.png) |
 
 On a phone, the stepper wraps into a grid and the bottom navigation bar (Home, My Visits, +, Area, Profile) replaces the sidebar.
 
@@ -181,7 +181,7 @@ On a phone, the stepper wraps into a grid and the bottom navigation bar (Home, M
 ## 4. Moving between steps, missing items, review and submit
 
 ### 4.1 "Items still to fill" when leaving a step
-![Missing items](docs/screenshots/12-missing-items.png)
+![Missing items](../docs/screenshots/12-missing-items.png)
 
 - **Next** first waits until every pending save has finished.
 - If the step still has missing items, the officer sees this dialog with a list of them:
@@ -190,7 +190,7 @@ On a phone, the stepper wraps into a grid and the bottom navigation bar (Home, M
 - If saves or uploads are still running, the browser asks before the page is closed.
 
 ### 4.2 Review & Submit
-![Review](docs/screenshots/13-review.png)
+![Review](../docs/screenshots/13-review.png)
 
 - **Review** shows every answer, grouped by step, and lists all missing items with a link straight to the question (`step/N#q-CODE`).
 - **Submit** works only when nothing is missing and the officer ticks "I confirm that the information is correct". The phone's GPS position at submit is stored as well.
@@ -495,7 +495,7 @@ The browser uses it to update the % bar, the stepper badges and "n left in this 
 ---
 
 ## 8. The submitted report and PDF
-![Report](docs/screenshots/14-report.png)
+![Report](../docs/screenshots/14-report.png)
 
 `GET /inspections/{id}` (`ReportController@show`) shows:
 - a header with the status, the inspection number, the school and the area

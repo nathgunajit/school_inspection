@@ -1,0 +1,7 @@
+{
+  "name": "si-docs-builder",
+  "private": true,
+  "description": "Builds Product Details/School_Inspection_Product_Details.docx from the Markdown documents. Not part of the application.",
+  "scripts": { "build": "node build-product-docx.cjs" },
+  "dependencies": { "docx": "^9.5.1", "marked": "^14.1.4" }
+}

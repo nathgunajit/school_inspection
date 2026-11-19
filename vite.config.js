@@ -17,6 +17,6 @@ export default defineConfig(({ command }) => ({
             scss: { quietDeps: true, silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'mixed-decls'] },
         },
     },
-    // Supported browsers (BROWSER_SUPPORT.md): Chrome / Edge / Firefox 100+, Safari 15+
+    // Supported browsers (Product Details/BROWSER_SUPPORT.md): Chrome / Edge / Firefox 100+, Safari 15+
     build: { target: ['chrome100', 'edge100', 'firefox100', 'safari15'] },
 }));

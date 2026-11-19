@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Modification V4 item 5: indexes for the queries the application actually runs.
- * Each index is named after the screen or job it serves. See DB_INDEXING.md for the full report.
+ * Each index is named after the screen or job it serves. See Product Details/DB_INDEXING.md for the full report.
  * Only adds indexes (no data change); safe to run on a live database. Skips any index that already exists.
  */
 return new class extends Migration

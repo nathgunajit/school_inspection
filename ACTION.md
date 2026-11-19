@@ -1589,3 +1589,28 @@ Plan approved by the user. Decisions:
   - Every file path, class and route name cited in the documents was checked to exist; the only ones missing are the items the brief expected and the documents state are absent.
   - No credentials, demo passwords or personal data appear in the documents.
   - The `.docx` XML parses: 8 chapters, 84 tables, 17 images, no zip folder entries. It was not rendered visually, because Word and LibreOffice are not installed.
+
+## 89. "Product Details" folder and one combined Word document (2026-11-19)
+- **Request:** put all the documents into one Product Details folder and make a single Word document.
+- **Moved** (`git mv`, history kept) into `Product Details/`:
+  - the technical set (formerly `documentation/`)
+  - `PROJECT_DOCUMENT.md`, `INSPECTION_FORM_DOCUMENT.md`, `NEW_MODULES_PLAN.md`, `DB_INDEXING.md`, `LOAD_TEST.md`, `BROWSER_SUPPORT.md`
+  - Root `README.md`, `CLAUDE.md` and `ACTION.md` stay at the root.
+- **Copied:** `Documents/*` into `Product Details/Requirements/`, without the Office lock file. `Documents/` stays the master copy, because code comments cite "PRD x.y".
+- **Single Word file:** `Product Details/School_Inspection_Product_Details.docx`. It replaces `School_Inspection_Technical_Documentation.docx` and contains:
+  - a title page and a table of contents
+  - Part A, the technical documentation (A1–A8)
+  - Part B, the project documents (B1–B6, with their screenshots)
+  - Part C, an appendix table of the requirement files
+  - Mermaid diagrams written out as numbered steps
+- **Builder:** `tools/docs/build-product-docx.cjs` with its own `package.json` (docx, marked). Its `node_modules` is git-ignored, and the application's dependencies are unchanged. Rebuild with `cd tools/docs && npm install && npm run build`.
+- **References updated:**
+  - `CLAUDE.md`: the New Modules line, and a new "Product documents" section.
+  - Comments that named the moved files, now pointing to `Product Details/...`: `AppServiceProvider`, `config/inspection.php`, two migrations, `LoadTestSeeder`, two tests, `tools/loadtest/loadtest.php`, `vite.config.js`, `postcss.config.js`.
+  - Screenshot links in `INSPECTION_FORM_DOCUMENT.md` (now `../docs/screenshots/`).
+  - The folder README and the file tree in A2.
+  - Older ACTION.md entries are left unchanged, as the history of that time.
+- **Verification:**
+  - `php -l` is clean on every PHP file touched (comment-only changes).
+  - The `.docx` XML parses: 15 chapters plus the appendix, 141 tables, every image resolved, no zip folder entries.
+  - It was not rendered visually, because Word and LibreOffice are not installed.

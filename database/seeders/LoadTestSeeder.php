@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Load-test data (Modification V5 Step 2, see LOAD_TEST.md). Local/testing only.
+ * Load-test data (Modification V5 Step 2, see Product Details/LOAD_TEST.md). Local/testing only.
  *
  *  - LOADTEST_USERS officers (Cluster level, Active): mobiles 7000000001…, password Load@1234.
  *    Officer n owns school n (its "form school") so the start rules never block a virtual user.
@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
  *  - LOADTEST_INSPECTIONS submitted inspections before the current month, each with every V2 answer,
  *    so lists, reports and indexes work on a realistic volume.
  *
- * Run on a backed-up database and restore it afterwards (LOAD_TEST.md, section 2).
+ * Run on a backed-up database and restore it afterwards (Product Details/LOAD_TEST.md, section 2).
  */
 class LoadTestSeeder extends Seeder
 {

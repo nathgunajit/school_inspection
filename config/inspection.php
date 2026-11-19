@@ -47,7 +47,7 @@ return [
     // Demo accounts panel on the login page (DemoUserSeeder). Never shown when APP_ENV=production.
     'demo_logins' => (bool) env('DEMO_LOGINS', true),
 
-    // Load testing only (V5 Step 2, LOAD_TEST.md): lifts the per-IP login rate limit. Always off in production.
+    // Load testing only (V5 Step 2, Product Details/LOAD_TEST.md): lifts the per-IP login rate limit. Always off in production.
     'loadtest' => (bool) env('LOADTEST_MODE', false) && env('APP_ENV') !== 'production',
 
     // New Module 1, Map View: OpenStreetMap tiles through Leaflet (bundled, no CDN).

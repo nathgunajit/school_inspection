@@ -7,7 +7,7 @@ Guidance for Claude Code (and developers) working in this repository.
 - Spec: `Documents/School_Inspection_PRD.docx` (v3.0). The section numbers quoted in code comments (e.g. "PRD 8.2") refer to it.
 - Paper form screenshots: `Documents/*.png`.
 - Phase 2 (review, configurable questionnaire, offline, dashboards, notifications) is **out of scope**. Don't build it, but don't block it either.
-- **New Modules** (`Documents/Modification of the Application New Module.docx`, plan in `NEW_MODULES_PLAN.md`): 1 Map View (done), 2 map-based Inspection Scheduling (done), 3 Automatic Inspection Rating (done). These are requested now, even where they overlap Phase 2 (e.g. scoring).
+- **New Modules** (`Documents/Modification of the Application New Module.docx`, plan in `Product Details/NEW_MODULES_PLAN.md`): 1 Map View (done), 2 map-based Inspection Scheduling (done), 3 Automatic Inspection Rating (done). These are requested now, even where they overlap Phase 2 (e.g. scoring).
 
 ## Stack
 - Laravel 12, PHP 8.2 (XAMPP at `D:\xampp\php`), MySQL database **`schoolinspection`** (root, no password locally)
@@ -121,6 +121,15 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 ## Testing safety
 - Tests must run on in-memory SQLite only. `tests/TestCase.php` aborts if the connection is anything else.
 - **Never run `php artisan test` while the config is cached.** A cached config makes phpunit.xml be ignored, and RefreshDatabase would wipe MySQL. Run `php artisan config:clear` first.
+
+## Product documents
+All product and technical documents live in **`Product Details/`**:
+- the technical set (database, architecture, mechanism, roles, UI, diagrams, audit, roadmap)
+- `PROJECT_DOCUMENT.md`, `INSPECTION_FORM_DOCUMENT.md`, `NEW_MODULES_PLAN.md`, `DB_INDEXING.md`, `LOAD_TEST.md`, `BROWSER_SUPPORT.md`
+- `Requirements/`: copies of `Documents/`, which stays the master copy
+- the combined Word file `School_Inspection_Product_Details.docx`
+
+When a document changes, rebuild the Word file.
 
 ## ACTION log
 After completing each meaningful action (feature, migration, fix, config change), append an entry to **`ACTION.md`**: date, what was done, files touched, result or verification.

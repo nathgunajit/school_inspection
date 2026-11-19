@@ -1,6 +1,6 @@
 <?php
 /**
- * Load driver (Modification V5 Step 2, see LOAD_TEST.md).
+ * Load driver (Modification V5 Step 2, see Product Details/LOAD_TEST.md).
  *
  * Simulates N officers at the same moment, each with its own cookies and CSRF token, against the app
  * served by Apache. Needs the LoadTestSeeder data and LOADTEST_MODE=true (local only).
@@ -156,7 +156,7 @@ echo str_repeat('-', 110), "\n";
 $pdo->exec('flush status'); // resets Max_used_connections (session counters); harmless locally
 
 // Warm-up: one officer walks the scenario first (not measured), so Apache compiles every Blade view once.
-// On Windows, many threads compiling the same view at once collide on rename() (LOAD_TEST.md finding 2).
+// On Windows, many threads compiling the same view at once collide on rename() (Product Details/LOAD_TEST.md finding 2).
 runStep(1, $scenario, $base, $schoolOf, $codes, $offset);
 
 foreach ($steps as $users) {

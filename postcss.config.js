@@ -1,4 +1,4 @@
-// Vendor prefixes for the supported browsers (see "browserslist" in package.json and BROWSER_SUPPORT.md)
+// Vendor prefixes for the supported browsers (see "browserslist" in package.json and Product Details/BROWSER_SUPPORT.md)
 import autoprefixer from 'autoprefixer';
 
 export default {

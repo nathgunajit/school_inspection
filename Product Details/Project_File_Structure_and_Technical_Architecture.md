@@ -56,7 +56,7 @@ SCHOOLINSPECTION/
 │   └── factories/             UserFactory
 ├── Documents/                 PRD, Modification V1–V7 requests, paper form images, this documentation brief
 ├── docs/screenshots/          16 UI screenshots used by the documents
-├── documentation/             THIS documentation set
+├── Product Details/           THIS folder: all product and technical documents, Requirements/ copies, the combined Word file
 ├── public/
 │   ├── build/                 Vite output (ignored by git)
 │   ├── geo/                   state and district GeoJSON + districts/ outlines (built by map:boundaries)
@@ -74,8 +74,7 @@ SCHOOLINSPECTION/
 ├── storage/app/private/       employee-photos, id-proofs, evidence, keys (RSA), register-tmp
 ├── tests/Feature/             20 feature test files
 ├── tools/loadtest/            loadtest.php (see LOAD_TEST.md)
-└── *.md                       README, CLAUDE, ACTION (change log), PROJECT_DOCUMENT, INSPECTION_FORM_DOCUMENT,
-                               NEW_MODULES_PLAN, DB_INDEXING, LOAD_TEST, BROWSER_SUPPORT
+└── *.md                       README, CLAUDE (developer rules), ACTION (change log)
 ```
 
 ---

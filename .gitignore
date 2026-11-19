@@ -33,3 +33,6 @@ yarn-error.log
 
 # Raw boundary KML (17 MB); only the GeoJSON built by `php artisan map:boundaries` is committed
 /public/KML
+
+# Word builder for Product Details (tools/docs)
+/tools/docs/node_modules
