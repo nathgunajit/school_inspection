@@ -1,12 +1,13 @@
 # School Inspection Management System: project document
 
-Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) and for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
+Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report) and for **Modification V7** (registration form changes and the rating card). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
 
 | For | Read |
 |---|---|
 | Officers and administrators (users) | Sections 1, 3, 4 |
 | Developers | All sections, then 5–9 |
 | What changed in V6 | Section 9 |
+| What changed in V7 | Section 10 |
 
 Related documents:
 - `Documents/School_Inspection_PRD.docx`: the requirements
@@ -130,10 +131,10 @@ Demo accounts for a manual check are in `CLAUDE.md`:
 ### 4.1 Registration and approval
 ```mermaid
 flowchart TD
-    A[Open /register] --> B[Fill name, designation, employee ID,<br/>level, District / Block / Cluster,<br/>mobile, password]
-    B --> C[Upload ID proof PDF/JPG/PNG ≤ 2 MB<br/>and employee photo JPG/PNG ≤ 1 MB]
-    C --> D{Valid?<br/>mobile and employee ID unique}
-    D -- No --> B
+    A[Open /register] --> B[Fill name, designation - Other: type it,<br/>employee ID optional, level, District / Block / Cluster,<br/>mobile 6–9 + 9 digits, password, tick consent]
+    B --> C[Employee photo JPG/PNG ≤ 1 MB required<br/>ID proof PDF/JPG/PNG ≤ 2 MB optional]
+    C --> D{Valid?<br/>mobile unique, employee ID unique if given}
+    D -- No: valid files kept for the session --> B
     D -- Yes --> E[User saved as PENDING<br/>registration_request pending<br/>posting created]
     E --> F[Approver sees it in Approvals]
     F --> G{Decision}
@@ -451,7 +452,7 @@ erDiagram
 **Users and access**
 | Table | Purpose | Key columns |
 |---|---|---|
-| `users` | Officers and administrators | `name`, `designation_id`, `employee_id` UQ, `mobile` CHAR(10) UQ (login), `email`, `password` (bcrypt), `level`, `status` (pending, active, rejected, inactive, locked), `id_proof_path`, `photo_path` (private disk), `failed_login_attempts`, `locked_until`, `must_change_password`, `last_login_at`, soft delete |
+| `users` | Officers and administrators | `name`, `designation_id`, `designation_other` (text when the designation is "Other", V7), `employee_id` UQ nullable (V7), `mobile` CHAR(10) UQ (login; MySQL CHECK `^[6-9][0-9]{9}$`, V7), `email`, `password` (bcrypt), `level`, `status` (pending, active, rejected, inactive, locked), `id_proof_path`, `photo_path` (private disk), `failed_login_attempts`, `locked_until`, `must_change_password`, `last_login_at`, soft delete |
 | `user_jurisdictions` | Postings. The **current** one has `end_date` null; a transfer ends it and adds a new one | `user_id`, `state_id`, `district_id`, `block_id`, `cluster_id` (filled down to the user's level), `start_date`, `end_date`, `assigned_by` |
 | `roles` / `role_permissions` | One role per level, with its default rights | `slug` = level |
 | `permissions` | Rights | `slug`: conduct_inspections, view_reports, export_excel, approve_registrations, manage_users, manage_masters, unlock_inspections |
@@ -610,7 +611,7 @@ php artisan map:boundaries --check | --assign # V6: which outline each District 
 ```
 
 ### 7.5 Testing
-- 113 feature tests (V6 included), run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
+- 124 feature tests (V6 and V7 included; V7: `RegistrationV7Test`, `RatingCardTest`), run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
 - **Never run the tests while the config is cached.**
 - Demo data for manual tests: `DemoUserSeeder`.
 - Volume data: `LoadTestSeeder`. Use it only on a database you have backed up.
@@ -686,3 +687,45 @@ flowchart LR
 - **Road routes:** these depend on the routing server being reachable. If it is not, a dashed straight line and its distance are shown.
 - **Changing `APP_KEY`:** this changes every URL token, so old bookmarks stop working.
 - **Replacing the RSA keys** (`--force`): pages already open must be reloaded before they can sign in.
+
+## 10. Modification V7 (19-11-2026)
+Source: `Documents/Modification of the ApplicationV7.docx`. The document asks for registration form changes and a cleaner rating view. They were built as five modules, each committed and pushed on its own and logged in `ACTION.md` (#78 plan, #79–#83).
+
+| Module | V7 item | What was built | Users see |
+|---|---|---|---|
+| V7-1 | Employee ID and identity proof not mandatory | `users.employee_id` nullable (still unique when given); both fields optional at registration and in the admin edit | "(optional)" on the form; approvers see "Not provided" and a note instead of the ID-proof viewer |
+| V7-2 | Mobile must start with 6, 7, 8 or 9; check validation in the DB and UI | `mobile-input.js` on every mobile field; regex on login, forgot and reset (registration and profile already had it); MySQL CHECK constraints on `users.mobile` and `mobile_change_requests.new_mobile`; audit of every registration field | A wrong first digit is refused while typing, with a message; short numbers are flagged before submit |
+| V7-3 | Dropdown placeholder colour, standard file size, designation "Other", highlighted consent | Grey empty selects (CSS `:has`); `App\Support\FileSize`; `users.designation_other` and `User::designation_label`; `.reg-consent` panel | "Select district" etc. look like placeholders; "Max 1 MB" from config; Other → text box; the consent box turns red if missed and green when ticked |
+| V7-4 | Uploaded files not removed after an error | `RegisterUploadStash`: valid files kept on the private disk for the visitor's session, preview route `register.kept`, daily `register:purge-tmp` | After an error the photo and ID proof stay chosen ("kept from your last attempt") and can be removed |
+| V7-5 | Rating on the inspection view more attractive | New rating card; `Inspection::previousRating()` | Score dial, band, change since the last rated inspection, band scale with a marker, section tiles, strength / weakness / improvement cards |
+
+**Validation audit (V7-2).** "If already done, skip" was applied field by field:
+
+| Field | Already in place | Added in V7 |
+|---|---|---|
+| Mobile | server regex on register and profile; unique; CHAR(10) | UI pattern and live message; regex on login, forgot and reset; DB CHECK |
+| Name | required, max 120 | min 3, letters / spaces / `. ' -` only (UI and server, also the admin edit) |
+| Email | `email:rfc`, max 150 | UI `maxlength` |
+| Password | strength rule, confirmation | max 64 (UI and server), within the RSA encryption limit |
+| Employee ID | format, max 40, unique | optional (V7-1) |
+| Designation, level, locations, photo, ID proof, CAPTCHA, consent | DB `exists` and hierarchy checks, type and size checks | Other text (V7-3); consent check before submit |
+
+```mermaid
+flowchart TD
+    A[Register form] -->|submit| V{Valid?}
+    V -- No --> K[Valid files kept<br/>private disk register-tmp/ + session]
+    K --> A2[Form again: errors + kept files shown]
+    A2 -->|submit, no new file| V
+    V -- Yes --> M[Kept files moved to employee-photos/ and id-proofs/<br/>user PENDING]
+    P[Daily register:purge-tmp] -.removes files older than 24 h.-> K
+```
+
+**Deploy checklist for V7:**
+1. `php artisan migrate`. This makes `employee_id` nullable, adds `users.designation_other` and adds the mobile CHECK constraints on MySQL/MariaDB. The CHECK migration stops with a message if any stored mobile is invalid; fix those rows first.
+2. `npm run build`.
+3. Make sure the scheduler runs (`php artisan schedule:run` every minute), so `register:purge-tmp` cleans kept files daily.
+
+**Known limits:**
+- **Kept files:** they live only for the visitor's session. If the session expires, the files must be chosen again; the purge removes them after 24 h.
+- **Grey placeholders:** these use CSS `:has()`. Very old browsers show the "Select …" text in the normal colour, but the form still works.
+- **CHECK constraints:** these are MySQL/MariaDB only. Tests on SQLite rely on the application rules.

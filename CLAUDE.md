@@ -56,6 +56,11 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `MapDataService` adds `rating` to school rows and a period average to area rows (`areaRatings()`).
   - The map has a "Colour schools by Status / Rating" switch.
 - Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`, `/pdf`; views in `resources/views/reports/ratings/`).
+- Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK).
+  - Designation "Other" stores text in `users.designation_other`; always print `$user->designation_label`, never `designation?->label`.
+  - `App\Support\FileSize::human()` formats size limits from config.
+  - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
+  - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)

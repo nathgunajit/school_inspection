@@ -1431,3 +1431,17 @@ Plan approved by the user. Decisions:
   - `app/Http/Controllers/ReportController.php`
   - `resources/scss/app.scss`
   - `tests/Feature/RatingCardTest.php`
+
+## 84. Project document and CLAUDE.md updated for V7 (2026-11-19)
+- **`PROJECT_DOCUMENT.md`:**
+  - **Header:** now covers V7; the reading guide points to section 10.
+  - **4.1 Registration flow:** the Other designation, Employee ID and ID proof optional, mobile 6–9, consent, and files kept on error.
+  - **5 Schema:** `users` gains `designation_other`, nullable `employee_id` and the mobile CHECK.
+  - **7 Tests:** 124 tests.
+  - **New section 10, "Modification V7":** a module table, the validation audit table (already in place vs added), the kept-upload flow diagram, a deploy checklist (migrate, build, scheduler for `register:purge-tmp`) and known limits.
+- **`CLAUDE.md`:** layout notes for V7 (`designation_label`, `mobile-input.js`, `FileSize`, `RegisterUploadStash`, `previousRating`).
+- **Local data:** MySQL is migrated with the 3 V7 migrations. A backup taken before V7 is in the session scratchpad. One demo login (9000000031) was used, which added login-log rows. The kept upload from the browser check was purged. No other data changed.
+- Files:
+  - `PROJECT_DOCUMENT.md`
+  - `CLAUDE.md`
+  - `ACTION.md`
