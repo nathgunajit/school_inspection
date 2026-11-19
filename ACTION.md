@@ -1559,3 +1559,33 @@ Plan approved by the user. Decisions:
   - `PROJECT_DOCUMENT.md` (11.1)
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
+
+## 88. Technical documentation set from `Documents/Documentation.docx` (2026-11-19)
+- **Request:** review the brief `Documents/Documentation.docx` and produce the documentation it asks for, based on the code, the database and the UI, with gaps and recommendations.
+- **Method:** read-only. The source, migrations, routes (`route:list`, 102 routes), views and JS were reviewed, and the live schema was scanned through `information_schema` (38 tables, 53 FKs, 10 CHECKs; structure only, no row data). No application code, data or configuration was changed.
+- **Added** (`documentation/`):
+  - `README.md` (index)
+  - `Database_Architecture_and_Schema.md` (full column tables generated from the live schema)
+  - `Project_File_Structure_and_Technical_Architecture.md`
+  - `School_Inspection_Mechanism.md` (full questionnaire v2 inventory)
+  - `User_Roles_and_Permissions.md`
+  - `UI_Pages_and_Application_Modules.md`
+  - `System_Architecture_and_Workflow.md` (Mermaid diagrams)
+  - `Technical_Audit_and_Recommendations.md`
+  - `Future_Recommendations_Gaps_and_Roadmap.md`
+  - `School_Inspection_Technical_Documentation.docx`: all chapters combined, with the screenshots, and the diagrams written out as steps. Built with docx-js from a scratch script; the project has no new dependency.
+- **Main findings** (details in the audit):
+  - No security headers (CSP/HSTS/frame-ancestors).
+  - `retention_years` is not applied.
+  - The pending approvals count runs on every page.
+  - The rating export uses `view_reports`, not `export_excel`.
+  - `questionnaire_version` defaults to 1 in the DB.
+  - Unused npm package `@fontsource-variable/inter`.
+  - The raw KML is in `public/`.
+  - `CLAUDE.md` wording: "six-step", `OtpService`.
+  - No CI, backups or monitoring in the repository.
+  - The brief itself is wrong on port 8000 (it is 8010), jQuery, `config/permission.php`, `routes/api.php`, and the role names.
+- **Verification:**
+  - Every file path, class and route name cited in the documents was checked to exist; the only ones missing are the items the brief expected and the documents state are absent.
+  - No credentials, demo passwords or personal data appear in the documents.
+  - The `.docx` XML parses: 8 chapters, 84 tables, 17 images, no zip folder entries. It was not rendered visually, because Word and LibreOffice are not installed.
