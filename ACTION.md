@@ -1633,3 +1633,32 @@ Plan approved by the user. Decisions:
 - **Also:** the new `Documents/Modification of the ApplicationV8.docx` was copied to `Product Details/Requirements/`, and the Word file was rebuilt (`tools/docs`). It now has 154 tables, A9 and the V8 row in the appendix, and its XML parses.
 - The Word file was locked by another program at first. It was not among the documents open in Word, and the lock was released before the rebuild.
 - A PDF render through Word automation failed (COM interface error; Word shows "Product Activation Failed"). The hidden Word instance that the attempt started was stopped.
+
+## 91. Modification V8: action taken (2026-11-19)
+- **Request:** `Documents/Modification of the ApplicationV8.docx` (8 items; also copied to `Product Details/Requirements/`). Decisions taken with the user:
+  - item 3: chosen values look like the other fields, and "All …" stays placeholder grey;
+  - item 2: a strip on top of the map with live counts;
+  - item 7: a new Daily report tab.
+
+| # | Request (V8) | Action taken | Files | Verified by |
+|---|---|---|---|---|
+| 1 | Map: school details popup more elegant and attractive | Redesigned the school popup: header coloured by status, name and UDISE, status and rating chips, icon rows, a "Last inspection" box, the directions panel, and side-by-side Open school / View report. The area popup has the same style, with count tiles, a coverage bar, rating and officers | `resources/js/map.js`, `resources/scss/app.scss` | `npm run build`; the JS builds |
+| 2 | Map: inspected / not inspected colour key on top | `.map-keybar` above the map: Inspected · In progress · Not inspected with live counts and the period; it switches to the rating bands with "Colour by Rating" | `resources/views/map/index.blade.php`, `map.js` (`renderStats()`), `app.scss` | `MapViewTest` (`map-keybar`, `data-key="inspected"`) |
+| 3 | Map: filter dropdown selected item colour like the other fields | `.map-filters`: chosen values use the same colour and weight as the date and School inputs; the empty "All …" option stays placeholder grey; disabled selects are muted | `app.scss` | build |
+| 4 | Map: filter selects small, as standard | All map filters use `form-select-sm` / `form-control-sm` (34 px), and the Reset button is `btn-sm`. Phones keep 16 px text (no iOS zoom) | `map/index.blade.php`, `app.scss` | `MapViewTest` (`form-select form-select-sm`) |
+| 5 | Rating Report: attractive, clean, elegant; bands and average by section | A donut of the band shares with the average in the middle and a filterable legend (count, share, bar). Section rows have the step icon, percent, band pill and a band-coloured bar. Tiles wrap their text inside the box. `RatingReportService::sections()` now adds `band`/`color` per section | `resources/views/reports/ratings/index.blade.php`, `app/Services/RatingReportService.php`, `app.scss` | `RatingReportTest` (donut, `conic-gradient`, `sec-score`, band of each section equals `RatingCalculator::band()`) |
+| 6 | Remove the device location (start) and (end) from the PDF | Removed the "Device location (start / submit)" rows and the unused `$loc` helper. The data is still stored and shown on the web report; photo GPS stamps are unchanged | `resources/views/inspections/pdf.blade.php` | `InspectionFlowTest`: the PDF HTML, captured with a view composer, has no "Device location"; the PDF still downloads |
+| 7 | Daily Login Report with the current login status | New tab `/admin/login-report/daily` with Excel export (`state_admin`). One row per active officer for a date: first sign-in, last activity, sign-ins, minutes online, refused attempts, and the current status (Online now / Signed out / Timed out / Not signed in (today) / Never signed in). Tiles, filters (date ≤ today, level, district, status, officer), phone list cards. Tabs "Sign-in log / Daily report" | `app/Services/LoginMonitorService.php` (`DAILY_STATES`, `dailyFilters()`, `daily()`, `dailySummary()`, `dailyMinutes()`), `app/Http/Controllers/Admin/LoginReportController.php` (`daily`, `dailyExport`), `routes/web.php`, `resources/views/admin/login-report/daily.blade.php`, `tabs.blade.php` | `LoginReportTest::test_daily_report_shows_every_officer_with_the_current_status` (all five states, counts, minutes, filters, date validation, export, 403 for officers) |
+| 8 | Login Monitoring: top card text inside the box; clean design | `<x-stat-card>` has new optional `wrap` and `hint` props (off by default, so other pages are unchanged): the label wraps onto 2 lines inside the box, with a hint line, coloured edge and equal heights; the grid is `col-6 col-md-4 col-xl-2`. Added the missing `.tone-orange` icon colour | `resources/views/components/stat-card.blade.php`, `resources/views/admin/login-report/index.blade.php`, `app.scss` | `LoginReportTest` (page renders); build |
+
+- **Documents updated:**
+  - `Product Details/PROJECT_DOCUMENT.md` (new section 12)
+  - `UI_Pages_and_Application_Modules.md` (daily route, PDF note)
+  - `School_Inspection_Mechanism.md` (PDF note)
+  - `CLAUDE.md` (login monitoring: daily tab, `wrap` tiles, PDF)
+  - The combined Word file was rebuilt (`tools/docs`).
+- **Verification:**
+  - `php artisan config:clear && php artisan test`: **133 passed** (1,669 assertions).
+  - `npm run build` passed.
+  - No migration is needed.
+- **Not verified:** a visual check in a browser. The Claude in Chrome tools were not available in this session. Please look at the Map View popup, the colour key and the filters, the Rating Report, the Login Monitoring tiles and the Daily report tab on a desktop and a phone.

@@ -48,17 +48,19 @@
         </div>
     </form>
 
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3"><x-stat-card label="Rated inspections" :value="number_format($s['rated'])" icon="bi-clipboard-data" tone="primary" /></div>
-        <div class="col-6 col-lg-3"><x-stat-card label="Schools rated" :value="number_format($s['schools'])" icon="bi-building-check" tone="accent" /></div>
+    {{-- Modification V8 item 5: clean tiles, the label stays inside the box --}}
+    <div class="row g-2 g-md-3 mb-3 rating-stats">
+        <div class="col-6 col-lg-3"><x-stat-card wrap label="Rated inspections" :value="number_format($s['rated'])" icon="bi-clipboard-data" tone="primary" hint="submitted and rated" /></div>
+        <div class="col-6 col-lg-3"><x-stat-card wrap label="Schools rated" :value="number_format($s['schools'])" icon="bi-building-check" tone="accent" hint="different schools" /></div>
         <div class="col-6 col-lg-3">
-            <div class="card stat-card h-100"><div class="card-body d-flex align-items-center gap-3">
+            <div class="card stat-card stat-card-wrap tone-edge-success h-100"><div class="card-body d-flex align-items-center gap-3">
                 <div class="stat-icon tone-success"><i class="bi bi-star-half"></i></div>
                 <div class="min-w-0"><div class="stat-value">{{ $s['avg'] === null ? '—' : $fmt($s['avg']).' %' }}</div>
-                    <div class="stat-label text-truncate">Average score @if ($s['avg_band']['band'])· <span class="rating-pill rating-{{ $s['avg_band']['color'] }}">{{ $s['avg_band']['band'] }}</span>@endif</div></div>
+                    <div class="stat-label stat-label-wrap">Average score</div>
+                    @if ($s['avg_band']['band'])<span class="rating-pill rating-{{ $s['avg_band']['color'] }} mt-1">{{ $s['avg_band']['band'] }}</span>@endif</div>
             </div></div>
         </div>
-        <div class="col-6 col-lg-3"><x-stat-card label="Lowest – highest" :value="$s['rated'] ? $fmt($s['low']).' – '.$fmt($s['high']).' %' : '—'" icon="bi-arrows-expand" tone="info" /></div>
+        <div class="col-6 col-lg-3"><x-stat-card wrap label="Lowest – highest" :value="$s['rated'] ? $fmt($s['low']).' – '.$fmt($s['high']).' %' : '—'" icon="bi-arrows-expand" tone="info" hint="score range" /></div>
     </div>
 
     @if ($s['rated'] === 0)
@@ -66,31 +68,59 @@
     @else
         <div class="row g-3 mb-3">
             <div class="col-12 col-lg-6">
-                <div class="card h-100">
-                    <div class="card-header"><i class="bi bi-bar-chart-steps me-2 text-primary"></i>Rating bands</div>
+                {{-- Modification V8 item 5: donut of the band shares with the average in the middle, and a legend that filters --}}
+                @php
+                    $hex = ['green' => '#1e9b4b', 'blue' => '#1565c0', 'yellow' => '#d4a500', 'orange' => '#f39223', 'red' => '#d93025', 'none' => '#94a3b8'];
+                    $stops = []; $at = 0.0;
+                    foreach ($s['bands'] as $b) {
+                        if (! $b['count']) continue;
+                        $to = $at + $b['count'] * 100 / $s['rated'];
+                        $c = $hex[$b['color'] ?? 'none'] ?? $hex['none'];
+                        $stops[] = $c.' '.round($at, 2).'% '.round($to, 2).'%';
+                        $at = $to;
+                    }
+                    $donut = $stops ? 'conic-gradient('.implode(', ', $stops).')' : 'conic-gradient(#e5e7eb 0 100%)';
+                @endphp
+                <div class="card h-100 report-card">
+                    <div class="card-header"><span class="rc-icon"><i class="bi bi-pie-chart"></i></span>Rating bands<span class="rc-sub">{{ number_format($s['rated']) }} rated inspection(s)</span></div>
                     <div class="card-body">
-                        @foreach ($s['bands'] as $b)
-                            @php $share = $s['rated'] ? round($b['count'] * 100 / $s['rated']) : 0; @endphp
-                            <a href="{{ route('reports.ratings', ['band' => $b['label']] + request()->except('band', 'page')) }}" class="rating-row d-block text-decoration-none text-body"
-                               title="{{ $b['label'] }}: {{ $b['count'] }} inspection(s), {{ $share }} %">
-                                <div class="d-flex justify-content-between align-items-center text-sm">
-                                    <span class="d-inline-flex align-items-center gap-2"><span class="rating-swatch rating-{{ $b['color'] ?? 'none' }}"></span>{{ $b['label'] }}@if ($b['min'] !== null)<span class="text-xs text-secondary">{{ $b['min'] }} %+</span>@endif</span>
-                                    <span><b>{{ number_format($b['count']) }}</b> <span class="text-xs text-secondary">({{ $share }} %)</span></span>
-                                </div>
-                                <div class="rating-bar"><span class="rating-{{ $b['color'] ?? 'none' }}" style="width: {{ round($b['count'] * 100 / $maxBand) }}%"></span></div>
-                            </a>
-                        @endforeach
+                        <div class="band-overview">
+                            <div class="report-donut" style="--donut: {{ $donut }}" role="img" aria-label="Share of inspections by rating band">
+                                <div class="rd-hole"><b>{{ $s['avg'] === null ? '—' : $fmt($s['avg']).'%' }}</b><span>average</span>
+                                    @if ($s['avg_band']['band'])<em class="rating-pill rating-{{ $s['avg_band']['color'] }}">{{ $s['avg_band']['band'] }}</em>@endif</div>
+                            </div>
+                            <div class="band-legend">
+                                @foreach ($s['bands'] as $b)
+                                    @php $share = $s['rated'] ? round($b['count'] * 100 / $s['rated']) : 0; @endphp
+                                    <a href="{{ route('reports.ratings', ['band' => $b['label']] + request()->except('band', 'page')) }}"
+                                       class="band-item {{ $filters['band'] === $b['label'] ? 'is-active' : '' }} {{ $b['count'] ? '' : 'is-empty' }}"
+                                       title="{{ $b['label'] }}: {{ $b['count'] }} inspection(s), {{ $share }} %">
+                                        <span class="rating-swatch rating-{{ $b['color'] ?? 'none' }}"></span>
+                                        <span class="bi-name">{{ $b['label'] }}@if ($b['min'] !== null)<small>{{ $b['min'] }} %+</small>@endif</span>
+                                        <span class="bi-count"><b>{{ number_format($b['count']) }}</b><small>{{ $share }} %</small></span>
+                                        <span class="bi-bar"><span class="rating-{{ $b['color'] ?? 'none' }}" style="width: {{ round($b['count'] * 100 / $maxBand) }}%"></span></span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-lg-6">
-                <div class="card h-100">
-                    <div class="card-header"><i class="bi bi-layout-text-sidebar me-2 text-primary"></i>Average by section</div>
-                    <div class="card-body">
+                @php $stepIcon = collect(\App\Questionnaire\QuestionnaireDefinition::steps())->pluck('icon', 'key'); @endphp
+                <div class="card h-100 report-card">
+                    <div class="card-header"><span class="rc-icon"><i class="bi bi-layout-text-sidebar"></i></span>Average by section<span class="rc-sub">coloured by rating band</span></div>
+                    <div class="card-body section-scores">
                         @foreach ($s['sections'] as $sec)
-                            <div class="rating-row" title="{{ $sec['title'] }}: {{ $sec['avg'] === null ? 'not applicable' : $fmt($sec['avg']).' % over '.$sec['count'].' inspection(s)' }}">
-                                <div class="d-flex justify-content-between text-sm"><span>{{ $sec['title'] }}</span><b>{{ $sec['avg'] === null ? 'N/A' : $fmt($sec['avg']).' %' }}</b></div>
-                                <div class="rating-bar"><span class="report-section-bar" style="width: {{ $sec['avg'] ?? 0 }}%"></span></div>
+                            <div class="sec-row {{ $sec['avg'] === null ? 'is-na' : '' }}" title="{{ $sec['title'] }}: {{ $sec['avg'] === null ? 'not applicable' : $fmt($sec['avg']).' % over '.$sec['count'].' inspection(s)' }}">
+                                <span class="sec-icon rating-tint-{{ $sec['color'] ?? 'none' }}"><i class="bi {{ $stepIcon[$sec['key']] ?? 'bi-ui-checks' }}"></i></span>
+                                <div class="sec-main">
+                                    <div class="sec-top"><span class="sec-title">{{ $sec['title'] }}</span>
+                                        @if ($sec['avg'] === null)<span class="sec-na">N/A</span>
+                                        @else<span class="sec-score"><b>{{ $fmt($sec['avg']) }} %</b><span class="rating-pill rating-{{ $sec['color'] ?? 'none' }}">{{ $sec['band'] }}</span></span>@endif
+                                    </div>
+                                    <div class="rating-bar"><span class="rating-{{ $sec['color'] ?? 'none' }}" style="width: {{ $sec['avg'] ?? 0 }}%"></span></div>
+                                </div>
                             </div>
                         @endforeach
                     </div>

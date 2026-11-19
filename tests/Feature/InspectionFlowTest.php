@@ -112,7 +112,15 @@ class InspectionFlowTest extends TestCase
             ->assertSee('rp-hero', false)->assertSee('Inspection details')->assertSee('href="#rp-step-7"', false)
             ->assertSee('ans-pill', false)->assertSee('rv-dl', false)->assertSee('At a glance')->assertSee('Download official PDF report')
             ->assertDontSee('Name of the person met at the school');
+        $pdfData = null;
+        \Illuminate\Support\Facades\View::composer('inspections.pdf', function ($view) use (&$pdfData) { $pdfData ??= $view->getData(); });
         $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('content-type', 'application/pdf');
+
+        // Modification V8 item 6: the PDF no longer prints the device location at start and submit (the web report still shows it)
+        $html = view('inspections.pdf', $pdfData)->render();
+        $this->assertStringContainsString('Basic Information', $html);
+        $this->assertStringNotContainsString('Device location', $html);
+        $this->get(route('inspections.show', $i))->assertOk()->assertSee('Inspection details');
     }
 
     public function test_second_inspection_same_school_same_day_is_blocked(): void

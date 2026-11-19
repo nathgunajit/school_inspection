@@ -71,6 +71,12 @@ class RatingReportTest extends TestCase
         $this->assertSame((float) $older->rating->score_percent, $row['previous']['score'], 'the previous rating may be older than the period');
         $this->assertEqualsWithDelta($latest->rating->score_percent - $older->rating->score_percent, $row['change'], 0.05);
         $res->assertSee($school->name)->assertSee('Rating bands')->assertSee('District-wise rating');
+        // Modification V8 item 5: donut of the bands, and every section average carries its band
+        $res->assertSee('report-donut', false)->assertSee('conic-gradient', false)->assertSee('Average by section')->assertSee('sec-score', false);
+        foreach (array_filter($sum['sections'], fn ($x) => $x['avg'] !== null) as $sec) {
+            $this->assertNotNull($sec['band']);
+            $this->assertSame(\App\Rating\RatingCalculator::band($sec['avg'], app(\App\Services\RatingReportService::class)->bands()), ['band' => $sec['band'], 'color' => $sec['color']]);
+        }
 
         // a wider period counts the older rating too
         $wide = $this->actingAs($this->admin())->get(route('reports.ratings', ['from' => now()->subYear()->toDateString()]))->viewData('summary');

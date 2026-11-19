@@ -78,6 +78,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   The definition drives both rendering and `InspectionValidator`. v1 codes (`GOV_*`, `CON_*`, `ATT_*`, `CLS_*`, `FIN_*`) belong to legacy rows (`questionnaire_version = 1`) and must not be reused.
 - `app/Http/Controllers/{Auth,Admin,Inspection,...}`, `app/Policies/`, `app/Http/Middleware/`
 - Login monitoring (V6 Module 6): `LoginMonitorService` (records from `LoginController`; `TouchLastSeen` web middleware updates `last_seen_at` once a minute; report queries), table `user_login_logs` (operational, not the audit log), `Admin\LoginReportController` (`/admin/login-report`, `state_admin`), `App\Support\UserAgent`.
+  - V8: a **Daily report** tab (`/admin/login-report/daily`, `LoginMonitorService::daily()`), one row per active officer with the current status (online / signed_out / timed_out / absent / never, `LoginMonitorService::DAILY_STATES`).
+  - Stat tiles whose label must stay inside the box use `<x-stat-card wrap hint="…">`.
+  - The inspection PDF no longer prints the start/submit device location.
 - `config/inspection.php`: the configurable "Proposed" values (PRD 30): draft expiry, lockout, limits, retention
 - `database/migrations/`: schema; master tables run first (`0001_01_00_*`)
 

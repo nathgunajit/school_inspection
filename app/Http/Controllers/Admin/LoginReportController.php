@@ -30,6 +30,38 @@ class LoginReportController extends Controller
         ]);
     }
 
+    /** Modification V8 item 7: daily login report, one row per active officer with the current login status. */
+    public function daily(Request $request)
+    {
+        $f = $this->monitor->dailyFilters($request);
+        $rows = $this->monitor->daily($f)->paginate(config('inspection.per_page'))->withQueryString();
+
+        return view('admin.login-report.daily', [
+            'filters' => $f,
+            'summary' => $this->monitor->dailySummary($f),
+            'rows' => $rows,
+            'minutes' => $this->monitor->dailyMinutes($rows->pluck('id')->all(), $f['date']),
+            'levels' => UserLevel::registrable(),
+            'districts' => District::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function dailyExport(Request $request)
+    {
+        $f = $this->monitor->dailyFilters($request);
+        $users = $this->monitor->daily($f)->limit(20000)->get();
+        $minutes = $this->monitor->dailyMinutes($users->pluck('id')->all(), $f['date']);
+        $time = fn ($v) => $v ? \Illuminate\Support\Carbon::parse($v)->format('H:i') : '';
+        $rows = $users->map(fn (User $u) => [
+            $u->name, $u->mobile, $u->designation_label, $u->level->label(), $u->currentJurisdiction?->label(),
+            LoginMonitorService::DAILY_STATES[$u->current_state][0] ?? $u->current_state,
+            (int) $u->sign_ins, $time($u->first_in), $time($u->last_seen), $minutes[$u->id] ?? 0, (int) $u->refused,
+        ])->all();
+
+        return Excel::download(new ArrayExport(['Officer', 'Mobile', 'Designation', 'Level', 'Jurisdiction', 'Current status',
+            'Sign-ins that day', 'First sign-in', 'Last activity', 'Minutes online', 'Refused attempts'], $rows), 'daily-login-report-'.$f['date'].'.xlsx');
+    }
+
     /** One officer's sign-in history. */
     public function user(Request $request, User $user)
     {

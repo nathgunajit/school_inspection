@@ -163,6 +163,126 @@ class LoginMonitorService
         };
     }
 
+    /* ---------------- Modification V8 item 7: daily login report with the current login status ---------------- */
+
+    /** Current status of an officer on the daily report: [label, badge tone, icon]. */
+    public const DAILY_STATES = [
+        'online' => ['Online now', 'success', 'bi-broadcast'],
+        'signed_out' => ['Signed out', 'secondary', 'bi-box-arrow-right'],
+        'timed_out' => ['Timed out', 'warning', 'bi-hourglass-bottom'],
+        'absent' => ['Not signed in', 'danger', 'bi-person-dash'],
+        'never' => ['Never signed in', 'dark', 'bi-person-slash'],
+    ];
+
+    public function dailyFilters(Request $request): array
+    {
+        $data = $request->validate([
+            'date' => ['nullable', 'date', 'before_or_equal:today'],
+            'level' => ['nullable', 'in:'.implode(',', array_column(UserLevel::registrable(), 'value'))],
+            'district_id' => ['nullable', 'integer'],
+            'state' => ['nullable', 'in:'.implode(',', array_keys(self::DAILY_STATES))],
+            'q' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        return [
+            'date' => $request->date('date')?->toDateString() ?? today()->toDateString(),
+            'level' => $data['level'] ?? null,
+            'district_id' => isset($data['district_id']) ? (int) $data['district_id'] : null,
+            'state' => $data['state'] ?? null,
+            'q' => trim((string) ($data['q'] ?? '')) ?: null,
+        ];
+    }
+
+    /**
+     * One row per active officer (the State Admin excluded) for the chosen day:
+     * first sign-in, last activity, sign-ins and refused attempts that day, and the current status.
+     *
+     * Current status: "online" when the officer's latest successful session is still open (not signed out, active within the
+     * session lifetime, same rule as onlineScope()); otherwise "absent" when they did not sign in that day, "never" when they
+     * have never signed in, else the state of their latest session (signed out / timed out).
+     */
+    public function daily(array $f): Builder
+    {
+        [$stateSql, $since] = $this->dailyStateSql();
+
+        return $this->dailyBase($f)
+            ->select('users.*')
+            ->addSelect(['d.sign_ins', 'd.refused', 'd.first_in', 'd.last_seen'])
+            ->selectRaw("$stateSql as current_state", [$since])
+            ->when($f['state'], fn ($q, $v) => $q->whereRaw("$stateSql = ?", [$since, $v]))
+            ->with(['designation:id,code,label', 'currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'currentJurisdiction.state:id,name'])
+            ->orderByRaw('case when d.sign_ins is null or d.sign_ins = 0 then 1 else 0 end')
+            ->orderByDesc('d.last_seen')
+            ->orderBy('users.name');
+    }
+
+    /** Tiles of the daily report (the state filter is not applied, so the numbers explain the filter). */
+    public function dailySummary(array $f): array
+    {
+        [$stateSql, $since] = $this->dailyStateSql();
+        $r = $this->dailyBase($f)->toBase()->selectRaw(
+            "count(*) as officers,
+             sum(case when $stateSql = 'online' then 1 else 0 end) as online,
+             sum(case when coalesce(d.sign_ins, 0) > 0 then 1 else 0 end) as signed_in,
+             sum(case when coalesce(d.sign_ins, 0) = 0 then 1 else 0 end) as absent,
+             sum(coalesce(d.refused, 0)) as refused", [$since])->first();
+
+        return [
+            'officers' => (int) $r->officers, 'online' => (int) $r->online, 'signed_in' => (int) $r->signed_in,
+            'absent' => (int) $r->absent, 'refused' => (int) $r->refused,
+        ];
+    }
+
+    /** Minutes online on the day for the given officers (sum of their sessions that started that day). */
+    public function dailyMinutes(array $userIds, string $date): array
+    {
+        if (! $userIds) {
+            return [];
+        }
+
+        return UserLoginLog::query()->whereIn('user_id', $userIds)->where('status', 'success')
+            ->whereBetween('login_at', [Carbon::parse($date)->startOfDay(), Carbon::parse($date)->endOfDay()])
+            ->get(['user_id', 'status', 'login_at', 'last_seen_at', 'logout_at'])
+            ->groupBy('user_id')->map(fn ($logs) => $logs->sum(fn (UserLoginLog $l) => (int) $l->durationMinutes()))->all();
+    }
+
+    private function dailyBase(array $f): Builder
+    {
+        $day = UserLoginLog::query()->toBase()
+            ->selectRaw("user_id,
+                sum(case when status = 'success' then 1 else 0 end) as sign_ins,
+                sum(case when status in ('failed', 'locked', 'denied') then 1 else 0 end) as refused,
+                min(case when status = 'success' then login_at end) as first_in,
+                max(case when status = 'success' then coalesce(logout_at, last_seen_at, login_at) end) as last_seen")
+            ->whereNotNull('user_id')
+            ->whereBetween('login_at', [Carbon::parse($f['date'])->startOfDay(), Carbon::parse($f['date'])->endOfDay()])
+            ->groupBy('user_id');
+        $latest = UserLoginLog::query()->toBase()->selectRaw('user_id, max(id) as id')->where('status', 'success')->whereNotNull('user_id')->groupBy('user_id');
+
+        return User::query()
+            ->leftJoinSub($day, 'd', 'd.user_id', '=', 'users.id')
+            ->leftJoinSub($latest, 'lid', 'lid.user_id', '=', 'users.id')
+            ->leftJoin('user_login_logs as ll', 'll.id', '=', 'lid.id')
+            ->where('users.status', UserStatus::Active->value)
+            ->where('users.level', '!=', UserLevel::StateAdmin->value)
+            ->when($f['level'], fn ($q, $v) => $q->where('users.level', $v))
+            ->when($f['district_id'], fn ($q, $v) => $q->whereHas('currentJurisdiction', fn ($j) => $j->where('district_id', $v)))
+            ->when($f['q'], fn ($q, $s) => $q->where(fn ($w) => $w->where('users.name', 'like', "%$s%")
+                ->orWhere('users.mobile', 'like', "%$s%")->orWhere('users.employee_id', 'like', "%$s%")));
+    }
+
+    /** SQL for the current status (one binding: the start of the session lifetime). */
+    private function dailyStateSql(): array
+    {
+        $sql = "(case when ll.id is null then 'never'
+            when ll.logout_at is null and coalesce(ll.last_seen_at, ll.login_at) >= ? then 'online'
+            when coalesce(d.sign_ins, 0) = 0 then 'absent'
+            when ll.logout_at is not null then 'signed_out'
+            else 'timed_out' end)";
+
+        return [$sql, now()->subMinutes((int) config('session.lifetime'))->toDateTimeString()];
+    }
+
     private function base(Request $request): array
     {
         $ua = mb_substr((string) $request->userAgent(), 0, 255) ?: null;

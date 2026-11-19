@@ -143,6 +143,9 @@ Route::middleware(['auth', 'active'])->group(function () {
                 // V6 Module 6: login user monitoring
                 Route::get('/login-report', [Admin\LoginReportController::class, 'index'])->name('login-report.index');
                 Route::get('/login-report/export', [Admin\LoginReportController::class, 'export'])->name('login-report.export');
+                // Modification V8 item 7: daily login report with the current login status
+                Route::get('/login-report/daily', [Admin\LoginReportController::class, 'daily'])->name('login-report.daily');
+                Route::get('/login-report/daily/export', [Admin\LoginReportController::class, 'dailyExport'])->name('login-report.daily.export');
                 Route::get('/login-report/users/{user}', [Admin\LoginReportController::class, 'user'])->name('login-report.user');
             });
 

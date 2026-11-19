@@ -28,7 +28,7 @@
 | Review | `/inspections/{key}/review` | `InspectionController@review` | `inspections/review` | officer | Missing items by step, answers, confirm and Submit |
 | Submitted | `/inspections/{key}/submitted` | `InspectionController@submitted` | `inspections/submitted` | officer / viewer | Confirmation with the inspection number |
 | Inspection report | `/inspections/{key}` | `ReportController@show` | `inspections/show` (+ `step-answers`, `rating`) | officer or area viewer | Full report, photos, rating card, PDF button, unlock (State Admin) |
-| Inspection PDF | `/inspections/{key}/pdf` | `ReportController@pdf` | `inspections/pdf` | same | DomPDF |
+| Inspection PDF | `/inspections/{key}/pdf` | `ReportController@pdf` | `inspections/pdf` | same | DomPDF. Since V8 the device location at start/submit is not printed |
 | My Inspections | `/my-inspections` | `ReportController@mine` | `inspections/index` (`mode=mine`) | `conduct_inspections` | Own inspections, filters, Excel |
 | Inspections in Area | `/inspections` | `ReportController@area` | `inspections/index` (`mode=area`) | `view_reports` | Area list: district/block/cluster/officer/status/school/date filters, Excel |
 | Excel export | `/export/{mine\|area}` | `ReportController@export` | — | `export_excel` | One column per question code |
@@ -51,7 +51,8 @@
 | School Master | `/admin/schools`, `/create`, `/{key}/edit` | `Admin\SchoolMasterController` | `admin/schools/index`, `admin/schools/form` | `manage_masters` | List and form |
 | Excel Upload | `/admin/imports` | `Admin\ImportController` | `admin/imports/index` | `manage_masters` | Templates, upload, batch history, error file |
 | Rating Settings | `/admin/rating` | `Admin\RatingController` | `admin/rating/index` | `manage_masters` | Weights, points, bands; save as a new version; recalculate |
-| Login Monitoring | `/admin/login-report` | `Admin\LoginReportController` | `admin/login-report/index`, `row`, `user` | `state_admin` | Logins, refusals, devices, top refused mobiles; per-user history; Excel |
+| Login Monitoring | `/admin/login-report` | `Admin\LoginReportController` | `admin/login-report/index`, `row`, `user`, `tabs` | `state_admin` | Logins, refusals, devices, top refused mobiles; per-user history; Excel |
+| Daily login report (V8) | `/admin/login-report/daily` (+ `/export`) | `Admin\LoginReportController@daily` / `@dailyExport` | `admin/login-report/daily` | `state_admin` | One row per active officer for a date: first sign-in, last activity, sign-ins, time online, refused attempts and the **current status** (Online now / Signed out / Timed out / Not signed in / Never signed in); Excel |
 | Audit Log | `/admin/audit` | `Admin\AuditLogController@index` | `admin/audit` | `state_admin` | Filterable read-only audit trail |
 
 ### 1.4 Non-page endpoints used by the UI (JSON / files)

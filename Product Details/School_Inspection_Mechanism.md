@@ -240,7 +240,7 @@ flowchart TD
 
 | Report | Route | Status |
 |---|---|---|
-| Individual school inspection report | `/inspections/{key}` (HTML) and `/inspections/{key}/pdf`, with photos, GPS, the "From gallery" label and the rating card | Implemented |
+| Individual school inspection report | `/inspections/{key}` (HTML) and `/inspections/{key}/pdf`, with photos, GPS, the "From gallery" label and the rating card. Since Modification V8 the PDF does not print the device location at start and submit (the web page still shows it) | Implemented |
 | My Inspections (officer-wise, own) | `/my-inspections` | Implemented |
 | Inspections in Area | `/inspections` with filters: district, block, cluster, officer, status, school, date | Implemented |
 | District / block / cluster-wise | Area filters on the list; the rating report groups by the next level down (`RatingReportService::areas()`); Map View area counts | Implemented |

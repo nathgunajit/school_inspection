@@ -127,8 +127,14 @@ class RatingReportService
             }
         });
 
-        return collect($acc)->map(fn ($s, $key) => ['key' => $key, 'title' => $s['title'], 'count' => $s['n'],
-            'avg' => $s['n'] ? round($s['sum'] / $s['n'], 1) : null])->values()->all();
+        $bands = $this->bands();
+
+        // Modification V8 item 5: each section average also carries its band, so the report can colour it
+        return collect($acc)->map(function ($s, $key) use ($bands) {
+            $avg = $s['n'] ? round($s['sum'] / $s['n'], 1) : null;
+
+            return ['key' => $key, 'title' => $s['title'], 'count' => $s['n'], 'avg' => $avg] + \App\Rating\RatingCalculator::band($avg, $bands);
+        })->values()->all();
     }
 
     /** The level shown in the area breakdown: one below the deepest area selected (or the user's own level). */

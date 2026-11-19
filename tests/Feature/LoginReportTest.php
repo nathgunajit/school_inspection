@@ -128,6 +128,58 @@ class LoginReportTest extends TestCase
         $this->assertSame('timed_out', UserLoginLog::where('user_id', $b->id)->orderBy('id')->first()->sessionState());
     }
 
+    /** Modification V8 item 7: daily report, one row per active officer with the current login status. */
+    public function test_daily_report_shows_every_officer_with_the_current_status(): void
+    {
+        $online = $this->officer(UserLevel::Cluster, null, ['name' => 'Daily Online']);
+        $out = $this->officer(UserLevel::Block, null, ['name' => 'Daily Signedout']);
+        $idle = $this->officer(UserLevel::Cluster, null, ['name' => 'Daily Timedout']);
+        $absent = $this->officer(UserLevel::Cluster, null, ['name' => 'Daily Absent']);
+        $never = $this->officer(UserLevel::District, null, ['name' => 'Daily Never']);
+        $absent->forceFill(['last_login_at' => now()->subDays(2)])->save();
+
+        UserLoginLog::create(['user_id' => $online->id, 'mobile' => $online->mobile, 'status' => 'success', 'login_at' => now()->subMinutes(40), 'last_seen_at' => now()->subMinute()]);
+        UserLoginLog::create(['user_id' => $online->id, 'mobile' => $online->mobile, 'status' => 'failed', 'login_at' => now()->subMinutes(41)]);
+        UserLoginLog::create(['user_id' => $out->id, 'mobile' => $out->mobile, 'status' => 'success', 'login_at' => now()->subMinutes(30), 'logout_at' => now()->subMinutes(10)]);
+        UserLoginLog::create(['user_id' => $idle->id, 'mobile' => $idle->mobile, 'status' => 'success', 'login_at' => now()->subMinutes(90), 'last_seen_at' => now()->subMinutes(80)]);
+        UserLoginLog::create(['user_id' => $absent->id, 'mobile' => $absent->mobile, 'status' => 'success', 'login_at' => now()->subDays(2), 'logout_at' => now()->subDays(2)->addHour()]);
+
+        $admin = $this->admin();
+        $res = $this->actingAs($admin)->get(route('admin.login-report.daily'))->assertOk()
+            ->assertSee('Daily report')->assertSee('Sign-in log')->assertSee('Online now')->assertSee('Not signed in today')->assertSee('Never signed in');
+        $state = $res->viewData('rows')->getCollection()->pluck('current_state', 'id');
+        $this->assertSame('online', $state[$online->id]);
+        $this->assertSame('signed_out', $state[$out->id]);
+        $this->assertSame('timed_out', $state[$idle->id]);
+        $this->assertSame('absent', $state[$absent->id]);
+        $this->assertSame('never', $state[$never->id]);
+
+        $row = $res->viewData('rows')->getCollection()->firstWhere('id', $online->id);
+        $this->assertSame([1, 1], [(int) $row->sign_ins, (int) $row->refused]);
+        $this->assertSame(39, $res->viewData('minutes')[$online->id]);
+        $summary = $res->viewData('summary');
+        $this->assertSame(1, $summary['online']);
+        $this->assertSame(3, $summary['signed_in']);
+        $this->assertGreaterThanOrEqual(2, $summary['absent']);
+
+        $f = fn (array $q) => $this->actingAs($admin)->get(route('admin.login-report.daily', $q))->assertOk()->viewData('rows')->pluck('id')->all();
+        $this->assertSame([$online->id], $f(['state' => 'online']));
+        $this->assertSame([$out->id], $f(['state' => 'signed_out', 'level' => 'block']));
+        $this->assertSame([$absent->id], $f(['q' => 'Daily Absent']));
+        // two days ago only the officer who signed in then is "signed in that day"
+        $past = $this->actingAs($admin)->get(route('admin.login-report.daily', ['date' => now()->subDays(2)->toDateString()]))->assertOk();
+        $this->assertSame(1, $past->viewData('summary')['signed_in']);
+        $this->actingAs($admin)->get(route('admin.login-report.daily', ['date' => now()->addDay()->toDateString()]))->assertSessionHasErrors('date');
+        $this->actingAs($admin)->get(route('admin.login-report.daily', ['state' => 'nonsense']))->assertSessionHasErrors('state');
+
+        $export = $this->actingAs($admin)->get(route('admin.login-report.daily.export'))->assertOk();
+        $this->assertStringContainsString('spreadsheetml', $export->headers->get('content-type'));
+
+        $officer = $this->officer(UserLevel::District);
+        $this->actingAs($officer)->get(route('admin.login-report.daily'))->assertForbidden();
+        $this->actingAs($officer)->get(route('admin.login-report.daily.export'))->assertForbidden();
+    }
+
     public function test_user_agent_reader(): void
     {
         $this->assertSame(['browser' => 'Chrome 120', 'platform' => 'Android 13', 'device' => 'mobile'], UserAgent::parse(self::CHROME_ANDROID));

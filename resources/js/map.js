@@ -99,6 +99,13 @@ if (el) {
         set('inspected', fmt(t.inspected));
         set('pending', fmt(t.pending + (t.in_progress || 0)));
         set('coverage', `${t.coverage} %`);
+        // Modification V8 item 2: the colour key above the map carries the same counts
+        const key = (k, v) => { const n = document.querySelector(`[data-key="${k}"]`); if (n) n.textContent = fmt(v); };
+        key('inspected', t.inspected);
+        key('in_progress', t.in_progress || 0);
+        key('pending', t.pending);
+        const day = (v) => (v ? new Date(`${v}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '');
+        $('mapKeyPeriod').textContent = `${day($('fFrom').value)} – ${day($('fTo').value)}`;
         $('mapNoGps').textContent = t.no_gps ? `${fmt(t.no_gps)} school(s) without GPS are counted but not drawn` : '';
     }
 
@@ -129,18 +136,25 @@ if (el) {
         ol.appendChild(tail);
     }
 
+    // Modification V8 item 1: popups with a coloured header, count tiles and clear actions
     function areaPopup(r, level) {
-        return `<div class="map-pop"><div class="fw-semibold">${esc(r.name)}</div>
-            <div class="text-xs text-muted mb-1">${levelName[level]} · code ${esc(r.code)}</div>
-            <table class="table table-sm mb-1"><tbody>
-            <tr><td>Schools</td><td class="text-end">${fmt(r.schools)}</td></tr>
-            <tr><td>Inspected</td><td class="text-end text-success">${fmt(r.inspected)}</td></tr>
-            <tr><td>In progress</td><td class="text-end text-warning">${fmt(r.in_progress)}</td></tr>
-            <tr><td>Not inspected</td><td class="text-end text-danger">${fmt(r.pending)}</td></tr>
-            <tr><td>Coverage</td><td class="text-end fw-semibold">${r.coverage} %</td></tr>
-            <tr><td>Average rating</td><td class="text-end">${r.rating ? `${ratingPill(r.rating)}<div class="text-xs text-muted">${fmt(r.rating.count)} rated inspection(s)</div>` : '<span class="text-muted">—</span>'}</td></tr>
-            <tr><td>Officers</td><td class="text-end">${fmt(r.officers.total)}</td></tr></tbody></table>
-            <button type="button" class="btn btn-primary btn-sm w-100" data-drill="${r.id}">Open ${levelName[nextLevel[level]].toLowerCase()}s</button></div>`;
+        const cov = Math.max(0, Math.min(100, Number(r.coverage) || 0));
+        return `<div class="map-pop map-pop-area">
+            <div class="mp-head"><div class="mp-icon"><i class="bi bi-diagram-3"></i></div>
+                <div class="min-w-0"><div class="mp-title">${esc(r.name)}</div><div class="mp-sub">${levelName[level]} · code ${esc(r.code)}</div></div></div>
+            <div class="mp-body">
+                <div class="mp-tiles">
+                    <div class="mp-tile st-inspected"><b>${fmt(r.inspected)}</b><span>Inspected</span></div>
+                    <div class="mp-tile st-in_progress"><b>${fmt(r.in_progress)}</b><span>In progress</span></div>
+                    <div class="mp-tile st-pending"><b>${fmt(r.pending)}</b><span>Not inspected</span></div>
+                </div>
+                <div class="mp-cov"><div class="d-flex justify-content-between"><span>Coverage of ${fmt(r.schools)} schools</span><b>${r.coverage} %</b></div>
+                    <div class="mp-bar"><span class="${coverageClass(cov)}" style="width:${cov}%"></span></div></div>
+                <div class="mp-row"><i class="bi bi-star-half"></i><span>Average rating</span><span class="ms-auto">${r.rating ? ratingPill(r.rating) : '<span class="text-muted">Not rated</span>'}</span></div>
+                ${r.rating ? `<div class="mp-note">${fmt(r.rating.count)} rated inspection(s)</div>` : ''}
+                <div class="mp-row"><i class="bi bi-person-badge"></i><span>Officers</span><b class="ms-auto">${fmt(r.officers.total)}</b></div>
+                <button type="button" class="btn btn-primary btn-sm w-100 mt-2" data-drill="${r.id}"><i class="bi bi-zoom-in"></i>Open ${levelName[nextLevel[level]].toLowerCase()}s</button>
+            </div></div>`;
     }
 
     function renderAreas(rows, level) {
@@ -197,16 +211,29 @@ if (el) {
 
     function schoolPopup(s) {
         const status = { inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status];
+        const icon = { inspected: 'bi-check2-circle', in_progress: 'bi-hourglass-split', pending: 'bi-clock' }[s.status] || 'bi-building';
         const last = s.last
-            ? `<div class="text-xs mt-1">Last inspection: <b>${esc(s.last.no || '—')}</b> on ${esc(s.last.date)} by ${esc(s.last.officer || '—')}</div>
-               <a class="btn btn-soft-primary btn-sm mt-2 w-100" href="${cfg.urls.report.replace('__ID__', s.last.key)}">View report</a>`
-            : '<div class="text-xs text-muted mt-1">Never inspected</div>';
-        const open = cfg.canOpenSchool ? `<a class="btn btn-primary btn-sm mt-2 w-100" href="${cfg.urls.school.replace('__ID__', s.key)}">Open school</a>` : '';
-        return `<div class="map-pop"><div class="fw-semibold">${esc(s.name)}</div>
-            <div class="text-xs text-muted">UDISE ${esc(s.udise)} · ${esc(s.area)}</div>
-            ${s.address ? `<div class="text-xs">${esc(s.address)}</div>` : ''}
-            <span class="badge mt-1 st-badge st-${s.status}">${status}</span> ${s.rating ? ratingPill(s.rating) : '<span class="text-xs text-muted">Not rated yet</span>'}
-            ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}${last}${open}</div>`;
+            ? `<div class="mp-last"><div class="mp-last-label">Last inspection</div>
+                   <div class="mp-row"><i class="bi bi-hash"></i><b>${esc(s.last.no || '—')}</b></div>
+                   <div class="mp-row"><i class="bi bi-calendar3"></i><span>${esc(s.last.date)}</span></div>
+                   <div class="mp-row"><i class="bi bi-person"></i><span class="text-truncate">${esc(s.last.officer || '—')}</span></div></div>`
+            : '<div class="mp-last mp-last-none"><i class="bi bi-info-circle"></i>Never inspected</div>';
+        const actions = [
+            cfg.canOpenSchool ? `<a class="btn btn-primary btn-sm" href="${cfg.urls.school.replace('__ID__', s.key)}"><i class="bi bi-building"></i>Open school</a>` : '',
+            s.last ? `<a class="btn btn-soft-primary btn-sm" href="${cfg.urls.report.replace('__ID__', s.last.key)}"><i class="bi bi-file-earmark-text"></i>View report</a>` : '',
+        ].filter(Boolean).join('');
+        return `<div class="map-pop map-pop-school is-${s.status}">
+            <div class="mp-head"><div class="mp-icon"><i class="bi ${icon}"></i></div>
+                <div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">UDISE ${esc(s.udise)}</div></div></div>
+            <div class="mp-body">
+                <div class="mp-chips"><span class="mp-status st-${s.status}"><span class="dot st-${s.status}"></span>${status}</span>
+                    ${s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}</div>
+                <div class="mp-row"><i class="bi bi-geo-alt"></i><span>${esc(s.area)}</span></div>
+                ${s.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(s.address)}</span></div>` : ''}
+                ${last}
+                ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}
+                ${actions ? `<div class="mp-actions">${actions}</div>` : ''}
+            </div></div>`;
     }
 
     function renderSchools(rows, focus) {

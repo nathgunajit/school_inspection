@@ -21,25 +21,25 @@
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#mapFilters" aria-label="Close"></button>
                 </div>
                 <div class="offcanvas-body">
-                    <form class="card w-100" id="mapFilterForm" onsubmit="return false">
+                    <form class="card w-100 map-filters" id="mapFilterForm" onsubmit="return false">
                         <div class="card-body d-grid gap-2">
                             <div class="fw-semibold"><i class="bi bi-funnel me-1"></i>Filters</div>
-                            <div><label class="form-label text-xs mb-1" for="fDistrict">District</label><select id="fDistrict" class="form-select" data-level="district"><option value="">All districts</option></select></div>
-                            <div><label class="form-label text-xs mb-1" for="fBlock">Block</label><select id="fBlock" class="form-select" data-level="block" disabled><option value="">All blocks</option></select></div>
-                            <div><label class="form-label text-xs mb-1" for="fCluster">Cluster</label><select id="fCluster" class="form-select" data-level="cluster" disabled><option value="">All clusters</option></select></div>
+                            <div><label class="form-label text-xs mb-1" for="fDistrict">District</label><select id="fDistrict" class="form-select form-select-sm" data-level="district"><option value="">All districts</option></select></div>
+                            <div><label class="form-label text-xs mb-1" for="fBlock">Block</label><select id="fBlock" class="form-select form-select-sm" data-level="block" disabled><option value="">All blocks</option></select></div>
+                            <div><label class="form-label text-xs mb-1" for="fCluster">Cluster</label><select id="fCluster" class="form-select form-select-sm" data-level="cluster" disabled><option value="">All clusters</option></select></div>
                             <div class="position-relative"><label class="form-label text-xs mb-1" for="fSchool">School</label>
-                                <input id="fSchool" class="form-control" placeholder="UDISE code or name (3+ letters)" autocomplete="off">
+                                <input id="fSchool" class="form-control form-control-sm" placeholder="UDISE code or name (3+ letters)" autocomplete="off">
                                 <div class="list-group map-search-results shadow-sm d-none" id="fSchoolResults"></div>
                             </div>
                             <div><label class="form-label text-xs mb-1" for="fOfficer">Inspection officer</label>
-                                <select id="fOfficer" class="form-select"><option value="">All officers</option>
+                                <select id="fOfficer" class="form-select form-select-sm"><option value="">All officers</option>
                                     @foreach ($officers as $o)<option value="{{ $o['id'] }}">{{ $o['name'] }} · {{ $o['level'] }}</option>@endforeach
                                 </select></div>
                             <div class="row g-2">
-                                <div class="col-6"><label class="form-label text-xs mb-1" for="fFrom">From</label><input type="date" id="fFrom" class="form-control" value="{{ now()->startOfMonth()->toDateString() }}"></div>
-                                <div class="col-6"><label class="form-label text-xs mb-1" for="fTo">To</label><input type="date" id="fTo" class="form-control" value="{{ now()->toDateString() }}"></div>
+                                <div class="col-6"><label class="form-label text-xs mb-1" for="fFrom">From</label><input type="date" id="fFrom" class="form-control form-control-sm" value="{{ now()->startOfMonth()->toDateString() }}"></div>
+                                <div class="col-6"><label class="form-label text-xs mb-1" for="fTo">To</label><input type="date" id="fTo" class="form-control form-control-sm" value="{{ now()->toDateString() }}"></div>
                             </div>
-                            <button type="button" class="btn btn-light" id="fReset"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
+                            <button type="button" class="btn btn-light btn-sm" id="fReset"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
 
                             <div class="map-legend mt-2">
                                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
@@ -78,6 +78,19 @@
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <nav aria-label="Map level" class="flex-grow-1 min-w-0"><ol class="breadcrumb mb-0 map-crumbs" id="mapCrumbs"></ol></nav>
                         <span class="text-xs text-muted" id="mapNoGps"></span>
+                    </div>
+                    {{-- Modification V8 item 2: colour key on top of the map, with the live counts of the current level --}}
+                    <div class="map-keybar" aria-label="Map colour key">
+                        <div class="map-keybar-items" data-legend="status">
+                            <span class="key st-inspected"><span class="dot st-inspected"></span>Inspected <b data-key="inspected">—</b></span>
+                            <span class="key st-in_progress"><span class="dot st-in_progress"></span>In progress <b data-key="in_progress">—</b></span>
+                            <span class="key st-pending"><span class="dot st-pending"></span>Not inspected <b data-key="pending">—</b></span>
+                        </div>
+                        <div class="map-keybar-items d-none" data-legend="rating">
+                            @foreach ($bands as $b)<span class="key"><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }}</span>@endforeach
+                            <span class="key"><span class="dot rt-none"></span>Not rated</span>
+                        </div>
+                        <span class="map-keybar-period text-xs text-secondary" id="mapKeyPeriod"></span>
                     </div>
                     <div id="map" class="si-map" role="region" aria-label="Inspection coverage map"
                          data-config='@json($config)' data-start='@json($start)'></div>

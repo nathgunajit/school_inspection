@@ -113,7 +113,7 @@
 
 <h2>1. Basic Information</h2>
 @php
-    $loc = fn ($lat, $lng, $d) => $lat ? number_format($lat, 6).', '.number_format($lng, 6).$fmtDist($d) : 'Not available';
+    // Modification V8: the device location at start and submit is no longer printed (still stored, shown on the web report)
     $basic = [
         ['Inspection ID', $inspection->inspection_no ?? '—', 'Status', $inspection->status->label()],
         ['Inspecting officer', $inspection->officer->name, 'Designation', $inspection->officer->designation_label ?? '—'],
@@ -125,8 +125,6 @@
     @foreach ($basic as [$k1, $v1, $k2, $v2])
         <tr><td class="k">{{ $k1 }}</td><td class="v">{{ $v1 }}</td><td class="k">{{ $k2 }}</td><td class="v">{{ $v2 }}</td></tr>
     @endforeach
-    <tr><td class="k">Device location (start)</td><td class="v" colspan="3">{{ $loc($inspection->start_lat, $inspection->start_lng, $startDistance) }}</td></tr>
-    <tr><td class="k">Device location (submit)</td><td class="v" colspan="3">{{ $loc($inspection->submit_lat, $inspection->submit_lng, $submitDistance) }}</td></tr>
 </table>
 
 @foreach ($steps as $n => $st)

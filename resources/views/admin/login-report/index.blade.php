@@ -5,13 +5,16 @@
         <a href="{{ route('admin.login-report.export', request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Export</a>
     </x-slot:actions>
 
-    <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-2"><x-stat-card label="Sign-ins" :value="number_format($s['logins'])" icon="bi-box-arrow-in-right" tone="primary" :href="route('admin.login-report.index', ['status' => 'success'] + $keep)" /></div>
-        <div class="col-6 col-lg-2"><x-stat-card label="Officers signed in" :value="number_format($s['users'])" icon="bi-people" tone="accent" /></div>
-        <div class="col-6 col-lg-2"><x-stat-card label="Online now" :value="number_format($s['online'])" icon="bi-broadcast" tone="success" :href="route('admin.login-report.index', ['status' => 'online'] + $keep)" /></div>
-        <div class="col-6 col-lg-2"><x-stat-card label="Refused attempts" :value="number_format($s['refused'])" icon="bi-shield-exclamation" tone="danger" :href="route('admin.login-report.index', ['status' => 'failed'] + $keep)" /></div>
-        <div class="col-6 col-lg-2"><x-stat-card label="Accounts locked now" :value="number_format($s['locked'])" icon="bi-lock" tone="warning" :href="route('admin.users.index', ['status' => 'locked'])" /></div>
-        <div class="col-6 col-lg-2"><x-stat-card label="Never signed in" :value="number_format($s['never'])" icon="bi-person-dash" tone="orange" /></div>
+    @include('admin.login-report.tabs', ['active' => 'log'])
+
+    {{-- Modification V8 item 8: tiles keep their text inside the box (labels wrap, never cut off) --}}
+    <div class="row g-2 g-md-3 mb-3 login-stats">
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Sign-ins" :value="number_format($s['logins'])" icon="bi-box-arrow-in-right" tone="primary" hint="in the period" :href="route('admin.login-report.index', ['status' => 'success'] + $keep)" /></div>
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Officers signed in" :value="number_format($s['users'])" icon="bi-people" tone="accent" hint="different officers" /></div>
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Online now" :value="number_format($s['online'])" icon="bi-broadcast" tone="success" hint="active session" :href="route('admin.login-report.index', ['status' => 'online'] + $keep)" /></div>
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Refused attempts" :value="number_format($s['refused'])" icon="bi-shield-exclamation" tone="danger" hint="wrong or blocked" :href="route('admin.login-report.index', ['status' => 'failed'] + $keep)" /></div>
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Accounts locked now" :value="number_format($s['locked'])" icon="bi-lock" tone="warning" hint="after 3 failures" :href="route('admin.users.index', ['status' => 'locked'])" /></div>
+        <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Never signed in" :value="number_format($s['never'])" icon="bi-person-dash" tone="orange" hint="active officers" /></div>
     </div>
 
     <form method="GET" class="filter-bar mb-3">

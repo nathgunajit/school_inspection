@@ -21,7 +21,10 @@ class MapViewTest extends TestCase
     {
         foreach ([UserLevel::StateAdmin, UserLevel::State, UserLevel::District, UserLevel::Block, UserLevel::Cluster] as $level) {
             $this->actingAs($this->officer($level))->get(route('map.index'))
-                ->assertOk()->assertSee('id="map"', false)->assertSee('Map View');
+                ->assertOk()->assertSee('id="map"', false)->assertSee('Map View')
+                // Modification V8 items 2 and 4: colour key on top of the map, compact filter fields
+                ->assertSee('map-keybar', false)->assertSee('data-key="inspected"', false)->assertSee('Not inspected')
+                ->assertSee('form-select form-select-sm', false)->assertSee('map-filters', false);
         }
     }
 

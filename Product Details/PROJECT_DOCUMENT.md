@@ -1,6 +1,6 @@
 # School Inspection Management System: project document
 
-Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report) and for **Modification V7** (registration form changes and the rating card). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
+Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report) and for **Modification V7** (registration form changes and the rating card) and **Modification V8** (map popups and colour key, rating report design, PDF without device location, daily login report). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
 
 | For | Read |
 |---|---|
@@ -9,6 +9,7 @@ Modification of the Application V5, Step 1, updated for the New Modules (Map Vie
 | What changed in V6 | Section 9 |
 | What changed in V7 | Section 10 |
 | Teacher totals and working without network | Section 11 |
+| What changed in V8 (map, rating report, PDF, daily login report) | Section 12 |
 
 Related documents:
 - `Documents/School_Inspection_PRD.docx`: the requirements
@@ -789,3 +790,38 @@ flowchart LR
   - A browser in private mode or with no free storage falls back to the old behaviour and says so.
   - A change kept offline that the server later refuses (e.g. the inspection was cancelled) is dropped with a message.
 - **Deploy:** run `php artisan migrate` (adds `row_uid`), then `npm run build`.
+
+---
+
+## 12. Modification V8 (19-11-2026)
+Source: `Documents/Modification of the ApplicationV8.docx`. All 8 items are screen and report changes. The database is unchanged; no migration is needed.
+
+| # | Request | What was done | Where |
+|---|---|---|---|
+| 1 | Map View: school details popup more elegant and attractive | The school popup has a header coloured by status (green inspected, orange in progress, red not inspected), the school name, the UDISE code, status and rating chips, rows with icons (area, address), a "Last inspection" box (number, date, officer), the directions panel, and the buttons **Open school** and **View report** side by side. The area popup uses the same header, with three count tiles, a coverage bar, the average rating and the officers | `resources/js/map.js` (`schoolPopup()`, `areaPopup()`), `app.scss` (`.map-pop`) |
+| 2 | Map View: inspected / not inspected colour key on top of the map | A strip above the map shows **Inspected · In progress · Not inspected** with live counts for the level on screen and the period. With "Colour by Rating" it shows the rating bands. The side legend is unchanged | `map/index.blade.php` (`.map-keybar`), `map.js` (`renderStats()`) |
+| 3 | Map View: selected item colour of the filter dropdowns like the other fields | A chosen district, block, cluster or officer is written in the same colour and weight as the text in the date and School fields; "All …" stays placeholder grey | `app.scss` (`.map-filters`) |
+| 4 | Map View: filter selects small, as standard | Every map filter uses `form-select-sm` / `form-control-sm` (34 px). Phones keep 16 px text, so iOS does not zoom in | `map/index.blade.php`, `app.scss` |
+| 5 | Rating Report: more attractive, clean and elegant: bands and average by section | **Rating bands:** a donut of the band shares with the average score and band in the middle, plus a legend (count, share and bar; tap to filter). **Average by section:** one row per section, with the step icon, the percent, a band pill, and a bar coloured by the band. The stat tiles keep their text inside the box. Each section average now carries its band (`RatingReportService::sections()`) | `reports/ratings/index.blade.php`, `RatingReportService.php`, `app.scss` (`.report-donut`, `.band-legend`, `.section-scores`) |
+| 6 | Remove the device location (start) and (end) from the PDF report | The two rows "Device location (start / submit)" are no longer printed in the PDF. The coordinates are still stored, and the web report page still shows them. Photo GPS stamps are unchanged | `inspections/pdf.blade.php` |
+| 7 | Daily Login Report with the current login status | New **Daily report** tab on Login Monitoring (`/admin/login-report/daily`, State Admin). It has one row per active officer for the chosen date (default today), showing the first sign-in, last activity, sign-ins, time online, refused attempts and the **current status**. Tiles: online now, signed in that day, not signed in, refused. Filters: date, level, district, status, officer. Excel export | `LoginMonitorService::daily()`, `dailySummary()`, `dailyMinutes()`; `LoginReportController@daily`, `@dailyExport`; `admin/login-report/daily.blade.php`, `tabs.blade.php`; routes `admin.login-report.daily[.export]` |
+| 8 | Login Monitoring: top card text inside the box; clean and elegant | The tiles use `<x-stat-card wrap>`: the label wraps onto at most two lines inside the box and is never cut off. They have a short hint line, a coloured edge and equal heights, in a 6 / 3 / 2-per-row grid. The missing `tone-orange` icon colour was added | `components/stat-card.blade.php` (`wrap`, `hint` props), `admin/login-report/index.blade.php`, `app.scss` (`.stat-card-wrap`) |
+
+**Current status rules (daily report).** The status is worked out from the officer's latest successful sign-in:
+
+| Status | Rule |
+|---|---|
+| **Online now** | The session is not signed out and was active within the session lifetime (20 min). This is the same rule as "Online now" in the sign-in log |
+| **Not signed in (today)** | No successful sign-in on the chosen day |
+| **Signed out** | The latest session was signed out |
+| **Timed out** | The latest session ended by inactivity |
+| **Never signed in** | The officer has no sign-in at all |
+
+**Tests:**
+- `LoginReportTest::test_daily_report_shows_every_officer_with_the_current_status`
+- `MapViewTest` (colour key, small filters)
+- `RatingReportTest` (donut, section bands)
+- `InspectionFlowTest` (PDF HTML has no "Device location")
+- Full suite: 133 passed.
+
+**Deploy:** `npm run build`.

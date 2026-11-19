@@ -1730,3 +1730,147 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
     &.is-synced { background: rgba($success, .08); border: 1px solid rgba($success, .35); color: darken($success, 10%); } }
 .rs-item.is-pending { border-style: dashed; background: #fffbf2; }
 .review-submit-hint .bi-phone { color: darken($warning, 12%); }
+
+// =============================================================
+//  Modification V8
+// =============================================================
+// ---------- Stat tiles whose text stays inside the box (items 5 and 8) ----------
+.tone-orange { background: rgba($warning, .14); color: #b45309; }
+.stat-card-wrap { position: relative; overflow: hidden;
+    &::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--edge, #{$primary}); opacity: .85; }
+    .card-body { align-items: center !important; padding: .85rem .9rem .85rem 1.05rem; }
+    .min-w-0 { flex: 1 1 auto; }
+    .stat-value { font-size: 1.35rem; line-height: 1.15; letter-spacing: -.01em; }
+    .stat-label-wrap { font-size: .76rem; font-weight: 600; color: #475569; line-height: 1.25; white-space: normal; overflow-wrap: anywhere;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .stat-hint { font-size: .68rem; color: #94a3b8; line-height: 1.2; margin-top: .1rem; white-space: normal; } }
+@each $name, $c in (primary: $primary, accent: $accent, success: $success, danger: $danger, warning: $warning, info: $info, orange: #e07b00) {
+    .tone-edge-#{$name} { --edge: #{$c}; }
+}
+.login-stats, .rating-stats { > [class*="col-"] { display: flex; } .stat-card { width: 100%; } }
+@include media-breakpoint-down(sm) {
+    .stat-card-wrap .card-body { padding: .7rem .7rem .7rem .9rem; }
+    .stat-card-wrap .stat-value { font-size: 1.15rem; }
+    .stat-card-wrap .stat-label-wrap { font-size: .7rem; }
+}
+
+// ---------- Login Monitoring tabs and the daily report (item 7) ----------
+.report-tabs { gap: .35rem; flex-wrap: wrap;
+    .nav-link { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .45rem .9rem; border-radius: 999px; font-weight: 500; font-size: .85rem;
+        color: #475569; background: #fff; border: 1px solid $border-color;
+        &:hover { color: $primary; border-color: rgba($primary, .4); }
+        &.active { color: #fff; background: $primary; border-color: $primary; } } }
+.daily-state { display: inline-flex; align-items: center; gap: .3rem; i { font-size: .78rem; } }
+.daily-state-online i { animation: si-pulse 1.6s ease-in-out infinite; }
+@keyframes si-pulse { 50% { opacity: .35; } }
+.daily-login-table td { padding-top: .55rem; padding-bottom: .55rem; }
+
+// ---------- Map View: colour key on top of the map (item 2) ----------
+.map-keybar { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .75rem; margin-bottom: .5rem; padding: .45rem .6rem;
+    background: #f8fafc; border: 1px solid $border-color; border-radius: .6rem;
+    .map-keybar-items { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .map-keybar-items.d-none { display: none !important; }
+    .key { display: inline-flex; align-items: center; gap: .4rem; padding: .25rem .65rem; border-radius: 999px; background: #fff; border: 1px solid $border-color;
+        font-size: .78rem; font-weight: 500; color: #334155; white-space: nowrap;
+        b { font-weight: 700; color: #0f172a; margin-left: .1rem; }
+        &.st-inspected { border-color: rgba($st-inspected, .35); background: rgba($st-inspected, .06); }
+        &.st-in_progress { border-color: rgba($st-progress, .4); background: rgba($st-progress, .07); }
+        &.st-pending { border-color: rgba($st-pending, .3); background: rgba($st-pending, .05); } }
+    .dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); }
+    .map-keybar-period { margin-left: auto; white-space: nowrap; } }
+@each $name, $c in $rating-colors { .map-keybar .dot.rt-#{$name} { background: $c; } }
+@include media-breakpoint-down(sm) { .map-keybar .map-keybar-period { margin-left: 0; } }
+
+// ---------- Map View: compact filters, values coloured like the other fields (items 3 and 4) ----------
+.map-filters {
+    .card-body { gap: .55rem !important; }
+    .form-label { font-size: .72rem; font-weight: 600; color: #64748b; margin-bottom: .2rem !important; }
+    .form-select-sm, .form-control-sm { min-height: 34px; height: 34px; padding-top: .3rem; padding-bottom: .3rem; font-size: .8125rem; border-radius: .5rem; }
+    .form-select-sm { padding-right: 2rem; background-position: right .6rem center; }
+    // a chosen value reads exactly like the text typed in the other fields; the empty "All" choice stays placeholder grey
+    .form-select, .form-control { color: #0f172a; font-weight: 400; }
+    .form-select:has(> option[value=""]:checked), .form-control::placeholder { color: #9aa5b5; font-weight: 400; }
+    .form-select:disabled { color: #64748b; }
+    .btn-sm { min-height: 34px; }
+    // phones: 16px text, so iOS does not zoom in on focus
+    @include media-breakpoint-down(md) { .form-select-sm, .form-control-sm, .form-control::placeholder { font-size: 1rem; } }
+}
+
+// ---------- Map View: school and area popups (item 1) ----------
+.leaflet-popup-content-wrapper:has(.map-pop) { padding: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 32px -8px rgba(15, 23, 42, .3); }
+.leaflet-popup-content:has(.map-pop) { margin: 0; }
+.leaflet-popup:has(.map-pop) a.leaflet-popup-close-button { color: #fff; top: 6px; right: 6px; }
+.map-pop { --mp: #{$primary}; --mp-dark: #{darken($primary, 14%)}; min-width: 15rem; max-width: 18.5rem; font-size: .8rem; color: #334155;
+    &.is-inspected { --mp: #{$st-inspected}; --mp-dark: #{darken($st-inspected, 12%)}; }
+    &.is-in_progress { --mp: #{$st-progress}; --mp-dark: #{darken($st-progress, 16%)}; }
+    &.is-pending { --mp: #{$st-pending}; --mp-dark: #{darken($st-pending, 14%)}; }
+    .mp-head { display: flex; align-items: center; gap: .6rem; padding: .7rem 1.9rem .7rem .85rem; background: linear-gradient(135deg, var(--mp), var(--mp-dark)); color: #fff; }
+    .mp-icon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(255, 255, 255, .2); font-size: 1rem; }
+    .mp-title { font-weight: 700; font-size: .9rem; line-height: 1.25; }
+    .mp-sub { font-size: .72rem; opacity: .9; }
+    .mp-body { padding: .65rem .85rem .8rem; }
+    .mp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-bottom: .45rem; }
+    .mp-status { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .55rem; border-radius: 999px; font-weight: 600; font-size: .72rem;
+        .dot { width: .55rem; height: .55rem; border-radius: 50%; display: inline-block; }
+        &.st-inspected { background: rgba($st-inspected, .12); color: darken($st-inspected, 8%); }
+        &.st-in_progress { background: rgba($st-progress, .15); color: #a35a05; }
+        &.st-pending { background: rgba($st-pending, .1); color: #b3261e; } }
+    .mp-chip-muted { font-size: .72rem; color: #94a3b8; }
+    .mp-row { display: flex; align-items: flex-start; gap: .45rem; padding: .12rem 0; line-height: 1.35;
+        > i { color: #94a3b8; font-size: .8rem; margin-top: .1rem; flex: 0 0 auto; } }
+    .mp-last { margin-top: .45rem; padding: .45rem .55rem; border-radius: .55rem; background: #f8fafc; border: 1px solid #edf1f6;
+        .mp-last-label { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-bottom: .1rem; }
+        &.mp-last-none { display: flex; align-items: center; gap: .4rem; color: #64748b; i { color: #94a3b8; } } }
+    .mp-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; margin-bottom: .5rem; }
+    .mp-tile { text-align: center; padding: .4rem .2rem; border-radius: .55rem; line-height: 1.15;
+        b { display: block; font-size: 1rem; } span { font-size: .66rem; color: #64748b; }
+        &.st-inspected { background: rgba($st-inspected, .1); b { color: darken($st-inspected, 6%); } }
+        &.st-in_progress { background: rgba($st-progress, .12); b { color: #a35a05; } }
+        &.st-pending { background: rgba($st-pending, .08); b { color: #b3261e; } } }
+    .mp-cov { margin-bottom: .35rem; font-size: .76rem; }
+    .mp-bar { height: .4rem; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin-top: .2rem;
+        span { display: block; height: 100%; border-radius: 999px; &.cov-high { background: $st-inspected; } &.cov-mid { background: $cov-mid; } &.cov-low { background: $st-pending; } } }
+    .mp-note { font-size: .68rem; color: #94a3b8; text-align: right; margin-top: -.1rem; }
+    .mp-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .4rem; margin-top: .6rem;
+        .btn { min-height: 34px; white-space: nowrap; } }
+    .si-dir { margin-top: .55rem; } }
+
+// ---------- Rating Report: donut of the bands and section scores (item 5) ----------
+.report-card { border: 1px solid $border-color; box-shadow: $box-shadow-sm;
+    .card-header { display: flex; align-items: center; gap: .55rem; font-weight: 600; background: #fff; }
+    .rc-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba($primary, .1); color: $primary; font-size: .9rem; }
+    .rc-sub { margin-left: auto; font-size: .72rem; font-weight: 400; color: #94a3b8; } }
+.band-overview { display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: center;
+    @include media-breakpoint-down(sm) { grid-template-columns: 1fr; justify-items: center; } }
+.report-donut { width: 9.5rem; height: 9.5rem; border-radius: 50%; display: grid; place-items: center; background: var(--donut);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06);
+    .rd-hole { width: 6.4rem; height: 6.4rem; border-radius: 50%; background: #fff; display: grid; place-content: center; text-align: center; gap: .1rem;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+        b { font-size: 1.35rem; font-weight: 800; color: $dark; line-height: 1; }
+        span { font-size: .68rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+        em { font-style: normal; font-size: .64rem; padding: .1rem .45rem; justify-self: center; } } }
+.band-legend { display: grid; gap: .3rem; width: 100%;
+    .band-item { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "sw name count" "bar bar bar"; align-items: center; gap: .15rem .55rem;
+        padding: .4rem .55rem; border-radius: .6rem; text-decoration: none; color: inherit; border: 1px solid transparent; transition: background .15s, border-color .15s;
+        &:hover { background: #f8fafc; border-color: $border-color; }
+        &.is-active { background: rgba($primary, .06); border-color: rgba($primary, .35); }
+        &.is-empty { opacity: .55; }
+        .rating-swatch { grid-area: sw; width: .75rem; height: .75rem; }
+        .bi-name { grid-area: name; font-size: .82rem; font-weight: 600; color: #1e293b; small { margin-left: .4rem; font-weight: 400; color: #94a3b8; font-size: .7rem; } }
+        .bi-count { grid-area: count; text-align: right; line-height: 1.1; b { font-size: .9rem; color: $dark; } small { display: block; font-size: .66rem; color: #94a3b8; } }
+        .bi-bar { grid-area: bar; height: .3rem; border-radius: 999px; background: #eef2f7; overflow: hidden;
+            span { display: block; height: 100%; border-radius: 999px; } } } }
+@each $name, $c in $rating-colors {
+    .bi-bar .rating-#{$name} { background: $c; }
+    .rating-tint-#{$name} { background: rgba($c, .12); color: darken($c, 10%); }
+}
+.section-scores { display: grid; gap: .55rem;
+    .sec-row { display: flex; align-items: center; gap: .7rem; padding: .45rem .55rem; border-radius: .65rem; border: 1px solid #edf1f6; background: #fcfdfe;
+        &.is-na { opacity: .6; } }
+    .sec-icon { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: .95rem; }
+    .sec-main { flex: 1 1 auto; min-width: 0; }
+    .sec-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .sec-title { font-size: .82rem; font-weight: 600; color: #1e293b; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sec-score { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; b { font-size: .88rem; color: $dark; } .rating-pill { font-size: .64rem; } }
+    .sec-na { font-size: .75rem; font-weight: 600; color: #94a3b8; }
+    .rating-bar { height: .38rem; margin-top: .3rem; } }
