@@ -37,28 +37,33 @@ class RegisterController extends Controller
         $existing = $request->reapplyingUser();
 
         $user = DB::transaction(function () use ($request, $data, $level, $existing) {
-            $file = $request->file('id_proof');
-            $path = $file->storeAs('id-proofs', Str::random(40).'.'.$file->extension(), 'private');
             $photo = $request->file('photo');
             $photoPath = $photo->storeAs('employee-photos', Str::random(40).'.'.$photo->extension(), 'private');
 
             $attrs = [
                 'name' => $data['name'],
                 'designation_id' => $data['designation_id'],
-                'employee_id' => $data['employee_id'],
+                'employee_id' => $data['employee_id'] ?? null,
                 'mobile' => $data['mobile'],
                 'email' => $data['email'] ?? null,
                 'password' => $data['password'],
                 'level' => $level,
                 'status' => UserStatus::Pending,
-                'id_proof_path' => $path,
-                'id_proof_original_name' => mb_substr($file->getClientOriginalName(), 0, 255),
                 'photo_path' => $photoPath,
             ];
 
+            // Identity proof is optional (Modification V7); a re-application keeps the old one unless a new file is sent
+            if ($file = $request->file('id_proof')) {
+                $attrs['id_proof_path'] = $file->storeAs('id-proofs', Str::random(40).'.'.$file->extension(), 'private');
+                $attrs['id_proof_original_name'] = mb_substr($file->getClientOriginalName(), 0, 255);
+            } elseif (! $existing) {
+                $attrs['id_proof_path'] = null;
+                $attrs['id_proof_original_name'] = null;
+            }
+
             if ($existing) {
                 // Re-application after rejection (PRD 5.3 step 8)
-                if ($existing->id_proof_path) {
+                if ($existing->id_proof_path && isset($attrs['id_proof_path'])) {
                     Storage::disk('private')->delete($existing->id_proof_path);
                 }
                 if ($existing->photo_path) {

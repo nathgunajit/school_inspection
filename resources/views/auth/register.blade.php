@@ -46,8 +46,8 @@
                             @error('designation_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="employee_id">Employee ID <span class="req">*</span></label>
-                            <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" required maxlength="40" placeholder="Departmental employee code">
+                            <label class="form-label" for="employee_id">Employee ID <span class="opt">(optional)</span></label>
+                            <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6 upload-col">
@@ -78,9 +78,9 @@
                             @error('photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6 upload-col">
-                            <label class="form-label" for="id_proof">Identity proof <span class="req">*</span></label>
+                            <label class="form-label" for="id_proof">Identity proof <span class="opt">(optional)</span></label>
                             <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}">
-                                <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" required aria-describedby="id-proof-hint">
+                                <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" aria-describedby="id-proof-hint">
                                 {{-- Empty state --}}
                                 <div class="upload-empty">
                                     <span class="upload-icon"><i class="bi bi-person-badge"></i></span>

@@ -1266,3 +1266,27 @@ Plan approved by the user. Decisions:
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
   - `Documents/Modification of the ApplicationV7.docx`
+
+## 79. V7-1: Employee ID and identity proof optional (2026-11-19)
+- **Migration `2026_11_19_000006_make_employee_id_nullable_on_users`:** `users.employee_id` is nullable and still unique (several NULLs allowed); empty strings become NULL. `id_proof_path` was already nullable.
+- **`RegisterRequest`:** `employee_id` and `id_proof` are `nullable`; format, length, unique and file type/size rules are kept.
+- **`RegisterController`:** stores the identity proof only when a file is sent. A re-application without a new file keeps the earlier proof; a new file replaces and deletes the old one.
+- **Admin user edit:** Employee ID is optional, with the same format rule as registration.
+- **Views:**
+  - register: "(optional)" labels and no `required`; Employee ID has a pattern
+  - approvals/show and users/show: "Not provided" where empty
+  - the approval page explains that no identity proof was uploaded instead of a broken viewer
+  - the user list hides the empty "· ID"
+- **Tests:** `RegistrationV7Test` (3 tests): register without either field; two officers without an ID; a duplicate or badly formatted ID is still refused; the approver sees "Not provided"; the ID-proof route returns 404; a re-application keeps the proof; the admin can clear the ID. Full suite: 116 passed.
+- **Local DB:** MySQL backed up to the scratchpad, then migrated. `employee_id` is now `varchar(40) NULL UNI`.
+- **Browser:** the register page shows "(optional)" on both fields.
+- Files:
+  - `database/migrations/2026_11_19_000006_make_employee_id_nullable_on_users.php`
+  - `app/Http/Requests/RegisterRequest.php`
+  - `app/Http/Controllers/Auth/RegisterController.php`
+  - `app/Http/Controllers/Admin/UserController.php`
+  - `resources/views/auth/register.blade.php`
+  - `resources/views/admin/approvals/show.blade.php`
+  - `resources/views/admin/users/show.blade.php`
+  - `resources/views/admin/users/index.blade.php`
+  - `tests/Feature/RegistrationV7Test.php`

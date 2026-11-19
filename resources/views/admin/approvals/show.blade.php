@@ -14,7 +14,7 @@
                     <dl class="kv mb-0">
                         <dt>User level</dt><dd>{{ $u->level->label() }}</dd>
                         <dt>Jurisdiction</dt><dd>{{ $jur?->label() }}</dd>
-                        <dt>Employee ID</dt><dd>{{ $u->employee_id }}</dd>
+                        <dt>Employee ID</dt><dd>@if ($u->employee_id){{ $u->employee_id }}@else<span class="text-secondary fst-italic">Not provided</span>@endif</dd>
                         <dt>Mobile</dt><dd>{{ $u->mobile }}</dd>
                         <dt>Email</dt><dd>{{ $u->email ?: '—' }}</dd>
                         <dt>Applied on</dt><dd>{{ $registration->created_at->format('d M Y, h:i A') }}</dd>
@@ -52,10 +52,12 @@
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person-vcard me-2 text-primary"></i>Identity proof</span>
-                    <a href="{{ route('admin.users.id-proof', $u) }}" target="_blank" rel="noopener" class="btn btn-sm btn-soft-primary"><i class="bi bi-box-arrow-up-right"></i>Open</a>
+                    @if ($u->id_proof_path)<a href="{{ route('admin.users.id-proof', $u) }}" target="_blank" rel="noopener" class="btn btn-sm btn-soft-primary"><i class="bi bi-box-arrow-up-right"></i>Open</a>@endif
                 </div>
                 <div class="card-body p-2 bg-light d-flex align-items-center justify-content-center" style="min-height:420px">
-                    @if ($isPdf)
+                    @if (! $u->id_proof_path)
+                        <div class="text-center text-secondary p-4"><i class="bi bi-file-earmark-x fs-1 d-block mb-2"></i>No identity proof was uploaded with this registration (optional).<div class="text-xs mt-1">Verify the officer by other means before approving.</div></div>
+                    @elseif ($isPdf)
                         <iframe src="{{ route('admin.users.id-proof', $u) }}" title="Identity proof" class="w-100 rounded" style="height:70vh;border:0"></iframe>
                     @else
                         <img src="{{ route('admin.users.id-proof', $u) }}" alt="Identity proof of {{ $u->name }}" class="img-fluid rounded" style="max-height:70vh">

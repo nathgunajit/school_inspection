@@ -45,8 +45,9 @@ class RegisterRequest extends FormRequest
         $rules = [
             'name' => ['required', 'string', 'max:120'],
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
-            'employee_id' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
-            'id_proof' => ['required', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
+            // Modification V7: Employee ID and identity proof are optional
+            'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
+            'id_proof' => ['nullable', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
             'photo' => ['required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
             'level' => ['required', new Enum(UserLevel::class), Rule::in(array_map(fn ($l) => $l->value, UserLevel::registrable()))],
             'state_id' => ['required', Rule::exists('states', 'id')->where('is_active', true)],

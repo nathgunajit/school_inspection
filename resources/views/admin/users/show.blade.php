@@ -12,7 +12,7 @@
                 </div>
                 <div class="card-body border-top">
                     <dl class="kv mb-0">
-                        <dt>Employee ID</dt><dd>{{ $user->employee_id }}</dd>
+                        <dt>Employee ID</dt><dd>@if ($user->employee_id){{ $user->employee_id }}@else<span class="text-secondary fst-italic">Not provided</span>@endif</dd>
                         <dt>Mobile</dt><dd>{{ $user->mobile }}</dd>
                         <dt>Email</dt><dd>{{ $user->email ?: '—' }}</dd>
                         <dt>Jurisdiction</dt><dd>{{ $cur?->label() }}</dd>
@@ -54,7 +54,7 @@
                             <div class="col-md-6"><label class="form-label">Full name</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control @error('name') is-invalid @enderror" required></div>
                             <div class="col-md-6"><label class="form-label">Designation</label>
                                 <select name="designation_id" class="form-select">@foreach ($designations as $d)<option value="{{ $d->id }}" @selected($user->designation_id == $d->id)>{{ $d->label }}</option>@endforeach</select></div>
-                            <div class="col-md-6"><label class="form-label">Employee ID</label><input name="employee_id" value="{{ old('employee_id', $user->employee_id) }}" class="form-control @error('employee_id') is-invalid @enderror" required>
+                            <div class="col-md-6"><label class="form-label">Employee ID</label><input name="employee_id" value="{{ old('employee_id', $user->employee_id) }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Optional">
                                 @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
                             <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
                             <div class="col-12"><button class="btn btn-primary"><i class="bi bi-check2"></i>Save changes</button></div>
