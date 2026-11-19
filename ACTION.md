@@ -1244,3 +1244,25 @@ Plan approved by the user. Decisions:
 - Files:
   - `PROJECT_DOCUMENT.md`
   - `ACTION.md`
+
+## 78. V7 review and plan (2026-11-19)
+- **Request:** review `Documents/Modification of the ApplicationV7.docx`, plan it, and build it one module at a time with a commit and push each.
+- **V7 asks for:**
+  1. Employee ID and identity proof not mandatory
+  2. Mobile must start with 6–9
+  3. Check DB and UI validation (skip what is already done)
+  4. Grey dropdown placeholders and a standard file-size label
+  5. Designation "Other" with a text box
+  6. Uploads not lost when the form has errors
+  7. A more visible privacy checkbox
+  8. A cleaner rating card on the inspection view
+- **Found:**
+  - The server already checks mobile 6–9 on register and profile, but the UI and login/reset do not.
+  - `employee_id` is NOT NULL.
+  - The grey placeholder style exists only for the custom select widget.
+  - The size hints are hard-coded.
+- **Plan:** modules V7-1 … V7-5 in `NEW_MODULES_PLAN.md`.
+- Files:
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`
+  - `Documents/Modification of the ApplicationV7.docx`
