@@ -33,7 +33,7 @@ class LoginReportController extends Controller
     /** One officer's sign-in history. */
     public function user(Request $request, User $user)
     {
-        $user->load(['designation:id,label', 'currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'currentJurisdiction.state:id,name']);
+        $user->load(['designation:id,code,label', 'currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'currentJurisdiction.state:id,name']);
         $base = UserLoginLog::where('user_id', $user->id);
 
         return view('admin.login-report.user', [

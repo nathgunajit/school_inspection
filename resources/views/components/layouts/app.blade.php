@@ -101,7 +101,7 @@
                     <span class="account-text d-none d-md-block">
                         <span class="g d-none d-xl-block">{{ $greet }},</span>
                         <span class="n">{{ $u->name }}</span>
-                        <span class="r">{{ $u->designation?->label ?? 'Officer' }} · {{ $u->level->label() }}</span>
+                        <span class="r">{{ $u->designation_label ?? 'Officer' }} · {{ $u->level->label() }}</span>
                     </span>
                     <i class="bi bi-chevron-down account-caret d-none d-md-inline"></i>
                 </button>
@@ -111,7 +111,7 @@
                         <div class="min-w-0">
                             <div class="account-hi">{{ $greet }}, {{ $firstName }}</div>
                             <div class="account-name text-truncate">{{ $u->name }}</div>
-                            <div class="account-role text-truncate">{{ $u->designation?->label ?? 'Officer' }}</div>
+                            <div class="account-role text-truncate">{{ $u->designation_label ?? 'Officer' }}</div>
                             <span class="account-level"><i class="bi bi-diagram-3"></i>{{ $u->level->label() }} level</span>
                         </div>
                     </div>

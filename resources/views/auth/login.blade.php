@@ -89,7 +89,7 @@
                             <button type="button" class="demo-user" data-demo-mobile="{{ $d->mobile }}" title="Use {{ $d->name }}">
                                 <span class="min-w-0">
                                     <span class="n">{{ $d->name }}</span>
-                                    <span class="r">{{ $d->designation?->label }}</span>
+                                    <span class="r">{{ $d->designation_label }}</span>
                                 </span>
                                 <span class="m">{{ $d->mobile }}</span>
                             </button>

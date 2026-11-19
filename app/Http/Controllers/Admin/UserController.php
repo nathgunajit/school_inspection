@@ -62,6 +62,7 @@ class UserController extends Controller
         return view('admin.users.show', [
             'user' => $user,
             'designations' => MasterValue::ofType('designation')->get(),
+            'otherDesignationId' => MasterValue::idFor('designation', User::OTHER_DESIGNATION),
             'states' => State::orderBy('name')->get(),
             'grantable' => Permission::whereIn('slug', PermissionService::grantableFor($user->level))->get(),
             'inspectionCount' => $user->inspections()->count(),
@@ -75,9 +76,13 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')],
+            'designation_other' => [Rule::requiredIf(fn () => (int) $request->input('designation_id') === MasterValue::idFor('designation', User::OTHER_DESIGNATION)), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($user->id)],
             'email' => ['nullable', 'email', 'max:150'],
         ]);
+        if ((int) $data['designation_id'] !== MasterValue::idFor('designation', User::OTHER_DESIGNATION)) {
+            $data['designation_other'] = null;
+        }
         $before = $user->only(array_keys($data));
         $user->update($data);
         AuditLogger::log('user_updated', $user, ['before' => $before, 'after' => $data]);

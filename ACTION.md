@@ -1332,3 +1332,42 @@ Plan approved by the user. Decisions:
   - `app/Http/Requests/RegisterRequest.php`
   - `database/migrations/2026_11_19_000007_add_mobile_check_constraints.php`
   - `tests/Feature/RegistrationV7Test.php`
+
+## 81. V7-3: Form polish: grey dropdown placeholders, standard file size, "Other" designation, highlighted consent (2026-11-19)
+- **Dropdown placeholders:** a native `.form-select` still on its empty "Select …" option is shown in the same grey (`#9aa5b5`, normal weight) as text placeholders. It uses CSS `:has(> option[value=""]:checked)`, so the location cascade's programmatic changes follow without JS. This applies app-wide; the open list keeps dark option text.
+- **Standard file size:**
+  - New `App\Support\FileSize::human()` ("1 MB", "1.5 MB", "500 KB", binary units like Laravel's `max:`) and `types()` ("JPG / PNG").
+  - The register chips and the server messages (`photo.max`, `id_proof.max`) are now built from `config('inspection.employee_photo|id_proof')` instead of hard-coded "1 MB / 2 MB".
+- **"Other" designation:**
+  - The master value `designation / other` already existed.
+  - Migration `2026_11_19_000008_add_designation_other_to_users` adds `users.designation_other` (120).
+  - Register and admin edit: choosing Other reveals a required text box (generic `select[data-other-value]` toggle in `app.js`; the box is disabled and not sent otherwise).
+  - `RegisterRequest` / `UserController`: required when Other; letters and `. , ( ) / & ' -` only; max 120. Switching away clears it.
+  - `User::designation_label` returns the typed text for Other, else the master label. It replaced `designation?->label` in 13 views (17 places) and in the inspection Excel export, the start-guard message, the map officer list and the login report. Eager loads now include `code`.
+- **Privacy consent:**
+  - The checkbox sits in a highlighted panel (`.reg-consent`): tinted blue with an accent bar and a shield icon, a bigger 1.35 rem checkbox, a bold label and a hint line.
+  - It turns green when ticked.
+  - Submitting unticked stops the submit, turns it red with a short shake (none with reduced motion) and scrolls to it.
+- **Fix during the check:** the mobile and consent submit checks only call `preventDefault` (no `stopImmediatePropagation`), so all problems are flagged together; the password encryptor already skips prevented submits.
+- **Tests:** `RegistrationV7Test` gains 2 tests: Other requires text, rejects markup, is trimmed and shown on the approval page; a normal designation ignores the text; the admin switching away clears it; FileSize formats; chips and messages follow config.
+  - The test class now bypasses the register throttle, and every successful registration asserts the redirect to login, so a 429 can no longer pass silently.
+  - Full suite: 120 passed.
+- **Browser (register):**
+  - empty designation and district text `rgb(154,165,181)`, the same as placeholders
+  - Other shows the required box
+  - an unticked submit flags the panel red, a ticked one turns it green
+- Files:
+  - `app/Support/FileSize.php`
+  - `app/Models/User.php`
+  - `app/Http/Requests/RegisterRequest.php`
+  - `app/Http/Controllers/Auth/{RegisterController,LoginController}.php`
+  - `app/Http/Controllers/Admin/{UserController,LoginReportController}.php`
+  - `app/Http/Controllers/ReportController.php`
+  - `app/Services/{MapDataService,LoginMonitorService,InspectionStartGuard}.php`
+  - `database/migrations/2026_11_19_000008_add_designation_other_to_users.php`
+  - `resources/views/auth/register.blade.php`
+  - `resources/views/admin/users/show.blade.php`
+  - 13 views using `designation_label`
+  - `resources/js/{app,register,mobile-input}.js`
+  - `resources/scss/app.scss`
+  - `tests/Feature/RegistrationV7Test.php`

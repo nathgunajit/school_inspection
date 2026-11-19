@@ -39,11 +39,21 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
-                            <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required>
+                            <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">
                                 <option value="">Select designation</option>
                                 @foreach ($designations as $d)<option value="{{ $d->id }}" @selected(old('designation_id') == $d->id)>{{ $d->label }}</option>@endforeach
                             </select>
                             @error('designation_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            {{-- Modification V7: "Other" designation is typed in --}}
+                            <div id="designation-other-wrap" class="designation-other mt-2 {{ old('designation_id') && old('designation_id') == $otherDesignationId ? '' : 'd-none' }}">
+                                <label class="visually-hidden" for="designation_other">Your designation</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pencil-square"></i></span>
+                                    <input id="designation_other" name="designation_other" value="{{ old('designation_other') }}" maxlength="120" placeholder="Type your designation"
+                                           class="form-control @error('designation_other') is-invalid @enderror" autocomplete="organization-title">
+                                    @error('designation_other')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="employee_id">Employee ID <span class="opt">(optional)</span></label>
@@ -60,8 +70,8 @@
                                         <div class="t">Passport-size photograph</div>
                                         <div class="s"><span class="text-primary fw-semibold">Click to choose</span> or drag &amp; drop · clear face</div>
                                         <div class="upload-chips" id="photo-hint">
-                                            <span><i class="bi bi-file-earmark-image"></i>JPG / PNG</span>
-                                            <span><i class="bi bi-hdd"></i>Max 1 MB</span>
+                                            <span><i class="bi bi-file-earmark-image"></i>{{ \App\Support\FileSize::types(config('inspection.employee_photo.mimes')) }}</span>
+                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -90,7 +100,7 @@
                                         <div class="upload-chips" id="id-proof-hint">
                                             <span><i class="bi bi-file-earmark-pdf"></i>PDF</span>
                                             <span><i class="bi bi-file-earmark-image"></i>JPG / PNG</span>
-                                            <span><i class="bi bi-hdd"></i>Max 2 MB</span>
+                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.id_proof.max_kb')) }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -205,11 +215,16 @@
 
             {{-- ===== Submit ===== --}}
             <div class="reg-submit">
-                <div class="form-check mb-0">
-                    <input class="form-check-input" type="checkbox" name="privacy" id="privacy" value="1" @checked(old('privacy')) required>
-                    <label class="form-check-label text-sm" for="privacy">I accept the <a href="#privacy-text" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="privacy-text">privacy notice</a> and confirm the details are correct.</label>
-                    @error('privacy')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                    <div class="collapse text-xs text-secondary mt-2" id="privacy-text">Your details and identity proof are used only to verify and manage your account. Your device location is collected only while you conduct an inspection. Photographs are stored securely and shown only to authorised officers.</div>
+                {{-- Modification V7: the consent is a highlighted panel so it is not missed --}}
+                <div class="reg-consent @error('privacy') is-invalid @enderror" id="reg-consent">
+                    <span class="reg-consent-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></span>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" name="privacy" id="privacy" value="1" @checked(old('privacy')) required aria-describedby="privacy-hint">
+                        <label class="form-check-label" for="privacy">I accept the <a href="#privacy-text" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="privacy-text">privacy notice</a> and confirm the details are correct. <span class="req">*</span></label>
+                        <div class="reg-consent-hint" id="privacy-hint">Tick this box to submit your registration.</div>
+                        @error('privacy')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                        <div class="collapse text-xs text-secondary mt-2" id="privacy-text">Your details and identity proof are used only to verify and manage your account. Your device location is collected only while you conduct an inspection. Photographs are stored securely and shown only to authorised officers.</div>
+                    </div>
                 </div>
                 <div class="d-flex flex-column flex-sm-row gap-2 ms-md-auto">
                     <a href="{{ route('login') }}" class="btn btn-light order-2 order-sm-1">Already registered? Sign in</a>

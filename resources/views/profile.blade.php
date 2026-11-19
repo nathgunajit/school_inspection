@@ -31,7 +31,7 @@
 
             <div class="pf-identity">
                 <h2 class="pf-name">{{ $user->name }}</h2>
-                <div class="pf-role">{{ $user->designation?->label ?? 'Officer' }}</div>
+                <div class="pf-role">{{ $user->designation_label ?? 'Officer' }}</div>
                 <div class="pf-chips">
                     <span class="pf-chip level"><i class="bi bi-diagram-3"></i>{{ $user->level->label() }} level</span>
                     <x-status-badge :status="$user->status" />
@@ -60,7 +60,7 @@
                     <div class="pf-tile"><i class="bi bi-person-badge"></i><span>Employee ID</span><strong class="font-monospace">{{ $user->employee_id ?: '—' }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-phone"></i><span>Mobile</span><strong>+91 {{ $user->mobile }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-envelope"></i><span>Email</span><strong>{{ $user->email ?: 'Not added' }}</strong></div>
-                    <div class="pf-tile"><i class="bi bi-briefcase"></i><span>Designation</span><strong>{{ $user->designation?->label ?? '—' }}</strong></div>
+                    <div class="pf-tile"><i class="bi bi-briefcase"></i><span>Designation</span><strong>{{ $user->designation_label ?? '—' }}</strong></div>
                     <div class="pf-tile wide"><i class="bi bi-geo-alt"></i><span>Jurisdiction</span><strong>{{ $jur?->label() ?: 'State' }}</strong></div>
                     @if ($user->directPermissions->isNotEmpty())
                         <div class="pf-tile wide"><i class="bi bi-shield-plus"></i><span>Extra rights</span><strong>{{ $user->directPermissions->pluck('name')->map(fn ($p) => str_replace('_', ' ', $p))->implode(', ') }}</strong></div>

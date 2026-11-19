@@ -7,7 +7,7 @@
                     <x-user-avatar :user="$u" size="xl" />
                     <div>
                         <h2 class="h5 mb-0">{{ $u->name }}</h2>
-                        <div class="text-secondary text-sm">{{ $u->designation?->label }}</div>
+                        <div class="text-secondary text-sm">{{ $u->designation_label }}</div>
                     </div>
                 </div>
                 <div class="card-body border-top">

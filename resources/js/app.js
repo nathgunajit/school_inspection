@@ -33,6 +33,23 @@ window.toast = function (message, type = 'success') {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    /* ---------- "Other" choice reveals a text box (Modification V7: designation) ---------- */
+    // <select data-other-value="<id of Other>" data-other-target="#wrap">; the input in #wrap is required only when shown
+    document.querySelectorAll('select[data-other-value]').forEach((sel) => {
+        const wrap = document.querySelector(sel.dataset.otherTarget);
+        const input = wrap?.querySelector('input, textarea');
+        if (!wrap || !input) return;
+        const sync = (focus) => {
+            const on = sel.value !== '' && sel.value === sel.dataset.otherValue;
+            wrap.classList.toggle('d-none', !on);
+            input.required = on;
+            input.disabled = !on; // not sent when another designation is chosen
+            if (on && focus) input.focus();
+        };
+        sel.addEventListener('change', () => sync(true));
+        sync(false);
+    });
+
     /* ---------- Sidebar toggle (mobile) ---------- */
     const sidebar = document.querySelector('.app-sidebar');
     document.querySelectorAll('[data-toggle-sidebar]').forEach((b) =>

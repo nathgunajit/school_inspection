@@ -75,7 +75,7 @@
             <section class="card rp-card mb-4">
                 <div class="rp-card-head"><span class="rp-card-icon"><i class="bi bi-info-circle"></i></span><h3>Inspection details</h3></div>
                 <div class="rp-details">
-                    <div><span>Inspecting officer</span><b>{{ $inspection->officer->name }}</b><small>{{ $inspection->officer->designation?->label ?? $inspection->officer->level->label() }}</small></div>
+                    <div><span>Inspecting officer</span><b>{{ $inspection->officer->name }}</b><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div>
                     <div><span>Person met at the school</span><b>{{ $inspection->person_met_name ?: '—' }}</b><small>{{ $inspection->person_met_designation }}</small></div>
                     <div><span>Started</span><b>{{ $inspection->started_at->format('d M Y, h:i A') }}</b>
                         <small>@if ($inspection->start_lat){{ number_format($inspection->start_lat, 5) }}, {{ number_format($inspection->start_lng, 5) }}@if ($startDistance !== null) <em class="rp-dist {{ $startDistance > 500 ? 'far' : '' }}">{{ $fmtDist($startDistance) }} from school</em>@endif @else No location @endif</small></div>

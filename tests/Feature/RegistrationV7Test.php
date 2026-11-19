@@ -20,6 +20,14 @@ class RegistrationV7Test extends TestCase
     {
         parent::setUp();
         Storage::fake('private');
+        // many registrations per test: the throttle would answer 429, which carries no session errors either
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
+    }
+
+    /** A registration that must succeed: no errors and back to the login page. */
+    private function registers(array $over = []): void
+    {
+        $this->post(route('register'), $this->payload($over))->assertSessionHasNoErrors()->assertRedirect(route('login'));
     }
 
     private function payload(array $over = []): array
@@ -45,8 +53,8 @@ class RegistrationV7Test extends TestCase
     /** V7-1: Employee ID and identity proof are optional. */
     public function test_employee_id_and_identity_proof_are_optional(): void
     {
-        $this->post(route('register'), $this->payload())->assertSessionHasNoErrors()->assertRedirect(route('login'));
-        $this->post(route('register'), $this->payload(['mobile' => '8876543210', 'employee_id' => '']))->assertSessionHasNoErrors();
+        $this->registers();
+        $this->registers(['mobile' => '8876543210', 'employee_id' => '']);
 
         $a = User::where('mobile', '9876543210')->firstOrFail();
         $this->assertNull($a->employee_id);
@@ -54,7 +62,7 @@ class RegistrationV7Test extends TestCase
         $this->assertSame(2, User::whereNull('employee_id')->count(), 'several officers may have no Employee ID');
 
         // when given, the Employee ID is still unique and checked
-        $this->post(route('register'), $this->payload(['mobile' => '7876543210', 'employee_id' => 'EMP-9']))->assertSessionHasNoErrors();
+        $this->registers(['mobile' => '7876543210', 'employee_id' => 'EMP-9']);
         $this->post(route('register'), $this->payload(['mobile' => '6876543210', 'employee_id' => 'EMP-9']))->assertSessionHasErrors('employee_id');
         $this->post(route('register'), $this->payload(['mobile' => '6876543210', 'employee_id' => 'EMP 9 !']))->assertSessionHasErrors('employee_id');
 
@@ -74,7 +82,7 @@ class RegistrationV7Test extends TestCase
         $proof = $user->id_proof_path;
         $user->update(['status' => UserStatus::Rejected]);
 
-        $this->post(route('register'), $this->payload(['name' => 'Asha Devi B']))->assertSessionHasNoErrors();
+        $this->registers(['name' => 'Asha Devi B']);
         $this->assertSame($proof, $user->fresh()->id_proof_path);
         Storage::disk('private')->assertExists($proof);
     }
@@ -98,7 +106,7 @@ class RegistrationV7Test extends TestCase
         $this->post(route('register'), $this->payload(['mobile' => '5876543210']))
             ->assertSessionHasErrors(['mobile' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
         foreach (['6876543210', '7876543210', '8876543210', '9876543210'] as $good) {
-            $this->post(route('register'), $this->payload(['mobile' => $good]))->assertSessionHasNoErrors();
+            $this->registers(['mobile' => $good]);
         }
 
         $this->post(route('login'), ['mobile' => '5876543210', 'password' => 'Whatever@1'])->assertSessionHasErrors('mobile');
@@ -117,6 +125,52 @@ class RegistrationV7Test extends TestCase
         $this->post(route('register'), $this->payload(['email' => str_repeat('a', 145).'@x.org']))->assertSessionHasErrors('email');
         $long = 'Aa1@'.str_repeat('x', 61);
         $this->post(route('register'), $this->payload(['password' => $long, 'password_confirmation' => $long]))->assertSessionHasErrors('password');
-        $this->post(route('register'), $this->payload(['name' => "Rina D'Souza-Bora Jr."]))->assertSessionHasNoErrors();
+        $this->registers(['name' => "Rina D'Souza-Bora Jr."]);
+    }
+
+    /** V7-3: choosing "Other" requires the designation to be typed; it is shown wherever the designation is. */
+    public function test_other_designation_is_typed_and_shown(): void
+    {
+        $other = MasterValue::idFor('designation', User::OTHER_DESIGNATION);
+        $this->assertNotNull($other);
+        $this->get(route('register'))->assertOk()->assertSee('data-other-value="'.$other.'"', false)->assertSee('Type your designation');
+
+        $this->post(route('register'), $this->payload(['designation_id' => $other]))
+            ->assertSessionHasErrors(['designation_other' => 'Please enter your designation.']);
+        $this->post(route('register'), $this->payload(['designation_id' => $other, 'designation_other' => '<script>']))
+            ->assertSessionHasErrors('designation_other');
+        $this->registers(['designation_id' => $other, 'designation_other' => '  Academic Counsellor (SSA) ']);
+
+        // a normal designation ignores any typed text
+        $this->registers(['mobile' => '8876543210', 'designation_other' => 'Ignored']);
+        $plain = User::where('mobile', '8876543210')->firstOrFail();
+        $this->assertNull($plain->designation_other);
+        $this->assertSame('Cluster Resource Centre Coordinator', $plain->designation_label);
+
+        $user = User::where('mobile', '9876543210')->firstOrFail();
+        $this->assertSame('Academic Counsellor (SSA)', $user->designation_other);
+        $this->assertSame('Academic Counsellor (SSA)', $user->designation_label);
+        $reg = RegistrationRequest::where('user_id', $user->id)->firstOrFail();
+        $this->actingAs($this->admin())->get(route('admin.approvals.show', $reg))->assertSee('Academic Counsellor (SSA)');
+
+        // the admin switching away from Other clears the text
+        $this->actingAs($this->admin())->put(route('admin.users.update', $user), [
+            'name' => $user->name, 'designation_id' => MasterValue::idFor('designation', 'director'), 'designation_other' => 'x',
+        ])->assertSessionHasNoErrors();
+        $this->assertNull($user->fresh()->designation_other);
+    }
+
+    /** V7-3: file sizes are written one standard way, from config. */
+    public function test_file_sizes_are_shown_from_config(): void
+    {
+        $this->assertSame('1 MB', \App\Support\FileSize::human(1024));
+        $this->assertSame('1.5 MB', \App\Support\FileSize::human(1536));
+        $this->assertSame('500 KB', \App\Support\FileSize::human(500));
+        $this->assertSame('JPG / PNG', \App\Support\FileSize::types(['jpg', 'jpeg', 'png']));
+
+        config(['inspection.employee_photo.max_kb' => 1536]);
+        $this->get(route('register'))->assertSee('Max 1.5 MB')->assertSee('Max 2 MB')->assertSee('reg-consent', false);
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('p.jpg', 300, 400)->size(1600)]))
+            ->assertSessionHasErrors(['photo' => 'Photograph must be 1.5 MB or smaller.']);
     }
 }

@@ -282,6 +282,23 @@ html, body { overflow-x: clip; }
 .opt { color: #94a3b8; font-weight: 500; font-size: .72rem; }
 .reg-submit { display: flex; flex-direction: column; gap: 1rem;
     @include media-breakpoint-up(md) { flex-direction: row; align-items: center; } }
+// Modification V7: highlighted consent panel on the registration form
+.reg-consent { display: flex; align-items: flex-start; gap: .85rem; flex: 1 1 auto; max-width: 40rem;
+    padding: .85rem 1rem; border-radius: .75rem; background: linear-gradient(90deg, rgba($primary, .08), rgba($primary, .03));
+    border: 1px solid rgba($primary, .28); border-left: 4px solid $primary; transition: background .2s, border-color .2s;
+    .reg-consent-icon { flex: 0 0 auto; width: 2.25rem; height: 2.25rem; border-radius: 50%; display: grid; place-items: center;
+        background: #fff; color: $primary; font-size: 1.15rem; box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+    .form-check { padding-left: 2rem; min-height: 1.5rem; }
+    .form-check-input { width: 1.35rem; height: 1.35rem; margin-left: -2rem; margin-top: .05rem; border: 2px solid $primary; cursor: pointer; }
+    .form-check-label { font-size: .875rem; font-weight: 600; color: #0f172a; cursor: pointer; line-height: 1.45; }
+    .reg-consent-hint { font-size: .74rem; color: #475569; margin-top: .15rem; }
+    &.is-checked { background: linear-gradient(90deg, rgba($success, .1), rgba($success, .03)); border-color: rgba($success, .35); border-left-color: $success;
+        .reg-consent-icon { color: $success; } .form-check-input { border-color: $success; } .reg-consent-hint { display: none; } }
+    &.is-invalid { background: rgba($danger, .06); border-color: rgba($danger, .45); border-left-color: $danger;
+        .reg-consent-icon { color: $danger; } .form-check-input { border-color: $danger; } .reg-consent-hint { color: $danger; font-weight: 600; } }
+    &.shake { animation: reg-shake .45s; } }
+@keyframes reg-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@media (prefers-reduced-motion: reduce) { .reg-consent.shake { animation: none; } }
 .reg-footer { color: #64748b; font-size: .74rem; padding: 1rem 0 1.5rem; }
 
 .level-pills { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem;
@@ -1211,6 +1228,11 @@ $num-fs: 1rem;            // numeric values: same standard size
     font-size: $field-fs; font-weight: 400; color: #9aa5b5; opacity: 1; font-style: normal;
     @include media-breakpoint-down(md) { font-size: $field-fs-phone; } }
 .form-select.is-placeholder, .xsel-btn.is-placeholder { color: #9aa5b5; font-weight: 400; }
+// Modification V7: a native select still on its empty "Select …" option looks like a placeholder too
+// (:has follows programmatic changes such as the location cascade); the open list keeps normal text.
+.form-select:has(> option[value=""]:checked) { color: #9aa5b5; font-weight: 400; }
+.form-select option { color: #0f172a; font-weight: 400; }
+.form-select option[value=""] { color: #9aa5b5; }
 .row-form .form-label, .q-extra .form-label { font-size: .8rem; }
 
 // Numbers: standard 1rem, tabular figures, same alignment everywhere

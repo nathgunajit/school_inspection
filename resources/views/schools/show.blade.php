@@ -75,7 +75,7 @@
                             <div class="sb-head"><i class="bi bi-hourglass-split"></i><strong>Inspection in progress by another officer</strong></div>
                             <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
                                 <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
-                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation?->label ?? $si->officer?->level?->label() }}</div></div></div>
+                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation_label ?? $si->officer?->level?->label() }}</div></div></div>
                             <div class="sb-meta"><i class="bi bi-calendar3"></i>Draft started {{ $si->started_at->format('d M Y, h:i A') }}</div>
                             <p class="sb-note">You cannot start another inspection of this school while this draft is open.</p>
                         </div>
@@ -84,7 +84,7 @@
                             <div class="sb-head"><i class="bi bi-patch-check-fill"></i><strong>Already inspected this month</strong></div>
                             <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
                                 <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
-                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation?->label ?? $si->officer?->level?->label() }}</div></div></div>
+                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation_label ?? $si->officer?->level?->label() }}</div></div></div>
                             <div class="sb-meta"><i class="bi bi-calendar-check"></i>Inspected on {{ $si->inspection_date->format('d M Y') }}@if ($si->inspection_no) · <span class="font-monospace">{{ $si->inspection_no }}</span>@endif</div>
                             <p class="sb-note">It can be inspected again from <strong>{{ \App\Services\InspectionStartGuard::reopensOn()->format('d M Y') }}</strong>.</p>
                             @can('view', $si)<a href="{{ route('inspections.show', $si) }}" class="btn btn-soft-primary w-100"><i class="bi bi-file-earmark-text"></i>View report</a>@endcan

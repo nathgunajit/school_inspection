@@ -43,7 +43,7 @@ class LoginController extends Controller
             ->where('mobile', 'like', '90000000%')
             ->where('status', UserStatus::Active)
             ->orderBy('mobile')
-            ->get(['id', 'name', 'mobile', 'level', 'designation_id'])
+            ->get(['id', 'name', 'mobile', 'level', 'designation_id', 'designation_other'])
             ->groupBy(fn ($u) => $u->level->label());
     }
 

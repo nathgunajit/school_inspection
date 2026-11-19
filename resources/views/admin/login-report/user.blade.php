@@ -9,7 +9,7 @@
             <x-user-avatar :user="$officer" size="lg" />
             <div class="flex-grow-1 min-w-0">
                 <div class="fw-semibold fs-6">{{ $officer->name }} @if ($totals['online'])<span class="badge-soft badge-soft-success ms-1">Online</span>@endif</div>
-                <div class="text-sm text-secondary">{{ $officer->designation?->label }} · {{ $officer->level->label() }} · {{ $officer->currentJurisdiction?->label() }}</div>
+                <div class="text-sm text-secondary">{{ $officer->designation_label }} · {{ $officer->level->label() }} · {{ $officer->currentJurisdiction?->label() }}</div>
                 <div class="text-xs text-secondary">Mobile {{ $officer->mobile }} · Last sign-in {{ $officer->last_login_at?->format('d M Y, h:i A') ?? 'never' }}</div>
             </div>
             <x-status-badge :status="$officer->status" />

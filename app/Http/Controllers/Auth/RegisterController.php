@@ -25,6 +25,7 @@ class RegisterController extends Controller
     {
         return view('auth.register', [
             'designations' => MasterValue::ofType('designation')->get(),
+            'otherDesignationId' => MasterValue::idFor('designation', User::OTHER_DESIGNATION),
             'levels' => UserLevel::registrable(),
             'states' => State::where('is_active', true)->orderBy('name')->get(),
         ]);
@@ -43,6 +44,7 @@ class RegisterController extends Controller
             $attrs = [
                 'name' => $data['name'],
                 'designation_id' => $data['designation_id'],
+                'designation_other' => $request->isOtherDesignation() ? trim($data['designation_other']) : null,
                 'employee_id' => $data['employee_id'] ?? null,
                 'mobile' => $data['mobile'],
                 'email' => $data['email'] ?? null,

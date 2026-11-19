@@ -62,7 +62,6 @@ export function initMobileInputs(root = document) {
             const msg = message(v);
             if (!msg) return;
             e.preventDefault();
-            e.stopImmediatePropagation();
             show(input, msg);
             input.focus();
         });

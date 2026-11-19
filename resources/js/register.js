@@ -95,4 +95,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('is-drag')));
     });
 
+    // Consent panel (Modification V7): green when ticked; an unticked submit is stopped and the panel flagged
+    const consent = document.getElementById('reg-consent');
+    const privacy = form.querySelector('#privacy');
+    if (consent && privacy) {
+        const syncConsent = () => {
+            consent.classList.toggle('is-checked', privacy.checked);
+            if (privacy.checked) consent.classList.remove('is-invalid');
+        };
+        privacy.addEventListener('change', syncConsent);
+        syncConsent();
+        form.addEventListener('submit', (e) => {
+            if (privacy.checked) return;
+            const first = !e.defaultPrevented; // another field (e.g. mobile) may already have stopped the submit and taken focus
+            e.preventDefault();
+            consent.classList.add('is-invalid');
+            consent.classList.remove('shake');
+            void consent.offsetWidth; // restart the animation
+            consent.classList.add('shake');
+            consent.querySelector('.reg-consent-hint').textContent = 'Please tick this box to accept the privacy notice.';
+            if (first) {
+                consent.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                privacy.focus({ preventScroll: true });
+            }
+        });
+    }
+
 });

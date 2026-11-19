@@ -80,7 +80,7 @@ class InspectionStartGuard
     {
         $o = $i->officer;
 
-        return $o ? $o->name.($o->designation ? ' ('.$o->designation->label.')' : '') : 'another officer';
+        return $o ? $o->name.($o->designation_label ? ' ('.$o->designation_label.')' : '') : 'another officer';
     }
 
     private function result(string $type, Inspection $i, bool $blocked, string $message): array

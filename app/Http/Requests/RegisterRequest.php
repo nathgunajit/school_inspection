@@ -7,7 +7,9 @@ use App\Enums\UserStatus;
 use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
+use App\Models\MasterValue;
 use App\Models\User;
+use App\Support\FileSize;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -36,6 +38,14 @@ class RegisterRequest extends FormRequest
         return $this->reapplying;
     }
 
+    /** The chosen designation is the master value "Other" (Modification V7). */
+    public function isOtherDesignation(): bool
+    {
+        $id = $this->input('designation_id');
+
+        return $id !== null && (int) $id === MasterValue::idFor('designation', User::OTHER_DESIGNATION);
+    }
+
     public function rules(): array
     {
         $ignore = $this->reapplyingUser()?->id;
@@ -45,6 +55,8 @@ class RegisterRequest extends FormRequest
         $rules = [
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
+            // Modification V7: "Other" designation is typed in
+            'designation_other' => [Rule::requiredIf(fn () => $this->isOtherDesignation()), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
             // Modification V7: Employee ID and identity proof are optional
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
             'id_proof' => ['nullable', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
@@ -72,12 +84,14 @@ class RegisterRequest extends FormRequest
             'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.',
             'mobile.unique' => 'This mobile number is already registered.',
             'employee_id.unique' => 'This Employee ID is already registered.',
-            'id_proof.max' => 'Identity proof must be 2 MB or smaller.',
+            'id_proof.max' => 'Identity proof must be '.FileSize::human(config('inspection.id_proof.max_kb')).' or smaller.',
             'photo.required' => 'Please upload your photograph.',
-            'photo.max' => 'Photograph must be 1 MB or smaller.',
+            'photo.max' => 'Photograph must be '.FileSize::human(config('inspection.employee_photo.max_kb')).' or smaller.',
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
             'captcha.captcha' => 'The CAPTCHA code is incorrect.',
             'privacy.accepted' => 'Please accept the privacy notice.',
+            'designation_other.required' => 'Please enter your designation.',
+            'designation_other.regex' => 'Designation may contain only letters, spaces and . , ( ) / & \' -',
             'name.regex' => 'Name may contain only letters, spaces, dots, apostrophes and hyphens.',
             'employee_id.regex' => 'Employee ID may contain only letters, digits and / - _ .',
         ];

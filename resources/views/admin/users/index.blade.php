@@ -46,7 +46,7 @@
                 <tbody>
                 @forelse ($users as $u)
                     <tr>
-                        <td><div class="d-flex align-items-center gap-2"><x-user-avatar :user="$u" /><div><div class="fw-semibold">{{ $u->name }}</div><div class="text-xs text-secondary">{{ $u->designation?->label }}@if ($u->employee_id) · {{ $u->employee_id }}@endif</div></div></div></td>
+                        <td><div class="d-flex align-items-center gap-2"><x-user-avatar :user="$u" /><div><div class="fw-semibold">{{ $u->name }}</div><div class="text-xs text-secondary">{{ $u->designation_label }}@if ($u->employee_id) · {{ $u->employee_id }}@endif</div></div></div></td>
                         <td class="text-sm">{{ $u->level->label() }}</td>
                         <td class="text-sm">{{ $u->currentJurisdiction?->label() }}</td>
                         <td class="text-sm">{{ $u->mobile }}</td>

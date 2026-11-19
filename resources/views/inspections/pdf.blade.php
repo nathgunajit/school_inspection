@@ -116,7 +116,7 @@
     $loc = fn ($lat, $lng, $d) => $lat ? number_format($lat, 6).', '.number_format($lng, 6).$fmtDist($d) : 'Not available';
     $basic = [
         ['Inspection ID', $inspection->inspection_no ?? '—', 'Status', $inspection->status->label()],
-        ['Inspecting officer', $inspection->officer->name, 'Designation', $inspection->officer->designation?->label ?? '—'],
+        ['Inspecting officer', $inspection->officer->name, 'Designation', $inspection->officer->designation_label ?? '—'],
         ['Inspection started', $inspection->started_at->format('d M Y, h:i A'), 'Submitted', $inspection->submitted_at?->format('d M Y, h:i A') ?? '—'],
         ['Person met', $inspection->person_met_name ?: '—', 'Their designation', $inspection->person_met_designation ?: '—'],
     ];
@@ -256,7 +256,7 @@
 
 <table style="margin-top:14mm"><tr>
     <td style="width:60%"></td>
-    <td style="border-top:1px solid #94a3b8;text-align:center;padding-top:2mm">{{ $inspection->officer->name }}<br><span class="muted">{{ $inspection->officer->designation?->label }}</span></td>
+    <td style="border-top:1px solid #94a3b8;text-align:center;padding-top:2mm">{{ $inspection->officer->name }}<br><span class="muted">{{ $inspection->officer->designation_label }}</span></td>
 </tr></table>
 </body>
 </html>

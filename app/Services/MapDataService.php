@@ -260,13 +260,13 @@ class MapDataService
             ->where('status', UserStatus::Active)
             ->where('level', '!=', 'state_admin')
             ->whereHas('currentJurisdiction', fn ($w) => $parentType && $parent !== null ? $w->where($parentType.'_id', $parent) : $w)
-            ->with(['currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'designation:id,label'])
-            ->orderBy('name')->limit(500)->get(['id', 'name', 'level', 'designation_id'])
+            ->with(['currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'designation:id,code,label'])
+            ->orderBy('name')->limit(500)->get(['id', 'name', 'level', 'designation_id', 'designation_other'])
             ->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'level' => $u->level->label(),
-                'designation' => $u->designation?->label,
+                'designation' => $u->designation_label,
                 'area' => $u->currentJurisdiction?->label() ?: 'State',
             ])->all();
     }

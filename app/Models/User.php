@@ -16,7 +16,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name', 'designation_id', 'employee_id', 'mobile', 'email', 'password', 'level', 'status',
+        'name', 'designation_id', 'designation_other', 'employee_id', 'mobile', 'email', 'password', 'level', 'status',
         'id_proof_path', 'id_proof_original_name', 'photo_path', 'failed_login_attempts', 'locked_until',
         'must_change_password', 'last_login_at',
     ];
@@ -38,6 +38,19 @@ class User extends Authenticatable
     /* ---------- Relations ---------- */
 
     public function designation() { return $this->belongsTo(MasterValue::class, 'designation_id'); }
+
+    /** Master value code of the "Other" designation (Modification V7). */
+    public const OTHER_DESIGNATION = 'other';
+
+    /** The designation to show: the typed text when "Other" was chosen, else the master label. */
+    public function getDesignationLabelAttribute(): ?string
+    {
+        if ($this->designation?->code === self::OTHER_DESIGNATION && filled($this->designation_other)) {
+            return $this->designation_other;
+        }
+
+        return $this->designation?->label;
+    }
 
     public function jurisdictions() { return $this->hasMany(UserJurisdiction::class)->latest('start_date'); }
 

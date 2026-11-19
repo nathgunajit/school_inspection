@@ -99,7 +99,7 @@ class LoginMonitorService
     {
         return UserLoginLog::query()
             ->with(['user' => fn ($q) => $q->select('id', 'name', 'mobile', 'level', 'status', 'photo_path', 'designation_id', 'employee_id')
-                ->with(['designation:id,label', 'currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'currentJurisdiction.state:id,name'])])
+                ->with(['designation:id,code,label', 'currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'currentJurisdiction.state:id,name'])])
             ->whereBetween('user_login_logs.login_at', [Carbon::parse($f['from'])->startOfDay(), Carbon::parse($f['to'])->endOfDay()])
             ->when($f['level'], fn ($q, $v) => $q->whereHas('user', fn ($u) => $u->withTrashed()->where('level', $v)))
             ->when($f['district_id'], fn ($q, $v) => $q->whereHas('user.currentJurisdiction', fn ($j) => $j->where('district_id', $v)))

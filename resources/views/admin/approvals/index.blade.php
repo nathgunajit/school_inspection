@@ -11,7 +11,7 @@
                 <a href="{{ route('admin.approvals.show', $r) }}" class="list-item text-decoration-none">
                     <x-user-avatar :user="$u" />
                     <div class="flex-grow-1 min-w-0">
-                        <div class="fw-semibold text-truncate">{{ $u->name }} <span class="text-secondary fw-normal text-sm">· {{ $u->designation?->label }}</span></div>
+                        <div class="fw-semibold text-truncate">{{ $u->name }} <span class="text-secondary fw-normal text-sm">· {{ $u->designation_label }}</span></div>
                         <div class="text-xs text-secondary text-truncate">
                             <span class="badge-soft badge-soft-primary me-1">{{ $u->level->label() }}</span>
                             {{ $jur?->label() }} · {{ $u->mobile }}

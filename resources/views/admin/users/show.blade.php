@@ -6,7 +6,7 @@
                 <div class="card-body text-center p-4">
                     <x-user-avatar :user="$user" size="xl" class="mb-3" />
                     <h2 class="h5 mb-0">{{ $user->name }}</h2>
-                    <div class="text-secondary text-sm mb-2">{{ $user->designation?->label }}</div>
+                    <div class="text-secondary text-sm mb-2">{{ $user->designation_label }}</div>
                     <x-status-badge :status="$user->status" />
                     <span class="badge-soft badge-soft-primary ms-1">{{ $user->level->label() }}</span>
                 </div>
@@ -53,7 +53,11 @@
                             @csrf @method('PUT')
                             <div class="col-md-6"><label class="form-label">Full name</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control @error('name') is-invalid @enderror" required></div>
                             <div class="col-md-6"><label class="form-label">Designation</label>
-                                <select name="designation_id" class="form-select">@foreach ($designations as $d)<option value="{{ $d->id }}" @selected($user->designation_id == $d->id)>{{ $d->label }}</option>@endforeach</select></div>
+                                <select name="designation_id" class="form-select" data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">@foreach ($designations as $d)<option value="{{ $d->id }}" @selected(old('designation_id', $user->designation_id) == $d->id)>{{ $d->label }}</option>@endforeach</select>
+                                <div id="designation-other-wrap" class="mt-2 {{ old('designation_id', $user->designation_id) == $otherDesignationId ? '' : 'd-none' }}">
+                                    <input name="designation_other" value="{{ old('designation_other', $user->designation_other) }}" maxlength="120" placeholder="Type the designation" aria-label="Designation (other)" class="form-control @error('designation_other') is-invalid @enderror">
+                                    @error('designation_other')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div></div>
                             <div class="col-md-6"><label class="form-label">Employee ID</label><input name="employee_id" value="{{ old('employee_id', $user->employee_id) }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Optional">
                                 @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
                             <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
