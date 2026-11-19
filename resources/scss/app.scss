@@ -1656,3 +1656,7 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 
 /* V6 Module 10: rating report; sections are one measure, so one hue */
 .rating-bar .report-section-bar { background: $primary; }
+
+// Modification V7: an upload kept from the last attempt is marked so the officer knows it is still there
+.upload-zone.is-kept { border-style: solid; border-color: rgba($success, .45); background: rgba($success, .04);
+    .upload-meta { color: $success; } }

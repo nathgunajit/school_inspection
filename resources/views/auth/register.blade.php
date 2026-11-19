@@ -62,8 +62,9 @@
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="photo">Employee photo <span class="req">*</span></label>
-                            <div class="upload-zone upload-zone-photo @error('photo') is-invalid @enderror" data-exts="jpg,jpeg,png" data-max-kb="{{ config('inspection.employee_photo.max_kb') }}">
-                                <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required aria-describedby="photo-hint">
+                            <div class="upload-zone upload-zone-photo @error('photo') is-invalid @enderror" data-exts="jpg,jpeg,png" data-max-kb="{{ config('inspection.employee_photo.max_kb') }}" @if ($kept['photo']) data-kept-url="{{ route('register.kept', 'photo') }}" data-kept-name="{{ $kept['photo']['name'] }}" data-kept-size="{{ $kept['photo']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['photo']['path']), '.pdf') ? 1 : 0 }}"@endif>
+                                @if ($kept['photo'])<input type="hidden" name="keep_photo" value="1" class="keep-flag">@endif
+                                <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" @required(! $kept['photo']) aria-describedby="photo-hint">
                                 <div class="upload-empty">
                                     <span class="upload-icon upload-icon-round"><i class="bi bi-person-bounding-box"></i></span>
                                     <div class="upload-text">
@@ -89,7 +90,8 @@
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="id_proof">Identity proof <span class="opt">(optional)</span></label>
-                            <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}">
+                            <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}" @if ($kept['id_proof']) data-kept-url="{{ route('register.kept', 'id_proof') }}" data-kept-name="{{ $kept['id_proof']['name'] }}" data-kept-size="{{ $kept['id_proof']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['id_proof']['path']), '.pdf') ? 1 : 0 }}"@endif>
+                                @if ($kept['id_proof'])<input type="hidden" name="keep_id_proof" value="1" class="keep-flag">@endif
                                 <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" aria-describedby="id-proof-hint">
                                 {{-- Empty state --}}
                                 <div class="upload-empty">

@@ -59,20 +59,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         const limit = maxKb >= 1024 ? `${maxKb / 1024} MB` : `${maxKb} KB`;
         let url = null;
         const fmt = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+        // Modification V7: a file kept on the server from the last attempt (the form came back with errors)
+        const keepFlag = zone.querySelector('input.keep-flag');
+        const kept = () => !!zone.dataset.keptUrl && keepFlag?.value === '1';
+        const showDone = (name, meta, src, isPdf) => {
+            img.classList.toggle('d-none', isPdf);
+            pdfIcon.classList.toggle('d-none', !isPdf);
+            if (src) img.src = src;
+            done.querySelector('.upload-name').textContent = name;
+            done.querySelector('.upload-meta span').textContent = meta;
+            empty.classList.add('d-none');
+            done.classList.remove('d-none');
+            zone.classList.add('has-file');
+        };
+        const showKept = () => {
+            const isPdf = zone.dataset.keptPdf === '1';
+            showDone(zone.dataset.keptName, `${isPdf ? 'PDF document' : 'Image'} · ${fmt(Number(zone.dataset.keptSize))} · kept from your last attempt`,
+                isPdf ? null : zone.dataset.keptUrl, isPdf);
+            zone.classList.add('is-kept');
+        };
         const reset = (msg = '') => {
             input.value = '';
             if (url) URL.revokeObjectURL(url);
             url = null;
+            if (keepFlag) keepFlag.value = '0'; // removed or replaced: the kept file is dropped on the next submit
+            if (zone.dataset.keptUrl && input.id === 'photo') input.required = true;
             empty.classList.remove('d-none');
             done.classList.add('d-none');
-            zone.classList.remove('has-file');
+            zone.classList.remove('has-file', 'is-kept');
             err.textContent = msg;
             err.classList.toggle('d-none', !msg);
             zone.classList.toggle('is-invalid', !!msg);
         };
+        if (kept()) showKept();
         input.addEventListener('change', () => {
             const f = input.files[0];
-            if (!f) return reset();
+            if (!f) return kept() ? showKept() : reset(); // picker cancelled: keep what was there
+            zone.classList.remove('is-kept');
             const ext = f.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) return reset(`Only ${exts.filter((e) => e !== 'jpeg').map((e) => e.toUpperCase()).join(', ')} files are allowed.`);
             if (f.size > MAX) return reset(`This file is ${fmt(f.size)}. Please choose a file of ${limit} or less.`);
@@ -81,14 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isPdf = ext === 'pdf';
             if (url) URL.revokeObjectURL(url);
             url = isPdf ? null : URL.createObjectURL(f);
-            img.classList.toggle('d-none', isPdf);
-            pdfIcon.classList.toggle('d-none', !isPdf);
-            if (url) img.src = url;
-            done.querySelector('.upload-name').textContent = f.name;
-            done.querySelector('.upload-meta span').textContent = `${isPdf ? 'PDF document' : 'Image'} · ${fmt(f.size)} · ready to upload`;
-            empty.classList.add('d-none');
-            done.classList.remove('d-none');
-            zone.classList.add('has-file');
+            showDone(f.name, `${isPdf ? 'PDF document' : 'Image'} · ${fmt(f.size)} · ready to upload`, url, isPdf);
         });
         done.querySelector('.upload-remove').addEventListener('click', (e) => { e.preventDefault(); reset(); });
         ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.add('is-drag')));

@@ -9,7 +9,9 @@ use App\Models\Cluster;
 use App\Models\District;
 use App\Models\MasterValue;
 use App\Models\User;
+use App\Services\RegisterUploadStash;
 use App\Support\FileSize;
+use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
@@ -60,7 +62,8 @@ class RegisterRequest extends FormRequest
             // Modification V7: Employee ID and identity proof are optional
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
             'id_proof' => ['nullable', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
-            'photo' => ['required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
+            // Modification V7: a photo kept from the last attempt counts as uploaded
+            'photo' => [app(RegisterUploadStash::class)->wanted($this, 'photo') ? 'nullable' : 'required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
             'level' => ['required', new Enum(UserLevel::class), Rule::in(array_map(fn ($l) => $l->value, UserLevel::registrable()))],
             'state_id' => ['required', Rule::exists('states', 'id')->where('is_active', true)],
             'district_id' => [$level?->needsDistrict() ? 'required' : 'nullable', 'integer'],
@@ -95,6 +98,13 @@ class RegisterRequest extends FormRequest
             'name.regex' => 'Name may contain only letters, spaces, dots, apostrophes and hyphens.',
             'employee_id.regex' => 'Employee ID may contain only letters, digits and / - _ .',
         ];
+    }
+
+    /** Modification V7: keep the valid files so the visitor does not have to choose them again. */
+    protected function failedValidation(ValidatorContract $validator): void
+    {
+        app(RegisterUploadStash::class)->keep($this, $validator->errors());
+        parent::failedValidation($validator);
     }
 
     /** Server re-checks the location hierarchy (PRD 5.2). */

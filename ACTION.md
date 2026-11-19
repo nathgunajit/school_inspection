@@ -1371,3 +1371,36 @@ Plan approved by the user. Decisions:
   - `resources/js/{app,register,mobile-input}.js`
   - `resources/scss/app.scss`
   - `tests/Feature/RegistrationV7Test.php`
+
+## 82. V7-4: Uploaded files are kept when the registration form has errors (2026-11-19)
+- **Problem:** a browser cannot refill a file input, so after any validation error (duplicate mobile, wrong CAPTCHA …) the photo and ID proof had to be chosen again.
+- **New `App\Services\RegisterUploadStash`:**
+  - On a failed submit (`RegisterRequest::failedValidation`), each file that passed its own rules is stored on the private disk in `register-tmp/` under a random name.
+  - It is referenced only in the visitor's session (`register_uploads.<field>`: path, name, size, mime).
+  - A new file replaces the kept one; a file that failed its own rules is not kept.
+- **Next submit:**
+  - The form carries a hidden `keep_photo` / `keep_id_proof` flag. The photo is no longer `required` while one is kept.
+  - `RegisterController::store` moves the kept file to `employee-photos/` or `id-proofs/` (`claim()`), then clears the session.
+  - Pressing Remove sets the flag to 0, and the kept file is deleted on the next submit.
+- **Preview:** new guest route `register.kept` (`/register/kept/{photo|id_proof}`) serves only the file named in the visitor's own session, with `no-store` and `nosniff`.
+  - `register.js` shows the kept file in the upload zone (thumbnail or PDF icon, name, size, "kept from your last attempt") with a green solid border (`.upload-zone.is-kept`).
+  - Cancelling the file picker keeps it.
+- **Clean-up:** `php artisan register:purge-tmp [--hours=24]` deletes kept files of abandoned forms; scheduled daily at 01:00 in `routes/console.php`.
+- **Tests:** `RegistrationV7Test` gains 3 tests:
+  - kept after a duplicate-mobile error, previewable, then used and moved by the next submit with no files
+  - Remove makes the photo required again and deletes the file
+  - an invalid file is not kept
+  - another session gets 404, and an unknown field is not routed
+  - the purge removes only old files
+  - Full suite: 123 passed.
+- **Browser:** submitted with an existing mobile and a wrong CAPTCHA. Both errors were shown and the photo zone showed the kept photo (served by `/register/kept/photo`, 300 px). The local `register-tmp` was emptied afterwards with `register:purge-tmp --hours=0`.
+- Files:
+  - `app/Services/RegisterUploadStash.php`
+  - `app/Http/Requests/RegisterRequest.php`
+  - `app/Http/Controllers/Auth/RegisterController.php`
+  - `routes/web.php`
+  - `routes/console.php`
+  - `resources/views/auth/register.blade.php`
+  - `resources/js/register.js`
+  - `resources/scss/app.scss`
+  - `tests/Feature/RegistrationV7Test.php`

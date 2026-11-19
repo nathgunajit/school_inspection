@@ -21,3 +21,11 @@ Artisan::command('inspections:expire-drafts', function () {
 })->purpose('Cancel inspection drafts older than the configured expiry');
 
 Schedule::command('inspections:expire-drafts')->dailyAt('00:30');
+
+/* Modification V7: files kept from failed registration attempts are removed after a day. */
+Artisan::command('register:purge-tmp {--hours=24 : Remove kept files older than this}', function () {
+    $n = app(\App\Services\RegisterUploadStash::class)->purge((int) $this->option('hours'));
+    $this->info("Removed {$n} kept registration file(s).");
+})->purpose('Delete registration uploads kept for abandoned forms');
+
+Schedule::command('register:purge-tmp')->dailyAt('01:00');

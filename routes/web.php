@@ -28,6 +28,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:register');
+    Route::get('/register/kept/{field}', [RegisterController::class, 'keptUpload'])->whereIn('field', ['photo', 'id_proof'])->name('register.kept');
     Route::get('/forgot-password', [PasswordController::class, 'forgot'])->name('password.request');
     Route::post('/forgot-password', [PasswordController::class, 'sendLink'])->middleware('throttle:5,10')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordController::class, 'resetForm'])->name('password.reset');

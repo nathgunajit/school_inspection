@@ -173,4 +173,68 @@ class RegistrationV7Test extends TestCase
         $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('p.jpg', 300, 400)->size(1600)]))
             ->assertSessionHasErrors(['photo' => 'Photograph must be 1.5 MB or smaller.']);
     }
+
+    /** V7-4: valid files survive a failed submit and are used by the next one. */
+    public function test_uploads_are_kept_after_a_validation_error(): void
+    {
+        User::factory()->create(['mobile' => '9876543210']);
+        $this->post(route('register'), $this->payload([
+            'id_proof' => UploadedFile::fake()->create('order.pdf', 100, 'application/pdf'),
+        ]))->assertSessionHasErrors('mobile');
+
+        $disk = Storage::disk('private');
+        $this->assertCount(2, $disk->files('register-tmp'));
+        $page = $this->get(route('register'))->assertOk()
+            ->assertSee('name="keep_photo" value="1"', false)->assertSee('name="keep_id_proof" value="1"', false)
+            ->assertSee('data-kept-name="photo.jpg"', false)->assertSee('data-kept-pdf="1"', false);
+        $this->get(route('register.kept', 'photo'))->assertOk();
+        $this->get(route('register.kept', 'id_proof'))->assertOk();
+
+        // corrected mobile, no files chosen again
+        $this->registers(['mobile' => '8876543210', 'photo' => null, 'keep_photo' => '1', 'keep_id_proof' => '1']);
+        $user = User::where('mobile', '8876543210')->firstOrFail();
+        $this->assertStringStartsWith('employee-photos/', $user->photo_path);
+        $this->assertStringStartsWith('id-proofs/', $user->id_proof_path);
+        $this->assertSame('order.pdf', $user->id_proof_original_name);
+        $disk->assertExists([$user->photo_path, $user->id_proof_path]);
+        $this->assertSame([], $disk->files('register-tmp'));
+        $this->assertNull(session('register_uploads.photo'));
+        $this->get(route('register.kept', 'photo'))->assertNotFound();
+    }
+
+    /** V7-4: a removed, invalid or foreign kept file is never used. */
+    public function test_kept_uploads_can_be_removed_and_are_private(): void
+    {
+        $this->post(route('register'), $this->payload(['mobile' => '5876543210']))->assertSessionHasErrors('mobile');
+        $this->assertNotNull(session('register_uploads.photo'));
+
+        // the officer pressed Remove: the photo is required again and the kept file is deleted
+        $this->post(route('register'), $this->payload(['photo' => null, 'keep_photo' => '0']))->assertSessionHasErrors('photo');
+        $this->assertNull(session('register_uploads.photo'));
+        $this->assertSame([], Storage::disk('private')->files('register-tmp'));
+
+        // a file that failed its own rules is not kept
+        $this->post(route('register'), $this->payload(['mobile' => '5876543210', 'photo' => UploadedFile::fake()->create('p.pdf', 50, 'application/pdf')]));
+        $this->assertNull(session('register_uploads.photo'));
+
+        // another visitor (no session entry) cannot open a kept file; an unknown field is not routed
+        $this->post(route('register'), $this->payload(['mobile' => '5876543210']));
+        $this->assertNotNull(session('register_uploads.photo'));
+        $this->flushSession();
+        $this->get(route('register.kept', 'photo'))->assertNotFound();
+        $this->get('/register/kept/password')->assertNotFound();
+    }
+
+    /** V7-4: kept files of abandoned forms are purged. */
+    public function test_abandoned_kept_files_are_purged(): void
+    {
+        $disk = Storage::disk('private');
+        $disk->put('register-tmp/old.jpg', 'x');
+        $disk->put('register-tmp/new.jpg', 'x');
+        touch($disk->path('register-tmp/old.jpg'), now()->subHours(30)->getTimestamp());
+
+        $this->artisan('register:purge-tmp')->expectsOutputToContain('Removed 1')->assertSuccessful();
+        $disk->assertMissing('register-tmp/old.jpg');
+        $disk->assertExists('register-tmp/new.jpg');
+    }
 }
