@@ -185,6 +185,7 @@ class MapDataService
 
             return $schools->map(fn ($s) => [
                 'id' => $s->id,
+                'key' => $s->getRouteKey(), // V6 Module 4: encrypted token for URLs
                 'udise' => $s->udise_code,
                 'name' => $s->name,
                 'address' => $s->address,
@@ -194,7 +195,7 @@ class MapDataService
                 'area' => collect([$s->cluster?->name, $s->block?->name, $s->district?->name])->filter()->implode(' · '),
                 'cluster_id' => $s->cluster_id,
                 'last' => ($l = $last->get($s->id)) ? [
-                    'id' => $l->id, 'no' => $l->inspection_no, 'date' => $l->inspection_date?->format('d-m-Y'), 'officer' => $l->officer?->name,
+                    'id' => $l->id, 'key' => $l->getRouteKey(), 'no' => $l->inspection_no, 'date' => $l->inspection_date?->format('d-m-Y'), 'officer' => $l->officer?->name,
                 ] : null,
             ])->values()->all();
         });

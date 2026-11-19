@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Model;
 
 /** One school visit in a daily schedule, in visit order. */
 class InspectionScheduleItem extends Model
 {
+    use HasEncryptedRouteKey;
+
     public const PLANNED = 'planned';
     public const INSPECTED = 'inspected';
     public const SKIPPED = 'skipped';

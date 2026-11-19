@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Model;
 
 /** Class Room Performance rows (questionnaire v2, step 4). */
 class InspectionClassroomObservation extends Model
 {
+    use HasEncryptedRouteKey;
+
     public const CLASSES = ['I' => 'Class I', 'II' => 'Class II', 'III' => 'Class III', 'IV' => 'Class IV', 'V' => 'Class V', 'VI' => 'Class VI',
         'VII' => 'Class VII', 'VIII' => 'Class VIII', 'IX' => 'Class IX', 'X' => 'Class X', 'XI' => 'Class XI', 'XII' => 'Class XII'];
 
@@ -35,8 +38,8 @@ class InspectionClassroomObservation extends Model
             'participation_ok' => $this->participation === 'satisfactory',
             'values' => ['teacher_name' => $this->teacher_name, 'class' => $this->class, 'subject' => $this->subject,
                 'tlm_used' => $this->tlm_used ? 'yes' : 'no', 'participation' => $this->participation, 'remarks' => $this->remarks],
-            'update_url' => route('inspections.classrooms.update', [$this->inspection_id, $this->id]),
-            'delete_url' => route('inspections.classrooms.destroy', [$this->inspection_id, $this->id]),
+            'update_url' => route('inspections.classrooms.update', [Inspection::routeKeyFor($this->inspection_id), $this]),
+            'delete_url' => route('inspections.classrooms.destroy', [Inspection::routeKeyFor($this->inspection_id), $this]),
         ];
     }
 }

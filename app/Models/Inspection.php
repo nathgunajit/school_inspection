@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use App\Enums\EvidenceStatus;
 use App\Enums\InspectionStatus;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Inspection extends Model
 {
+    use HasEncryptedRouteKey;
     use SoftDeletes;
 
     protected $fillable = [

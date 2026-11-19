@@ -10,6 +10,7 @@ use App\Models\School;
 use App\Models\State;
 use App\Models\UserJurisdiction;
 use App\Services\AuditLogger;
+use App\Support\UrlId;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -56,11 +57,12 @@ class LocationController extends Controller
         return back()->with('success', 'Added '.$rec->name.'.');
     }
 
-    public function update(Request $request, string $type, int $id)
+    public function update(Request $request, string $type, string $id)
     {
         abort_unless(isset(self::TYPES[$type]), 404);
         [$model, $parentModel, $fk] = self::TYPES[$type];
-        $rec = $model::findOrFail($id);
+        // V6 Module 4: the ID in the URL is an encrypted token
+        $rec = $model::findOrFail(UrlId::decode($model, $id) ?? abort(404));
 
         if ($request->has('toggle')) {
             // Inactive hides the location from selection but keeps its history (PRD 7.1)

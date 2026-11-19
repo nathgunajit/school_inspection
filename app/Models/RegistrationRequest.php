@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Model;
 
 class RegistrationRequest extends Model
 {
+    use HasEncryptedRouteKey;
+
     protected $fillable = ['user_id', 'approver_id', 'status', 'reason', 'decided_at'];
 
     protected $casts = ['decided_at' => 'datetime'];

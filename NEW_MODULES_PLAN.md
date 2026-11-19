@@ -17,7 +17,7 @@ Source: `Documents/Modification of the ApplicationV6.docx`. Date: 19-11-2026. Th
 
 | # | Module | V6 item | Decision | Status |
 |---|---|---|---|---|
-| 4 | URL encryption | Security for URL Encryption | Record IDs in URLs become deterministic, tamper-proof AES tokens (`App\Support\UrlId`, trait `HasEncryptedRouteKey`); a numeric or edited ID returns 404 | Planned |
+| 4 | URL encryption | Security for URL Encryption | Record IDs in URLs become deterministic, tamper-proof AES tokens (`App\Support\UrlId`, trait `HasEncryptedRouteKey`); a numeric or edited ID returns 404 | Done (#70) |
 | 5 | Password encryption on submit | Password When Submitted Automatically Encrypted | The browser encrypts password fields with RSA-OAEP (WebCrypto, `node-forge` fallback on plain HTTP) plus a session nonce; `DecryptPasswordFields` middleware decrypts before validation; storage stays bcrypt | Planned |
 | 6 | Login monitoring report | Login User Monitoring Report (State Administrator) | `user_login_logs` table (login, logout, last seen, device, IP, failures); `/admin/login-report` with tiles, filters, per-user history, Excel | Planned |
 | 7 | District boundary from KML | Use District KML for District | Per-district GeoJSON from `public/KML/Assam/Assam Dist`; District, Block and Cluster officers see their own district outlined and zoomed; `map:boundaries --check` lists unmatched districts | Planned |

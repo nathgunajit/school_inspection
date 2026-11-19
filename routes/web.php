@@ -100,7 +100,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/', [ScheduleController::class, 'store'])->middleware('throttle:60,1')->name('store');
             Route::get('/approvals', [ScheduleController::class, 'approvals'])->name('approvals');
             Route::post('/items/{item}/skip', [ScheduleController::class, 'skip'])->name('skip');
-            Route::get('/{schedule}', [ScheduleController::class, 'show'])->whereNumber('schedule')->name('show');
+            Route::get('/{schedule}', [ScheduleController::class, 'show'])->name('show');
             Route::post('/{schedule}/approve', [ScheduleController::class, 'approve'])->name('approve');
             Route::post('/{schedule}/reject', [ScheduleController::class, 'reject'])->name('reject');
             Route::post('/{schedule}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');
@@ -137,7 +137,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::middleware('can:manage_masters')->group(function () {
                 Route::get('/locations/{type?}', [Admin\LocationController::class, 'index'])->name('locations.index');
                 Route::post('/locations/{type}', [Admin\LocationController::class, 'store'])->name('locations.store');
-                Route::put('/locations/{type}/{id}', [Admin\LocationController::class, 'update'])->whereNumber('id')->name('locations.update');
+                Route::put('/locations/{type}/{id}', [Admin\LocationController::class, 'update'])->name('locations.update');
                 Route::get('/schools', [Admin\SchoolMasterController::class, 'index'])->name('schools.index');
                 Route::get('/schools/create', [Admin\SchoolMasterController::class, 'create'])->name('schools.create');
                 Route::post('/schools', [Admin\SchoolMasterController::class, 'store'])->name('schools.store');

@@ -65,12 +65,12 @@
                                 <div class="mt-1 d-flex flex-wrap gap-1 align-items-center">
                                     @if ($i->status === 'inspected')
                                         <span class="badge-soft badge-soft-success">Inspected</span>
-                                        @if ($i->inspection)<a href="{{ route('inspections.show', $i->inspection_id) }}" class="text-xs">{{ $i->inspection->inspection_no }}</a>@endif
+                                        @if ($i->inspection)<a href="{{ route('inspections.show', $i->inspection) }}" class="text-xs">{{ $i->inspection->inspection_no }}</a>@endif
                                     @elseif ($i->status === 'skipped')
                                         <span class="badge-soft badge-soft-secondary">Skipped</span>
                                     @elseif ($s->status === ScheduleStatus::Published)
                                         @if ($own && $s->schedule_date->isToday())
-                                            <form method="POST" action="{{ route('inspections.start', $i->school_id) }}" data-geo-start>@csrf
+                                            <form method="POST" action="{{ route('inspections.start', $i->school) }}" data-geo-start>@csrf
                                                 <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
                                                 <button class="btn btn-sm btn-primary"><i class="bi bi-play-fill"></i>Start inspection</button></form>
                                         @endif

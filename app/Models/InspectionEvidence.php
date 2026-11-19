@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use App\Enums\EvidenceStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InspectionEvidence extends Model
 {
+    use HasEncryptedRouteKey;
     use SoftDeletes;
 
     protected $table = 'inspection_evidence';

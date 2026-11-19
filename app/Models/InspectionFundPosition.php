@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class InspectionFundPosition extends Model
 {
+    use HasEncryptedRouteKey;
+
     /** source => [label, received column, expenditure column] */
     public const HEADS = [
         'asg' => ['Annual School Grant (SSA)', 'asg_received', 'asg_expenditure'],
@@ -99,7 +102,7 @@ class InspectionFundPosition extends Model
             'total_expenditure' => $fmt($this->totalExpenditure()),
             'balance' => $fmt($this->balance()),
             'values' => collect(self::AMOUNT_COLUMNS)->mapWithKeys(fn ($c) => [$c => (float) $this->$c])->all(),
-            'delete_url' => route('inspections.funds.destroy', [$this->inspection_id, $this->id]),
+            'delete_url' => route('inspections.funds.destroy', [Inspection::routeKeyFor($this->inspection_id), $this]),
         ];
     }
 

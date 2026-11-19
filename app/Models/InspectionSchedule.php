@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use App\Enums\ScheduleStatus;
 use Illuminate\Database\Eloquent\Model;
 
 /** A daily inspection plan of one officer (New Module 2). */
 class InspectionSchedule extends Model
 {
+    use HasEncryptedRouteKey;
+
     protected $fillable = [
         'officer_id', 'schedule_date', 'status', 'created_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note',
         'published_at', 'start_lat', 'start_lng', 'total_distance_km', 'total_minutes', 'notes',

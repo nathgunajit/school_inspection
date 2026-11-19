@@ -49,7 +49,7 @@
                 <a href="{{ route('schedules.show', $todayPlan) }}">Open plan <i class="bi bi-arrow-right"></i></a>
             </div>
             @foreach ($todayPlan->items as $i)
-                <a href="{{ $i->status === 'planned' ? route('schools.show', $i->school_id) : route('schedules.show', $todayPlan) }}" class="dash-row">
+                <a href="{{ $i->status === 'planned' ? route('schools.show', \App\Models\School::routeKeyFor($i->school_id)) : route('schedules.show', $todayPlan) }}" class="dash-row">
                     <span class="plan-no {{ $i->status === 'inspected' ? 'is-done' : ($i->status === 'skipped' ? 'is-skipped' : '') }}">{{ $i->sequence }}</span>
                     <span class="flex-grow-1 min-w-0">
                         <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $i->school->name }}</span>

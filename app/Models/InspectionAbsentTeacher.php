@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Model;
 
 /** Teachers Absentee Form rows (questionnaire v2, step 3). */
 class InspectionAbsentTeacher extends Model
 {
+    use HasEncryptedRouteKey;
+
     public const TYPES = [
         'regular' => 'Regular Teacher',
         'contractual' => 'Contractual Teacher',
@@ -51,8 +54,8 @@ class InspectionAbsentTeacher extends Model
             'reason' => $this->reasonLabel(),
             'remarks' => $this->remarks,
             'values' => ['teacher_name' => $this->teacher_name, 'teacher_type' => $this->teacher_type, 'reason' => $this->reason, 'remarks' => $this->remarks],
-            'update_url' => route('inspections.teachers.update', [$this->inspection_id, $this->id]),
-            'delete_url' => route('inspections.teachers.destroy', [$this->inspection_id, $this->id]),
+            'update_url' => route('inspections.teachers.update', [Inspection::routeKeyFor($this->inspection_id), $this]),
+            'delete_url' => route('inspections.teachers.destroy', [Inspection::routeKeyFor($this->inspection_id), $this]),
         ];
     }
 }

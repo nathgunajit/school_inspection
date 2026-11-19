@@ -151,6 +151,14 @@ flowchart TD
 ```
 The login form allows 10 attempts per minute from one IP address. Forgot password sends a reset link by email.
 
+**Encrypted record IDs in URLs (V6 Module 4).** Records never appear in a URL by their database number. `/schools/203` is now `/schools/FJyzzv-_Vd03dtnCGFS8opNNXg-x3KyMhWuQQ4ueHOI`.
+- **What it covers:** every model bound in a route (inspections and their rows, schools, users, registrations, schedules and items, evidence, mobile requests, import batches) uses the trait `HasEncryptedRouteKey`. The admin location editor uses the same token.
+- **The token:** `App\Support\UrlId` builds it with AES-256 under keys derived from `APP_KEY`, plus an HMAC check.
+  - The same record always gets the same token, so links stay stable.
+  - A typed number, an edited token, or a token of another record type returns **404**.
+- **What it does not replace:** the permission checks still run as before. Filters in the query string (`?cluster=`, `?officer=`) stay numeric, because they are checked through `JurisdictionService`.
+- **Rotating `APP_KEY`** changes every URL; old bookmarks then return 404.
+
 ### 4.3 Find a school and start an inspection (start rules, Modification V3)
 ```mermaid
 flowchart TD
@@ -478,6 +486,7 @@ They are listed in `CLAUDE.md` under domain rules. In short:
 6. Evidence stays on the private disk and is served only after a permission check.
 7. The audit log is append-only.
 8. Server time is the source of truth.
+9. Record IDs in URLs are encrypted tokens (`HasEncryptedRouteKey`). Pass the model, or `Model::routeKeyFor($id)`, to `route()`, never a raw `*_id`.
 
 ### 7.4 Commands
 ```bash

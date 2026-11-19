@@ -165,9 +165,9 @@ if (el) {
         const status = { inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status];
         const last = s.last
             ? `<div class="text-xs mt-1">Last inspection: <b>${esc(s.last.no || '—')}</b> on ${esc(s.last.date)} by ${esc(s.last.officer || '—')}</div>
-               <a class="btn btn-soft-primary btn-sm mt-2 w-100" href="${cfg.urls.report.replace('__ID__', s.last.id)}">View report</a>`
+               <a class="btn btn-soft-primary btn-sm mt-2 w-100" href="${cfg.urls.report.replace('__ID__', s.last.key)}">View report</a>`
             : '<div class="text-xs text-muted mt-1">Never inspected</div>';
-        const open = cfg.canOpenSchool ? `<a class="btn btn-primary btn-sm mt-2 w-100" href="${cfg.urls.school.replace('__ID__', s.id)}">Open school</a>` : '';
+        const open = cfg.canOpenSchool ? `<a class="btn btn-primary btn-sm mt-2 w-100" href="${cfg.urls.school.replace('__ID__', s.key)}">Open school</a>` : '';
         return `<div class="map-pop"><div class="fw-semibold">${esc(s.name)}</div>
             <div class="text-xs text-muted">UDISE ${esc(s.udise)} · ${esc(s.area)}</div>
             ${s.address ? `<div class="text-xs">${esc(s.address)}</div>` : ''}

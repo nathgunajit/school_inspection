@@ -901,3 +901,47 @@ Plan approved by the user. Decisions:
   - `.gitignore`
   - `Documents/Modification of the ApplicationV6.docx`
   - `ACTION.md`
+
+## 70. V6 Module 4: URL encryption of record IDs (2026-11-19)
+- **Request:** V6 item "Security for URL Encryption". Record IDs must not be visible or guessable in URLs.
+- **Done:**
+  - **`App\Support\UrlId`:** deterministic, tamper-proof tokens.
+    - `iv = HMAC-SHA256(Type|id)`, first 16 bytes. Then `AES-256-CBC(id)`, base64url encoded: 43 characters.
+    - The keys are derived from `APP_KEY`.
+    - Decoding recomputes the HMAC (`hash_equals`). A malformed or edited token, or a token of another model type, gives `null`.
+  - **Trait `App\Models\Concerns\HasEncryptedRouteKey`:** `getRouteKey()` returns the token; `resolveRouteBinding()` (and the soft-delete variant) decodes it, so a number or a bad token returns 404. It also adds `Model::routeKeyFor($id)`.
+    - Applied to Inspection, School, User, RegistrationRequest, InspectionSchedule, InspectionScheduleItem, InspectionEvidence, InspectionAbsentTeacher, InspectionClassroomObservation, InspectionFundPosition, MobileChangeRequest and ImportBatch.
+  - **Raw-ID call sites fixed:**
+    - `ScheduleController::skip` redirect
+    - the row `update_url` and `delete_url` of teachers, classrooms and funds
+    - the dashboard plan links
+    - `schedules/show` (inspection link, start form)
+  - **Admin location editor:** `PUT /admin/locations/{type}/{token}`; `whereNumber` removed. `whereNumber('schedule')` removed as well.
+  - **Map JSON:** school rows and their last inspection carry a `key` (token); `map.js` uses it for the "Open school" and "View report" links.
+  - **Unchanged:** database keys, foreign keys and the audit log stay numeric. Query-string filters stay numeric and are scoped by `JurisdictionService`.
+- **Verification:**
+  - New `UrlEncryptionTest` (4 tests):
+    - round trip, determinism, type binding, tampering and malformed tokens
+    - a numeric school or inspection URL gives 404; a cross-type token gives 404
+    - officer and admin pages contain no numeric record URLs
+    - map JSON `key`
+    - the location update by token works, and by number gives 404
+  - `MasterImportAndAuditTest` now uses tokens.
+  - Full suite: 88 passed.
+  - **Browser** (Apache URL, real MySQL data), as demo officer 9000000031 and District officer 9000000011:
+    - dashboard, my inspections, school search, school page, step 1 of a draft, report and PDF (200 application/pdf), admin users and user page, approvals, area inspections, schedule approvals and the map all show only tokens
+    - `/schools/1` gives 404, and an edited token gives 404
+- Files:
+  - `app/Support/UrlId.php`
+  - `app/Models/Concerns/HasEncryptedRouteKey.php`
+  - 12 models in `app/Models/`
+  - `app/Http/Controllers/ScheduleController.php`, `Admin/LocationController.php`
+  - `app/Services/MapDataService.php`
+  - `resources/js/map.js`
+  - `resources/views/dashboard.blade.php`, `schedules/show.blade.php`, `admin/locations/index.blade.php`
+  - `routes/web.php`
+  - `tests/Feature/UrlEncryptionTest.php`, `MasterImportAndAuditTest.php`
+  - `CLAUDE.md` (rule 13)
+  - `PROJECT_DOCUMENT.md` (4.2, 7.3)
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

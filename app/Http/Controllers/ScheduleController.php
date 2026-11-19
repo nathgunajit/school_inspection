@@ -209,7 +209,7 @@ class ScheduleController extends Controller
         $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:255']]);
         $this->schedules->skip($request->user(), $item, $data['reason']);
 
-        return redirect()->route('schedules.show', $item->schedule_id)->with('success', 'Visit marked as skipped.');
+        return redirect()->route('schedules.show', InspectionSchedule::routeKeyFor($item->schedule_id))->with('success', 'Visit marked as skipped.');
     }
 
     private function approvalQueue(User $user)

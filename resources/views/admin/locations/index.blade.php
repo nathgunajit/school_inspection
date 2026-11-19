@@ -41,7 +41,7 @@
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" aria-label="Actions"><i class="bi bi-three-dots-vertical"></i></button>
                                 <div class="dropdown-menu dropdown-menu-end p-3 shadow border-0" style="width:300px">
-                                    <form method="POST" action="{{ route('admin.locations.update', [$type, $item->id]) }}">
+                                    <form method="POST" action="{{ route('admin.locations.update', [$type, \App\Support\UrlId::encode($item::class, $item->id)]) }}">
                                         @csrf @method('PUT')
                                         <label class="form-label text-sm">Code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" required>
                                         <label class="form-label text-sm">Name</label><input name="name" value="{{ $item->name }}" class="form-control mb-2" required>
@@ -54,7 +54,7 @@
                                         @if ($fk)<input type="hidden" name="{{ $fk }}" value="{{ $item->$fk }}">@endif
                                         <button class="btn btn-primary btn-sm w-100">Save</button>
                                     </form>
-                                    <form method="POST" action="{{ route('admin.locations.update', [$type, $item->id]) }}" class="mt-2">
+                                    <form method="POST" action="{{ route('admin.locations.update', [$type, \App\Support\UrlId::encode($item::class, $item->id)]) }}" class="mt-2">
                                         @csrf @method('PUT')<input type="hidden" name="toggle" value="1">
                                         <button class="btn btn-sm w-100 {{ $item->is_active ? 'btn-soft-danger' : 'btn-success' }}">{{ $item->is_active ? 'Make inactive' : 'Make active' }}</button>
                                     </form>

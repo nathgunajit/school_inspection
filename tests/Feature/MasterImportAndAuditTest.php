@@ -62,13 +62,13 @@ class MasterImportAndAuditTest extends TestCase
         $district = \App\Models\District::where('code', '1801')->firstOrFail();
 
         // form: both-or-neither, range checked
-        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', $district->id]), [
+        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '26.1445',
         ])->assertSessionHasErrors('longitude');
-        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', $district->id]), [
+        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '126', 'longitude' => '91.7',
         ])->assertSessionHasErrors('latitude');
-        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', $district->id]), [
+        $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '26.1445', 'longitude' => '91.7362',
         ])->assertSessionHas('success');
         $this->assertEqualsWithDelta(26.1445, $district->fresh()->latitude, 0.00001);
