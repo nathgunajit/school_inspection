@@ -1,11 +1,12 @@
 # School Inspection Management System: project document
 
-Modification of the Application V5, Step 1. This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 18-11-2026.
+Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) and for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
 
 | For | Read |
 |---|---|
 | Officers and administrators (users) | Sections 1, 3, 4 |
-| Developers | All sections, then 5–8 |
+| Developers | All sections, then 5–9 |
+| What changed in V6 | Section 9 |
 
 Related documents:
 - `Documents/School_Inspection_PRD.docx`: the requirements
@@ -14,6 +15,8 @@ Related documents:
 - `LOAD_TEST.md`: capacity
 - `BROWSER_SUPPORT.md`: browsers
 - `ACTION.md`: change log
+- `NEW_MODULES_PLAN.md`: plan and status of the New Modules and the V6 modules
+- `Documents/Modification of the ApplicationV6.docx`: the V6 request
 
 The diagrams use Mermaid. GitHub and VS Code (with a Mermaid extension) show them as pictures.
 
@@ -26,7 +29,10 @@ Inspecting officers of the Samagra Shiksha (Assam) at **State, District, Block a
 3. At the school they fill a **fixed 7-step inspection form** and take **geo-stamped photographs** in the app.
 4. They **submit** the report, which is then **locked**.
 5. Higher officers **see the reports of their area**, print them as **PDF** and export them to **Excel**.
-6. The **State Administrator** manages masters (locations, schools), users and unlocks, and reads the audit log.
+6. The **State Administrator** manages masters (locations, schools), users and unlocks, and reads the audit log and the **login monitoring report** (V6).
+7. Officers see coverage and **ratings on the Map View**: their **district outline** comes from the district KML, and they can see **their own location and the road route to a school** (V6).
+8. Higher officers **plan inspection visits** and read the **rating report** of their area (V6).
+9. **Security (V6):** record IDs in URLs are encrypted, and passwords are encrypted in the browser before they are sent.
 
 ```mermaid
 flowchart LR
@@ -34,6 +40,10 @@ flowchart LR
     W --> DB[(MySQL / MariaDB<br/>schoolinspection)]
     W --> P[[Private disk<br/>photos, ID proofs,<br/>employee photos]]
     W --> L[[Logs<br/>SMS log driver]]
+    O -.->|map tiles| T[(OpenStreetMap tiles)]
+    O -.->|Show route only, V6| R[(OSRM routing server)]
+    K[[public/KML district files]] -->|php artisan map:boundaries| G[[public/geo outlines]]
+    G --> W
     S[Scheduler<br/>00:30 daily] -->|expire drafts| W
 ```
 
@@ -75,6 +85,9 @@ Rights are **permissions**. Each level has a default role, and a higher administ
 | Masters (locations, schools, import) | Yes | No | No | No | No |
 | Unlock a submitted inspection | Yes | No | No | No | No |
 | Mobile number changes, audit log | Yes | No | No | No | No |
+| Login monitoring report (V6) | Yes | No | No | No | No |
+| Map View, schedules, rating report (V6) | All | All | Own district | Own block | Own cluster |
+| Rating report Excel (V6) | Yes | Yes | Yes | Yes | Yes (own cluster) |
 
 ### 3.3 Who approves a registration (PRD 3.3)
 ```mermaid
@@ -236,8 +249,10 @@ flowchart TD
     A --> X[Excel export: one row per inspection,<br/>every answer as a column]
     B --> X
     V --> PH[Photos served only after a permission check]
+    RR[Rating Report, V6<br/>bands, sections, areas, schools,<br/>change since previous rating] --> RX[Excel: one row per rated inspection]
+    RR --> RP[PDF: official header, tables, bars]
 ```
-Counts at the top of the area list: schools in the area, schools inspected in the period, and inspections submitted.
+Counts at the top of the area list: schools in the area, schools inspected in the period, and inspections submitted. The **Rating Report** (V6 Module 10) is described in 4.10.
 
 ### 4.7 Administration
 ```mermaid
@@ -381,7 +396,7 @@ flowchart LR
   - Both exports are audited (`rating_report_exported`).
 
 ## 5. Database schema
-MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 32 tables, all created by `database/migrations`. The location masters run first (`0001_01_00_*`).
+MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 38 tables (including Laravel's `migrations`), all created by `database/migrations`. The location masters run first (`0001_01_00_*`).
 
 ### 5.1 Entity relationship diagram (main tables)
 ```mermaid
@@ -412,6 +427,13 @@ erDiagram
     master_values ||--o{ inspection_evidence : "photo category"
     users ||--o{ audit_logs : "actor"
     users ||--o{ import_batches : uploads
+    users ||--o{ inspection_schedules : "officer (Module 2)"
+    inspection_schedules ||--o{ inspection_schedule_items : "visits in order"
+    schools ||--o{ inspection_schedule_items : planned
+    rating_schemes ||--o{ rating_criteria : "scored items (Module 3)"
+    rating_schemes ||--o{ inspection_ratings : "version used"
+    inspections ||--o| inspection_ratings : "rating"
+    users ||--o{ user_login_logs : "sign-in attempts (V6)"
 ```
 
 ### 5.2 Tables
@@ -481,6 +503,8 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 - **Foreign keys with RESTRICT:** a location or school that has inspections cannot be deleted.
 - **Soft deletes** on users, schools, inspections and evidence. Nothing is removed for good from the screens.
 - **The answer `value` column holds JSON.** The model casts it.
+- **V6:** `user_login_logs` is operational (a sign-in row is updated on activity and sign-out) and is separate from the append-only `audit_logs`. `districts.boundary_name` is nullable; when it is null, the outline is matched by name.
+- **Not stored in the database (V6):** the password RSA key pair (`storage/app/private/keys`), the district outlines (`public/geo/districts`) and the URL token keys (derived from `APP_KEY`).
 
 ---
 
@@ -505,6 +529,12 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Schedules (`ScheduleController`, `ScheduleService`, `RouteOptimizer`) | users, user_jurisdictions, schools, inspections, schedules | inspection_schedules, inspection_schedule_items, audit_logs |
 | Map View (`MapController`, `MapDataService`) | districts, blocks, clusters, schools, inspections, users, user_jurisdictions | — (read only, cached 60 s) |
 | Audit (`Admin\AuditLogController`, `AuditLogger`) | audit_logs | audit_logs (append only) |
+| URL encryption, V6 (`HasEncryptedRouteKey`, `UrlId`) | (APP_KEY) | — |
+| Password encryption, V6 (`DecryptPasswordFields`, `PasswordCrypto`) | key pair on the private disk, session nonce | — (keys by `security:keys`) |
+| District outlines, V6 (`ImportMapBoundaries`, `DistrictBoundaryService`) | public/KML, public/geo/districts, districts, schools | public/geo/districts, districts.boundary_name, audit_logs (`--assign`) |
+| My location and route, V6 (`map-common.js`, `school-map.js`) | schools (coordinates) | — (OSRM called from the browser) |
+| School rating display, V6 (`School::latestRatedInspection`, `MapDataService`) | inspections, inspection_ratings, rating_schemes | — |
+| Rating report, V6 (`RatingReportController`, `RatingReportService`) | inspections, inspection_ratings, rating_schemes, schools, locations | audit_logs (exports) |
 | Nightly job `inspections:expire-drafts` | inspections | inspections (cancelled), audit_logs |
 
 **Example: one auto-save**
@@ -523,14 +553,19 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | Path | Content |
 |---|---|
 | `app/Enums` | UserLevel (rank, area rules), UserStatus, InspectionStatus, EvidenceStatus |
-| `app/Services` | JurisdictionService (**every** area filter), ApproverResolver, PermissionService, InspectionStartGuard, InspectionNumberGenerator, EvidenceStorage, AuditLogger, MasterImportService, Otp/* |
+| `app/Services` | JurisdictionService (**every** area filter), ApproverResolver, PermissionService, InspectionStartGuard, InspectionNumberGenerator, EvidenceStorage, AuditLogger, MasterImportService, MapDataService, ScheduleService, RatingService, Otp/*; V6: PasswordCrypto, LoginMonitorService, DistrictBoundaryService, RatingReportService |
+| `app/Support` | RouteOptimizer; V6: `UrlId` (URL tokens), `UserAgent` (browser, platform, device) |
+| `app/Models/Concerns` | V6: `HasEncryptedRouteKey` (encrypted route keys of every route-bound model) |
+| `app/Rating` | `RatingCalculator`, `DefaultScheme` (Module 3) |
 | `app/Questionnaire` | `QuestionnaireDefinition` (version 2, the fixed questions; it drives both the screens and the validation), `InspectionValidator` |
 | `app/Policies/InspectionPolicy.php` | view / update / cancel / unlock rules |
-| `app/Http/Middleware` | `active` (signed-out if not active), `password.fresh` (force password change) |
+| `app/Http/Middleware` | `active` (signed-out if not active), `password.fresh` (force password change); V6, in the web group: `DecryptPasswordFields`, `TouchLastSeen` |
+| `app/Console/Commands` | `map:boundaries` (KML → GeoJSON, outlines, `--check` / `--assign`), `ratings:recalculate`, V6 `security:keys` |
 | `config/inspection.php` | Configurable values: draft expiry, login lock, photo limits, mandatory photos, page size, retention |
-| `resources/views`, `resources/js`, `resources/scss` | Blade screens, wizard / camera / review JS, Samagra Shiksha theme |
+| `resources/views`, `resources/js`, `resources/scss` | Blade screens, wizard / camera / review / map / planner JS, Samagra Shiksha theme. V6: `password-encrypt.js`, `school-map.js`, outline and directions helpers in `map-common.js`, `admin/login-report/*`, `reports/ratings/*` |
+| `public/geo` | State and district GeoJSON; V6 `districts/<slug>.geojson` + `index.json` (committed; raw `public/KML` is not) |
 | `database/seeders` | Roles, masters, demo locations and schools, State Admin, demo users, load-test data |
-| `tests/Feature` | Registration and login, approvals and users, the inspection flow, masters and audit, user types, load-test switch |
+| `tests/Feature` | Registration and login, approvals and users, the inspection flow, masters and audit, user types, load-test switch, map, schedules, rating; V6: `UrlEncryptionTest`, `PasswordEncryptionTest`, `LoginReportTest`, `DistrictBoundaryTest`, `SchoolDirectionsTest`, `SchoolRatingDisplayTest`, `RatingReportTest` |
 | `tools/loadtest` | Load driver (LOAD_TEST.md) |
 
 ### 7.2 Request path
@@ -557,6 +592,8 @@ They are listed in `CLAUDE.md` under domain rules. In short:
 7. The audit log is append-only.
 8. Server time is the source of truth.
 9. Record IDs in URLs are encrypted tokens (`HasEncryptedRouteKey`). Pass the model, or `Model::routeKeyFor($id)`, to `route()`, never a raw `*_id`.
+10. Password fields are sent encrypted (`password-encrypt.js` + `DecryptPasswordFields`). Never submit a password form with `form.submit()`, and never log or audit a password.
+11. Ratings are derived data, and a rating scheme is versioned, never edited in place.
 
 ### 7.4 Commands
 ```bash
@@ -566,13 +603,18 @@ npm run dev | npm run build           # assets
 php artisan config:clear && php artisan test   # tests (SQLite in memory only)
 php artisan inspections:expire-drafts # nightly at 00:30 through the scheduler
 php artisan optimize                  # production (required on Windows/Apache, LOAD_TEST.md)
+php artisan ratings:recalculate [--all]       # rate submitted inspections (Module 3)
+php artisan security:keys [--force]           # V6: RSA key pair for password encryption
+php artisan map:boundaries                    # KML -> public/geo (state, districts, V6 district outlines)
+php artisan map:boundaries --check | --assign # V6: which outline each District Master row uses / link unmatched
 ```
 
 ### 7.5 Testing
-- 56 feature tests, run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
+- 113 feature tests (V6 included), run on SQLite in memory. `tests/TestCase.php` refuses to run against any other database.
 - **Never run the tests while the config is cached.**
 - Demo data for manual tests: `DemoUserSeeder`.
 - Volume data: `LoadTestSeeder`. Use it only on a database you have backed up.
+- `phpunit.xml` sets `PASSWORD_ENCRYPTION_REQUIRED=false`, so the older tests can post plain passwords. `PasswordEncryptionTest` turns it on and posts `PasswordCrypto::encryptForSession()` values.
 
 ---
 
@@ -585,3 +627,62 @@ php artisan optimize                  # production (required on Windows/Apache, 
 | Inspection | draft → submitted → unlocked → submitted; draft → cancelled (by the officer or after 7 days) |
 | Evidence | pending → uploaded / failed |
 | School | active / closed (closed schools cannot be inspected) |
+| Schedule | draft → submitted → published (approved) or rejected (sent back, can be resubmitted); published → completed; cancelled |
+| Sign-in attempt (V6) | success / failed / locked / denied; a success session is online → signed out or timed out |
+| School rating (V6) | the rating of the latest submitted inspection; an unlocked inspection does not count until resubmitted |
+
+---
+
+## 9. Modification V6 (19-11-2026)
+Source: `Documents/Modification of the ApplicationV6.docx`. Each item was built as one module, committed and pushed on its own, and logged in `ACTION.md` (#69–#76). The details are in the sections shown.
+
+| # | V6 item | What was built | Users see | Section |
+|---|---|---|---|---|
+| 4 | Security for URL encryption | Route-bound records appear in URLs as 43-character AES tokens with an HMAC check, tied to the record type | `/schools/FJyz…` instead of `/schools/203`; an edited or numeric URL gives 404 | 4.2, 7.3 |
+| 5 | Password encrypted automatically on submit | RSA-OAEP encryption in the browser with a session nonce (WebCrypto, `node-forge` on plain HTTP); the server decrypts before validation; storage stays bcrypt | Nothing changes on screen; the network shows `password=enc:…` | 4.2, 7.3 |
+| 6 | Login user monitoring report (State Admin) | `user_login_logs`, `LoginMonitorService`, `/admin/login-report` | Sign-ins, online now, refused attempts with the reason, locked and never-signed-in officers, devices, per-officer history, Excel | 4.7, 5.2 |
+| 7 | Use the district KML for the district | Constituency polygons dissolved into one outline per district; `districts.boundary_name`; `--check` / `--assign` | Officers' maps open on their district, outlined with the outside greyed; also on the planner and route map | 4.8 |
+| 8 | My current location, distance from the school, road view | My location button, straight-line distance, OSRM road route with drive time, Google Maps link | Map popups and a "Location & route" card on the school page | 4.8 |
+| 9 | Rating display for the school | `School::latestRatedInspection`, ratings in the map data | School page header with change, Find School pill, map pins coloured by rating, area averages | 4.10 |
+| 10 | Rating report | `RatingReportService`, `/reports/ratings`, Excel and PDF | Bands, section averages, area drill-down, best and lowest, school change | 4.6, 4.10 |
+
+```mermaid
+flowchart LR
+    subgraph Security
+      U[URL tokens<br/>HasEncryptedRouteKey] --- P[Encrypted passwords<br/>password-encrypt.js → DecryptPasswordFields]
+    end
+    subgraph Monitoring
+      L[Login → LoginMonitorService] --> LL[(user_login_logs)] --> LR[/admin/login-report/]
+    end
+    subgraph Maps
+      K[District KML] --> O[Dissolved outlines] --> M[Map View · planner · school page]
+      GPS[My location] --> M
+      M -->|Show route| OSRM[(OSRM)]
+    end
+    subgraph Ratings
+      IR[(inspection_ratings)] --> SR[School rating<br/>page · list · map]
+      IR --> RR[Rating Report<br/>screen · Excel · PDF]
+    end
+```
+
+**New settings** (`config/inspection.php`, `.env`):
+| Setting | Default | Meaning |
+|---|---|---|
+| `PASSWORD_ENCRYPTION` | true | Send password fields encrypted |
+| `PASSWORD_ENCRYPTION_REQUIRED` | true | Refuse plain-text passwords (load-test mode still accepts them) |
+| `MAP_ROUTING` / `MAP_ROUTING_URL` | true / `https://router.project-osrm.org` | Road route server; use your own for production |
+| `inspection.map.geojson.district_dir` | `geo/districts` | Folder of the district outlines |
+
+**Deploy checklist for V6:**
+1. `php artisan migrate`. This adds `user_login_logs` and `districts.boundary_name`, and nothing existing changes.
+2. `npm install && npm run build`. This adds `node-forge`, used only as a fallback chunk.
+3. `php artisan security:keys`, then back up `storage/app/private/keys`.
+4. `php artisan map:boundaries`, then `php artisan map:boundaries --check`. Link any unmatched districts with `--assign`, or in the Location Master.
+5. `php artisan ratings:recalculate`, so inspections submitted before the rating module are rated.
+6. Serve the app over **HTTPS**. Browsers share location only on secure pages, and the session cookie should be secure.
+
+**Known limits:**
+- **Plain HTTP:** location (My location) does not work.
+- **Road routes:** these depend on the routing server being reachable. If it is not, a dashed straight line and its distance are shown.
+- **Changing `APP_KEY`:** this changes every URL token, so old bookmarks stop working.
+- **Replacing the RSA keys** (`--force`): pages already open must be reloaded before they can sign in.

@@ -1223,3 +1223,24 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md` (all V6 modules done)
   - `ACTION.md`
+
+## 77. Project document updated with all V6 modules (2026-11-19)
+- **Request:** update the project document with the current development (all V6 modules).
+- **Done (`PROJECT_DOCUMENT.md`):**
+  - **Header:** the scope now covers the New Modules and V6; date 19-11-2026; reading guide for section 9; related documents `NEW_MODULES_PLAN.md` and the V6 docx.
+  - **Section 1:** the overview list adds login monitoring, district outlines, my location and road route, scheduling and the rating report, and URL / password security. The overview diagram adds the map tiles, the OSRM routing server and KML → `public/geo`.
+  - **3.2 Rights:** rows for the login monitoring report, the Map View / schedules / rating report, and the rating report Excel.
+  - **4.6 Reports:** the Rating Report and its Excel and PDF in the flow chart.
+  - **5 Schema:** 38 tables. The ER diagram gains the schedules, ratings and `user_login_logs`. Notes on what V6 keeps outside the database: RSA keys, district outlines, URL token keys.
+  - **6 Modules:** rows for URL encryption, password encryption, district outlines, my location and route, school rating display, and the rating report.
+  - **7 Developer guide:**
+    - code layout: new services, `app/Support`, `app/Models/Concerns`, `app/Rating`, middleware, commands, JS and views, `public/geo`, new tests
+    - rules 10 (encrypted password fields) and 11 (ratings derived and versioned)
+    - commands: `ratings:recalculate`, `security:keys`, `map:boundaries --check|--assign`
+    - testing: 113 tests and the password-encryption test switch
+  - **8 Statuses:** schedule, sign-in attempt and school rating rows.
+  - **New section 9, "Modification V6":** a module table (item → what was built → what users see → section), a diagram, the new settings, a deploy checklist and known limits.
+- **Verification:** the counts in the document match the code (113 tests, 38 tables); the schedule statuses were checked against `App\Enums\ScheduleStatus`.
+- Files:
+  - `PROJECT_DOCUMENT.md`
+  - `ACTION.md`
