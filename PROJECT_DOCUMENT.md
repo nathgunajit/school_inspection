@@ -734,14 +734,14 @@ flowchart TD
 ## 11. Teacher totals and working without network (19-11-2026)
 Two follow-up requests from users of the inspection questionnaire. Each was built as one module, committed and pushed, and logged in `ACTION.md` (#85, #86).
 
-### 11.1 Teacher totals must agree (step 2)
+### 11.1 Teacher totals (step 2)
 | Rule | Checked when | Effect |
 |---|---|---|
-| Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) = Total teachers (TSI_04–08). This covers both Trained + Untrained and Male + Female. | Total teachers and all four breakdown numbers are entered | **Blocking**: step 2 is not complete and Submit is refused |
+| Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) **≤** Total teachers (TSI_04–08), i.e. less than or equal (changed from "equal" on 19-11-2026, ACTION #87). This covers both Trained + Untrained and Male + Female. | Total teachers and all four breakdown numbers are entered | **Blocking**: step 2 is not complete and Submit is refused |
 | Teachers present (TSI_09) ≤ Total teachers | Both are entered | **Blocking** (it was a warning before) |
 
 - **On screen:**
-  - A live box under the breakdown shows Trained, Untrained, Male, Female and their sum, with "Matches Total teachers (n)" in green or "Does not match Total teachers (n)" in red.
+  - A live box under the breakdown shows Trained, Untrained, Male, Female and their sum, with "Within Total teachers (n)" in green or "More than Total teachers (n)" in red.
   - "Show me" and the review page show the exact message, e.g. "Trained (7) + Untrained (2) = 9 and Male (4) + Female (5) = 9, but Total teachers is 10."
   - The report and the PDF list the trained/untrained and male/female totals.
 - **Code:**

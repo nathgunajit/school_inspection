@@ -61,7 +61,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
-- Step 2 teacher totals (blocking): TSI_10–13 must add up to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
+- Step 2 teacher totals (blocking): TSI_10–13 must be less than or equal to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
 - Working without network: `resources/js/offline-queue.js` keeps unsent answers, rows and photos in IndexedDB per inspection (`SI.inspectionKey`) and replays them in order. `wizard.js` `queue(fn, onInvalid, op)` needs an `op` for anything that may wait offline.
   - New rows send a `row_uid`, so replays never duplicate (`InspectionController::addRow`).
   - `review.js` locks Submit until the device queue is empty.

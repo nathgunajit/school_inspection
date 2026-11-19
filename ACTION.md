@@ -1529,3 +1529,33 @@ Plan approved by the user. Decisions:
   - `PROJECT_DOCUMENT.md`
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
+
+## 87. Teacher breakdown: less than or equal to Total teachers (2026-11-19)
+- **Request:** "Trained / untrained teachers is less or equal to total teacher". The T1 rule (#85) required the breakdown to **equal** Total teachers; it now requires it to be **less than or equal**.
+- **Rule now:**
+  - Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) ≤ Total teachers (TSI_04–08). Trained + Untrained and Male + Female are the same four numbers, so both pairs are covered.
+  - Equal or fewer is accepted, for example when the training status of some teachers is not known.
+  - More than the total is still **blocking**: step 2 stays incomplete and Submit is refused.
+  - Teachers present (TSI_09) ≤ Total teachers is unchanged (blocking).
+- **Changed:**
+  - `InspectionValidator::teacherConsistency()`: `sum > total` instead of `sum ≠ total`. The message reads "Trained (9) + Untrained (3) = 12 and Male (5) + Female (7) = 12, which is more than Total teachers (10). They must be less than or equal to Total teachers."
+  - **Live box (`wizard.js`, `step.blade.php`):** "Each pair must be less than or equal to Total teachers"; green "Within Total teachers (n)" or red "More than Total teachers (n)".
+  - **Report and PDF:** "more than Total teachers" / "Total (not more than Total teachers)".
+  - **Comments:** `QuestionnaireDefinition`.
+- **Tests:** `TeacherTotalsTest`:
+  - more than the total blocks the step and Submit, and the review page shows the message
+  - less (9 of 10), zero and equal are accepted
+  - one above the total (11) blocks
+  - Full suite: 132 passed.
+- **Browser:** demo officer 9000000031, draft #8, step 2. 12 vs 10 showed red "More than Total teachers (10)"; 8 vs 10 showed green "Within Total teachers (10)". MySQL was backed up and restored.
+- Files:
+  - `app/Questionnaire/InspectionValidator.php`
+  - `app/Questionnaire/QuestionnaireDefinition.php`
+  - `resources/js/wizard.js`
+  - `resources/views/inspections/step.blade.php`
+  - `resources/views/inspections/partials/step-answers.blade.php`
+  - `resources/views/inspections/pdf.blade.php`
+  - `tests/Feature/TeacherTotalsTest.php`
+  - `PROJECT_DOCUMENT.md` (11.1)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`

@@ -12,7 +12,7 @@ use App\Questionnaire\QuestionnaireDefinition as Q;
 use Tests\TestCase;
 
 /**
- * Step 2: Trained + Untrained and Male + Female (TSI_10..13) must equal Total teachers (TSI_04..08),
+ * Step 2: Trained + Untrained and Male + Female (TSI_10..13) must be less than or equal to Total teachers (TSI_04..08),
  * and teachers present (TSI_09) cannot be more than Total teachers. Both are blocking.
  */
 class TeacherTotalsTest extends TestCase
@@ -56,26 +56,38 @@ class TeacherTotalsTest extends TestCase
             Q::teacherBreakdown(['TSI_10' => 1, 'TSI_11' => 2, 'TSI_12' => '3', 'TSI_13' => 4]));
     }
 
-    public function test_mismatched_breakdown_blocks_step_and_submit(): void
+    public function test_breakdown_more_than_total_blocks_step_and_submit(): void
     {
-        $this->fill(self::TOTAL + ['TSI_09' => 8, 'TSI_10' => 3, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 9 ≠ 10
+        $this->fill(self::TOTAL + ['TSI_09' => 8, 'TSI_10' => 4, 'TSI_11' => 1, 'TSI_12' => 5, 'TSI_13' => 2]); // 12 > 10
 
         $msg = collect($this->step2())->firstWhere('code', 'TSI_10')['message'] ?? '';
-        $this->assertStringContainsString('Trained (7) + Untrained (2) = 9', $msg);
-        $this->assertStringContainsString('Male (4) + Female (5) = 9', $msg);
-        $this->assertStringContainsString('Total teachers is 10', $msg);
+        $this->assertStringContainsString('Trained (9) + Untrained (3) = 12', $msg);
+        $this->assertStringContainsString('Male (5) + Female (7) = 12', $msg);
+        $this->assertStringContainsString('more than Total teachers (10)', $msg);
         $this->assertFalse((new InspectionValidator($this->inspection->fresh()))->progress()['steps'][2]['complete']);
 
         $this->actingAs($this->officer)->post(route('inspections.submit', $this->inspection), ['confirm' => '1'])
             ->assertRedirect(route('inspections.review', $this->inspection));
         $this->assertNotSame(InspectionStatus::Submitted, $this->inspection->fresh()->status);
-        $this->actingAs($this->officer)->get(route('inspections.review', $this->inspection))->assertSee('Total teachers is 10');
+        $this->actingAs($this->officer)->get(route('inspections.review', $this->inspection))->assertSee('more than Total teachers (10)');
 
-        // fixing one number clears the rule
-        $this->fill(['TSI_13' => 2]);
+        // equal to the total is allowed
+        $this->fill(['TSI_13' => 0]); // 10
         $this->assertNotContains('TSI_10', $this->codes());
     }
 
+    public function test_breakdown_less_than_or_equal_to_total_is_allowed(): void
+    {
+        // fewer than the total (e.g. training status not known for every teacher) is accepted
+        $this->fill(self::TOTAL + ['TSI_09' => 8, 'TSI_10' => 3, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 9 ≤ 10
+        $this->assertNotContains('TSI_10', $this->codes());
+        $this->fill(['TSI_10' => 0, 'TSI_11' => 0, 'TSI_12' => 0, 'TSI_13' => 0]); // 0 ≤ 10
+        $this->assertNotContains('TSI_10', $this->codes());
+        $this->fill(['TSI_10' => 4, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 10 = 10
+        $this->assertNotContains('TSI_10', $this->codes());
+        $this->fill(['TSI_13' => 2]); // 11 > 10
+        $this->assertContains('TSI_10', $this->codes());
+    }
     public function test_present_more_than_total_blocks(): void
     {
         $this->fill(self::TOTAL + ['TSI_09' => 11]);
@@ -98,6 +110,6 @@ class TeacherTotalsTest extends TestCase
     public function test_step_page_shows_live_breakdown_box(): void
     {
         $this->actingAs($this->officer)->get(route('inspections.step', [$this->inspection, 2]))->assertOk()
-            ->assertSee('data-auto-total="breakdown"', false)->assertSee('Each pair must add up to Total teachers');
+            ->assertSee('data-auto-total="breakdown"', false)->assertSee('Each pair must be less than or equal to Total teachers');
     }
 }

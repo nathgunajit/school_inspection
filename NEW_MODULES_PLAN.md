@@ -287,5 +287,5 @@ Facts found:
 
 | # | Module | Request | Decision | Status |
 |---|---|---|---|---|
-| T1 | Teacher totals must agree | Trained / untrained teachers not validated against Total teachers; same for male and female | Blocking rule in `InspectionValidator::missing()`: TSI_10–13 must add up to Total teachers (TSI_04–08), present (TSI_09) ≤ total; live box on step 2 | Done (#85) |
+| T1 | Teacher totals must agree | Trained / untrained teachers not validated against Total teachers; same for male and female | Blocking rule in `InspectionValidator::missing()`: TSI_10–13 ≤ Total teachers (TSI_04–08; was "equal", changed in #87), present (TSI_09) ≤ total; live box on step 2 | Done (#85) |
 | T2 | Work without network | "If network is not available, what should happen" (responsive web app) | Unsent answers, rows and photos kept in the browser (IndexedDB), offline banner, automatic sync; Submit waits for sync | Done (#86) |

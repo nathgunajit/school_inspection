@@ -182,7 +182,7 @@ class InspectionValidator
 
     /**
      * Step 2 consistency (blocking):
-     *  - Trained + Untrained and Male + Female (TSI_10..13) must equal Total teachers (TSI_04..08);
+     *  - Trained + Untrained and Male + Female (TSI_10..13) must be less than or equal to Total teachers (TSI_04..08);
      *  - teachers present (TSI_09) cannot be more than Total teachers.
      *
      * @return array<int, array{0:string, 1:string}> [code, message]
@@ -199,8 +199,8 @@ class InspectionValidator
             $out[] = ['TSI_09', "Teachers present ({$present}) cannot be more than Total teachers ({$total})."];
         }
         $b = QuestionnaireDefinition::teacherBreakdown($this->answers);
-        if ($b !== null && $b['sum'] !== $total) {
-            $out[] = ['TSI_10', "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']} and Male ({$b['male']}) + Female ({$b['female']}) = {$b['sum']}, but Total teachers is {$total}. They must be equal."];
+        if ($b !== null && $b['sum'] > $total) {
+            $out[] = ['TSI_10', "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']} and Male ({$b['male']}) + Female ({$b['female']}) = {$b['sum']}, which is more than Total teachers ({$total}). They must be less than or equal to Total teachers."];
         }
 
         return $out;

@@ -194,7 +194,7 @@ class QuestionnaireDefinition
 
     /**
      * Trained / untrained and male / female sums of the step 2 breakdown; null until all four are entered.
-     * Both pairs add up the same four numbers, so `sum` must equal Total teachers.
+     * Both pairs add up the same four numbers, so `sum` must not be more than Total teachers.
      *
      * @return array{trained:int, untrained:int, male:int, female:int, sum:int}|null
      */

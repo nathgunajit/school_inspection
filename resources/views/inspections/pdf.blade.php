@@ -152,7 +152,7 @@
                 <td class="r"><strong>{{ ($totT !== null && $presT !== null && $presT !== '') ? $totT - (int) $presT : '—' }}</strong></td></tr>
         </table>
         @if ($bd = QD::teacherBreakdown($answers))
-            <table class="grid"><tr><th>Trained</th><th>Untrained</th><th>Male</th><th>Female</th><th>Total (must equal Total teachers)</th></tr>
+            <table class="grid"><tr><th>Trained</th><th>Untrained</th><th>Male</th><th>Female</th><th>Total (not more than Total teachers)</th></tr>
                 <tr><td class="r">{{ $bd['trained'] }}</td><td class="r">{{ $bd['untrained'] }}</td><td class="r">{{ $bd['male'] }}</td><td class="r">{{ $bd['female'] }}</td>
                     <td class="r"><strong>{{ $bd['sum'] }}</strong></td></tr>
             </table>

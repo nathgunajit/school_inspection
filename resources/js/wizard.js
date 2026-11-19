@@ -742,7 +742,7 @@ if (autoTotals.length) {
             const bad = absent !== null && absent < 0;
             paint(t, { total, present, absent, bad, extra: bad ? 'Present is more than the total. Please check.' : '' });
         }
-        // Trained/untrained and male/female (TSI_10..13) must each add up to Total teachers
+        // Trained/untrained and male/female (TSI_10..13) must be less than or equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');
         if (bd) {
             const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
@@ -757,10 +757,10 @@ if (autoTotals.length) {
             const s = all ? mt + mu + ft + fu : null;
             $('[data-at="sum"]', bd).textContent = fmtInt(s);
             const checked = all && total !== null;
-            const bad = checked && s !== total;
+            const bad = checked && s > total; // less than or equal to Total teachers is allowed
             $('[data-at-extra]', bd).innerHTML = !checked ? (total === null ? 'Enter the teacher numbers above first.' : '')
-                : bad ? `<i class="bi bi-x-circle-fill"></i> Does not match Total teachers (${fmtInt(total)})`
-                    : `<i class="bi bi-check-circle-fill"></i> Matches Total teachers (${fmtInt(total)})`;
+                : bad ? `<i class="bi bi-x-circle-fill"></i> More than Total teachers (${fmtInt(total)})`
+                    : `<i class="bi bi-check-circle-fill"></i> Within Total teachers (${fmtInt(total)})`;
             bd.classList.toggle('is-bad', bad);
             bd.classList.toggle('is-ready', checked && !bad);
         }
