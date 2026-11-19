@@ -1555,6 +1555,17 @@ $cov-mid: #e0a800;
     &.st-available { background: #64748b; } &.st-inspected { background: $success; } &.st-pending { background: $danger; } &.st-planned { background: $primary; } }
 .plan-map { height: clamp(340px, 64vh, 640px); }
 .route-map { height: clamp(300px, 55vh, 560px); }
+
+/* V6 Module 8: My location button, school map and the distance / route panel */
+.school-map { height: clamp(240px, 40vh, 380px); border-radius: 0; }
+.si-locate a { display: grid; place-items: center; width: 34px; height: 34px; font-size: 1.05rem; color: #334155; background: #fff; }
+.si-locate a.is-on { color: #1a73e8; }
+.si-locate a.is-busy i { animation: si-spin 1s linear infinite; display: inline-block; }
+@keyframes si-spin { to { transform: rotate(360deg); } }
+.si-dir { margin-top: .5rem; padding-top: .5rem; border-top: 1px dashed #e2e8f0;
+    .si-dir-distance { color: #334155; min-height: 1.2rem; i { color: $primary; } }
+    .btn { min-height: 36px; white-space: nowrap; } }
+.map-pop .si-dir .btn { min-height: 32px; }
 .plan-list { min-height: 3rem; max-height: 46vh; overflow: auto; }
 .plan-item { display: flex; align-items: center; gap: .6rem; cursor: grab; touch-action: pan-y;
     .drag-handle { color: #94a3b8; font-size: 1.1rem; } }

@@ -32,6 +32,7 @@ class MapController extends Controller
                     'report' => route('inspections.show', ['inspection' => '__ID__']),
                 ],
                 'canOpenSchool' => $user->can('conduct_inspections'),
+                'routing' => config('inspection.map.routing'), // V6 Module 8
             ],
         ]);
     }

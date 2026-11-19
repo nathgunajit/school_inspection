@@ -1113,3 +1113,41 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 74. V6 Module 8: my location, distance from the school and road route (2026-11-19)
+- **Request:** V6 item "Showing My Current Location in Map and district form the school if selected and road view". Agreed meaning: the distance from the school, plus the road route and a Google Maps link.
+- **Done:**
+  - **`map-common.js`:**
+    - `createDirections()` adds a **My location** map button. It watches the GPS position, draws a blue dot with an accuracy circle, and centres the map once.
+    - Errors get clear messages: insecure context (HTTP), permission blocked, timeout, unavailable.
+    - `routeTo()` calls OSRM `route/v1/driving` (GeoJSON) with a timeout and draws a green route with a white casing, fitted to the view. If routing fails, it draws a dashed straight line.
+    - Helpers: `haversineKm`, `fmtKm`, `fmtMinutes`, `directionsUrl` (Google Maps with origin and destination), plus `directionsPanelHtml()` and `bindDirectionsPanel()` for the distance and route panel.
+  - **Map View:** every school popup (with GPS) shows the distance from me, **Show route** and **Google Maps**. The routing settings come from the map config.
+  - **School page:** a new "Location & route" card (only when the school has coordinates), via the new Vite entry `resources/js/school-map.js`. It shows the school pin, the district outline (Module 7), a header "My location" button that frames both points, and the same panel.
+  - **Config `inspection.map.routing`:** `MAP_ROUTING`, `MAP_ROUTING_URL` (default the public OSRM server), profile and timeout; added to `.env.example`.
+  - **Privacy:** the position leaves the browser only when "Show route" is pressed.
+  - **SCSS:** the locate button (on, busy), the school map and the panel.
+- **Verification:**
+  - New `SchoolDirectionsTest` (2 tests): the school page card and config (coordinates, routing) and no card without GPS; the map config carries the routing settings.
+  - Full suite: 106 passed.
+  - **Headless Chrome on Apache, simulated GPS 26.1445, 91.7362 (Guwahati)** as demo officer 9000000031:
+    - school page: "Tap My location…" → "4.3 km from you (straight line)"; the Google link has the origin
+    - Show route: OSRM 200 → "6.5 km by road · about 10 min by car", route drawn along the roads (screenshot)
+    - Map View: table row → popup with the same panel and route
+    - with `isSecureContext` forced off, the HTTPS message toast appears
+    - no page errors
+  - **Fix found in the screenshot:** the white casing was painted over the green line (canvas paints in creation order). The casing is now created first, and the line and dot are brought to the front.
+- **Deploy:** `npm run build`. For production, set `MAP_ROUTING_URL` to a self-hosted or commercial OSRM server, and serve the app over HTTPS (location needs it).
+- Files:
+  - `resources/js/map-common.js`, `map.js`, `school-map.js`
+  - `vite.config.js`
+  - `resources/scss/app.scss`
+  - `resources/views/schools/show.blade.php`
+  - `app/Http/Controllers/SchoolController.php`, `MapController.php`
+  - `config/inspection.php`
+  - `.env.example`
+  - `tests/Feature/SchoolDirectionsTest.php`
+  - `PROJECT_DOCUMENT.md` (4.8)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

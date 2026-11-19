@@ -7,7 +7,7 @@ import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
-import { createMap, schoolIcon, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline } from './map-common';
+import { createMap, schoolIcon, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline, createDirections, directionsPanelHtml, bindDirectionsPanel } from './map-common';
 
 const el = document.getElementById('map');
 if (el) {
@@ -16,6 +16,7 @@ if (el) {
     const map = createMap(el, cfg);
     const areaLayer = L.layerGroup().addTo(map);
     const schoolLayer = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45 }).addTo(map);
+    const directions = createDirections(map, cfg); // V6 Module 8: My location, distance and road route
     let boundaries = null;
     const geo = { state: null, districts: null };
     let stateLayer = null;
@@ -197,7 +198,8 @@ if (el) {
         return `<div class="map-pop"><div class="fw-semibold">${esc(s.name)}</div>
             <div class="text-xs text-muted">UDISE ${esc(s.udise)} · ${esc(s.area)}</div>
             ${s.address ? `<div class="text-xs">${esc(s.address)}</div>` : ''}
-            <span class="badge mt-1 st-badge st-${s.status}">${status}</span>${last}${open}</div>`;
+            <span class="badge mt-1 st-badge st-${s.status}">${status}</span>
+            ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}${last}${open}</div>`;
     }
 
     function renderSchools(rows, focus) {
@@ -316,6 +318,7 @@ if (el) {
     const drill = (id) => (current.level === 'school' ? null : load(nextLevel[current.level], id));
     map.on('popupopen', (e) => {
         e.popup.getElement()?.querySelector('[data-drill]')?.addEventListener('click', (ev) => drill(+ev.currentTarget.dataset.drill));
+        bindDirectionsPanel(e.popup.getElement()?.querySelector('.si-dir'), directions);
     });
     $('mapTableBody').addEventListener('click', (e) => {
         const a = e.target.closest('[data-drill]');

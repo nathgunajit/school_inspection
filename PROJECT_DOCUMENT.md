@@ -297,6 +297,12 @@ flowchart LR
   - **On the maps:** whenever a district is in view, the map draws its outline in bold and greys the land outside it. A District, Block or Cluster officer's map opens that way, and so does a State user who opens a district. The district view zooms to the outline. The schedule planner and the route map draw the officer's district too.
   - **Matching to the District Master:** a district uses its **Map boundary** (`districts.boundary_name`, chosen in the Location Master), otherwise the outline with the same name.
   - **Checking the matches:** `php artisan map:boundaries --check` lists which outline every district uses, and suggests one for the unmatched rows from the outline that contains the district headquarters or the average position of its schools. `--assign` saves those suggestions, each one audited.
+- **My location, distance and road route (V6 Module 8).** The Map View and the school page (a new "Location & route" card) have a **My location** button. It shows the officer's GPS position as a blue dot with an accuracy circle.
+  - **School popup or card:** shows the straight-line distance from the officer.
+  - **Show route:** draws the road route and gives the road distance and approximate driving time. It uses OSRM, `MAP_ROUTING_URL`, by default the public `router.project-osrm.org`; point it to your own server for heavy use. If routing fails, the panel shows a dashed straight line instead.
+  - **Google Maps:** opens turn-by-turn directions from the officer's position.
+  - **Privacy:** the position stays in the browser. It is sent to the routing server only when the officer presses *Show route*.
+  - **HTTPS:** browsers share location only over HTTPS or on localhost. On plain HTTP the button explains this.
 
 ### 4.9 Inspection Scheduling (New Module 2)
 ```mermaid

@@ -24,6 +24,18 @@
                     </dl>
                 </div>
             </div>
+
+            {{-- V6 Module 8: where the school is, how far it is from me, and the road route --}}
+            @if ($mapConfig)
+                <div class="card mt-4">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <span><i class="bi bi-signpost-split me-2 text-primary"></i>Location &amp; route</span>
+                        <button type="button" class="btn btn-sm btn-soft-primary" data-locate-me><i class="bi bi-crosshair"></i>My location</button>
+                    </div>
+                    <div id="schoolMap" class="si-map school-map" data-config='@json($mapConfig)' role="region" aria-label="Map of {{ $school->name }}"></div>
+                    <div class="card-body pt-2" id="schoolDir"></div>
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-5">
@@ -100,6 +112,7 @@
     </div>
 
     @push('scripts')
+    @if ($mapConfig) @vite(['resources/js/school-map.js']) @endif
     <script>
         document.getElementById('start-form')?.addEventListener('submit', function (e) {
             const f = this;

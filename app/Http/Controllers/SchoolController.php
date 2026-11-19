@@ -8,6 +8,7 @@ use App\Models\Cluster;
 use App\Models\District;
 use App\Models\School;
 use App\Services\InspectionStartGuard;
+use App\Services\DistrictBoundaryService;
 use App\Services\JurisdictionService;
 use Illuminate\Http\Request;
 
@@ -87,6 +88,15 @@ class SchoolController extends Controller
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->latest('inspection_date')->take(10)->get();
 
-        return view('schools.show', compact('school', 'today', 'history', 'start'));
+        // V6 Module 8: small map with the school, my location, distance and road route
+        $mapConfig = $school->hasCoordinates() ? [
+            'tiles' => config('inspection.map.tiles'), 'attribution' => config('inspection.map.attribution'),
+            'center' => [$school->latitude, $school->longitude], 'zoom' => 14,
+            'routing' => config('inspection.map.routing'),
+            'outline' => app(DistrictBoundaryService::class)->urlForId($school->district_id),
+            'school' => ['lat' => $school->latitude, 'lng' => $school->longitude, 'name' => $school->name],
+        ] : null;
+
+        return view('schools.show', compact('school', 'today', 'history', 'start', 'mapConfig'));
     }
 }

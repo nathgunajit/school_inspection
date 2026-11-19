@@ -66,6 +66,14 @@ return [
             // V6 Module 7: one dissolved outline per KML district, plus index.json (name, slug, bbox)
             'district_dir' => 'geo/districts',
         ],
+        // V6 Module 8: road route from the officer's position to a school (OSRM, called from the browser only when
+        // the officer presses "Show route"). The public demo server is for light use; point MAP_ROUTING_URL to your own.
+        'routing' => [
+            'enabled' => (bool) env('MAP_ROUTING', true),
+            'url' => rtrim(env('MAP_ROUTING_URL', 'https://router.project-osrm.org'), '/'),
+            'profile' => env('MAP_ROUTING_PROFILE', 'driving'),
+            'timeout' => 8000, // ms
+        ],
     ],
 
     // New Module 2, inspection scheduling

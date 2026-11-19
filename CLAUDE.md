@@ -46,6 +46,10 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `DistrictBoundaryService` links a District Master row to its outline (`districts.boundary_name`, else by name) and locates points.
   - The map JSON carries `outline` (the URL for the district in view), drawn by `drawDistrictOutline()` in `map-common.js`.
   - `map:boundaries --check` / `--assign` link unmatched districts.
+  - V6 Module 8: `createDirections()` / `directionsPanelHtml()` / `bindDirectionsPanel()` in `map-common.js` provide My location, distance, the OSRM road route (`config('inspection.map.routing')`) and a Google Maps link.
+    - Used in the `/map` school popups and on the school page (`resources/js/school-map.js`).
+    - The officer's position leaves the browser only when they press "Show route".
+    - Location needs HTTPS (or localhost).
 - Schedules: `ScheduleController` (`/schedules`: calendar, `plan`, `approvals`, show), `ScheduleService` (rules, approval, reassign, `markInspected()` called from `InspectionController::submit`), `App\Support\RouteOptimizer`, `resources/js/schedule-planner.js` (SortableJS drag and drop) and `schedule-route.js`. Settings in `config('inspection.schedule')`. `schedule_date` is stored as plain Y-m-d (accessor), like `inspection_date`.
 - Rating: `app/Rating/RatingCalculator.php` (pure formula, N/A rules, metrics, bands, summary) and `DefaultScheme.php` (version 1); `RatingService` (active scheme, `rate()` called from `InspectionController::submit` inside try/catch, `recalculate()`, `saveNewVersion()`); `Admin\RatingController` (`/admin/rating`, `manage_masters`); `php artisan ratings:recalculate [--all]`. Partial `inspections/partials/rating.blade.php`, component `<x-rating-badge>`.
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
