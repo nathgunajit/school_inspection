@@ -42,10 +42,25 @@
                             <button type="button" class="btn btn-light" id="fReset"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
 
                             <div class="map-legend mt-2">
-                                <div class="fw-semibold text-xs text-uppercase text-muted mb-1">School markers</div>
-                                <div><span class="dot st-inspected"></span>Inspected in the period</div>
-                                <div><span class="dot st-in_progress"></span>Inspection in progress</div>
-                                <div><span class="dot st-pending"></span>Not yet inspected</div>
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                    <span class="fw-semibold text-xs text-uppercase text-muted">School markers</span>
+                                    {{-- V6 Module 9: colour the school pins by inspection status or by rating band --}}
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Colour schools by">
+                                        <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" checked>
+                                        <label class="btn btn-outline-primary" for="colourStatus">Status</label>
+                                        <input type="radio" class="btn-check" name="colourBy" id="colourRating" value="rating">
+                                        <label class="btn btn-outline-primary" for="colourRating">Rating</label>
+                                    </div>
+                                </div>
+                                <div data-legend="status">
+                                    <div><span class="dot st-inspected"></span>Inspected in the period</div>
+                                    <div><span class="dot st-in_progress"></span>Inspection in progress</div>
+                                    <div><span class="dot st-pending"></span>Not yet inspected</div>
+                                </div>
+                                <div data-legend="rating" class="d-none">
+                                    @foreach ($bands as $b)<div><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }} ({{ $b['min'] }} %+)</div>@endforeach
+                                    <div><span class="dot rt-none"></span>Not rated yet</div>
+                                </div>
                                 <div class="fw-semibold text-xs text-uppercase text-muted mt-2 mb-1">Area coverage</div>
                                 <div><span class="dot cov-high"></span>75 % or more</div>
                                 <div><span class="dot cov-mid"></span>40 – 74 %</div>

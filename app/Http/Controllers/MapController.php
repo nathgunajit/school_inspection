@@ -19,6 +19,7 @@ class MapController extends Controller
         return view('map.index', [
             'start' => $this->map->startView($user),
             'officers' => $this->map->officers($user, 'district', null),
+            'bands' => app(\App\Services\RatingService::class)->activeScheme()->bands, // V6 Module 9: legend
             'config' => [
                 'tiles' => config('inspection.map.tiles'),
                 'attribution' => config('inspection.map.attribution'),

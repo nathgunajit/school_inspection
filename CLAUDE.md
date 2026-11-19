@@ -52,6 +52,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - Location needs HTTPS (or localhost).
 - Schedules: `ScheduleController` (`/schedules`: calendar, `plan`, `approvals`, show), `ScheduleService` (rules, approval, reassign, `markInspected()` called from `InspectionController::submit`), `App\Support\RouteOptimizer`, `resources/js/schedule-planner.js` (SortableJS drag and drop) and `schedule-route.js`. Settings in `config('inspection.schedule')`. `schedule_date` is stored as plain Y-m-d (accessor), like `inspection_date`.
 - Rating: `app/Rating/RatingCalculator.php` (pure formula, N/A rules, metrics, bands, summary) and `DefaultScheme.php` (version 1); `RatingService` (active scheme, `rate()` called from `InspectionController::submit` inside try/catch, `recalculate()`, `saveNewVersion()`); `Admin\RatingController` (`/admin/rating`, `manage_masters`); `php artisan ratings:recalculate [--all]`. Partial `inspections/partials/rating.blade.php`, component `<x-rating-badge>`.
+  - V6 Module 9: `School::latestRatedInspection` (latest submitted rated inspection; eager-load `latestRatedInspection.rating`) and `latestRating()` feed the school page header, the Find School list and the map.
+  - `MapDataService` adds `rating` to school rows and a period average to area rows (`areaRatings()`).
+  - The map has a "Colour schools by Status / Rating" switch.
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)

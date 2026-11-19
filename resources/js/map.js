@@ -32,6 +32,12 @@ if (el) {
     const fmt = (n) => Number(n || 0).toLocaleString('en-IN');
     const nextLevel = { district: 'block', block: 'cluster', cluster: 'school' };
     const levelName = { district: 'District', block: 'Block', cluster: 'Cluster', school: 'School' };
+    // V6 Module 9: school ratings
+    let colourBy = 'status';
+    const pct = (v) => `${Number(v).toFixed(1).replace(/\.0$/, '')}%`;
+    const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
+    const ratingIcon = (r) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
+        html: `<span class="si-pin rt-${esc(r?.color || 'none')}">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
 
     async function getJson(url) {
         const r = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
@@ -132,6 +138,7 @@ if (el) {
             <tr><td>In progress</td><td class="text-end text-warning">${fmt(r.in_progress)}</td></tr>
             <tr><td>Not inspected</td><td class="text-end text-danger">${fmt(r.pending)}</td></tr>
             <tr><td>Coverage</td><td class="text-end fw-semibold">${r.coverage} %</td></tr>
+            <tr><td>Average rating</td><td class="text-end">${r.rating ? `${ratingPill(r.rating)}<div class="text-xs text-muted">${fmt(r.rating.count)} rated inspection(s)</div>` : '<span class="text-muted">—</span>'}</td></tr>
             <tr><td>Officers</td><td class="text-end">${fmt(r.officers.total)}</td></tr></tbody></table>
             <button type="button" class="btn btn-primary btn-sm w-100" data-drill="${r.id}">Open ${levelName[nextLevel[level]].toLowerCase()}s</button></div>`;
     }
@@ -176,7 +183,7 @@ if (el) {
             if (r.lat === null || r.lng === null) return;
             const radius = 10 + 18 * Math.sqrt(r.schools / max);
             const m = L.circleMarker([r.lat, r.lng], { radius, ...coverageColors(r.coverage), weight: 2, fillOpacity: 0.6 })
-                .bindTooltip(`${esc(r.name)} · ${r.coverage} %`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
+                .bindTooltip(`${esc(r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
                 .bindPopup(areaPopup(r, level));
             m.addTo(areaLayer);
             markers.set(r.id, m);
@@ -198,7 +205,7 @@ if (el) {
         return `<div class="map-pop"><div class="fw-semibold">${esc(s.name)}</div>
             <div class="text-xs text-muted">UDISE ${esc(s.udise)} · ${esc(s.area)}</div>
             ${s.address ? `<div class="text-xs">${esc(s.address)}</div>` : ''}
-            <span class="badge mt-1 st-badge st-${s.status}">${status}</span>
+            <span class="badge mt-1 st-badge st-${s.status}">${status}</span> ${s.rating ? ratingPill(s.rating) : '<span class="text-xs text-muted">Not rated yet</span>'}
             ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}${last}${open}</div>`;
     }
 
@@ -210,7 +217,7 @@ if (el) {
         const pts = [];
         rows.forEach((s) => {
             if (s.lat === null || s.lng === null) return;
-            const m = L.marker([s.lat, s.lng], { icon: schoolIcon(s.status), title: s.name }).bindPopup(schoolPopup(s));
+            const m = L.marker([s.lat, s.lng], { icon: colourBy === 'rating' ? ratingIcon(s.rating) : schoolIcon(s.status), title: s.name }).bindPopup(schoolPopup(s));
             schoolLayer.addLayer(m);
             markers.set(s.id, m);
             pts.push([s.lat, s.lng]);
@@ -226,22 +233,24 @@ if (el) {
         const head = $('mapTableHead');
         const body = $('mapTableBody');
         if (level === 'school') {
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th><th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th><th>Rating</th><th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
             body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
                 <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
                 <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
+                <td>${s.rating ? ratingPill(s.rating) : '—'}</td>
                 <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
-                : '<tr><td colspan="5" class="text-muted p-3">No schools match the filters.</td></tr>';
+                : '<tr><td colspan="6" class="text-muted p-3">No schools match the filters.</td></tr>';
         } else {
-            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>
+            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th><th class="text-end">Avg rating</th>
                 <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
             body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
                 <td><a href="#" data-drill="${r.id}">${esc(r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
                 <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
                 <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
+                <td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
-                : '<tr><td colspan="10" class="text-muted p-3">No areas with schools here.</td></tr>';
+                : '<tr><td colspan="11" class="text-muted p-3">No areas with schools here.</td></tr>';
         }
     }
 
@@ -313,6 +322,13 @@ if (el) {
         window.bootstrap?.Offcanvas.getInstance($('mapFilters'))?.hide();
         load('school', +b.dataset.cluster, +b.dataset.school);
     });
+
+    /* ---- V6 Module 9: colour school pins by status or by rating band ---- */
+    document.querySelectorAll('input[name="colourBy"]').forEach((r) => r.addEventListener('change', (e) => {
+        colourBy = e.target.value;
+        document.querySelectorAll('[data-legend]').forEach((l) => l.classList.toggle('d-none', l.dataset.legend !== colourBy));
+        if (current.level === 'school') renderSchools(lastRows);
+    }));
 
     /* ---- drill-down from popups and table rows ---- */
     const drill = (id) => (current.level === 'school' ? null : load(nextLevel[current.level], id));

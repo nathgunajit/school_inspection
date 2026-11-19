@@ -40,6 +40,7 @@
                     </span>
                     <span class="school-tags">
                         @if ($s->category)<span class="school-tag">{{ $s->category->label }}</span>@endif
+                        @if ($r = $s->latestRating())<x-rating-badge :rating="$r" class="school-rating" title="Rating of the inspection on {{ $s->latestRatedInspection->inspection_date->format('d M Y') }}" />@endif
                         @if ($s->mine_today)<span class="school-tag warn"><i class="bi bi-pencil-square"></i> Your inspection today</span>@endif
                         @if ($s->other_draft)<span class="school-tag lock"><i class="bi bi-hourglass-split"></i> Draft by another officer</span>
                         @elseif ($s->other_this_month)<span class="school-tag lock-done"><i class="bi bi-patch-check"></i> Inspected this month</span>@endif

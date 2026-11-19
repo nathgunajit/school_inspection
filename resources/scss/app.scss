@@ -1566,6 +1566,15 @@ $cov-mid: #e0a800;
     .si-dir-distance { color: #334155; min-height: 1.2rem; i { color: $primary; } }
     .btn { min-height: 36px; white-space: nowrap; } }
 .map-pop .si-dir .btn { min-height: 32px; }
+
+/* V6 Module 9: the school's rating on the school page, in the school list and on the map */
+.school-rating-box { line-height: 1.2;
+    .school-rating-score { font-size: 1.6rem; font-weight: 800; color: #fff; margin: .1rem 0 .25rem; }
+    .school-rating-band { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .6rem; border-radius: 999px; background: #fff;
+        color: #0f172a; font-weight: 600; font-size: .75rem; white-space: nowrap; .rating-swatch { width: .6rem; height: .6rem; } } }
+.school-tags .school-rating { font-size: .7rem; }
+.si-pin.rt-none { background: #94a3b8; }
+.dot.rt-none { background: #94a3b8; }
 .plan-list { min-height: 3rem; max-height: 46vh; overflow: auto; }
 .plan-item { display: flex; align-items: center; gap: .6rem; cursor: grab; touch-action: pan-y;
     .drag-handle { color: #94a3b8; font-size: 1.1rem; } }
@@ -1606,6 +1615,7 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 @each $name, $c in $rating-colors {
     .rating-badge.rating-#{$name}, .rating-pill.rating-#{$name} { background: rgba($c, .14); color: darken($c, 12%); border: 1px solid rgba($c, .35); }
     .rating-bar .rating-#{$name}, .rating-swatch.rating-#{$name} { background: $c; }
+    .si-pin.rt-#{$name}, .map-legend .dot.rt-#{$name} { background: $c; } // V6 Module 9: map markers coloured by rating band
     .rating-dial.rating-#{$name} { --c: #{$c}; }
 }
 .rating-badge { display: inline-block; padding: .3rem .8rem; border-radius: 999px; font-weight: 700; font-size: .9rem; }

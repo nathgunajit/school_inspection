@@ -25,7 +25,7 @@ class SchoolController extends Controller
 
         $schools = $searched
             ? $this->j->schools($user)
-                ->with(['block', 'cluster', 'category'])
+                ->with(['block', 'cluster', 'category', 'latestRatedInspection.rating']) // V6 Module 9: current rating
                 // badges in the result list: my inspection today, last submitted inspection
                 ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
                     ->where('inspection_date', today()->toDateString())->where('status', '!=', InspectionStatus::Cancelled)])
@@ -79,7 +79,7 @@ class SchoolController extends Controller
     {
         $user = $request->user();
         abort_unless($this->j->coversSchool($user, $school), 404);
-        $school->load(['state', 'district', 'block', 'cluster', 'management', 'category']);
+        $school->load(['state', 'district', 'block', 'cluster', 'management', 'category', 'latestRatedInspection.rating']);
 
         $today = $school->inspections()->where('officer_id', $user->id)->where('inspection_date', today()->toDateString())->first();
         // own draft (any date), own submission today, or blocked by another officer (Modification V3)

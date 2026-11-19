@@ -355,6 +355,14 @@ flowchart LR
 - **Deploy:** run `php artisan ratings:recalculate` once to rate inspections submitted before this module.
 ---
 
+**The rating shown for the school (V6 Module 9).** A school's current rating is the rating of its latest **submitted** inspection (`School::latestRatedInspection`). An inspection unlocked for correction does not count until it is resubmitted.
+- **School page:** the header shows the score, the band and the date, with the change since the rating before it.
+- **Find School:** the result list shows the score and band on each school.
+- **Map View:**
+  - the school popup and table show the school's rating
+  - the switch *Colour schools by Status / Rating* colours the pins by band, with the score in the pin and a band legend
+  - district, block and cluster rows, popups and tooltips show the average rating of the inspections submitted in the period, banded with the active scheme
+
 ## 5. Database schema
 MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 32 tables, all created by `database/migrations`. The location masters run first (`0001_01_00_*`).
 

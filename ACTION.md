@@ -1151,3 +1151,36 @@ Plan approved by the user. Decisions:
   - `CLAUDE.md`
   - `NEW_MODULES_PLAN.md`
   - `ACTION.md`
+
+## 75. V6 Module 9: rating shown for the school (2026-11-19)
+- **Request:** V6 item "Rating Display the School".
+- **Done:**
+  - **`School::latestRatedInspection()`:** `hasOne()->ofMany(inspection_date, id)` over submitted inspections with a non-null score. Unlocked inspections drop out until they are resubmitted. `latestRating()` returns the `InspectionRating`.
+  - **School page:** the gradient header shows the score (large), a band chip with its colour, and the inspection date, plus the change in points since the previous rated inspection.
+  - **Find School results:** a score and band pill on every school (eager-loaded with `latestRatedInspection.rating`).
+  - **Map View:**
+    - School rows carry `rating` (the latest submitted inspection), shown in the popup and in a new table column.
+    - **Colour schools by Status / Rating** switch: in rating mode the pins take the band colour and show the score inside; the legend lists the active scheme's bands plus "Not rated yet".
+    - Area rows carry `rating`: the average score of the inspections submitted in the period (officer filter respected), banded with the active scheme (`MapDataService::areaRatings()`). It appears in the area table, popups and tooltips.
+  - **SCSS:** rating pin and legend colours (generated from the rating colour map), header band chip, list pill.
+- **Verification:**
+  - New `SchoolRatingDisplayTest` (3 tests):
+    - the newest submitted rating wins; an unlocked inspection falls back to the earlier one
+    - the school page, list and map JSON (school row and area average: 1 rating this month, 2 over two months) and the map page switch
+    - a school without a rating shows none
+  - Full suite: 109 passed.
+  - The local database had no rating yet: its one submission predates Module 3. I ran the documented `php artisan ratings:recalculate`, which rated it 66.68 % "Good" with scheme v2 (derived data only).
+  - **Headless Chrome on Apache,** as demo officer 9000000031: the school header shows "66.7% · Good · 18 Nov 2026"; Find School shows the pill; the map in rating mode shows a yellow "67" pin with the band legend. No page errors.
+  - **Fix found in the screenshot:** the rating pill was unreadable on the blue header and repeated the score. It was replaced by a white band chip with a colour dot.
+- Files:
+  - `app/Models/School.php`
+  - `app/Services/MapDataService.php`
+  - `app/Http/Controllers/SchoolController.php`, `MapController.php`
+  - `resources/views/schools/show.blade.php`, `schools/_results.blade.php`, `map/index.blade.php`
+  - `resources/js/map.js`
+  - `resources/scss/app.scss`
+  - `tests/Feature/SchoolRatingDisplayTest.php`
+  - `PROJECT_DOCUMENT.md` (4.10)
+  - `CLAUDE.md`
+  - `NEW_MODULES_PLAN.md`
+  - `ACTION.md`

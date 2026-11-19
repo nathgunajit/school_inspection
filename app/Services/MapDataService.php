@@ -8,8 +8,9 @@ use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
 use App\Models\Inspection;
+use App\Models\InspectionRating;
 use App\Models\User;
-use App\Services\DistrictBoundaryService;
+use App\Rating\RatingCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -147,8 +148,9 @@ class MapDataService
             $boundaries = app(DistrictBoundaryService::class);
 
             $officers = $this->officerCounts($user, $level, $areas->pluck('id')->all());
+            $ratings = $this->areaRatings($col, $areas->pluck('id')->all(), $filters);
 
-            return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries) {
+            return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries, $ratings) {
                 $r = $rows->get($a->id);
                 $total = (int) ($r->schools ?? 0);
                 $inspected = (int) ($r->inspected ?? 0);
@@ -169,9 +171,40 @@ class MapDataService
                     'officers' => $officers[$a->id] ?? ['total' => 0, 'district' => 0, 'block' => 0, 'cluster' => 0],
                     // V6 Module 7: the KML outline this District Master row is drawn with
                     'boundary' => $level === 'district' ? $boundaries->nameFor($a) : null,
+                    // V6 Module 9: average rating of the inspections submitted in the period
+                    'rating' => $ratings[$a->id] ?? null,
                 ];
             })->values()->all();
         });
+    }
+
+    /**
+     * V6 Module 9: average rating per area of the inspections submitted in the period (and by the
+     * filtered officer), with the band of the active rating scheme. Areas without a rated inspection are left out.
+     *
+     * @return array<int, array{avg: float, count: int, band: ?string, color: ?string}>
+     */
+    private function areaRatings(string $col, array $areaIds, array $filters): array
+    {
+        if (! $areaIds) {
+            return [];
+        }
+        $bands = app(RatingService::class)->activeScheme()->bands;
+
+        return InspectionRating::query()
+            ->join('inspections', 'inspections.id', '=', 'inspection_ratings.inspection_id')
+            ->join('schools', 'schools.id', '=', 'inspections.school_id')
+            ->where('inspections.status', InspectionStatus::Submitted)
+            ->whereBetween('inspections.inspection_date', [$filters['from'], $filters['to']])
+            ->when($filters['officer_id'] ?? null, fn ($q, $v) => $q->where('inspections.officer_id', $v))
+            ->whereNotNull('inspection_ratings.score_percent')
+            ->whereIn("schools.$col", $areaIds)
+            ->groupBy("schools.$col")
+            ->selectRaw("schools.$col as area_id, avg(inspection_ratings.score_percent) as avg_score, count(*) as n")
+            ->get()
+            ->mapWithKeys(fn ($r) => [(int) $r->area_id => ['avg' => round((float) $r->avg_score, 1), 'count' => (int) $r->n]
+                + RatingCalculator::band(round((float) $r->avg_score, 1), $bands)])
+            ->all();
     }
 
     /** Schools of one cluster (or matching a search) with their status and last inspection. */
@@ -191,7 +224,7 @@ class MapDataService
             $schools = $q->get();
 
             // last submitted inspection of each school (any date), with its officer
-            $last = Inspection::query()->with('officer:id,name')
+            $last = Inspection::query()->with(['officer:id,name', 'rating:id,inspection_id,score_percent,band,color'])
                 ->whereIn('id', Inspection::query()->selectRaw('max(id)')->whereIn('school_id', $schools->pluck('id'))
                     ->where('status', InspectionStatus::Submitted)->groupBy('school_id'))
                 ->get(['id', 'school_id', 'inspection_no', 'inspection_date', 'officer_id'])->keyBy('school_id');
@@ -209,6 +242,10 @@ class MapDataService
                 'cluster_id' => $s->cluster_id,
                 'last' => ($l = $last->get($s->id)) ? [
                     'id' => $l->id, 'key' => $l->getRouteKey(), 'no' => $l->inspection_no, 'date' => $l->inspection_date?->format('d-m-Y'), 'officer' => $l->officer?->name,
+                ] : null,
+                // V6 Module 9: the rating of the latest submitted inspection
+                'rating' => ($l = $last->get($s->id)) && $l->rating?->score_percent !== null ? [
+                    'score' => (float) $l->rating->score_percent, 'band' => $l->rating->band, 'color' => $l->rating->color,
                 ] : null,
             ])->values()->all();
         });

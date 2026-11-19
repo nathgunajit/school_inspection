@@ -26,6 +26,23 @@ class School extends Model
     public function category() { return $this->belongsTo(MasterValue::class, 'category_id'); }
     public function inspections() { return $this->hasMany(Inspection::class); }
 
+    /**
+     * V6 Module 9: the latest submitted inspection that has a rating (eager-load with `latestRatedInspection.rating`).
+     * Unlocked inspections are left out while they are being corrected; they count again once resubmitted.
+     */
+    public function latestRatedInspection()
+    {
+        return $this->hasOne(Inspection::class)->ofMany(['inspection_date' => 'max', 'id' => 'max'], fn ($q) => $q
+            ->where('status', \App\Enums\InspectionStatus::Submitted)
+            ->whereHas('rating', fn ($r) => $r->whereNotNull('score_percent')));
+    }
+
+    /** The school's current rating (InspectionRating of latestRatedInspection), or null. */
+    public function latestRating(): ?InspectionRating
+    {
+        return $this->latestRatedInspection?->rating;
+    }
+
     public function hasCoordinates(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;

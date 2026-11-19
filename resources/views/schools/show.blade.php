@@ -5,10 +5,29 @@
                 <div class="bg-grad text-white p-4">
                     <div class="d-flex align-items-start gap-3">
                         <span class="d-grid rounded-4 bg-white bg-opacity-25" style="width:52px;height:52px;place-items:center"><i class="bi bi-building fs-4"></i></span>
-                        <div class="min-w-0">
+                        <div class="min-w-0 flex-grow-1">
                             <h2 class="h4 text-white mb-1">{{ $school->name }}</h2>
                             <div class="font-monospace text-white-50">UDISE {{ $school->udise_code }}</div>
                         </div>
+                        {{-- V6 Module 9: the school's current rating, with the change since the rating before it --}}
+                        @if ($current = $school->latestRating())
+                            @php
+                                $previous = $history->first(fn ($h) => $h->id !== $school->latestRatedInspection->id && $h->rating?->score_percent !== null
+                                    && $h->inspection_date->lte($school->latestRatedInspection->inspection_date));
+                                $change = $previous ? round($current->score_percent - $previous->rating->score_percent, 1) : null;
+                            @endphp
+                            <div class="school-rating-box text-end flex-shrink-0">
+                                <div class="text-white-50 text-xs">Rating</div>
+                                <div class="school-rating-score">{{ rtrim(rtrim(number_format($current->score_percent, 1), '0'), '.') }}%</div>
+                                <span class="school-rating-band"><span class="rating-swatch rating-{{ $current->color }}"></span>{{ $current->band }}</span>
+                                <div class="text-white-50 text-xs mt-1">
+                                    {{ $school->latestRatedInspection->inspection_date->format('d M Y') }}
+                                    @if ($change !== null)
+                                        · <span class="text-white" title="Change since the rating of {{ $previous->inspection_date->format('d M Y') }}"><i class="bi {{ $change >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }}"></i>{{ rtrim(rtrim(number_format(abs($change), 1), '0'), '.') }} pts</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
