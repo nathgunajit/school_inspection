@@ -1404,3 +1404,30 @@ Plan approved by the user. Decisions:
   - `resources/js/register.js`
   - `resources/scss/app.scss`
   - `tests/Feature/RegistrationV7Test.php`
+
+## 83. V7-5: Rating card on the inspection report redesigned (2026-11-19)
+- **Request:** make the school performance rating on the inspection view more attractive, elegant and clean.
+- **New `resources/views/inspections/partials/rating.blade.php`** (same data as before; the PDF is unchanged):
+  - **Hero:**
+    - a panel tinted in the band colour
+    - a larger score dial
+    - an "Overall rating" kicker with the band pill and weighted points
+    - the **change since the previous rating** (↑ green / ↓ red, in points, with the previous date), or "First rated inspection of this school"
+  - **Band scale:** the scheme bands as a segmented bar, with the current band solid, a ▼ marker at the score, the band thresholds, and a named legend (colour is never the only cue).
+  - **Summary:** shown in a soft quote box.
+  - **Section tiles:** title, % (tabular figures), a thin bar in the band colour, and the band name; N/A tiles are muted.
+  - **Strengths, weaknesses, improvement areas:** tinted cards with an icon header, a count, and icon rows. "Show all n" opens items past 5.
+  - **Print:** the full lists are shown and the toggles are hidden.
+- **New `Inspection::previousRating()`:** the rated, submitted inspection of the same school just before this one (earlier date, or the same date with a lower id). It excludes drafts, cancelled and soft-deleted inspections. `ReportController::reportData` passes `previousRating`, and the scheme is loaded with its `bands`.
+- **SCSS:** `.rating-card .rt-*`; `.rt-hero.rating-<band>` sets the colour.
+- **Fixes during the check:**
+  - Bootstrap `.collapse` was overridden by `display:flex` on the list rows; `li.collapse:not(.show)` is now hidden.
+  - The change line now wraps cleanly.
+- **Tests:** new `RatingCardTest`. The previous-rating link, the hero, scale and section markup, and the "+n pts since last inspection" text with the date are checked. The first inspection shows "First rated inspection". A cancelled earlier inspection does not count. Full suite: 124 passed.
+- **Browser:** inspection #5 was rendered in-process as the State Admin (desktop 1400 px and phone 390 px). A second render used an in-memory previous rating (view composer; nothing saved) to check the change badge.
+- Files:
+  - `resources/views/inspections/partials/rating.blade.php`
+  - `app/Models/Inspection.php`
+  - `app/Http/Controllers/ReportController.php`
+  - `resources/scss/app.scss`
+  - `tests/Feature/RatingCardTest.php`

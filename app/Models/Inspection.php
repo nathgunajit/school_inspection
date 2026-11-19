@@ -60,6 +60,29 @@ class Inspection extends Model
     public function documents() { return $this->evidence()->where('kind', 'document'); }
     public function remarks() { return $this->hasMany(InspectionRemark::class)->orderBy('sort'); }
     public function rating() { return $this->hasOne(InspectionRating::class); } // New Module 3
+
+    /**
+     * Modification V7: the school's rating from the submitted, rated inspection just before this one
+     * (earlier date, or the same date with a lower id), for the "change since last inspection" on the report.
+     */
+    public function previousRating(): ?InspectionRating
+    {
+        $date = $this->getRawOriginal('inspection_date') ?? $this->inspection_date?->toDateString();
+
+        return InspectionRating::query()
+            ->select('inspection_ratings.*')
+            ->join('inspections', 'inspections.id', '=', 'inspection_ratings.inspection_id')
+            ->where('inspections.school_id', $this->school_id)
+            ->where('inspections.id', '!=', $this->id)
+            ->where('inspections.status', \App\Enums\InspectionStatus::Submitted->value)
+            ->whereNull('inspections.deleted_at')
+            ->whereNotNull('inspection_ratings.score_percent')
+            ->where(fn ($q) => $q->where('inspections.inspection_date', '<', $date)
+                ->orWhere(fn ($w) => $w->where('inspections.inspection_date', $date)->where('inspections.id', '<', $this->id)))
+            ->orderByDesc('inspections.inspection_date')->orderByDesc('inspections.id')
+            ->with('inspection:id,inspection_no,inspection_date')
+            ->first();
+    }
     public function unlocker() { return $this->belongsTo(User::class, 'unlocked_by'); }
 
     public function isEditable(): bool

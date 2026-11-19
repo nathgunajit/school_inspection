@@ -177,7 +177,8 @@ class ReportController extends Controller
             'startDistance' => $inspection->distanceFromSchool($inspection->start_lat, $inspection->start_lng),
             'submitDistance' => $inspection->distanceFromSchool($inspection->submit_lat, $inspection->submit_lng),
             'photoCategories' => \App\Models\MasterValue::ofType('photo_category')->get(),
-            'rating' => $inspection->rating()->with('scheme:id,version')->first(), // New Module 3
+            'rating' => $rating = $inspection->rating()->with('scheme:id,version,bands')->first(), // New Module 3
+            'previousRating' => $rating?->isRated() ? $inspection->previousRating() : null, // Modification V7
         ];
     }
 
