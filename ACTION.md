@@ -2107,3 +2107,21 @@ Plan approved by the user. Decisions:
   - `php artisan migrate` (local)
   - the service ran against local MySQL with monthly, quarterly and weekly periods
   - Not checked visually in a browser.
+
+## 2026-11-20 — Inspection PDF: alignment issues found and fixed
+- Found by rendering every page with DomPDF's GD backend (same layout engine as the PDF) and reading the page images.
+- Fixes in `resources/views/inspections/pdf.blade.php`:
+  - **Section badge numbers** sat at the bottom of the blue square. The number is now drawn in the table cell itself, centred.
+  - **Row numbers and Basic Information labels** sat higher than the text beside them (smaller font, top aligned). They now use the same font size, so the baselines line up. The label column is wider (21 %).
+  - **Step 2 numbers** were pushed to the far right. They now sit in the same answer column as every other step.
+  - **Fund tables:** the Received / Expenditure / Balance headers were left-aligned over right-aligned amounts (a CSS specificity bug). They are now right-aligned. Each year's table, including its **Total row**, stays together on one page.
+  - **Classroom table:** the narrow "Use of TLM" column made the TLM item list a tall strip. The items now sit on a full-width "TLM used:" line under the record, and the columns have balanced fixed widths.
+  - **Every data table** has fixed column widths and a `thead`, so the header repeats when a table continues on the next page.
+  - **Section headings** were left alone at the bottom of a page (e.g. "School Governance", "Photographs of School"). Each heading is now kept with its first rows, its first fund year, a short absent / classroom table, or the first row of photos. A pair of photos never splits across pages.
+  - **Tone dot:** an empty inline-block became a coloured ● character on the text baseline.
+  - **Header:** the extra short green rule is removed, and the reference chips sit on their own row (no negative margin).
+  - **Signature:** the date and the officer name are bottom-aligned on the same line.
+- Verified:
+  - `php artisan test`: 187 passed
+  - the real PDF renders
+  - page images were checked for a 5-page inspection with absentee, classroom, TLM, fund and 4 photos

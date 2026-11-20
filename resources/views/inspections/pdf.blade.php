@@ -31,8 +31,7 @@
     .hd-title { font-size: 14pt; font-weight: bold; color: #0d47a1; letter-spacing: 1.6pt; margin-top: 1.2mm; }
     .hd-sub { font-size: 7.5pt; color: #64748b; margin-top: .3mm; letter-spacing: .4pt; }
     .hd-rule-b { height: 0; margin-top: 1.6mm; border-top: 1.4px solid #1565c0; }
-    .hd-rule-g { height: 0; margin-top: .5mm; border-top: .6px solid #1e9b4b; width: 40%; }
-    .hd-ref { margin-top: -3.2mm; text-align: right; }
+    .hd-ref { margin-top: 1.2mm; text-align: right; }
     .ref { display: inline-block; font-size: 7pt; color: #334155; background: #f1f5f9; border: .5px solid #d8dee8; border-radius: 1.4mm; padding: .3mm 1.8mm; margin-left: 1mm; }
     .ref b { color: #0d47a1; }
 
@@ -61,34 +60,42 @@
     /* Section heading: numbered badge + title + hairline */
     .h { margin: 6.5mm 0 2.2mm; page-break-after: avoid; }
     .h td { vertical-align: middle; }
-    .h .n { width: 7mm; }
-    .h .n span { display: inline-block; width: 6mm; height: 6mm; line-height: 6mm; text-align: center; border-radius: 1.4mm; background: #1565c0; color: #fff; font-size: 8.5pt; font-weight: bold; }
-    .h .t { font-size: 11pt; font-weight: bold; color: #0d47a1; padding-left: 1.5mm; }
+    .h td { padding: 0; }
+    .h .n { width: 6.5mm; height: 6.5mm; background: #1565c0; color: #fff; text-align: center; vertical-align: middle; font-size: 8.5pt; font-weight: bold; }
+    .h .t { font-size: 11pt; font-weight: bold; color: #0d47a1; padding-left: 2.5mm; }
     .h .c { text-align: right; font-size: 7.5pt; color: #64748b; }
     .h-rule { border-top: .6px solid #dbe3ef; margin: -1mm 0 2mm; }
 
     /* Key / value and question tables: zebra rows, no vertical borders */
     .kv td { padding: 1.8mm 2.4mm; border-bottom: .6px solid #e5e9f0; vertical-align: top; }
     .kv tr:nth-child(even) td { background: #f8fafc; }
-    .kv td.k { width: 18%; color: #64748b; font-size: 8pt; }
-    .kv td.v { width: 32%; font-weight: bold; color: #0f172a; }
+    .kv td.k { width: 21%; color: #64748b; }
+    .kv td.v { width: 29%; font-weight: bold; color: #0f172a; }
     .qa td { padding: 1.8mm 2.4mm; border-bottom: .6px solid #e5e9f0; vertical-align: top; }
-    .qa tr:nth-child(even) td { background: #f8fafc; }
-    .qa td.no { width: 6%; color: #94a3b8; font-size: 8pt; }
+    .qa tr.z td { background: #f8fafc; }
+    .qa td.no { width: 6%; color: #94a3b8; }
     .qa td.v { width: 34%; font-weight: bold; color: #0f172a; }
     .rem { color: #64748b; font-size: 7.8pt; font-style: italic; margin-top: .6mm; }
-    .d { display: inline-block; width: 2mm; height: 2mm; border-radius: 1mm; margin-right: 1.2mm; background: #cbd5e1; }
-    .d.g { background: #1e9b4b; } .d.m { background: #f39223; } .d.b { background: #d93025; }
+    .d { font-size: 8pt; padding-right: 1.2mm; color: #cbd5e1; }
+    .d.g { color: #1e9b4b; } .d.m { color: #f39223; } .d.b { color: #d93025; }
 
     /* Data tables: dark-blue head, zebra rows, Sl. column */
-    .dt { margin-top: 1mm; }
+    .dt { margin-top: 1mm; table-layout: fixed; }
+    .dt td { word-wrap: break-word; }
     .dt th { background: #0d47a1; color: #fff; text-align: left; font-size: 7.4pt; font-weight: bold; padding: 1.8mm 2.2mm; letter-spacing: .3pt; }
     .dt td { padding: 1.8mm 2.2mm; border-bottom: .6px solid #e5e9f0; vertical-align: top; }
     .dt tr:nth-child(even) td { background: #f8fafc; }
     .dt td.sl, .dt th.sl { width: 7%; text-align: center; color: #64748b; }
     .dt th.sl { color: #fff; }
     .dt tr.tot td { background: #eaf2fc; font-weight: bold; color: #0d47a1; border-bottom: 0; }
-    .r { text-align: right; }
+    .r, .dt th.r, .dt td.r { text-align: right; }
+    .keep { page-break-inside: avoid; }
+    /* classroom rows carry a second line (TLM items), so their zebra is set per record */
+    .dt.cls tr td { background: #fff; }
+    .dt.cls tr.z td { background: #f8fafc; }
+    .dt.cls tr.main td { border-bottom: 0; }
+    .dt.cls tr.sub td { padding-top: 0; font-size: 7.6pt; color: #475569; }
+    .dt.cls tr.sub b { color: #15803d; }
     .pill { display: inline-block; padding: .2mm 1.8mm; border-radius: 2mm; font-size: 7.4pt; font-weight: bold; }
     .pill.ok { background: #e3f4e9; color: #166534; } .pill.bad { background: #fde8e7; color: #b42318; } .pill.warn { background: #fef1df; color: #9a4a00; }
     .small { font-size: 7.4pt; color: #475569; margin-top: .6mm; }
@@ -113,6 +120,7 @@
 
     /* Signature */
     .sig { margin-top: 16mm; page-break-inside: avoid; }
+    .sig td { vertical-align: bottom; }
     .sig td.box { width: 42%; border-top: .8px solid #64748b; text-align: center; padding-top: 2mm; font-size: 8.5pt; }
     .sig .role { font-size: 7.2pt; text-transform: uppercase; letter-spacing: .8pt; color: #64748b; margin-bottom: .6mm; }
 </style>
@@ -131,7 +139,6 @@
         <td class="hd-logo ssa">@if (! empty($logos['ssa']))<img src="{{ $logos['ssa'] }}" alt="Samagra Shiksha">@endif</td>
     </tr></table>
     <div class="hd-rule-b"></div>
-    <div class="hd-rule-g"></div>
     <div class="hd-ref">
         <span class="ref">ID <b>{{ $inspection->inspection_no ?? 'DRAFT' }}</b></span><span class="ref">{{ $inspection->status->label() }}</span><span class="ref">UDISE <b class="mono">{{ $s->udise_code }}</b></span>
     </div>
@@ -167,7 +174,7 @@
 </div>
 
 @php $sec++; @endphp
-<table class="h"><tr><td class="n"><span>{{ $sec }}</span></td><td class="t">Basic Information</td></tr></table><div class="h-rule"></div>
+<table class="h"><tr><td class="n">{{ $sec }}</td><td class="t">Basic Information</td></tr></table><div class="h-rule"></div>
 @php
     // Modification V8: the device location at start and submit is no longer printed (still stored, shown on the web report)
     $basic = [
@@ -195,7 +202,13 @@
             5 => $inspection->fundPositions->count().' year(s)', default => '',
         };
     @endphp
-    <table class="h"><tr><td class="n"><span>{{ $sec }}</span></td><td class="t">{{ $st['title'] }}</td><td class="c">{{ $count }}</td></tr></table><div class="h-rule"></div>
+    @php
+        $lead = 3; // question rows kept on the same page as the heading
+        $smallTable = ($n === 3 && $inspection->absentTeachers->count() <= 10) || ($n === 4 && $inspection->classroomObservations->count() <= 6);
+        $open = true; // the keep block below is still open
+    @endphp
+    <div class="keep">
+    <table class="h"><tr><td class="n">{{ $sec }}</td><td class="t">{{ $st['title'] }}</td><td class="c">{{ $count }}</td></tr></table><div class="h-rule"></div>
 
     @if ($n === 2)
         {{-- figures first: four boxes with the automatic totals --}}
@@ -209,7 +222,8 @@
         @if ($qs->isNotEmpty())
             <table class="qa" style="margin-top:2.4mm">
                 @foreach ($qs as $i => $q)
-                    <tr><td class="no">{{ $i + 1 }}</td><td>{{ $q['label'] }}</td><td class="v r">{{ $fa[$q['code']] ?? '—' }}</td></tr>
+                    @if ($i === $lead)</table></div>@php $open = false; @endphp<table class="qa">@endif
+                    <tr class="{{ $i % 2 ? 'z' : '' }}"><td class="no">{{ $i + 1 }}</td><td>{{ $q['label'] }}</td><td class="v">{{ $fa[$q['code']] ?? '—' }}</td></tr>
                 @endforeach
             </table>
         @endif
@@ -217,18 +231,20 @@
         <table class="qa">
             @foreach ($qs as $i => $q)
                 @php $a = $answers[$q['code']] ?? null; $tone = $dot($a); @endphp
-                <tr>
+                @if ($i === $lead)</table></div>@php $open = false; @endphp<table class="qa">@endif
+                <tr class="{{ $i % 2 ? 'z' : '' }}">
                     <td class="no">{{ $i + 1 }}</td>
                     <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif</td>
-                    <td class="v">@if ($tone)<span class="d {{ $tone }}"></span>@endif{{ QD::optionLabel($q['code'], $a) }}</td>
+                    <td class="v">@if ($tone)<span class="d {{ $tone }}">●</span>@endif{{ QD::optionLabel($q['code'], $a) }}</td>
                 </tr>
             @endforeach
         </table>
     @endif
 
+    @if ($open && in_array($n, [3, 4], true) && ! $smallTable)</div>@php $open = false; @endphp @endif
     @if ($n === 3)
         @if ($inspection->absentTeachers->isNotEmpty())
-            <table class="dt"><tr><th class="sl">Sl.</th><th>Name of the teacher</th><th>Type</th><th>Reason for absence</th><th>Remarks</th></tr>
+            <table class="dt"><thead><tr><th class="sl">Sl.</th><th style="width:28%">Name of the teacher</th><th style="width:20%">Type</th><th style="width:25%">Reason for absence</th><th style="width:20%">Remarks</th></tr></thead>
                 @foreach ($inspection->absentTeachers as $i => $t)
                     <tr><td class="sl">{{ $i + 1 }}</td><td><b>{{ $t->teacher_name }}</b></td><td>{{ $t->typeLabel() }}</td>
                         <td><span class="pill {{ $t->reason === 'UL' ? 'bad' : 'warn' }}">{{ $t->reasonLabel() }}</span></td><td>{{ $t->remarks ?: '—' }}</td></tr>
@@ -238,15 +254,18 @@
     @endif
     @if ($n === 4)
         @if ($inspection->classroomObservations->isNotEmpty())
-            <table class="dt"><tr><th class="sl">Sl.</th><th>Class</th><th>Subject &amp; teacher</th><th>Use of TLM</th><th>Participation</th><th>Remarks</th></tr>
+            <table class="dt cls"><thead><tr><th class="sl">Sl.</th><th style="width:13%">Class</th><th style="width:29%">Subject &amp; teacher</th><th style="width:14%">Use of TLM</th><th style="width:18%">Participation</th><th style="width:19%">Remarks</th></tr></thead>
                 @foreach ($inspection->classroomObservations as $i => $c)
-                    <tr><td class="sl">{{ $i + 1 }}</td>
+                    @php $items = $c->tlm_used ? $c->tlmItems : collect(); $z = $i % 2 ? 'z' : ''; @endphp
+                    <tr class="{{ $z }} {{ $items->isNotEmpty() ? 'main' : '' }}"><td class="sl">{{ $i + 1 }}</td>
                         <td><b>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }}</b></td>
                         <td><b>{{ $c->subject }}</b><div class="small">{{ $c->teacher_name }}</div></td>
-                        <td><span class="pill {{ $c->tlm_used ? 'ok' : 'bad' }}">{{ $c->tlm_used ? 'Yes' : 'No' }}</span>
-                            @if ($c->tlm_used && $c->tlmItems->isNotEmpty())<div class="small">{{ $c->tlmItems->map->fullLabel()->implode(', ') }}</div>@endif</td>
+                        <td><span class="pill {{ $c->tlm_used ? 'ok' : 'bad' }}">{{ $c->tlm_used ? 'Yes' : 'No' }}</span></td>
                         <td><span class="pill {{ $c->participation === 'satisfactory' ? 'ok' : 'bad' }}">{{ $c->participationLabel() }}</span></td>
                         <td>{{ $c->remarks ?: '—' }}</td></tr>
+                    @if ($items->isNotEmpty())
+                        <tr class="sub {{ $z }}"><td></td><td colspan="5"><b>TLM used:</b> {{ $items->map->fullLabel()->implode(' · ') }}</td></tr>
+                    @endif
                 @endforeach
             </table>
         @else <div class="note">No classroom records.</div> @endif
@@ -258,9 +277,9 @@
             $rec = fn ($f) => $f->isLegacy() ? (float) $f->amount_received : $f->totalReceived();
             $exp = fn ($f) => $f->isLegacy() ? (float) $f->amount_utilised : $f->totalExpenditure();
         @endphp
-        @forelse ($fundRows as $f)
-            <div class="fy">{{ str_replace('FY-', 'FY ', $f->financial_year) }} <span>· amounts in Rs lakh</span></div>
-            <table class="dt"><tr><th>Fund head</th><th class="r">Received</th><th class="r">Expenditure</th><th class="r">Balance</th></tr>
+        @forelse ($fundRows as $fi => $f)
+            <div class="{{ $fi ? 'keep' : '' }}"><div class="fy">{{ str_replace('FY-', 'FY ', $f->financial_year) }} <span>· amounts in Rs lakh</span></div>
+            <table class="dt"><thead><tr><th style="width:43%">Fund head</th><th class="r" style="width:19%">Received</th><th class="r" style="width:19%">Expenditure</th><th class="r" style="width:19%">Balance</th></tr></thead>
                 @if ($f->isLegacy())
                     <tr><td>{{ $f->category?->label ?? 'Fund' }}</td><td class="r">{{ $FP::lakh((float) $f->amount_received) }}</td><td class="r">{{ $FP::lakh((float) $f->amount_utilised) }}</td><td class="r"><b>{{ $FP::lakh($f->balance()) }}</b></td></tr>
                 @else
@@ -269,54 +288,57 @@
                     @endforeach
                     <tr class="tot"><td>Total</td><td class="r">{{ $FP::lakh($rec($f)) }}</td><td class="r">{{ $FP::lakh($exp($f)) }}</td><td class="r">{{ $FP::lakh($f->balance()) }}</td></tr>
                 @endif
-            </table>
+            </table></div>
         @empty
             <div class="note">No fund details entered.</div>
         @endforelse
+        @if ($open)</div>@php $open = false; @endphp @endif
         @if ($fundRows->count() > 1)
             @php $gr = $fundRows->sum($rec); $ge = $fundRows->sum($exp); @endphp
-            <div class="fy">Year-wise summary <span>· Rs lakh</span></div>
-            <table class="dt"><tr><th>Financial year</th><th class="r">Received</th><th class="r">Expenditure</th><th class="r">Balance</th></tr>
+            <div class="keep"><div class="fy">Year-wise summary <span>· Rs lakh</span></div>
+            <table class="dt"><thead><tr><th style="width:43%">Financial year</th><th class="r" style="width:19%">Received</th><th class="r" style="width:19%">Expenditure</th><th class="r" style="width:19%">Balance</th></tr></thead>
                 @foreach ($fundRows as $f)
                     <tr><td>{{ str_replace('FY-', 'FY ', $f->financial_year) }}</td><td class="r">{{ $FP::lakh($rec($f)) }}</td><td class="r">{{ $FP::lakh($exp($f)) }}</td><td class="r">{{ $FP::lakh($f->balance()) }}</td></tr>
                 @endforeach
                 <tr class="tot"><td>All years</td><td class="r">{{ $FP::lakh($gr) }}</td><td class="r">{{ $FP::lakh($ge) }}</td><td class="r">{{ $FP::lakh($gr - $ge) }}</td></tr>
-            </table>
+            </table></div>
         @endif
     @endif
     @if ($n === 6)
         @php $sug = $inspection->remarks->where('type', 'suggestion')->values(); @endphp
         <div class="fy">Suggestions</div>
         @if ($sug->isNotEmpty())
-            <table class="dt"><tr><th class="sl">Sl.</th><th>Suggestion</th></tr>
+            <table class="dt"><thead><tr><th class="sl">Sl.</th><th style="width:93%">Suggestion</th></tr></thead>
                 @foreach ($sug as $i => $sg)<tr><td class="sl">{{ $i + 1 }}</td><td>{{ $sg->body }}</td></tr>@endforeach
             </table>
         @else
             <div class="note">No suggestions recorded.</div>
         @endif
     @endif
+    @if ($open)</div>@endif
 @endforeach
 
 @if ($photos->isNotEmpty())
     @php $sec++; @endphp
-    <table class="h"><tr><td class="n"><span>{{ $sec }}</span></td><td class="t">Photographs of School</td><td class="c">{{ $photos->count() }} photo(s)</td></tr></table><div class="h-rule"></div>
-    <table class="photos">
-        @foreach ($photos->chunk(2) as $pair)
-            <tr>
-                @foreach ($pair as $p)
-                    <td><div class="frame">
-                        @if (! empty($images[$p->id]))<img src="{{ $images[$p->id] }}" alt="">@endif
-                        <div class="cap"><b>{{ $p->category?->label }}</b>@if ($p->source === 'gallery') · <em>From gallery</em>@endif @if ($p->question_code) · {{ $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
-                            {{ $p->taken_at?->format('d M Y, h:i:s A') }} ·
-                            @if ($p->hasLocation()) {{ number_format($p->latitude, 6) }}, {{ number_format($p->longitude, 6) }}{{ $fmtDist($inspection->distanceFromSchool($p->latitude, $p->longitude)) }}
-                            @else <b>No location</b>{{ $p->no_location_reason ? ': '.$p->no_location_reason : '' }} @endif<br>
-                            <span class="muted">SHA-256 {{ substr($p->sha256, 0, 16) }}…</span></div>
-                    </div></td>
-                @endforeach
-                @if ($pair->count() === 1)<td></td>@endif
-            </tr>
-        @endforeach
-    </table>
+    <div class="keep">
+    <table class="h"><tr><td class="n">{{ $sec }}</td><td class="t">Photographs of School</td><td class="c">{{ $photos->count() }} photo(s)</td></tr></table><div class="h-rule"></div>
+    @foreach ($photos->chunk(2)->values() as $ri => $pair)
+        @if ($ri === 1)</div>@endif
+        <table class="photos keep"><tr>
+            @foreach ($pair as $p)
+                <td><div class="frame">
+                    @if (! empty($images[$p->id]))<img src="{{ $images[$p->id] }}" alt="">@endif
+                    <div class="cap"><b>{{ $p->category?->label }}</b>@if ($p->source === 'gallery') · <em>From gallery</em>@endif @if ($p->question_code) · {{ $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
+                        {{ $p->taken_at?->format('d M Y, h:i:s A') }} ·
+                        @if ($p->hasLocation()) {{ number_format($p->latitude, 6) }}, {{ number_format($p->longitude, 6) }}{{ $fmtDist($inspection->distanceFromSchool($p->latitude, $p->longitude)) }}
+                        @else <b>No location</b>{{ $p->no_location_reason ? ': '.$p->no_location_reason : '' }} @endif<br>
+                        <span class="muted">SHA-256 {{ substr($p->sha256, 0, 16) }}…</span></div>
+                </div></td>
+            @endforeach
+            @if ($pair->count() === 1)<td></td>@endif
+        </tr></table>
+    @endforeach
+    @if ($photos->count() <= 2)</div>@endif
 @endif
 
 {{-- Modification V9: the automatic rating is no longer printed --}}
