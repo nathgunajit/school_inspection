@@ -87,15 +87,24 @@
                         <div class="rs-card-head"><i class="bi bi-palette"></i>Rating bands</div>
                         <div class="rs-band-preview" data-band-preview aria-hidden="true"></div>
                         <div class="rs-band-scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+                        <ul class="rs-band-legend" data-band-legend aria-hidden="true"></ul>
                         <p class="rs-help">A score gets the first band whose “from” it reaches. One band must start at 0.</p>
                         @foreach ($bands as $i => $b)
                             <div class="rs-band" data-band>
-                                <span class="rating-swatch rs-band-swatch rating-{{ $b['color'] }}" data-swatch></span>
-                                <div class="rs-band-from"><input type="number" name="bands[{{ $i }}][min]" value="{{ $b['min'] }}" min="0" max="100" step="0.01" class="form-control form-control-sm" aria-label="From %" data-band-min><span>%</span></div>
-                                <input name="bands[{{ $i }}][label]" value="{{ $b['label'] }}" maxlength="40" class="form-control form-control-sm" aria-label="Label" data-band-label>
-                                <select name="bands[{{ $i }}][color]" class="form-select form-select-sm rs-band-color" aria-label="Colour" data-band-color>
-                                    @foreach ($colors as $k => $l)<option value="{{ $k }}" @selected($b['color'] === $k)>{{ $l }}</option>@endforeach
-                                </select>
+                                <div class="rs-band-top">
+                                    <span class="rating-swatch rs-band-swatch rating-{{ $b['color'] }}" data-swatch></span>
+                                    <label class="rs-field flex-grow-1"><span class="rs-cap">Label</span>
+                                        <input name="bands[{{ $i }}][label]" value="{{ $b['label'] }}" maxlength="40" class="form-control form-control-sm" data-band-label></label>
+                                </div>
+                                <div class="rs-band-bottom">
+                                    <label class="rs-field"><span class="rs-cap">From</span>
+                                        <span class="rs-band-from"><input type="number" name="bands[{{ $i }}][min]" value="{{ $b['min'] }}" min="0" max="100" step="0.01" class="form-control form-control-sm" data-band-min><span>%</span></span></label>
+                                    <span class="rs-band-to" data-band-to></span>
+                                    <label class="rs-field rs-band-colour"><span class="rs-cap">Colour</span>
+                                        <select name="bands[{{ $i }}][color]" class="form-select form-select-sm" data-band-color>
+                                            @foreach ($colors as $k => $l)<option value="{{ $k }}" @selected($b['color'] === $k)>{{ $l }}</option>@endforeach
+                                        </select></label>
+                                </div>
                             </div>
                         @endforeach
                         <div class="rs-save">

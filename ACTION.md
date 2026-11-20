@@ -1875,3 +1875,11 @@ Plan approved by the user. Decisions:
 - Checked local data: 24 schools, all linked to the right block and district for their cluster (no mismatches).
 - Files: app/Services/MasterImportService.php, app/Http/Controllers/Admin/ImportController.php, resources/views/admin/imports/index.blade.php, resources/js/imports.js, resources/scss/_imports.scss, CLAUDE.md, tests/Feature/LocationRenameImportTest.php (new)
 - Verified: `npm run build` OK; `php artisan test` 158 passed.
+
+## 2026-11-20: Rating Settings, Rating bands text fixed
+- Band names and colour names were cut off (four fields squeezed on one line in the narrow sidebar) and names inside the coloured bar were clipped.
+- Each band is now a small card: line 1 swatch + full-width Label; line 2 From % + live "to N %" + Colour, with small captions.
+- The bar shows colour only; a legend below lists each band name with its range (e.g. "Excellent 80 – 100 %"), highest first, long names truncated with a tooltip.
+- Field names unchanged, saving unaffected.
+- Files: resources/views/admin/rating/index.blade.php, resources/scss/_rating-settings.scss, resources/js/rating-settings.js, tests/Feature/InspectionRatingTest.php
+- Verified: `npm run build` OK; `php artisan test` 158 passed. Not checked visually in a browser.

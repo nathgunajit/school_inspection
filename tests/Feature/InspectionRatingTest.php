@@ -146,7 +146,7 @@ class InspectionRatingTest extends TestCase
         $this->assertSame(50.0, $v1->score_percent);
 
         $admin = $this->admin();
-        $this->actingAs($admin)->get(route('admin.rating.index'))->assertOk()->assertSee('Rating bands')->assertSee('CND_02')->assertSee('data-rating-settings', false)->assertSee('Weight share')->assertSee('How the score is calculated');
+        $this->actingAs($admin)->get(route('admin.rating.index'))->assertOk()->assertSee('Rating bands')->assertSee('CND_02')->assertSee('data-rating-settings', false)->assertSee('Weight share')->assertSee('How the score is calculated')->assertSee('data-band-legend', false);
         $scheme = $service->activeScheme();
         $cnd02 = $scheme->criteria->firstWhere('code', 'CND_02');
         $bands = DefaultScheme::BANDS;
