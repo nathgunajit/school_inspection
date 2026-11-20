@@ -152,7 +152,7 @@ Every step page has the same frame:
 >   - With TLM = No, the ticks are cleared.
 >   - A class without items (e.g. Class V) needs none.
 > - The items come from the **TLM Master** (`tlm_items`, Admin → TLM Master, `manage_masters`). The admin can:
->   - add an item: class or All classes, name, serial no / code, variety, order, remarks
+>   - add an item: class or All classes, name and code. The page shows only these three; the variety and remarks from the document stay stored.
 >   - edit an item
 >   - make an item inactive
 > - Items are never deleted. An inactive item is no longer offered, but older rows keep it.

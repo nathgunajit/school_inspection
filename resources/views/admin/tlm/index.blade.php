@@ -25,10 +25,7 @@
                             <span class="badge text-bg-light text-nowrap">{{ $item->classLabel() }}</span>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="fw-semibold text-truncate">{{ $item->name }}</div>
-                                <div class="text-xs text-secondary">
-                                    @if ($item->code)<span class="font-monospace">{{ $item->code }}</span> · @endif
-                                    Variety {{ $item->variety }}@if ($item->remarks) · {{ $item->remarks }}@endif
-                                </div>
+                                <div class="text-xs text-secondary font-monospace">{{ $item->code ?: '—' }}</div>
                             </div>
                             <span class="badge-soft badge-soft-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span>
                             <div class="dropdown">
@@ -42,12 +39,7 @@
                                             @foreach ($classes as $k => $l)<option value="{{ $k }}" @selected($item->class === (string) $k)>{{ $l }}</option>@endforeach
                                         </select>
                                         <label class="form-label text-sm">Name</label><input name="name" value="{{ $item->name }}" class="form-control mb-2" maxlength="150" required>
-                                        <label class="form-label text-sm">Serial no / code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" maxlength="60">
-                                        <div class="row g-2 mb-2">
-                                            <div class="col-6"><label class="form-label text-sm">Variety</label><input name="variety" value="{{ $item->variety }}" type="number" min="1" class="form-control"></div>
-                                            <div class="col-6"><label class="form-label text-sm">Order</label><input name="sort" value="{{ $item->sort }}" type="number" min="0" class="form-control"></div>
-                                        </div>
-                                        <label class="form-label text-sm">Remarks</label><input name="remarks" value="{{ $item->remarks }}" class="form-control mb-2" maxlength="200">
+                                        <label class="form-label text-sm">Code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" maxlength="60">
                                         <button class="btn btn-primary btn-sm w-100">Save</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.tlm.update', $item) }}" class="mt-2">
@@ -82,14 +74,8 @@
                         <label class="form-label">Name of item</label>
                         <input name="name" value="{{ old('name') }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Karjyapatra (Literacy)" required>
                         @error('name')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
-                        <label class="form-label">Serial no / code <span class="opt">optional</span></label>
+                        <label class="form-label">Code <span class="opt">optional</span></label>
                         <input name="code" value="{{ old('code') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. NIPUN AXOM G1L4">
-                        <div class="row g-2 mb-3">
-                            <div class="col-6"><label class="form-label">Variety</label><input name="variety" value="{{ old('variety', 1) }}" type="number" min="1" class="form-control"></div>
-                            <div class="col-6"><label class="form-label">Order</label><input name="sort" value="{{ old('sort', 0) }}" type="number" min="0" class="form-control"></div>
-                        </div>
-                        <label class="form-label">Remarks <span class="opt">optional</span></label>
-                        <input name="remarks" value="{{ old('remarks') }}" maxlength="200" class="form-control mb-3" placeholder="e.g. One copy per child">
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>
                 </div>

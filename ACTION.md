@@ -1978,3 +1978,11 @@ Plan approved by the user. Decisions:
   - `npm run build`: OK
   - `php artisan migrate` on local MySQL: 11 items
   - Not checked visually in a browser.
+
+## 2026-11-20 — TLM Master shows only Class, Name and Code
+- The TLM Master list, the add form and the edit form now show only **Class, Name and Code**. Variety, order and remarks are removed from the screen.
+- Those values stay in `tlm_items`. An edit keeps the stored values, and a new item gets variety 1 and order 0.
+- Files:
+  - resources/views/admin/tlm/index.blade.php
+  - app/Http/Controllers/Admin/TlmItemController.php
+  - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
