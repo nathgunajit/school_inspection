@@ -113,7 +113,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 9. **Employee photo** (`users.photo_path`, required at registration, JPG/PNG ≤ 1 MB) and the identity proof live on the `private` disk. The photo is served only via `admin.users.photo` (self, approver or user manager in jurisdiction); render it with `<x-user-avatar :user="..." />`.
 10. **Schedules** (New Module 2): one plan per officer per day and a school on at most one plan per day (DB unique keys). Only the officer or a higher officer covering them may change a plan; every step is audited.
 11. **Ratings** are derived data: never edit `inspection_ratings` by hand. A scheme is never changed in place; saving settings creates a new version, so each rating keeps the scheme it was calculated with.
-12. Phase 1 has **no OTP**. `OtpService` exists with a log driver, ready for Phase 2.
+12. Login asks a math CAPTCHA every time (`AppSupportMathCaptcha`, `LOGIN_MATH_CAPTCHA`; off in phpunit.xml, tests enable it with `config([...math_captcha => true])`). Phase 1 has **no OTP**. `OtpService` exists with a log driver, ready for Phase 2.
 13. **Record IDs in URLs are encrypted** (V6 Module 4). Route-bound models use `App\Models\Concerns\HasEncryptedRouteKey`, which issues `App\Support\UrlId` tokens; a numeric or edited ID returns 404.
     - Pass the model, or `Model::routeKeyFor($id)`, to `route()`, never a raw `$x->school_id`.
     - JSON for JS carries a `key` field for URL placeholders (`__ID__`).

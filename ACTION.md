@@ -1902,3 +1902,10 @@ Plan approved by the user. Decisions:
 - Login / register / password forms: `password-encrypt.js` now fires `si-form-sending`, so the button changes at once (before, its preventDefault skipped the busy state); `fail()` releases it.
 - All other submits via `network-status.js`; Start inspection, Submit inspection (review.js) and Excel Check file use the same look. Styles `_button-busy.scss`.
 - Result: build OK, 162 tests pass.
+
+## 2026-11-20 — Math CAPTCHA on the login page
+- Every sign-in asks for the answer to a small sum (add, subtract or multiply), drawn as a jittered SVG image with noise lines (`/login/math-captcha`, throttled 60/min, no-store); the sum text is never in the page HTML.
+- `App\Support\MathCaptcha`: answer kept in the session as an HMAC; checked once, a new sum after every check (no replay); refresh button for a new sum. Checked before the password, so a wrong sum does not count as a failed password attempt. The image CAPTCHA after 2 failed attempts and the 3-failure lock are unchanged.
+- Config `inspection.login.math_captcha` (`LOGIN_MATH_CAPTCHA`, default true; false in phpunit.xml).
+- Files: app/Support/MathCaptcha.php, Auth/LoginController.php, routes/web.php, config/inspection.php, .env.example, phpunit.xml, partials/math-captcha.blade.php, auth/login.blade.php, scss/_button-busy.scss, tests/Feature/LoginMathCaptchaTest.php.
+- Result: build OK, 165 tests pass.

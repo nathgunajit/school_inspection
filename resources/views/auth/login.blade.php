@@ -47,6 +47,9 @@
                     </div>
                 </div>
 
+                @if ($mathCaptcha)
+                    @include('partials.math-captcha')
+                @endif
                 @if ($needsCaptcha && config('inspection.captcha_enabled'))
                     @include('partials.captcha')
                 @endif
@@ -108,7 +111,7 @@
                     b.classList.add('is-picked');
                     const form = document.getElementById('mobile').closest('form');
                     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    (form.querySelector('.captcha-input') || form.querySelector('button[type=submit]')).focus({ preventScroll: true });
+                    (form.querySelector('.math-captcha-input, .captcha-input') || form.querySelector('button[type=submit]')).focus({ preventScroll: true });
                 }));
             </script>
         @endpush

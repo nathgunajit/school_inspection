@@ -26,6 +26,7 @@ Route::get('/locations/{type}', LocationLookupController::class)->whereIn('type'
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+    Route::get('/login/math-captcha', [LoginController::class, 'mathCaptcha'])->middleware('throttle:60,1')->name('login.math-captcha');
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:register');
     Route::get('/register/kept/{field}', [RegisterController::class, 'keptUpload'])->whereIn('field', ['photo', 'id_proof'])->name('register.kept');

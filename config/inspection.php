@@ -9,6 +9,8 @@ return [
     'login' => [
         // Modification V3: lock after 3 wrong attempts for 20 minutes; CAPTCHA from the 3rd attempt
         'captcha_after_failures' => (int) env('LOGIN_CAPTCHA_AFTER', 2),
+        // Math CAPTCHA ("7 + 4 = ?") on every login (AppSupportMathCaptcha)
+        'math_captcha' => (bool) env('LOGIN_MATH_CAPTCHA', true),
         'lock_after_failures' => (int) env('LOGIN_LOCK_AFTER', 3),
         'lock_minutes' => (int) env('LOGIN_LOCK_MINUTES', 20),
     ],

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\LoginMonitorService;
+use App\Support\MathCaptcha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +27,22 @@ class LoginController extends Controller
             $request->session()->now('warning', 'You were signed out after '.config('session.lifetime').' minutes without activity. Please sign in again.');
         }
 
-        return view('auth.login', ['needsCaptcha' => $this->needsCaptcha($request), 'demoUsers' => $this->demoUsers()]);
+        if (MathCaptcha::enabled()) {
+            app(MathCaptcha::class)->refresh(); // a new sum on every visit
+        }
+
+        return view('auth.login', ['needsCaptcha' => $this->needsCaptcha($request), 'mathCaptcha' => MathCaptcha::enabled(), 'demoUsers' => $this->demoUsers()]);
+    }
+
+    /** The login sum as an image (?new=1 gives a new sum). Not cached. */
+    public function mathCaptcha(Request $request, MathCaptcha $captcha)
+    {
+        abort_unless(MathCaptcha::enabled(), 404);
+        if ($request->boolean('new')) {
+            $captcha->refresh();
+        }
+
+        return response($captcha->svg(), 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'no-store, max-age=0']);
     }
 
     /**
@@ -57,7 +73,15 @@ class LoginController extends Controller
         if ($this->needsCaptcha($request) && config('inspection.captcha_enabled')) {
             $rules['captcha'] = ['required', 'captcha'];
         }
-        $data = $request->validate($rules, ['captcha.captcha' => 'The CAPTCHA code is incorrect.', 'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
+        if (MathCaptcha::enabled()) {
+            $rules['math_answer'] = ['required', 'string', 'max:5'];
+        }
+        $data = $request->validate($rules, ['math_answer.required' => 'Please answer the sum.', 'captcha.captcha' => 'The CAPTCHA code is incorrect.', 'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.']);
+
+        // Math CAPTCHA (checked before the password; a wrong answer is not a password failure)
+        if (MathCaptcha::enabled() && ! app(MathCaptcha::class)->check($data['math_answer'])) {
+            throw ValidationException::withMessages(['math_answer' => 'The answer to the sum is wrong. Please try the new sum.']);
+        }
 
         $user = User::where('mobile', $data['mobile'])->first();
 

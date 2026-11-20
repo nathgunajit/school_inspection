@@ -15,3 +15,12 @@
     .btn.is-loading::after { animation: none; display: none; }
     .btn-spin { animation-duration: 2s; }
 }
+
+// Login math CAPTCHA (partials/math-captcha)
+.math-captcha-row { display: flex; gap: .6rem; align-items: stretch; flex-wrap: wrap; }
+.math-captcha-img { position: relative; display: flex; align-items: center; gap: .4rem; padding: .25rem; border: 1px solid #dbe5f2; border-radius: .7rem; background: #f8fbff;
+    img { display: block; height: 56px; width: auto; max-width: 220px; border-radius: .5rem; user-select: none; -webkit-user-drag: none; } }
+.math-captcha-refresh { width: 44px; height: 44px; border: 0; border-radius: .55rem; background: #fff; color: $primary; font-size: 1.2rem; box-shadow: 0 1px 3px rgba(16, 42, 84, .12);
+    &:hover { background: rgba($primary, .08); }
+    &.is-spinning i { display: inline-block; animation: btnSpin .7s linear infinite; } }
+.math-captcha-input { flex: 1 1 7rem; min-width: 7rem; max-width: 12rem; font-size: 1.15rem; font-weight: 700; text-align: center; letter-spacing: .08em; }
