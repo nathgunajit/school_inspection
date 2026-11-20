@@ -1782,7 +1782,7 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 @include media-breakpoint-down(sm) { .map-keybar .map-keybar-period { margin-left: 0; } }
 
 // ---------- Map View: compact filters, values coloured like the other fields (items 3 and 4) ----------
-.map-filters {
+.map-filters, .filter-sm {
     .card-body { gap: .55rem !important; }
     .form-label { font-size: .72rem; font-weight: 600; color: #64748b; margin-bottom: .2rem !important; }
     .form-select-sm, .form-control-sm { min-height: 34px; height: 34px; padding-top: .3rem; padding-bottom: .3rem; font-size: .8125rem; border-radius: .5rem; }
@@ -1884,3 +1884,6 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 
 /* Dashboard: "Total schools" tile hint (schools inspected this month) */
 .kpi-hint { display: block; font-size: .68rem; color: #1e9b4b; font-weight: 500; margin-top: .1rem; }
+
+/* Small, standard filters on list pages (same look as the Map View filters) */
+.filter-sm { padding: .7rem .85rem; .row { --bs-gutter-y: .5rem; --bs-gutter-x: .6rem; } }

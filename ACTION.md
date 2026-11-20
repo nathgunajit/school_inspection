@@ -1813,3 +1813,22 @@ Plan approved by the user. Decisions:
   - Full suite: **149 passed** (1,771 assertions).
   - `npm run build` passed.
 - **Not verified:** a visual check in the browser.
+
+## 2026-11-20 · Small, standard filter inputs: Rating Report, Inspections in My Area, My Inspections (user request)
+
+- **Done:**
+  - The filter forms on the three pages use the class `filter-bar filter-sm`.
+  - Every field is `form-control-sm` / `form-select-sm` (34 px): From and To dates, District, Block, Cluster, Officer, School, Status, Band, Category and Version.
+  - The Apply, Go and Clear buttons are `btn-sm`.
+  - The look is shared with the Map View filters (V8): the SCSS selector is now `.map-filters, .filter-sm`, so the rules are not copied.
+    - small grey labels
+    - a chosen value in normal text, "All" in placeholder grey
+    - 16 px text on phones, so iOS does not zoom
+  - Tighter gutters and padding.
+  - Other `filter-bar` pages (admin users, audit, schools, schedules, login report) are unchanged.
+- **Files:** `resources/views/inspections/index.blade.php` (My Inspections and Inspections in My Area), `resources/views/reports/ratings/index.blade.php`, `resources/scss/app.scss`, new `tests/Feature/SmallFiltersTest.php`.
+- **Verification:**
+  - `SmallFiltersTest`: on each of the three pages, the form has `filter-sm`, small fields and small buttons, and no full-size field is left in the filter form.
+  - Full suite: **150 passed** (1,786 assertions).
+  - `npm run build` passed.
+- **Not verified:** a visual check in the browser.

@@ -13,38 +13,38 @@
         <a href="{{ route('reports.ratings.pdf', $keep) }}" target="_blank" rel="noopener" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </x-slot:actions>
 
-    <form method="GET" class="filter-bar mb-3">
+    <form method="GET" class="filter-bar filter-sm mb-3">
         <div class="row g-2 align-items-end">
-            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-from">From</label><input type="date" id="r-from" name="from" value="{{ $filters['from'] }}" class="form-control"></div>
-            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-to">To</label><input type="date" id="r-to" name="to" value="{{ $filters['to'] }}" class="form-control"></div>
+            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-from">From</label><input type="date" id="r-from" name="from" value="{{ $filters['from'] }}" class="form-control form-control-sm"></div>
+            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-to">To</label><input type="date" id="r-to" name="to" value="{{ $filters['to'] }}" class="form-control form-control-sm"></div>
             @if ($districts->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-d">District</label>
-                    <select id="r-d" name="district_id" class="form-select" data-autosubmit onchange="this.form.block_id && (this.form.block_id.value=''); this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
+                    <select id="r-d" name="district_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.block_id && (this.form.block_id.value=''); this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
                         @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
             @endif
             @if ($blocks->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-b">Block</label>
-                    <select id="r-b" name="block_id" class="form-select" data-autosubmit onchange="this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
+                    <select id="r-b" name="block_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
                         @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->name }}</option>@endforeach</select></div>
             @endif
             @if ($clusters->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-c">Cluster</label>
-                    <select id="r-c" name="cluster_id" class="form-select" data-autosubmit><option value="">All</option>
+                    <select id="r-c" name="cluster_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>
                         @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected($filters['cluster_id'] === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
             @endif
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-band">Rating band</label>
-                <select id="r-band" name="band" class="form-select" data-autosubmit><option value="">All bands</option>
+                <select id="r-band" name="band" class="form-select form-select-sm" data-autosubmit><option value="">All bands</option>
                     @foreach ($bandList as $b)<option value="{{ $b['label'] }}" @selected($filters['band'] === $b['label'])>{{ $b['label'] }}</option>@endforeach</select></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-cat">School category</label>
-                <select id="r-cat" name="category_id" class="form-select" data-autosubmit><option value="">All</option>
+                <select id="r-cat" name="category_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>
                     @foreach ($categories as $c)<option value="{{ $c->id }}" @selected($filters['category_id'] === $c->id)>{{ $c->label }}</option>@endforeach</select></div>
             @if ($versions->count() > 1)
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-v">Scheme version</label>
-                    <select id="r-v" name="version" class="form-select" data-autosubmit><option value="">All versions</option>
+                    <select id="r-v" name="version" class="form-select form-select-sm" data-autosubmit><option value="">All versions</option>
                         @foreach ($versions as $v)<option value="{{ $v }}" @selected($filters['version'] === $v)>Version {{ $v }}</option>@endforeach</select></div>
             @endif
             <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
-            <div class="col-6 col-md-1 d-grid"><button class="btn btn-primary" aria-label="Apply filters"><i class="bi bi-funnel"></i><span class="d-none d-xl-inline">Go</span></button></div>
+            <div class="col-6 col-md-1 d-grid"><button class="btn btn-sm btn-primary" aria-label="Apply filters"><i class="bi bi-funnel"></i><span class="d-none d-xl-inline">Go</span></button></div>
         </div>
     </form>
 
