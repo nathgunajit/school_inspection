@@ -3,6 +3,7 @@ import axios from 'axios';
 import './password-encrypt';
 import './mobile-input';
 import './date-picker';
+import './rating-settings';
 
 window.bootstrap = bootstrap;
 window.axios = axios;

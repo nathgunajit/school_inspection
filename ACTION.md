@@ -1843,3 +1843,14 @@ Plan approved by the user. Decisions:
 - Styles at the end of `resources/scss/app.scss`.
 - Files: package.json, package-lock.json, resources/js/date-picker.js, resources/js/app.js, resources/js/map.js, resources/scss/app.scss
 - Verified: `npm run build` OK; `php artisan test` 150 passed. Not checked visually in a browser.
+
+## 2026-11-20: Rating Settings page redesigned (elegant, attractive)
+- `/admin/rating` restyled; same fields and routes, so saving and versioning are unchanged.
+  - Blue hero card: active version, item count, total weight, rated count, and a fold-out "How the score is calculated" with the formula.
+  - Section cards with a coloured icon, item count, weight-share bar; can be folded.
+  - Each item: label, code chip, Answer / Calculated ratio tag, weight box, and point chips tinted red (0) to green (1), updated live.
+  - Bands: live colour preview bar (0-100%), large swatches, "%" suffix; the swatch follows the colour select.
+  - Re-rate option as a switch, large Save button with an orange dot when there are unsaved changes; versions as a timeline.
+  - Stacks cleanly on phones.
+- Files: resources/views/admin/rating/index.blade.php, resources/scss/_rating-settings.scss (imported in app.scss), resources/js/rating-settings.js (imported in app.js), tests/Feature/InspectionRatingTest.php
+- Verified: `npm run build` OK; `php artisan test` 150 passed. Not checked visually in a browser.

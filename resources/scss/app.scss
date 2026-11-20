@@ -1925,3 +1925,4 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 @keyframes fpIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 [data-bs-theme="dark"] .flatpickr-calendar { background: #1f2630; border-color: rgba(255,255,255,.08);
     .flatpickr-day, .flatpickr-month { color: #e6e9ee; } }
+@import 'rating-settings';
