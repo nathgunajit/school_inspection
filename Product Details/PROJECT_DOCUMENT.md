@@ -828,7 +828,7 @@ Source: `Documents/Modification of the ApplicationV8.docx`. All 8 items are scre
 
 ## 13. One active officer per cluster (20-11-2026)
 
-A cluster can have only **one active officer**. `AppServicesAreaOfficerGuard` holds the rule. It applies to the **Cluster level only**. State, District and Block officers are not limited: several can be registered and active for the same state, district or block.
+A cluster can have only **one active officer**. `App\Services\AreaOfficerGuard` holds the rule. It applies to the **Cluster level only**. State, District and Block officers are not limited: several can be registered and active for the same state, district or block.
 
 | When | What happens |
 |---|---|
