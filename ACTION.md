@@ -2024,3 +2024,39 @@ Plan approved by the user. Decisions:
   - `php artisan test`: 179 passed
   - `npm run build`: OK
   - Not checked visually in a browser.
+
+## 2026-11-20 — Cleaner inspection PDF, report view page and absent-teacher list; standard field size
+- **PDF** (`inspections/pdf.blade.php`), with the same content:
+  - two-tone header rule and reference chips (ID, status, UDISE)
+  - a cleaner school card
+  - numbered section badges
+  - zebra question tables with a green / amber / red answer dot
+  - dark-blue table headers with Sl., and pills for leave reason, TLM and participation (TLM items on a second line)
+  - Step 2 as four figure boxes (students, teachers, trained / untrained, male / female)
+  - framed photos
+  - a signature block with the date
+  - It is still DomPDF-safe (tables only).
+- **Report view** (`inspections/show.blade.php`):
+  - hero with a dotted gradient, number chip and UDISE / location chips
+  - detail items with icon bubbles
+  - one accent colour per step card
+  - the jump bar highlights the section in view (`review.js`)
+  - "At a glance" KPI tiles with icons, and a fund spent bar
+  - gradient PDF button
+- **Absent teachers (step 3):**
+  - the avatar ring colour shows the teacher type
+  - unauthorised leave is shown in red
+  - remarks appear as a quote
+  - compact icon actions
+  - a tally of reasons under the list
+- **Field size standard:** 14 px text and 40 px height for every field and button on desktop / tablet; 16 px and 44 px on phones (`$field-fs`, `$num-fs`, `$input-btn-padding-y`).
+- Files:
+  - resources/views/inspections/{pdf,show,step}.blade.php
+  - resources/js/{wizard,review}.js
+  - resources/scss/app.scss
+  - CLAUDE.md
+- Verified:
+  - `php artisan test`: 179 passed
+  - `npm run build`: OK
+  - a sample PDF rendered without errors
+  - Not checked visually in a browser or PDF viewer.

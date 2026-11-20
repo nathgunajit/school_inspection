@@ -162,6 +162,7 @@
                                 <span>Step 2: {{ $absentLimit }} teacher(s) absent (Total teachers − Present). Add up to {{ $absentLimit }}.</span></div>
                         @endif
                         <div id="teacher-list" class="rs-list"></div>
+                        <div class="absent-tally d-none" data-absent-tally aria-live="polite"></div>
                         <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-person-plus"></i></span>
                                 <span data-form-title data-add="Add an absent teacher" data-edit="Edit absent teacher">Add an absent teacher</span></div>

@@ -122,3 +122,16 @@ if (f) {
         }, go, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
     });
 }
+
+/* ---------------- Report page: highlight the section in view in the jump bar ---------------- */
+const rpNav = document.querySelector('.rp-nav');
+if (rpNav && 'IntersectionObserver' in window) {
+    const links = new Map([...rpNav.querySelectorAll('a[href^="#rp-step-"]')].map((a) => [a.getAttribute('href').slice(1), a]));
+    const io = new IntersectionObserver((entries) => {
+        entries.filter((e) => e.isIntersecting).forEach((e) => {
+            links.forEach((a) => a.classList.remove('is-active'));
+            links.get(e.target.id)?.classList.add('is-active');
+        });
+    }, { rootMargin: '-35% 0px -55% 0px' });
+    links.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+}

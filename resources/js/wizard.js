@@ -428,13 +428,18 @@ const sections = {
         empty: '<i class="bi bi-person-x"></i><strong>No absent teachers added</strong><span>Add each absent teacher below, or tick "All teachers present" above.</span>',
         // table on wide screens (header below), card on phones; cells carry data-label for the phone layout
         head: ['Sl.', 'Teacher', 'Type', 'Reason for absence', 'Remarks', ''],
-        row: (t, i) => `<div class="rs-item rs-grid rs-teacher" data-id="${esc(t.id)}">
+        row: (t, i) => {
+            const type = String(t.values?.teacher_type || ''); // regular / contractual / tutor: avatar ring colour
+            const ul = t.values?.reason === 'UL'; // unauthorised leave stands out in red
+            return `<div class="rs-item rs-grid rs-teacher at-${esc(type)}" data-id="${esc(t.id)}">
             <span class="rs-sl">${i + 1}</span>
-            <div class="rs-who"><span class="rs-avatar tone-danger">${esc(initials(t.teacher_name))}</span><span class="rs-title">${esc(t.teacher_name)}</span></div>
-            <div class="rs-cell" data-label="Type">${chip('<i class="bi bi-person-badge"></i>' + esc(t.type), 'type')}</div>
-            <div class="rs-cell" data-label="Reason">${chip('<i class="bi bi-calendar-x"></i>' + esc(t.reason), 'warn')}</div>
-            <div class="rs-cell rs-rem" data-label="Remarks">${t.remarks ? esc(t.remarks) : '<span class="rs-dash">—</span>'}</div>
-            ${rowActions(t)}</div>`,
+            <div class="rs-who"><span class="rs-avatar at-avatar">${esc(initials(t.teacher_name))}</span>
+                <div><span class="rs-title">${esc(t.teacher_name)}</span><span class="rs-sub d-md-none">${esc(t.type)}</span></div></div>
+            <div class="rs-cell d-none d-md-block" data-label="Type">${chip('<i class="bi bi-person-badge"></i>' + esc(t.type), 'type')}</div>
+            <div class="rs-cell" data-label="Reason">${chip(`<i class="bi ${ul ? 'bi-exclamation-octagon' : 'bi-calendar-x'}"></i>` + esc(t.reason), ul ? 'bad' : 'warn')}</div>
+            <div class="rs-cell rs-rem" data-label="Remarks">${t.remarks ? `<span class="rs-quote">${esc(t.remarks)}</span>` : '<span class="rs-dash">—</span>'}</div>
+            ${rowActions(t)}</div>`;
+        },
     },
     classrooms: {
         list: '#classroom-list', form: '#classroom-form', key: 'classrooms', done: 'Classroom record added', updated: 'Classroom record updated',
@@ -504,7 +509,21 @@ function renderSection(s) {
     }
     if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
     if (s.key === 'funds') { markSavedYears(); renderYearTable(); }
-    if (s.key === 'teachers') syncAllPresent();
+    if (s.key === 'teachers') { syncAllPresent(); renderAbsentTally(rows); }
+}
+
+/** Step 3: counts by leave reason under the absent list, e.g. "2 · Casual Leave (CL)  1 · Unauthorised Leave". */
+function renderAbsentTally(rows) {
+    const box = $('[data-absent-tally]');
+    if (!box) return;
+    const by = new Map();
+    rows.forEach((t) => {
+        const k = t.values?.reason || t.reason;
+        by.set(k, { label: t.reason, ul: k === 'UL', n: (by.get(k)?.n || 0) + 1 });
+    });
+    box.classList.toggle('d-none', rows.length === 0);
+    box.innerHTML = rows.length ? `<span class="tally-total"><i class="bi bi-people"></i>${rows.length} absent</span>`
+        + [...by.values()].map((r) => `<span class="tally-chip ${r.ul ? 'bad' : ''}"><b>${r.n}</b>${esc(r.label)}</span>`).join('') : '';
 }
 
 /**

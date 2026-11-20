@@ -45,7 +45,7 @@ $card-spacer-x: 1.25rem;
 $input-border-color: #d9dcea;
 $input-focus-border-color: rgba($primary, .55);
 $input-focus-box-shadow: 0 0 0 .25rem rgba($primary, .12);
-$input-btn-padding-y: .625rem;
+$input-btn-padding-y: .5rem;   // portal standard: 14px text, 40px fields and buttons (phones 16px / 44px)
 $input-btn-padding-x: 1rem;
 $input-placeholder-color: #94a3b8;
 $btn-font-weight: 500;
@@ -86,7 +86,9 @@ h2, .h2 { letter-spacing: -.015em; }
 .bg-grad { background: var(--si-grad); }
 
 // touch-friendly controls (PRD 14: large touch-friendly buttons)
-.btn, .form-control, .form-select { min-height: 44px; }
+// Portal standard field size: 40px on desktop / tablet, 44px touch targets on phones
+.btn, .form-control, .form-select { min-height: 40px; }
+@include media-breakpoint-down(md) { .btn, .form-control, .form-select { min-height: 44px; } }
 .btn-sm { min-height: 36px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
 .btn-primary { box-shadow: 0 6px 14px -6px rgba($primary, .55); }
@@ -1241,9 +1243,9 @@ $src-colors: (ssa: $primary, govt: $success, other: $warning);
 // =============================================================
 //  Modification V2: readable fields (items 5, 9) and responsive questions (item 3)
 // =============================================================
-$field-fs: 1rem;          // standard 16px for every field and placeholder
+$field-fs: .875rem;       // portal standard 14px for every field and placeholder (same as the base font)
 $field-fs-phone: 1rem;    // 16px phones (also stops iOS zoom on focus)
-$num-fs: 1rem;            // numeric values: same standard size
+$num-fs: .875rem;         // numeric values: same standard size
 
 // One font size for every field: wizard questions, add/edit forms, filters, auth forms
 .form-control, .form-select, .xsel-btn,
@@ -1266,10 +1268,12 @@ $num-fs: 1rem;            // numeric values: same standard size
 // Numbers: standard 1rem, tabular figures, same alignment everywhere
 input[type="number"].form-control, .num-stepper .form-control, .fund-input .form-control {
     font-size: $num-fs; font-weight: 500; font-variant-numeric: tabular-nums;
-    &::placeholder { font-size: $num-fs; font-weight: 400; } }
-.num-stepper { min-height: 44px; .form-control { min-height: 42px; } }
-.num-btn { min-height: 42px; font-size: .9rem; }
-.fund-input .form-control { min-height: 44px; }
+    &::placeholder { font-size: $num-fs; font-weight: 400; }
+    @include media-breakpoint-down(md) { font-size: $field-fs-phone; &::placeholder { font-size: $field-fs-phone; } } }
+.num-stepper { min-height: 40px; .form-control { min-height: 38px; }
+    @include media-breakpoint-down(md) { min-height: 44px; .form-control { min-height: 42px; } } }
+.num-btn { min-height: 38px; font-size: .9rem; @include media-breakpoint-down(md) { min-height: 42px; } }
+.fund-input .form-control { min-height: 40px; @include media-breakpoint-down(md) { min-height: 44px; } }
 
 // Choice buttons: never overflow; long labels wrap inside the button
 .choice-group { min-width: 0; max-width: 100%; }
@@ -1982,6 +1986,85 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 @keyframes fpIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
 [data-bs-theme="dark"] .flatpickr-calendar { background: #1f2630; border-color: rgba(255,255,255,.08);
     .flatpickr-day, .flatpickr-month { color: #e6e9ee; } }
+// =============================================================
+//  Inspection report page: cleaner hero, details, nav, step cards and summary
+// =============================================================
+.rp-hero { padding: 1.4rem 1.5rem 1.3rem; border-radius: 1.2rem;
+    background: radial-gradient(rgba(255, 255, 255, .09) 1px, transparent 1.2px) 0 0 / 14px 14px, linear-gradient(135deg, #0b3d91 0%, #1565c0 55%, #1e88e5 100%);
+    box-shadow: 0 18px 36px -22px rgba(13, 71, 161, .9);
+    &::before { content: ''; position: absolute; left: -80px; bottom: -110px; width: 260px; height: 260px; border-radius: 50%; background: rgba(30, 155, 75, .18); pointer-events: none; } }
+.rp-hero-top { position: relative; z-index: 1; }
+.rp-hero-eyebrow { margin-left: auto; font-size: .64rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; opacity: .75;
+    @include media-breakpoint-down(sm) { display: none; } }
+.rp-no { display: inline-flex; align-items: center; gap: .2rem; padding: .2rem .6rem; border-radius: 999px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22);
+    font-size: .76rem; opacity: 1; }
+.rp-school { position: relative; z-index: 1; font-size: 1.55rem; letter-spacing: -.01em; margin: .7rem 0 .35rem; }
+.rp-place { position: relative; z-index: 1; gap: .35rem .5rem;
+    > span { padding: .2rem .6rem; border-radius: 999px; background: rgba(255, 255, 255, .12); }
+    b { font-weight: 600; letter-spacing: .03em; } }
+.rp-tags { position: relative; z-index: 1; span { background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .2); } }
+.rp-stats > div { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .2); backdrop-filter: blur(4px); padding: .65rem .75rem;
+    i { background: rgba(255, 255, 255, .95); color: #1565c0; } b { font-size: .9rem; } }
+.rp-actions .btn { border-radius: 999px; padding-left: 1.1rem; padding-right: 1.1rem; }
+.rp-actions .btn-light:hover { background: #eaf2fc; }
+
+.rp-card { border: 1px solid #e3e8f0; box-shadow: 0 1px 3px rgba(15, 23, 42, .04), 0 12px 28px -24px rgba(13, 71, 161, .45); overflow: visible; }
+.rp-card-head { padding: 1rem 1.15rem .75rem; border-bottom: 1px solid #f0f3f8; margin-bottom: .85rem;
+    h3 { font-size: 1rem; } }
+.rp-card-icon { border-radius: 12px; }
+.rp-count { background: rgba($primary, .08); color: #0d47a1; font-weight: 600; }
+// one accent colour per step (icon bubble and a slim top bar)
+$rp-step-colors: (1: #1565c0, 2: #00897b, 3: #d93025, 4: #f39223, 5: #1e9b4b, 6: #6a1b9a, 7: #0277bd);
+@each $n, $c in $rp-step-colors {
+    .rp-step-#{$n} { border-top: 3px solid $c;
+        .rp-card-icon { background: rgba($c, .1); color: $c; }
+        .rp-card-head h3 small { color: $c; } }
+}
+
+.rp-details { gap: .6rem;
+    > div { flex-direction: row; align-items: flex-start; gap: .7rem; padding: .75rem .85rem; background: #fff; border: 1px solid #eaeef5; border-radius: .85rem;
+        > div { display: flex; flex-direction: column; gap: .1rem; min-width: 0; } } }
+.rp-dt-icon { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 11px; display: grid; place-items: center; background: rgba($primary, .09); color: $primary; font-size: 1rem;
+    &.tone-green { background: rgba($success, .1); color: $success; } &.tone-orange { background: rgba($warning, .13); color: #b45309; } }
+
+.rp-nav { padding: .45rem; gap: .3rem; border-radius: 999px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; }
+    a { white-space: nowrap; background: transparent; padding: .35rem .75rem .35rem .35rem;
+        span { background: #eef3fa; }
+        &.is-active { background: $primary; color: #fff; span { background: #fff; color: $primary; } } }
+    @include media-breakpoint-down(md) { border-radius: .9rem; } }
+
+.rp-glance { gap: .55rem;
+    > div { position: relative; padding: .75rem .8rem .7rem; background: #fff; border: 1px solid #eaeef5; border-radius: .85rem;
+        > i { position: absolute; top: .7rem; right: .7rem; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: .9rem; } }
+    b { font-size: 1.5rem; margin-top: .15rem; }
+    .kpi-blue > i { background: rgba($primary, .1); color: $primary; } .kpi-blue b { color: #0d47a1; }
+    .kpi-green > i { background: rgba($success, .1); color: $success; } .kpi-green b { color: #137a3a; }
+    .kpi-red > i { background: rgba($danger, .08); color: $danger; } .kpi-red b { color: $danger; }
+    .kpi-orange > i { background: rgba($warning, .13); color: #b45309; } .kpi-orange b { color: #b45309; } }
+.rp-bar { height: 7px; border-radius: 999px; background: #eef2f7; overflow: hidden; margin: .45rem 0 .3rem;
+    i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #1e9b4b, #43a047); } }
+.rp-pdf-btn { border-radius: 999px; background: linear-gradient(135deg, #0d47a1, #1565c0 60%, #1e88e5); border: 0; box-shadow: 0 10px 22px -14px rgba(13, 71, 161, .9);
+    &:hover { filter: brightness(1.06); } }
+
+// =============================================================
+//  Step 3: absent teachers after adding: ring by teacher type, red unauthorised leave, reason tally
+// =============================================================
+.rs-teacher .at-avatar { background: #fff; color: #334155; box-shadow: inset 0 0 0 2px #cbd5e1; font-weight: 700; }
+.rs-teacher.at-regular .at-avatar { color: #0d47a1; background: rgba($primary, .07); box-shadow: inset 0 0 0 2px rgba($primary, .55); }
+.rs-teacher.at-contractual .at-avatar { color: #9a4a00; background: rgba($warning, .1); box-shadow: inset 0 0 0 2px rgba($warning, .7); }
+.rs-teacher.at-tutor .at-avatar { color: #137a3a; background: rgba($success, .08); box-shadow: inset 0 0 0 2px rgba($success, .6); }
+.rs-teacher.at-contractual .rs-chip.type { background: rgba($warning, .12); color: #9a4a00; }
+.rs-teacher.at-tutor .rs-chip.type { background: rgba($success, .1); color: #137a3a; }
+.rs-quote { display: inline-block; padding-left: .5rem; border-left: 2px solid #dbe3ef; color: #475569; font-style: italic; }
+.rs-teacher .rs-actions .rs-btn { border-radius: 10px; }
+@include media-breakpoint-up(md) { .rs-teacher .rs-actions .rs-btn:not(.rs-del) span { display: none; } .rs-teacher .rs-actions .rs-btn:not(.rs-del) { width: 32px; padding: 0; } }
+.absent-tally { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: -.4rem 0 1rem; padding: .5rem .65rem; border-radius: .8rem;
+    background: #f8fafc; border: 1px solid #eaeef5; font-size: .74rem; color: #475569; }
+.tally-total { display: inline-flex; align-items: center; gap: .35rem; font-weight: 600; color: #0f172a; margin-right: .35rem; i { color: $danger; } }
+.tally-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .55rem .15rem .2rem; border-radius: 999px; background: #fff; border: 1px solid #e5eaf1;
+    b { min-width: 20px; height: 20px; padding: 0 .3rem; border-radius: 999px; display: inline-grid; place-items: center; background: rgba($warning, .16); color: #9a4a00; font-size: .68rem; }
+    &.bad { border-color: rgba($danger, .3); color: $danger; b { background: rgba($danger, .12); color: $danger; } } }
+
 @import 'rating-settings';
 @import 'imports';
 @import 'page-loader';

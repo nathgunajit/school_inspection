@@ -33,10 +33,11 @@
     <section class="rp-hero">
         <div class="rp-hero-top">
             <span class="rp-status {{ $statusTone }}"><i class="bi {{ $statusTone === 'ok' ? 'bi-patch-check-fill' : 'bi-pencil-square' }}"></i>{{ $inspection->status->label() }}</span>
-            <span class="rp-no">{{ $inspection->inspection_no ?? 'Draft · not submitted' }}</span>
+            <span class="rp-no"><i class="bi bi-hash"></i>{{ $inspection->inspection_no ?? 'Draft · not submitted' }}</span>
+            <span class="rp-hero-eyebrow">School Inspection Report</span>
         </div>
         <h2 class="rp-school">{{ $s->name }}</h2>
-        <div class="rp-place"><span class="font-monospace">UDISE {{ $s->udise_code }}</span><span><i class="bi bi-geo-alt"></i>{{ collect([$s->cluster?->name, $s->block?->name, $s->district?->name])->filter()->implode(', ') }}</span></div>
+        <div class="rp-place"><span class="rp-udise"><i class="bi bi-upc-scan"></i>UDISE <b class="font-monospace">{{ $s->udise_code }}</b></span><span><i class="bi bi-geo-alt"></i>{{ collect([$s->cluster?->name, $s->block?->name, $s->district?->name])->filter()->implode(', ') }}</span></div>
         <div class="rp-tags">
             @if ($s->category)<span>{{ $s->category->label }}</span>@endif
             @if ($s->management)<span>{{ $s->management->label }}</span>@endif
@@ -75,14 +76,14 @@
             <section class="card rp-card mb-4">
                 <div class="rp-card-head"><span class="rp-card-icon"><i class="bi bi-info-circle"></i></span><h3>Inspection details</h3></div>
                 <div class="rp-details">
-                    <div><span>Inspecting officer</span><b>{{ $inspection->officer->name }}</b><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div>
+                    <div><span class="rp-dt-icon"><i class="bi bi-person-badge"></i></span><div><span>Inspecting officer</span><b>{{ $inspection->officer->name }}</b><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div></div>
                     @if ($inspection->person_met_name) {{-- V9: no longer asked; shown for older inspections --}}
-                        <div><span>Person met at the school</span><b>{{ $inspection->person_met_name }}</b><small>{{ $inspection->person_met_designation }}</small></div>
+                        <div><span class="rp-dt-icon"><i class="bi bi-people"></i></span><div><span>Person met at the school</span><b>{{ $inspection->person_met_name }}</b><small>{{ $inspection->person_met_designation }}</small></div></div>
                     @endif
-                    <div><span>Started</span><b>{{ $inspection->started_at->format('d M Y, h:i A') }}</b>
-                        <small>@if ($inspection->start_lat){{ number_format($inspection->start_lat, 5) }}, {{ number_format($inspection->start_lng, 5) }}@if ($startDistance !== null) <em class="rp-dist {{ $startDistance > 500 ? 'far' : '' }}">{{ $fmtDist($startDistance) }} from school</em>@endif @else No location @endif</small></div>
-                    <div><span>Submitted</span><b>{{ $inspection->submitted_at?->format('d M Y, h:i A') ?? '—' }}</b>
-                        <small>@if ($inspection->submitted_at)@if ($inspection->submit_lat){{ number_format($inspection->submit_lat, 5) }}, {{ number_format($inspection->submit_lng, 5) }}@if ($submitDistance !== null) <em class="rp-dist {{ $submitDistance > 500 ? 'far' : '' }}">{{ $fmtDist($submitDistance) }} from school</em>@endif @else No location @endif @endif</small></div>
+                    <div><span class="rp-dt-icon tone-orange"><i class="bi bi-play-circle"></i></span><div><span>Started</span><b>{{ $inspection->started_at->format('d M Y, h:i A') }}</b>
+                        <small>@if ($inspection->start_lat){{ number_format($inspection->start_lat, 5) }}, {{ number_format($inspection->start_lng, 5) }}@if ($startDistance !== null) <em class="rp-dist {{ $startDistance > 500 ? 'far' : '' }}">{{ $fmtDist($startDistance) }} from school</em>@endif @else No location @endif</small></div></div>
+                    <div><span class="rp-dt-icon tone-green"><i class="bi bi-send-check"></i></span><div><span>Submitted</span><b>{{ $inspection->submitted_at?->format('d M Y, h:i A') ?? '—' }}</b>
+                        <small>@if ($inspection->submitted_at)@if ($inspection->submit_lat){{ number_format($inspection->submit_lat, 5) }}, {{ number_format($inspection->submit_lng, 5) }}@if ($submitDistance !== null) <em class="rp-dist {{ $submitDistance > 500 ? 'far' : '' }}">{{ $fmtDist($submitDistance) }} from school</em>@endif @else No location @endif @endif</small></div></div>
                 </div>
             </section>
 
@@ -94,7 +95,7 @@
             </nav>
 
             @foreach ($showSteps as $n => $st)
-                <section class="card rp-card mb-4" id="rp-step-{{ $n }}">
+                <section class="card rp-card rp-step rp-step-{{ $n }} mb-4" id="rp-step-{{ $n }}">
                     <div class="rp-card-head">
                         <span class="rp-card-icon"><i class="bi {{ $st['icon'] }}"></i></span>
                         <h3><small>Step {{ $n }}</small>{{ $st['title'] }}</h3>
@@ -116,11 +117,13 @@
                 <section class="card rp-card mb-4">
                     <div class="rp-card-head"><span class="rp-card-icon tone-green"><i class="bi bi-clipboard-data"></i></span><h3>At a glance</h3></div>
                     <div class="rp-glance">
-                        <div><span>Total students</span><b>{{ $totS === null ? '—' : number_format($totS) }}</b><small>Present {{ $answers['TSI_01'] ?? '—' }} · Absent {{ $answers['TSI_02'] ?? '—' }}</small></div>
-                        <div><span>Total teachers</span><b>{{ $totT === null ? '—' : number_format($totT) }}</b><small>Present {{ $presT ?? '—' }}@if ($totT !== null && $presT !== null && $presT !== '') · Absent {{ $totT - (int) $presT }}@endif</small></div>
-                        <div><span>Absent teachers recorded</span><b>{{ $inspection->absentTeachers->count() }}</b></div>
-                        <div><span>Classrooms observed</span><b>{{ $inspection->classroomObservations->count() }}</b></div>
-                        <div class="wide"><span>Fund balance ({{ $funds->count() }} year(s))</span><b class="{{ $fundBal < 0 ? 'text-danger' : 'text-success' }}">₹ {{ FP::lakh($fundBal) }} L</b></div>
+                        <div class="kpi-blue"><i class="bi bi-backpack"></i><span>Total students</span><b>{{ $totS === null ? '—' : number_format($totS) }}</b><small>Present {{ $answers['TSI_01'] ?? '—' }} · Absent {{ $answers['TSI_02'] ?? '—' }}</small></div>
+                        <div class="kpi-green"><i class="bi bi-person-workspace"></i><span>Total teachers</span><b>{{ $totT === null ? '—' : number_format($totT) }}</b><small>Present {{ $presT ?? 0 }}@if ($totT !== null) · Absent {{ max(0, $totT - (int) ($presT ?? 0)) }}@endif</small></div>
+                        <div class="kpi-red"><i class="bi bi-person-x"></i><span>Absent teachers</span><b>{{ $inspection->absentTeachers->count() }}</b><small>recorded on step 3</small></div>
+                        <div class="kpi-orange"><i class="bi bi-easel"></i><span>Classrooms</span><b>{{ $inspection->classroomObservations->count() }}</b><small>observed</small></div>
+                        @php $fr = $funds->sum(fn ($f) => $f->isLegacy() ? (float) $f->amount_received : $f->totalReceived()); $fe = $fr - $fundBal; $pct = $fr > 0 ? max(0, min(100, round($fe / $fr * 100))) : 0; @endphp
+                        <div class="wide rp-fund"><span>Fund balance ({{ $funds->count() }} year(s))</span><b class="{{ $fundBal < 0 ? 'text-danger' : 'text-success' }}">₹ {{ FP::lakh($fundBal) }} L</b>
+                            @if ($fr > 0)<div class="rp-bar" title="{{ $pct }}% spent"><i style="width: {{ $pct }}%"></i></div><small>₹ {{ FP::lakh($fe) }} L spent of ₹ {{ FP::lakh($fr) }} L received · {{ $pct }}%</small>@endif</div>
                         <div class="wide"><span>Required photographs</span>
                             <div class="rp-req">
                                 @foreach ($mandatory as $cat => $min)
