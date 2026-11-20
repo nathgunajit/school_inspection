@@ -128,7 +128,7 @@
                                 @endif
                             @endforeach
                         </div>
-                    @else
+                    @elseif ($step !== 3) {{-- step 3 renders its only question (ABS_00) in the #all-present box --}}
                         @foreach ($questions as $i => $q)
                             {!! $groupHead($q['code']) !!}
                             @include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])

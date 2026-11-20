@@ -83,6 +83,7 @@ class StepCompletionTest extends TestCase
         $html = $this->get(route('inspections.step', [$i, 1]))->assertOk()->getContent();
         $this->assertMatchesRegularExpression('/Absent Teachers.*?Not started/s', $html);
         $this->assertMatchesRegularExpression('/Fund Details.*?Not started/s', $html);
-        $this->get(route('inspections.step', [$i, 3]))->assertOk()->assertSee('All teachers present');
+        $step3 = $this->get(route('inspections.step', [$i, 3]))->assertOk()->assertSee('All teachers present')->getContent();
+        $this->assertSame(1, substr_count($step3, 'id="q-ABS_00"'), 'the "all teachers present" question is shown once');
     }
 }

@@ -1783,3 +1783,11 @@ Plan approved by the user. Decisions:
   - `npm run build` passed.
 - **Note:** open drafts now ask for these two steps before Submit. Submitted inspections are unchanged.
 - **Not verified:** a visual check in the browser.
+
+## 2026-11-20 · Fix: "All teachers present" was shown twice on step 3
+
+- **Problem:** on the Absent Teachers step, "No absent teacher today (all teachers present)" appeared twice. The generic question loop (every step except 2) printed it, and the new `#all-present` box printed it again.
+- **Fix:** `resources/views/inspections/step.blade.php`: the generic loop now skips step 3 (`@elseif ($step !== 3)`). Only the switch above the absentee list remains, with its lock hint.
+- **Verification:**
+  - `StepCompletionTest` asserts that `id="q-ABS_00"` appears exactly once on step 3.
+  - Full suite: **147 passed** (1,754 assertions).
