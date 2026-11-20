@@ -77,12 +77,9 @@ class TlmItemController extends Controller
         $data['class'] = $data['class'] === self::ALL ? null : $data['class'];
         $data['name'] = trim($data['name']);
         $data['code'] = isset($data['code']) && trim($data['code']) !== '' ? trim($data['code']) : null;
-        // only class, name and code are on the form; variety, remarks and order keep their stored values
-        foreach (['variety', 'sort', 'remarks'] as $k) {
-            if (! $request->filled($k)) {
-                unset($data[$k]);
-            }
-        }
+        $data['variety'] = (int) ($data['variety'] ?? 1);
+        $data['sort'] = (int) ($data['sort'] ?? 0);
+        $data['remarks'] = isset($data['remarks']) && trim($data['remarks']) !== '' ? trim($data['remarks']) : null;
 
         // one name per class (for "All classes" the DB unique key cannot catch it, since class is null)
         $dup = TlmItem::where('name', $data['name'])

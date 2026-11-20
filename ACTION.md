@@ -1986,3 +1986,13 @@ Plan approved by the user. Decisions:
   - resources/views/admin/tlm/index.blade.php
   - app/Http/Controllers/Admin/TlmItemController.php
   - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
+
+## 2026-11-20 — TLM Master: full add form again; the list is a table of Class, Name and Serial no / Code
+- The change above is reverted for the forms.
+  - The add and edit forms again have class, name, serial no / code, variety, order and remarks.
+  - Only the **list** is simplified: a table with Sl., Class, Name of item and Serial no / Code ("NA" when there is none). Inactive items are marked.
+- The edit menu opens with fixed positioning, so the scrolling table does not clip it.
+- Files:
+  - resources/views/admin/tlm/index.blade.php
+  - app/Http/Controllers/Admin/TlmItemController.php
+  - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
