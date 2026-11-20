@@ -170,6 +170,8 @@ Every step page has the same frame:
 > - **Lists:** Absent teachers, Classrooms observed and Saved years show as a clean table on wide screens: a header strip, Sl., chips and amounts aligned right. On phones each row becomes a card with labelled fields.
 > - On the review and report pages, the absent teachers and the classroom performance (with the TLM items used) are tables. They stack into cards on phones.
 
+> **Field size (20-11-2026):** every input, dropdown, number box and button uses the portal standard: **14 px text, 40 px tall** on desktop and tablet, and 16 px / 44 px on phones (no iOS zoom, easy to tap).
+
 ### Step 5: Fund Received & Expenditure
 ![Step 5](../docs/screenshots/09-step5-fund.png)
 > **Modification V9 (20-11-2026):** fund details are **optional** again. The step counts as done with no year saved, and Submit is not blocked.
