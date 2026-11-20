@@ -48,6 +48,8 @@ function restore(form) {
 
 function fail(form) {
     restore(form);
+    window.SI_BUSY?.releaseAll();
+    window.SI_LOADER?.hide();
     form.querySelectorAll('[type=submit]').forEach((b) => { b.disabled = false; });
     const msg = 'Your password could not be encrypted. Please reload the page and try again.';
     if (window.toast) window.toast(msg, 'danger'); else alert(msg);
@@ -65,6 +67,7 @@ if (meta?.content) {
         if (!inputs.length) return;
 
         e.preventDefault();
+        form.dispatchEvent(new CustomEvent('si-form-sending', { bubbles: true, detail: { submitter: e.submitter } })); // processing look at once
         try {
             const encrypt = await getEncryptor();
             const copies = [];

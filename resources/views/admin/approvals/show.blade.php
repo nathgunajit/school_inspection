@@ -42,7 +42,7 @@
                     @else
                         <form method="POST" action="{{ route('admin.approvals.approve', $registration) }}" data-confirm="Approve {{ $u->name }}?">
                             @csrf
-                            <button class="btn btn-success w-100 btn-lg"><i class="bi bi-check2-circle"></i>Approve registration</button>
+                            <button class="btn btn-success w-100 btn-lg" data-loading-text="Approving…"><i class="bi bi-check2-circle"></i>Approve registration</button>
                         </form>
                     @endif
                     <hr>
@@ -51,7 +51,7 @@
                         <label class="form-label" for="reason">Reject with reason</label>
                         <textarea name="reason" id="reason" rows="3" class="form-control @error('reason') is-invalid @enderror" placeholder="e.g. Identity proof is not readable" required>{{ old('reason') }}</textarea>
                         @error('reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <button class="btn btn-soft-danger w-100 mt-2"><i class="bi bi-x-circle"></i>Reject</button>
+                        <button class="btn btn-soft-danger w-100 mt-2" data-loading-text="Rejecting…"><i class="bi bi-x-circle"></i>Reject</button>
                     </form>
                 </div>
             </div>

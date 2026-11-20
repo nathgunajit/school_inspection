@@ -236,7 +236,7 @@
                 </div>
                 <div class="d-flex flex-column flex-sm-row gap-2 ms-md-auto">
                     <a href="{{ route('login') }}" class="btn btn-light order-2 order-sm-1">Already registered? Sign in</a>
-                    <button class="btn btn-primary px-4 order-1 order-sm-2" type="submit"><i class="bi bi-send"></i>Submit registration</button>
+                    <button class="btn btn-primary px-4 order-1 order-sm-2" type="submit" data-loading-text="Submitting registration…"><i class="bi bi-send"></i>Submit registration</button>
                 </div>
             </div>
         </form>

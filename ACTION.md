@@ -1896,3 +1896,9 @@ Plan approved by the user. Decisions:
 - Standard cases: thin top progress bar after 600 ms; submit button disabled with a spinner (stops double submits); reset on back/forward, after 4 s for downloads, 20 s safety.
 - Files: components/page-loader.blade.php, js/network-status.js, imports/rating/report/login-report views, tests/Feature/PageLoaderTest.php, CLAUDE.md.
 - Result: build OK, 161 tests pass.
+
+## 2026-11-20 — Processing look for Login and every submit button
+- New `resources/js/button-busy.js` (`setBusy` / `clearBusy` / `releaseAll`, `window.SI_BUSY`): ring spinner + processing text + light sweep, width kept, disabled + aria-busy. Text from `data-loading-text`, else from the label (Sign in → "Signing in…", Save → "Saving…", Approve → "Approving…" …).
+- Login / register / password forms: `password-encrypt.js` now fires `si-form-sending`, so the button changes at once (before, its preventDefault skipped the busy state); `fail()` releases it.
+- All other submits via `network-status.js`; Start inspection, Submit inspection (review.js) and Excel Check file use the same look. Styles `_button-busy.scss`.
+- Result: build OK, 162 tests pass.

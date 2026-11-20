@@ -111,9 +111,8 @@ if (f) {
         e.preventDefault();
         if (waiting) { window.toast('Some changes are still on this device. Connect to the network to send them first.', 'warning'); return; }
         if (!box.checked) { window.toast('Please tick the confirmation first.', 'warning'); return; }
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…';
-        const go = () => { f.dataset.go = 1; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting…'; f.submit(); };
+        window.SI_BUSY.setBusy(btn, 'Getting location…');
+        const go = () => { f.dataset.go = 1; btn.querySelector('.btn-busy-text').textContent = 'Submitting inspection…'; window.SI_LOADER?.show('Submitting inspection…'); f.submit(); };
         if (!navigator.geolocation) { go(); return; }
         navigator.geolocation.getCurrentPosition((p) => {
             f.lat.value = p.coords.latitude;

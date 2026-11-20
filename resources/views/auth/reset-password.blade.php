@@ -32,7 +32,7 @@
                 <label class="form-label" for="password_confirmation">Confirm password <span class="req">*</span></label>
                 <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required autocomplete="new-password">
             </div>
-            <button class="btn btn-primary w-100"><i class="bi bi-check2"></i>Reset password</button>
+            <button class="btn btn-primary w-100" data-loading-text="Resetting password…"><i class="bi bi-check2"></i>Reset password</button>
         </form>
     </div>
 </x-layouts.portal>

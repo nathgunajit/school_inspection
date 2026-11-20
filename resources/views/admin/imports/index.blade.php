@@ -154,7 +154,7 @@
                                 <span class="imp-drop-hint">.xlsx, .xls or .csv · up to 20 MB</span>
                             </label>
                             @error('file')<div class="text-danger text-sm mt-1">{{ $message }}</div>@enderror
-                            <button class="btn btn-primary imp-submit mt-3" data-submit><i class="bi bi-search"></i>Check file</button>
+                            <button class="btn btn-primary imp-submit mt-3" data-submit data-loading-text="Checking the file…"><i class="bi bi-search"></i>Check file</button>
                             <div class="form-text">You will see what will be added, updated or renamed before anything is saved.</div>
                         </div>
                     </div>

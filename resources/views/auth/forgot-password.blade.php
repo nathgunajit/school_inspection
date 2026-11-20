@@ -20,7 +20,7 @@
                     @error('mobile')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
-            <button class="btn btn-primary w-100"><i class="bi bi-envelope"></i>Send reset link</button>
+            <button class="btn btn-primary w-100" data-loading-text="Sending reset link…"><i class="bi bi-envelope"></i>Send reset link</button>
         </form>
         <div class="login-help mt-3"><i class="bi bi-info-circle"></i>No email on your account? Ask your State Administrator to reset your password. You'll get a temporary password and must change it after signing in.</div>
         <div class="text-center mt-3 text-sm"><a href="{{ route('login') }}"><i class="bi bi-arrow-left"></i> Back to sign in</a></div>

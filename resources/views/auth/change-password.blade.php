@@ -26,7 +26,7 @@
                             <label class="form-label" for="password_confirmation">Confirm new password</label>
                             <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required autocomplete="new-password">
                         </div>
-                        <button class="btn btn-primary w-100"><i class="bi bi-check2"></i>Update password</button>
+                        <button class="btn btn-primary w-100" data-loading-text="Updating password…"><i class="bi bi-check2"></i>Update password</button>
                     </form>
                 </div>
             </div>

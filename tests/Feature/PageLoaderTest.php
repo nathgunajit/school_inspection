@@ -26,4 +26,9 @@ class PageLoaderTest extends TestCase
         $this->actingAs($admin)->get(route('admin.imports.index'))->assertSee('data-loader="heavy"', false)->assertSee('Checking the file');
         $this->get(route('admin.rating.index'))->assertSee('Re-rating all inspections');
     }
+
+    public function test_login_button_has_processing_text(): void
+    {
+        $this->get(route('login'))->assertSee('data-loading-text="Signing in…"', false);
+    }
 }

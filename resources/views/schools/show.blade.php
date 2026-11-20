@@ -138,8 +138,8 @@
             if (f.dataset.located) return;
             e.preventDefault();
             const btn = document.getElementById('start-btn'), st = document.getElementById('loc-status');
-            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…';
-            const go = () => { f.dataset.located = 1; f.submit(); };
+            window.SI_BUSY ? window.SI_BUSY.setBusy(btn, 'Getting location…') : (btn.disabled = true);
+            const go = () => { f.dataset.located = 1; const t = btn.querySelector('.btn-busy-text'); if (t) t.textContent = 'Starting inspection…'; f.submit(); };
             if (!navigator.geolocation) { st.textContent = 'Location not supported on this device'; return go(); }
             navigator.geolocation.getCurrentPosition((p) => {
                 f.lat.value = p.coords.latitude; f.lng.value = p.coords.longitude; f.accuracy.value = Math.round(p.coords.accuracy);

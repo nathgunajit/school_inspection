@@ -46,11 +46,6 @@ if (root) {
         fileInput.files = dt.files;
         showFile();
     });
-    form.addEventListener('submit', () => {
-        const btn = form.querySelector('[data-submit]');
-        btn.disabled = true;
-        btn.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1"></span>');
-    });
     syncType();
 
     // District report: tap a district to load its blocks

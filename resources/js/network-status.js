@@ -1,3 +1,4 @@
+import { setBusy, releaseAll, submitButtonOf } from './button-busy';
 // Slow / offline internet banner and the branded loader between page loads (see components/page-loader.blade.php).
 const banner = document.getElementById('si-net-banner');
 const loader = window.SI_LOADER;
@@ -45,7 +46,7 @@ if (banner) {
 
 // Leaving a page:
 //  - full splash only when the connection is slow or the form/link is marked data-loader="heavy" (big imports, re-rating, reports)
-//  - otherwise a thin top bar after 600 ms (standard), and the submit button is disabled with a spinner (no double submit)
+//  - otherwise a thin top bar after 600 ms (standard); the submit button shows the processing look (button-busy.js, no double submit)
 if (loader) {
     const topbar = document.getElementById('si-topbar');
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -58,12 +59,7 @@ if (loader) {
         topbar?.classList.remove('is-on');
         loader.hide();
         try { sessionStorage.removeItem('si-loader-handoff'); } catch { /* private mode */ }
-        document.querySelectorAll('[data-si-busy]').forEach((b) => {
-            b.disabled = false;
-            b.removeAttribute('aria-busy');
-            b.removeAttribute('data-si-busy');
-            b.querySelector('.si-btn-spin')?.remove();
-        });
+        releaseAll();
     };
     const leave = (el) => {
         if (!navigator.onLine) return;
@@ -75,13 +71,11 @@ if (loader) {
         }
         setTimeout(reset, 20000); // never stuck (e.g. a response that keeps the page)
     };
-    const busy = (form, submitter) => {
-        const btn = submitter || form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
-        if (!btn || btn.disabled || btn.matches('[data-submit]')) return; // imports.js handles its own button
-        btn.disabled = true;
-        btn.setAttribute('aria-busy', 'true');
-        btn.setAttribute('data-si-busy', '');
-        if (btn.tagName === 'BUTTON') btn.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1 si-btn-spin" aria-hidden="true"></span>');
+    const sendForm = (f, submitter) => {
+        const btn = submitButtonOf(f, submitter);
+        if (btn && !btn.matches('[data-no-busy]')) setBusy(btn);
+        if (!isDownload(submitter?.formAction || f.action) && !submitter?.hasAttribute('formtarget')) leave(f);
+        else setTimeout(reset, 4000); // a download keeps the page: release the button soon
     };
 
     document.addEventListener('click', (e) => {
@@ -97,12 +91,9 @@ if (loader) {
         const f = e.target;
         const submitter = e.submitter;
         if (f.target === '_blank' || f.closest('[data-no-loader]')) return;
-        setTimeout(() => {
-            if (e.defaultPrevented) return; // cancelled confirm, or an AJAX form
-            busy(f, submitter);
-            if (!isDownload(submitter?.formAction || f.action) && !submitter?.hasAttribute('formtarget')) leave(f);
-            else setTimeout(reset, 4000); // a download keeps the page: release the button soon
-        }, 0);
+        setTimeout(() => { if (!e.defaultPrevented) sendForm(f, submitter); }, 0); // prevented = cancelled confirm or AJAX form
     });
+    // Forms sent by script after their own work (password encryption) announce it
+    document.addEventListener('si-form-sending', (e) => sendForm(e.target, e.detail?.submitter));
     window.addEventListener('pageshow', (e) => { if (e.persisted) reset(); });
 }

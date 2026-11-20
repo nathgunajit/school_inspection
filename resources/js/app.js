@@ -1,5 +1,6 @@
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import './button-busy';
 import './password-encrypt';
 import './mobile-input';
 import './date-picker';

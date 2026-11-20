@@ -51,7 +51,7 @@
                     @include('partials.captcha')
                 @endif
 
-                <button class="btn btn-primary w-100" type="submit"><i class="bi bi-box-arrow-in-right"></i>Sign in</button>
+                <button class="btn btn-primary w-100" type="submit" data-loading-text="Signing in…"><i class="bi bi-box-arrow-in-right"></i>Sign in</button>
             </form>
         </div>
 
