@@ -13,14 +13,16 @@ use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * V6 Module 10: rating report (screen, Excel), scoped to the user's jurisdiction.
- * Modification V9: the PDF is removed, and the whole report is hidden (404) unless config('inspection.rating.display').
+ * Modification V9: the PDF is removed.
+ * 20-11-2026: the report is for the State Administrator only (403 for everyone else), whatever RATING_DISPLAY says;
+ * that switch still hides ratings on the other pages.
  */
 class RatingReportController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
         return [new Middleware(function ($request, $next) {
-            abort_unless(config('inspection.rating.display'), 404);
+            abort_unless($request->user()?->can('state_admin'), 403, 'The Rating Report is available to the State Administrator only.');
 
             return $next($request);
         })];

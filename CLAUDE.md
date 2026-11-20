@@ -63,7 +63,8 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`; views in `resources/views/reports/ratings/`). The PDF was removed in V9.
 - Modification V9, rating display switch: `config('inspection.rating.display')` (`RATING_DISPLAY`, default **false**).
   - Ratings are still calculated at submit.
-  - With the switch off they are hidden everywhere users see them: report aside, `<x-rating-badge>`, school page, map (`MapController::withoutRatings()`, `cfg.showRating`), sidebar link, Excel columns. `/reports/ratings*` returns 404 (controller middleware).
+  - With the switch off they are hidden everywhere users see them: report aside, `<x-rating-badge>`, school page, map (`MapController::withoutRatings()`, `cfg.showRating`), Excel columns.
+  - The **Rating Report** (`/reports/ratings*`, sidebar link) is for the **State Administrator only**: anyone else gets 403 (`can:state_admin` in the `RatingReportController` middleware). It is shown to the State Admin even with the switch off.
   - Rating Settings stays for admins.
   - The inspection PDF never prints the rating.
 - Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK).

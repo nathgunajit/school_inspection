@@ -554,7 +554,7 @@ The browser uses it to update the % bar, the stepper badges and "n left in this 
 **Ratings (Modification V9):**
 - The automatic rating is still calculated at submit.
 - It is **not shown** on the report, the lists, the school page, the map, the sidebar Rating Report or the Excel export unless `RATING_DISPLAY=true` (`config('inspection.rating.display')`, default false).
-- With the switch off, `/reports/ratings` returns 404.
+- The **Rating Report** (`/reports/ratings`) is for the **State Administrator only**. Every other officer gets 403 and no sidebar link. The State Admin sees it even with the switch off.
 - These are removed for good:
   - the rating section of the inspection PDF
   - the Rating Report PDF (route `reports.ratings.pdf`)

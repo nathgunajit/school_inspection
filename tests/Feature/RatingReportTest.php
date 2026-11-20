@@ -84,25 +84,28 @@ class RatingReportTest extends TestCase
         $this->assertSame(3, $wide['rated']);
     }
 
-    public function test_officers_see_only_their_jurisdiction(): void
+    public function test_only_the_state_admin_can_open_the_report(): void
+    {
+        $this->seedRatings();
+        foreach ([UserLevel::State, UserLevel::District, UserLevel::Block, UserLevel::Cluster] as $level) {
+            $officer = $this->officer($level, $this->north);
+            $this->actingAs($officer)->get(route('reports.ratings'))->assertForbidden();
+            $this->actingAs($officer)->get(route('reports.ratings.export'))->assertForbidden();
+            $this->actingAs($officer)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
+        }
+        $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()->assertSee('Rating Report');
+    }
+
+    public function test_report_service_still_scopes_to_the_jurisdiction(): void
     {
         ['school' => $school, 'other' => $other] = $this->seedRatings();
+        $svc = app(\App\Services\RatingReportService::class);
+        $f = $svc->filters(\Illuminate\Http\Request::create('/reports/ratings', 'GET'));
+
         $district = $this->officer(UserLevel::District, $this->north);
-
-        $res = $this->actingAs($district)->get(route('reports.ratings'))->assertOk();
-        $this->assertSame(1, $res->viewData('summary')['rated']);
-        $this->assertSame('block', $res->viewData('areaLevel'));
-        $res->assertSee($school->name)->assertDontSee($other->school->name);
-
-        // asking for another district's area returns nothing from it
-        $res = $this->actingAs($district)->get(route('reports.ratings', ['district_id' => $this->south->block->district_id]))->assertOk();
-        $this->assertSame(0, $res->viewData('summary')['rated']);
-        $res->assertSee('No rated inspections');
-
-        $cluster = $this->officer(UserLevel::Cluster, $this->south);
-        $res = $this->actingAs($cluster)->get(route('reports.ratings'))->assertOk();
-        $this->assertSame(1, $res->viewData('summary')['rated']);
-        $this->assertNull($res->viewData('areaLevel'));
+        $this->assertSame(1, $svc->summary($district, $f)['rated']);
+        $names = $svc->schools($district, $f)->pluck('school.name')->all();
+        $this->assertNotContains($other->school->name, $names);
     }
 
     public function test_filters_band_cluster_and_validation(): void
@@ -124,19 +127,19 @@ class RatingReportTest extends TestCase
         $this->actingAs($admin)->get(route('reports.ratings', ['from' => '2026-05-01', 'to' => '2026-01-01']))->assertSessionHasErrors('to');
     }
 
-    public function test_hidden_by_default_modification_v9(): void
+    public function test_state_admin_sees_the_report_even_with_ratings_hidden_elsewhere(): void
     {
         config(['inspection.rating.display' => false]);
         $admin = $this->admin();
-        $this->actingAs($admin)->get(route('reports.ratings'))->assertNotFound();
-        $this->actingAs($admin)->get(route('reports.ratings.export'))->assertNotFound();
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
+        $this->actingAs($admin)->get(route('reports.ratings'))->assertOk();
+        $this->actingAs($admin)->get(route('reports.ratings.export'))->assertOk();
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Rating Report');
     }
 
     public function test_excel_export_and_no_pdf(): void
     {
         $this->seedRatings();
-        $officer = $this->officer(UserLevel::District, $this->north);
+        $officer = $this->admin();
 
         $xlsx = $this->actingAs($officer)->get(route('reports.ratings.export', ['from' => now()->subYear()->toDateString()]))->assertOk();
         $this->assertStringContainsString('spreadsheetml', $xlsx->headers->get('content-type'));
@@ -145,15 +148,5 @@ class RatingReportTest extends TestCase
         $this->actingAs($officer)->get('/reports/ratings/pdf')->assertNotFound();
         $this->actingAs($officer)->get(route('reports.ratings'))->assertOk()->assertDontSee('bi-file-earmark-pdf', false);
         $this->assertSame(1, \App\Models\AuditLog::where('action', 'rating_report_exported')->count());
-
-        // without view_reports (role right removed): 403; without export_excel: no Excel
-        $role = \App\Models\Role::where('slug', 'district')->first();
-        $role->permissions()->detach(\App\Models\Permission::where('slug', \App\Models\Permission::EXPORT_EXCEL)->value('id'));
-        app()->forgetInstance(\App\Services\PermissionService::class);
-        $this->actingAs($officer->fresh())->get(route('reports.ratings'))->assertOk();
-        $this->actingAs($officer->fresh())->get(route('reports.ratings.export'))->assertForbidden();
-        $role->permissions()->detach(\App\Models\Permission::where('slug', \App\Models\Permission::VIEW_REPORTS)->value('id'));
-        app()->forgetInstance(\App\Services\PermissionService::class);
-        $this->actingAs($officer->fresh())->get(route('reports.ratings'))->assertForbidden();
     }
 }

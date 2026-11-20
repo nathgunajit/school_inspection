@@ -2060,3 +2060,14 @@ Plan approved by the user. Decisions:
   - `npm run build`: OK
   - a sample PDF rendered without errors
   - Not checked visually in a browser or PDF viewer.
+
+## 2026-11-20 — Rating Report: State Administrator only
+- `/reports/ratings` and `/reports/ratings/export` are now for the **State Administrator only**. Every other officer (State, District, Block, Cluster) gets 403, and the sidebar link shows only for the State Admin.
+- The State Admin sees the report even when `RATING_DISPLAY=false`. That switch still hides ratings on the other pages (report aside, lists, school page, map, Excel).
+- Files:
+  - app/Http/Controllers/RatingReportController.php
+  - resources/views/components/layouts/app.blade.php
+  - tests: RatingReport, ModificationV9
+  - CLAUDE.md
+  - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
+- Verified: `php artisan test`: 180 passed.

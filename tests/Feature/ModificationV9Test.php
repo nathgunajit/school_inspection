@@ -148,8 +148,10 @@ class ModificationV9Test extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin)->get(route('map.index'))->assertOk()->assertDontSee('colourRating', false);
         $this->actingAs($admin)->get(route('map.schools', ['cluster' => $i->cluster_id]))->assertOk()->assertJsonMissingPath('rows.0.rating');
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
-        $this->actingAs($admin)->get(route('reports.ratings'))->assertNotFound();
+        // Rating Report: State Administrator only (shown to them even with the switch off); officers get 403
+        $this->actingAs($admin)->get(route('reports.ratings'))->assertOk();
+        $this->actingAs($i->officer)->get(route('reports.ratings'))->assertForbidden();
+        $this->actingAs($i->officer)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
 
         // shown again with the switch on, except in the inspection PDF (section removed in V9)
         config(['inspection.rating.display' => true]);

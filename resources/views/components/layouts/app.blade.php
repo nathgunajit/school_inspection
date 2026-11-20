@@ -28,9 +28,8 @@
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
     ];
-    if (config('inspection.rating.display')) { // Modification V9: Rating Report hidden unless RATING_DISPLAY=true
-        array_splice($nav, 4, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'view_reports']]);
-    }
+    // Rating Report: State Administrator only (20-11-2026)
+    array_splice($nav, 4, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
 @endphp
 
