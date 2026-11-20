@@ -10,6 +10,7 @@ use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CoverageReportController;
 use App\Http\Controllers\RatingReportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
@@ -86,6 +87,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::delete('/evidence/{evidence}', [EvidenceController::class, 'destroy'])->name('evidence.destroy');
 
         Route::get('/inspections', [ReportController::class, 'area'])->middleware('can:view_reports')->name('inspections.area');
+        // Inspection Coverage Report (District / Block / Cluster wise) and its configurable coverage period
+        Route::prefix('reports/coverage')->name('reports.coverage')->group(function () {
+            Route::get('/', [CoverageReportController::class, 'index'])->middleware('can:view_reports')->name('');
+            Route::get('/export', [CoverageReportController::class, 'export'])->middleware(['can:view_reports', 'can:export_excel'])->name('.export');
+            Route::get('/settings', [CoverageReportController::class, 'settings'])->middleware('can:configure_coverage')->name('.settings');
+            Route::put('/settings', [CoverageReportController::class, 'updateSettings'])->middleware('can:configure_coverage')->name('.settings.update');
+        });
         // V6 Module 10: rating report
         Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
             Route::get('/', [RatingReportController::class, 'index'])->name('');

@@ -48,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
             Gate::define($slug, fn (User $user) => app(PermissionService::class)->has($user, $slug));
         }
         Gate::define('state_admin', fn (User $user) => $user->isStateAdmin() && $user->isActive());
+        // Inspection Coverage Report settings: the State Admin (state default) or a District officer with Manage users (own district)
+        Gate::define('configure_coverage', fn (User $user) => $user->isActive() && ($user->isStateAdmin()
+            || ($user->level === \App\Enums\UserLevel::District && app(PermissionService::class)->has($user, Permission::MANAGE_USERS))));
 
         RateLimiter::for('login', fn (Request $r) => config('inspection.loadtest') && ! app()->isProduction()
             ? Limit::none() // load test from one machine (Product Details/LOAD_TEST.md); never in production

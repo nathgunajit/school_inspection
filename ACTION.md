@@ -2071,3 +2071,39 @@ Plan approved by the user. Decisions:
   - CLAUDE.md
   - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
 - Verified: `php artisan test`: 180 passed.
+
+## 2026-11-20 — Inspection Coverage Report with an admin-configurable coverage period
+- New report **`/reports/coverage`** (sidebar "Coverage Report", `view_reports`, jurisdiction-scoped).
+  - **District-wise / Block-wise / Cluster-wise** tabs, ordered by unique schools visited (high → low). Other orders: visit %, inspection %, total schools, not visited, name.
+  - Each table has a total row and drills down to the schools of a cluster, with not-visited schools first.
+- Two measures:
+  - **Visit Coverage:** at least one *verified* visit (location within the radius of the school) in the period.
+  - **Inspection Coverage:** a *submitted* inspection within the prescribed inspection cycle.
+  - Also shown: repeat visits, unverified visits, not visited, due in cycle, officers active, last visit, and Good / Moderate / Low / Critical bands.
+- **Configurable period** (`coverage_settings`, `/reports/coverage/settings`):
+  - The State Admin sets the state default: Daily, Weekly, Monthly, Quarterly or Custom range, plus the inspection cycle (monthly / quarterly / half-yearly / yearly) and the verification radius.
+  - A District officer with Manage users sets their own district's period and cycle, or goes back to the state default.
+  - Every change is audited.
+  - Viewers can move ‹ › between periods or pick another one.
+- **Excel** (audited `coverage_report_exported`): Summary, District / Block / Cluster-wise, Schools not visited, Due in cycle.
+- Files:
+  - database/migrations/2026_11_20_000003_create_coverage_settings.php
+  - app/Models/CoverageSetting.php
+  - app/Support/CoveragePeriod.php
+  - app/Services/CoverageReportService.php
+  - app/Http/Controllers/CoverageReportController.php
+  - app/Providers/AppServiceProvider.php (gate `configure_coverage`)
+  - config/inspection.php (`coverage`)
+  - routes/web.php
+  - resources/views/reports/coverage/{index,settings}.blade.php
+  - components/layouts/app.blade.php
+  - resources/scss/app.scss
+  - tests/Feature/CoverageReportTest.php (7 tests)
+  - CLAUDE.md
+  - Product Details/PROJECT_DOCUMENT.md (and the rebuilt docx)
+- Verified:
+  - `php artisan test`: 187 passed
+  - `npm run build`: OK
+  - `php artisan migrate` (local)
+  - the service ran against local MySQL with monthly, quarterly and weekly periods
+  - Not checked visually in a browser.

@@ -60,6 +60,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - V6 Module 9: `School::latestRatedInspection` (latest submitted rated inspection; eager-load `latestRatedInspection.rating`) and `latestRating()` feed the school page header, the Find School list and the map.
   - `MapDataService` adds `rating` to school rows and a period average to area rows (`areaRatings()`).
   - The map has a "Colour schools by Status / Rating" switch.
+- Inspection Coverage Report:
+  - Code: `CoverageReportService`, `CoverageReportController` (`/reports/coverage`, `/export`, `/settings`), views in `resources/views/reports/coverage/`.
+  - **Visit Coverage**: schools with at least one *verified* visit (not cancelled; start / submit location or a geo-tagged photo within `verify_radius_m` of the school; a school without GPS accepts any location) in the period.
+  - **Inspection Coverage**: schools with a *submitted* or unlocked inspection in the inspection-cycle window (`App\Support\CoveragePeriod::cycle()`) that contains the period end.
+  - The period comes from `coverage_settings` (`CoverageSetting::forDistrict()`: district override, else state default; the radius always comes from the state row). Gate `configure_coverage`: the State Admin, or a District officer with `manage_users` (own district only).
+  - Areas use the school's own district / block / cluster. Verification runs in PHP (`Inspection::haversine()`), and the query count is fixed.
 - Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`; views in `resources/views/reports/ratings/`). The PDF was removed in V9.
 - Modification V9, rating display switch: `config('inspection.rating.display')` (`RATING_DISPLAY`, default **false**).
   - Ratings are still calculated at submit.

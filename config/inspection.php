@@ -103,6 +103,15 @@ return [
         'display' => (bool) env('RATING_DISPLAY', false),
     ],
 
+    // Inspection Coverage Report: defaults used until the State Admin saves a coverage setting
+    // (table coverage_settings). Bands colour the coverage % per area (minimum % => label, colour).
+    'coverage' => [
+        'period_type' => 'monthly',        // daily | weekly | monthly | quarterly | custom
+        'inspection_cycle' => 'quarterly', // monthly | quarterly | half_yearly | yearly
+        'verify_radius_m' => 500,          // a visit is verified when a location is within this distance of the school
+        'bands' => [75 => ['Good', 'success'], 50 => ['Moderate', 'primary'], 25 => ['Low', 'warning'], 0 => ['Critical', 'danger']],
+    ],
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,

@@ -255,7 +255,26 @@ flowchart TD
     RR[Rating Report, V6<br/>bands, sections, areas, schools,<br/>change since previous rating] --> RX[Excel: one row per rated inspection]
     RR --> RP[PDF: official header, tables, bars]
 ```
-Counts at the top of the area list: schools in the area, schools inspected in the period, and inspections submitted. The **Rating Report** (V6 Module 10) is described in 4.10.
+Counts at the top of the area list: schools in the area, schools inspected in the period, and inspections submitted. The **Rating Report** (V6 Module 10) is described in 4.10. Since 20-11-2026 it is for the State Administrator only.
+
+#### Inspection Coverage Report (20-11-2026)
+`/reports/coverage` (sidebar **Coverage Report**, `view_reports`). It shows how much of the school network was covered, **District-wise, Block-wise and Cluster-wise**, in descending order of unique schools visited (other orders can be chosen). It is scoped to the viewer's jurisdiction.
+
+| Measure | How it is counted |
+|---|---|
+| Assigned schools | Active schools of the area in the School Master |
+| **Visit Coverage** | Schools with at least one **verified visit** in the coverage period ÷ assigned schools. A visit is any inspection that was not cancelled (draft or submitted). It is verified when the start location, the submit location or a geo-tagged photo is within the radius (default 500 m) of the school. If the school has no GPS in the master, any captured location counts. |
+| **Inspection Coverage** | Schools with a **submitted** formal inspection within the prescribed **inspection cycle** (monthly, quarterly, half-yearly Apr–Sep / Oct–Mar, or yearly Apr–Mar) that contains the end of the period ÷ assigned schools. A school without one is **due**. |
+| Repeat / unverified | Repeat = verified visits − unique schools visited. Unverified visits (no location, or too far) are shown but not counted. |
+| Bands | Good ≥ 75 %, Moderate 50–74.9 %, Low 25–49.9 %, Critical below 25 % |
+
+- **Configurable coverage period** (`coverage_settings`, page `/reports/coverage/settings`):
+  - The State Admin sets the state default: Daily, Weekly (Mon–Sun), Monthly, Quarterly or a Custom date range, plus the inspection cycle and the verification radius.
+  - A **District officer with the Manage users right** can give their own district its own period and cycle, or go back to the state default.
+  - Every change is audited.
+  - Viewers can step back and forward (‹ ›) or pick another period for their own view.
+- **Drill-down:** District → Blocks → Clusters → the schools of a cluster. The school list shows not-visited schools first, the visit status (Visited n× / Unverified only / Not visited) and the cycle status (Inspected / Due).
+- **Excel** (audited): sheets Summary, District-wise, Block-wise, Cluster-wise, Schools not visited and Due in cycle.
 
 ### 4.7 Administration
 ```mermaid
