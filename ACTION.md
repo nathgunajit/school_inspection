@@ -1730,3 +1730,18 @@ Plan approved by the user. Decisions:
     - re-activation and transfer refused
   - Full suite: **142 passed** (1,708 assertions).
 - **Found in the local MySQL data (not changed):** Hillview Cluster 1 already has 3 active Cluster officers (Test User, GUNAJIT NATH, Rohit Nath). The demo pending officer Amit Phukan (Riverside Cluster 1, where Arjun Saikia is active) can no longer be approved; this is the intended behaviour.
+
+## 2026-11-20 · Duplicate-officer rule: Cluster level only (user clarification)
+
+- **Request:** only Cluster-level officers are prevented from being added twice in the same area. Other users (State, District, Block) can register and be approved as usual.
+- **Done:**
+  - `AreaOfficerGuard` is now fixed to the Cluster level: `appliesTo()` is true only for `UserLevel::Cluster`.
+  - The configurable level list was removed: `config('inspection.single_officer_levels')` / `SINGLE_OFFICER_LEVELS` no longer exist, so the rule cannot be extended by an `.env` edit.
+  - `RegisterRequest` always reports the error on `cluster_id`.
+  - Approval, re-activation and transfer are unchanged; they return no holder for non-cluster levels.
+- **Files:** `app/Services/AreaOfficerGuard.php`, `config/inspection.php`, `app/Http/Requests/RegisterRequest.php`, `tests/Feature/OneOfficerPerClusterTest.php`, `CLAUDE.md` (rule 15), `Product Details/PROJECT_DOCUMENT.md` (section 13), Word file rebuilt.
+- **Verification:**
+  - The test now registers a second Block, District and State officer for an area that already has an active officer at each level.
+  - All three are accepted (Pending) and approved without error.
+  - Cluster duplicates are still refused.
+  - Full suite: **142 passed** (1,721 assertions).

@@ -76,9 +76,24 @@ class OneOfficerPerClusterTest extends TestCase
 
         $this->post(route('register'), $this->payload($this->otherCluster($cluster)))->assertRedirect(route('login'));
 
-        // a second Block officer for the same block is still allowed (rule is for clusters only by default)
-        $this->post(route('register'), $this->payload($cluster, ['level' => 'block', 'cluster_id' => null, 'mobile' => '9876543211',
-            'designation_id' => MasterValue::ofType('designation')->first()->id]))->assertRedirect(route('login'));
+        // Cluster level only: State, District and Block may have several active officers
+        $this->officer(UserLevel::District, $cluster);
+        $this->officer(UserLevel::State, $cluster);
+        $designation = MasterValue::ofType('designation')->first()->id;
+        $other = ['designation_id' => $designation, 'cluster_id' => null];
+        $this->post(route('register'), $this->payload($cluster, $other + ['level' => 'block', 'mobile' => '9876543211']))->assertRedirect(route('login'));
+        $this->post(route('register'), $this->payload($cluster, $other + ['level' => 'district', 'block_id' => null, 'mobile' => '9876543212']))->assertRedirect(route('login'));
+        $this->post(route('register'), $this->payload($cluster, $other + ['level' => 'state', 'block_id' => null, 'district_id' => null, 'mobile' => '9876543213']))->assertRedirect(route('login'));
+
+        // and they can be approved even though an officer of that level is already active there
+        $admin = $this->admin();
+        foreach (['9876543211', '9876543212', '9876543213'] as $mobile) {
+            $u = User::where('mobile', $mobile)->first();
+            $this->assertSame(UserStatus::Pending, $u->status);
+            $this->actingAs($admin)->post(route('admin.approvals.approve', RegistrationRequest::where('user_id', $u->id)->first()))
+                ->assertSessionMissing('error');
+            $this->assertSame(UserStatus::Active, $u->fresh()->status, "$mobile approved");
+        }
     }
 
     public function test_approval_is_blocked_when_another_officer_became_active(): void

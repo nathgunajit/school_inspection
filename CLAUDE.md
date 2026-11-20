@@ -118,7 +118,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - Plain text is refused unless `PASSWORD_ENCRYPTION_REQUIRED=false` (as in phpunit.xml) or load-test mode is on.
     - In tests, post `app(PasswordCrypto::class)->encryptForSession($pw)` after a GET, which creates the nonce.
     - Never submit a password form with `form.submit()`: it skips the submit event, so the password is not encrypted.
-15. **One active officer per cluster** (`AreaOfficerGuard`; levels in `config('inspection.single_officer_levels')`, default `cluster`).
+15. **One active officer per cluster, Cluster level only** (`AreaOfficerGuard`). State, District and Block officers are not limited and may share an area.
     - Active or Locked officers hold the cluster. Pending, Rejected and Inactive officers do not.
     - Checked at registration, approval, re-activation and transfer.
     - The message names the existing officer with a masked mobile.
