@@ -1883,3 +1883,9 @@ Plan approved by the user. Decisions:
 - Field names unchanged, saving unaffected.
 - Files: resources/views/admin/rating/index.blade.php, resources/scss/_rating-settings.scss, resources/js/rating-settings.js, tests/Feature/InspectionRatingTest.php
 - Verified: `npm run build` OK; `php artisan test` 158 passed. Not checked visually in a browser.
+
+## 2026-11-20 — Branded page loader + slow / offline internet warning
+- Loader `<x-page-loader />` (both layouts): Samagra Shiksha logo in a spinning blue/orange ring, "School Inspection", "Samagra Shiksha, Assam", dot pulse. Inline critical CSS (shows before app.css on slow networks), appears only after 250 ms, hides on `load`, 12 s safety, re-shows on normal link click / form submit (skips downloads, exports, new tabs, `data-no-loader`), bfcache safe, reduced-motion aware.
+- `resources/js/network-status.js`: banner `#si-net-banner` — slow (Network Information API 2g / downlink < 0.5 / rtt > 1500, or page load > 8 s), offline, back online (3 s). Slow warning dismissible per session.
+- Files: components/page-loader.blade.php, layouts/app + portal, js/network-status.js, js/app.js, scss/_page-loader.scss, scss/app.scss, tests/Feature/PageLoaderTest.php, CLAUDE.md.
+- Result: build OK; 160 tests, all pass (one known flaky assertion in InspectionFlowTest — random photo name can end in "p.jpg" — passed on re-run).

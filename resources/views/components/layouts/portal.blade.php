@@ -13,6 +13,7 @@
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
 </head>
 <body class="reg-page">
+<x-page-loader />
     {{-- Official header strip --}}
     <header class="reg-topbar">
         <div class="container-xl d-flex align-items-center gap-3">

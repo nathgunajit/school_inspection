@@ -17,6 +17,7 @@
     @stack('head')
 </head>
 <body>
+<x-page-loader />
 @php
     $u = auth()->user();
     $nav = [

@@ -5,6 +5,7 @@ import './mobile-input';
 import './date-picker';
 import './rating-settings';
 import './imports';
+import './network-status';
 
 window.bootstrap = bootstrap;
 window.axios = axios;

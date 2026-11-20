@@ -1,0 +1,13 @@
+// Slow / offline internet banner (resources/js/network-status.js). The loader's own CSS is inline in components/page-loader.
+.si-net-banner { position: fixed; z-index: 1990; left: 50%; transform: translateX(-50%); top: calc(.6rem + env(safe-area-inset-top, 0px));
+    width: min(36rem, calc(100% - 1.2rem)); display: flex; align-items: center; gap: .6rem; padding: .45rem .5rem .45rem .9rem;
+    border-radius: 12px; font-size: .8rem; font-weight: 600; box-shadow: 0 10px 28px rgba(16, 42, 84, .18); animation: siNetIn .25s ease;
+    > i { font-size: 1.05rem; flex: 0 0 auto; }
+    > span { flex: 1 1 auto; line-height: 1.35; }
+    &.is-warning { background: #fff7ed; color: #9a4b05; border: 1px solid #fcd9a8; }
+    &.is-danger { background: #fef2f2; color: #a61b1b; border: 1px solid #f9c4c4; }
+    &.is-success { background: #ecfdf3; color: #15723a; border: 1px solid #b4e8c7; }
+    &[hidden] { display: none; } }
+.si-net-close { flex: 0 0 auto; width: 44px; height: 32px; border: 0; background: transparent; color: inherit; font-size: 1.3rem; line-height: 1; border-radius: 8px; opacity: .7;
+    &:hover { opacity: 1; background: rgba(0, 0, 0, .05); } }
+@keyframes siNetIn { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
