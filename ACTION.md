@@ -1832,3 +1832,14 @@ Plan approved by the user. Decisions:
   - Full suite: **150 passed** (1,786 assertions).
   - `npm run build` passed.
 - **Not verified:** a visual check in the browser.
+
+## 2026-11-20: Attractive, clean date picker on every date field
+- Added `flatpickr` (bundled). New `resources/js/date-picker.js` (imported in `app.js`) enhances every `<input type="date">`:
+  - shows the date as "20 Nov 2026" with a blue calendar icon
+  - rounded calendar card with soft shadow, theme blue for the selected day, outlined today, greyed disabled days, Today / Clear buttons, short open animation
+  - `min` / `max` respected; the original input keeps `Y-m-d` and still fires `change`, so forms, `data-autosubmit`, the wizard answer save and the Map View filters work unchanged
+  - same look on phones (native picker disabled)
+- `map.js`: Reset re-syncs the From / To pickers (`fp-sync` event).
+- Styles at the end of `resources/scss/app.scss`.
+- Files: package.json, package-lock.json, resources/js/date-picker.js, resources/js/app.js, resources/js/map.js, resources/scss/app.scss
+- Verified: `npm run build` OK; `php artisan test` 150 passed. Not checked visually in a browser.

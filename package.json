@@ -28,5 +28,8 @@
         "Safari >= 15",
         "ChromeAndroid >= 100",
         "iOS >= 15"
-    ]
+    ],
+    "dependencies": {
+        "flatpickr": "^4.6.13"
+    }
 }

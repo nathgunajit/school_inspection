@@ -2,6 +2,7 @@ import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import './password-encrypt';
 import './mobile-input';
+import './date-picker';
 
 window.bootstrap = bootstrap;
 window.axios = axios;

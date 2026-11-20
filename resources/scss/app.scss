@@ -1887,3 +1887,41 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 
 /* Small, standard filters on list pages (same look as the Map View filters) */
 .filter-sm { padding: .7rem .85rem; .row { --bs-gutter-y: .5rem; --bs-gutter-x: .6rem; } }
+
+// =============================================================
+//  Date picker (flatpickr): clean, elegant calendar in the theme colours
+// =============================================================
+.flatpickr-input.form-control[readonly] { background-color: var(--bs-body-bg); cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%231565c0' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .7rem center; background-size: 14px; padding-right: 2.1rem; }
+.flatpickr-input.form-control-sm[readonly] { background-position: right .55rem center; background-size: 12px; padding-right: 1.8rem; }
+.flatpickr-calendar { font-family: inherit; border: 1px solid rgba($primary, .12); border-radius: 14px; padding: .4rem .4rem .2rem;
+    box-shadow: 0 14px 38px rgba(16, 42, 84, .16), 0 2px 6px rgba(16, 42, 84, .06); width: auto;
+    &::before, &::after { display: none; }
+    &.open { animation: fpIn .16s ease-out; }
+    .flatpickr-months { align-items: center; padding: .15rem 0 .35rem;
+        .flatpickr-month { height: 38px; color: $body-color; }
+        .flatpickr-prev-month, .flatpickr-next-month { position: static; height: 32px; width: 32px; padding: 0; display: grid; place-items: center;
+            border-radius: 50%; color: $primary; font-size: .85rem; transition: background .15s;
+            &:hover { background: rgba($primary, .1); color: $primary; }
+            &.flatpickr-disabled { opacity: .3; } } }
+    .flatpickr-current-month { font-size: .95rem; font-weight: 700; padding-top: 8px; left: 0; width: 100%; position: relative;
+        .cur-month { font-weight: 700; margin-left: 0; }
+        input.cur-year { font-weight: 600; color: $secondary; }
+        .numInputWrapper:hover { background: transparent; } }
+    .flatpickr-weekdays { height: 28px; }
+    span.flatpickr-weekday { font-size: .68rem; font-weight: 700; color: $secondary; text-transform: uppercase; letter-spacing: .04em; }
+    .flatpickr-day { border-radius: 10px; font-size: .82rem; font-weight: 500; color: $body-color; height: 36px; line-height: 36px; max-width: 36px; margin: 1px 0; border: 0;
+        &:hover, &:focus { background: rgba($primary, .09); }
+        &.today { box-shadow: inset 0 0 0 1.5px rgba($primary, .55); color: $primary; font-weight: 700; }
+        &.selected, &.selected:hover { background: $primary; color: #fff; box-shadow: 0 4px 10px rgba($primary, .35); }
+        &.prevMonthDay, &.nextMonthDay { color: rgba($secondary, .45); }
+        &.flatpickr-disabled, &.flatpickr-disabled:hover { color: rgba($secondary, .3); background: transparent; cursor: not-allowed; } }
+    .fp-actions { display: flex; justify-content: space-between; border-top: 1px solid rgba($primary, .08); margin-top: .3rem; padding: .35rem .3rem .15rem;
+        button { border: 0; background: transparent; color: $primary; font-size: .78rem; font-weight: 600; padding: .3rem .6rem; border-radius: 8px;
+            &:hover { background: rgba($primary, .08); }
+            &[data-fp-clear] { color: $secondary; } } }
+}
+@keyframes fpIn { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+[data-bs-theme="dark"] .flatpickr-calendar { background: #1f2630; border-color: rgba(255,255,255,.08);
+    .flatpickr-day, .flatpickr-month { color: #e6e9ee; } }

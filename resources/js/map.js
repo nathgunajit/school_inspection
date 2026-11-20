@@ -320,6 +320,7 @@ if (el) {
         $('fOfficer').value = '';
         $('fFrom').value = $('fFrom').defaultValue;
         $('fTo').value = $('fTo').defaultValue;
+        ['fFrom', 'fTo'].forEach((id) => $(id).dispatchEvent(new Event('fp-sync')));
         $('fSchool').value = '';
         load(start.level, start.parent);
     });
