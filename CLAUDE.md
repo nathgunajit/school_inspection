@@ -74,9 +74,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)
-  3. Absentee rows (`inspection_absent_teachers`)
+  3. Absentee rows (`inspection_absent_teachers`), or `ABS_00` "All teachers present"; one of them is required (`InspectionValidator`)
   4. Classroom rows (`inspection_classroom_observations`)
-  5. Fund by financial year in lakh (`inspection_fund_positions`)
+  5. Fund by financial year in lakh (`inspection_fund_positions`); at least one year is required
   6. Governance (`GOVR_*`) + 3 suggestions
   7. Photographs: 4 mandatory categories from `config('inspection.mandatory_photos')`
 

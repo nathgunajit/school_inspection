@@ -112,6 +112,8 @@ Every step page has the same frame:
 ### Step 3: Teachers Absentee Form
 ![Step 3](../docs/screenshots/07-step3-absentee.png)
 
+> **Completion (20-11-2026):** the step shows **Not started** until the officer acts, and becomes **Done** when at least one absent teacher is added **or** the switch **ABS_00 "All teachers present"** is ticked. Both together is an error ("remove the absent teachers, or untick"). While rows exist, the switch is locked; when it is ticked, the add form is hidden. Required before Submit.
+
 - Add one row per absent teacher:
   - **name** (2–120 characters)
   - **type:** Regular Teacher / Contractual Teacher / Tutor
@@ -134,6 +136,7 @@ Every step page has the same frame:
 
 ### Step 5: Fund Received & Expenditure
 ![Step 5](../docs/screenshots/09-step5-fund.png)
+> **Completion (20-11-2026):** the step shows **Not started** until at least one financial year is saved, then **Done**. At least one year is required before Submit (it was optional).
 
 1. **Choose the financial year:** the current one and the 5 before it, e.g. `FY-2026-27`.
 2. **Enter the amounts in lakh** (up to 2 decimals, 0–99,999), received and expenditure for each head:

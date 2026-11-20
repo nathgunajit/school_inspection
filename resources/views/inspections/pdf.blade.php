@@ -130,7 +130,7 @@
 @foreach ($steps as $n => $st)
     @continue($n === count($steps))
     <h2>{{ $n + 1 }}. {{ $st['title'] }}</h2>
-    @php $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_'))->filter(fn ($q) => V::visible($q, $answers))->values(); @endphp
+    @php $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_') || $q['code'] === 'ABS_00')->filter(fn ($q) => V::visible($q, $answers))->values(); @endphp
     @if ($qs->isNotEmpty())
         <table class="ans">
             @foreach ($qs as $i => $q)
@@ -162,7 +162,7 @@
             <table class="grid"><tr><th>Teacher's name</th><th>Teacher's type</th><th>Reason for absence</th><th>Remarks</th></tr>
                 @foreach ($inspection->absentTeachers as $t)<tr><td>{{ $t->teacher_name }}</td><td>{{ $t->typeLabel() }}</td><td>{{ $t->reasonLabel() }}</td><td>{{ $t->remarks }}</td></tr>@endforeach
             </table>
-        @else <p class="muted">No absent teachers recorded.</p> @endif
+        @else <p class="muted">{{ V::allTeachersPresent($answers) ? 'All teachers present (no absent teacher).' : 'No absent teachers recorded.' }}</p> @endif
     @endif
     @if ($n === 4)
         @if ($inspection->classroomObservations->isNotEmpty())

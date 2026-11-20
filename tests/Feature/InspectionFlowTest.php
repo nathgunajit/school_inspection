@@ -77,6 +77,8 @@ class InspectionFlowTest extends TestCase
             $this->answer($i, $code, $v)->assertOk();
         }
         $this->classroom($i)->assertOk();
+        // step 3 is done through ABS_00 (all teachers present, answered above); step 5 needs one fund year
+        $this->postJson(route('inspections.funds.store', $i), ['financial_year' => \App\Models\InspectionFundPosition::financialYears()[0], 'asg_received' => 1])->assertOk();
         foreach (array_keys(config('inspection.mandatory_photos')) as $cat) {
             $this->photo($i, $cat)->assertCreated();
         }

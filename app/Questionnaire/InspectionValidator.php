@@ -113,6 +113,12 @@ class InspectionValidator
         return false;
     }
 
+    /** Step 3 switch ABS_00 ("All teachers present") is ticked. */
+    public static function allTeachersPresent(array $answers): bool
+    {
+        return in_array('yes', (array) ($answers['ABS_00'] ?? []), true);
+    }
+
     /** Last step holds the photographs. */
     public static function photoStep(): int
     {
@@ -154,6 +160,20 @@ class InspectionValidator
         // Step 2: teacher numbers must agree (blocking). Checked only once the numbers are entered.
         foreach ($this->teacherConsistency() as [$code, $msg]) {
             $add(2, $code, $msg);
+        }
+
+        // Step 3: absent teachers added, or "all teachers present" ticked (not both)
+        $allPresent = self::allTeachersPresent($this->answers);
+        $absentRows = $this->inspection->absentTeachers->count();
+        if (! $allPresent && $absentRows === 0) {
+            $add(3, 'ABSENTEE', "Add the absent teachers, or tick 'All teachers present'");
+        } elseif ($allPresent && $absentRows > 0) {
+            $add(3, 'ABS_00', "Remove the absent teachers, or untick 'All teachers present'");
+        }
+
+        // Step 5: fund details for at least one financial year
+        if ($this->inspection->fundPositions->isEmpty()) {
+            $add(5, 'FUND', 'Enter the fund details for at least one financial year');
         }
 
         // Step 4: at least one classroom observed
@@ -239,8 +259,8 @@ class InspectionValidator
                     $req++;
                 }
             }
-            if ($step === 4) {
-                $req++;
+            if (in_array($step, [3, 4, 5], true)) {
+                $req++; // absentee (or all present), one classroom, one fund year
             }
             if ($step === $photoStep) {
                 $req += count(config('inspection.mandatory_photos'));

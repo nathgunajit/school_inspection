@@ -218,6 +218,7 @@ function saveAnswer(block, value) {
     clearQuestionError(block);
     SI.answers[code] = value;
     refreshRules();
+    if (code === 'ABS_00') syncAllPresent();
     return queue(() => axios.post(SI.saveUrl, { code, value }), (errors, message) => {
         questionError(block, (errors.value || [])[0] || message || 'Please check this answer.');
         refreshRules();
@@ -382,7 +383,7 @@ const SRC = { ssa: 'SSA', govt: 'Govt', other: 'Other' };
 const sections = {
     teachers: {
         list: '#teacher-list', form: '#teacher-form', key: 'teachers', done: 'Teacher added', updated: 'Teacher updated',
-        empty: '<i class="bi bi-person-check"></i><strong>No absent teachers</strong><span>Leave this empty if all teachers were present.</span>',
+        empty: '<i class="bi bi-person-x"></i><strong>No absent teachers added</strong><span>Add each absent teacher below, or tick "All teachers present" above.</span>',
         row: (t, i) => `<div class="rs-item" data-id="${esc(t.id)}">
             <span class="rs-avatar tone-danger">${esc(initials(t.teacher_name))}</span>
             <div class="rs-body">
@@ -405,7 +406,7 @@ const sections = {
     },
     funds: {
         list: '#fund-list', form: '#fund-form', key: 'funds', done: 'Year saved',
-        empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>This step is optional.</span>',
+        empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>Save the fund details of at least one financial year.</span>',
         row: (f) => `<div class="rs-item fund-saved">
             <span class="rs-avatar tone-success"><i class="bi bi-calendar3"></i></span>
             <div class="rs-body">
@@ -438,6 +439,28 @@ function renderSection(s) {
     if (count) { count.textContent = rows.length + waiting.length; count.classList.toggle('has', rows.length + waiting.length > 0); }
     if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
     if (s.key === 'funds') { markSavedYears(); renderYearTable(); }
+    if (s.key === 'teachers') syncAllPresent();
+}
+
+/**
+ * Step 3: "All teachers present" (ABS_00) and the absentee rows exclude each other.
+ * Ticked: the add form is hidden. Rows exist: the tick is locked until they are removed.
+ */
+function syncAllPresent() {
+    const box = $('#all-present');
+    if (!box) return;
+    const ticked = [].concat(SI.answers.ABS_00 ?? []).includes('yes');
+    const rows = (SI.teachers || []).length + offline.ops.filter((o) => o.section === 'teachers').length;
+    const input = $('input[name="ABS_00[]"]', box);
+    if (input) input.disabled = rows > 0 && !ticked;
+    $('[data-all-present-locked]', box)?.classList.toggle('d-none', !(rows > 0 && !ticked));
+    $('#teacher-form')?.classList.toggle('d-none', ticked);
+    const list = $('#teacher-list');
+    if (list && ticked && rows === 0) {
+        list.innerHTML = '<div class="rs-empty is-ok"><i class="bi bi-check2-circle"></i><strong>All teachers present</strong><span>Untick above to add an absent teacher.</span></div>';
+    } else if (list && !ticked && rows === 0) {
+        list.innerHTML = `<div class="rs-empty">${sections.teachers.empty}</div>`;
+    }
 }
 
 /** Add / edit mode for the absentee and classroom forms. */

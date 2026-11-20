@@ -104,7 +104,11 @@ class QuestionnaireDefinition
                 $num('TSI_13', 'Number of Female Untrained Teachers'),
             ],
 
-            3 => [],
+            // Step 3 is done when at least one absent teacher is added, or this is ticked (InspectionValidator)
+            3 => [
+                ['code' => 'ABS_00', 'label' => 'No absent teacher today (all teachers present)', 'type' => 'multi',
+                    'options' => ['yes' => 'All teachers present']],
+            ],
             4 => [],
             5 => [],
 

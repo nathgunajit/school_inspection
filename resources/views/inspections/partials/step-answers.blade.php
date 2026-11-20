@@ -33,7 +33,7 @@
                 <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>Male {{ $bd['male'] }} · Female {{ $bd['female'] }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
         @endif
     </div>
-@elseif (! empty($questions[$n]))
+@elseif ($n !== 3 && ! empty($questions[$n]))
     {{-- Question → answer rows; the answer is shown as a coloured pill / figure / text block --}}
     <div class="qa-list">
         @foreach ($questions[$n] as $q)
@@ -75,7 +75,7 @@
             </div>
         </div>
     @empty
-        <div class="review-line text-secondary"><i class="bi bi-person-check text-success"></i>No absent teachers recorded.</div>
+        <div class="review-line text-secondary"><i class="bi bi-person-check text-success"></i>{{ V::allTeachersPresent($answers) ? "All teachers present (no absent teacher)." : "No absent teachers recorded." }}</div>
     @endforelse
     </div>
 @elseif ($n === 4)

@@ -13,9 +13,9 @@
     $intro = [
         1 => 'Record who you met and check the school building and facilities.',
         2 => 'Enter today\'s numbers. Use − / + or type the figure.',
-        3 => 'Add every teacher absent today. Leave empty if all were present.',
+        3 => 'Add every teacher absent today, or tick “All teachers present”.',
         4 => 'Observe at least one class and record how it was taught.',
-        5 => 'Optional. Choose a year, then enter amounts in lakh.',
+        5 => 'Choose a year, then enter amounts in lakh. Save at least one year.',
         6 => 'Record how the school is run, then add up to three suggestions.',
         7 => 'Take or upload the four required photographs.',
     ];
@@ -137,6 +137,13 @@
 
                     {{-- ============ STEP 3: Teachers absentee (repeating) ============ --}}
                     @if ($step === 3)
+                        {{-- Done when an absent teacher is added, or "All teachers present" is ticked --}}
+                        <div class="all-present" id="all-present">
+                            @foreach ($questions as $q)
+                                @include('inspections.partials.question', ['q' => $q, 'n' => 1])
+                            @endforeach
+                            <div class="all-present-hint text-xs text-secondary d-none" data-all-present-locked><i class="bi bi-info-circle"></i> Remove the absent teachers below to tick this.</div>
+                        </div>
                         <div class="rs-head">
                             <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
                             <span class="rs-count" data-count="teachers">0</span>

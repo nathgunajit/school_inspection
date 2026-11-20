@@ -1745,3 +1745,41 @@ Plan approved by the user. Decisions:
   - All three are accepted (Pending) and approved without error.
   - Cluster duplicates are still refused.
   - Full suite: **142 passed** (1,721 assertions).
+
+## 2026-11-20 · Absent Teachers and Fund Details: "Done" only after the officer acts (user request)
+
+- **Problem:** the Absent Teachers (step 3) and Fund Details (step 5) tabs showed **Done** on a new draft. Both steps had no required items, so `InspectionValidator::progress()` counted them as complete.
+- **Done:**
+  - **Step 3:**
+    - New question code `ABS_00`, "No absent teacher today (all teachers present)" (multi, option `yes`).
+    - The step is Done when at least one absent teacher is added **or** `ABS_00` is ticked. Before that it shows "Not started".
+    - Both together is a missing item.
+    - UI (`step.blade.php`, `wizard.js` `syncAllPresent()`): the switch sits above the list. Ticking it hides the add form and shows "All teachers present". While rows exist, the switch is locked. It saves through the existing replay-safe answer endpoint.
+  - **Step 5:** at least one financial year is required. The step shows "Not started" until one is saved. The intro and empty texts no longer say "optional".
+  - `InspectionValidator`:
+    - `allTeachersPresent()`
+    - missing items `ABSENTEE`, `ABS_00` and `FUND`
+    - one required item counted for steps 3 and 5, as for step 4
+  - Reports:
+    - `step-answers.blade.php` and the PDF say "All teachers present (no absent teacher)" when ticked.
+    - `ABS_00` is not listed as a separate question row.
+    - Old submitted inspections still say "No absent teachers recorded".
+  - The rating is not affected: the scheme uses explicit codes.
+- **Files:**
+  - `app/Questionnaire/QuestionnaireDefinition.php`, `app/Questionnaire/InspectionValidator.php`
+  - `resources/views/inspections/step.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/views/inspections/pdf.blade.php`
+  - `resources/js/wizard.js`, `resources/scss/app.scss`
+  - `tests/Feature/StepCompletionTest.php` (new), `tests/Feature/InspectionFlowTest.php` (`completeAll()` adds a fund year)
+  - `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, Word file
+- **Verification:**
+  - New `StepCompletionTest`, 5 tests:
+    - a new draft has steps 3 and 5 at 0% and cannot be submitted
+    - ticking or unticking `ABS_00`
+    - a row instead of the tick
+    - a row together with the tick is refused
+    - saving and removing a fund year
+    - the stepper shows "Not started"
+  - Full suite: **147 passed** (1,753 assertions).
+  - `npm run build` passed.
+- **Note:** open drafts now ask for these two steps before Submit. Submitted inspections are unchanged.
+- **Not verified:** a visual check in the browser.

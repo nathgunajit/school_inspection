@@ -1874,3 +1874,10 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
     .sec-score { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; b { font-size: .88rem; color: $dark; } .rating-pill { font-size: .64rem; } }
     .sec-na { font-size: .75rem; font-weight: 600; color: #94a3b8; }
     .rating-bar { height: .38rem; margin-top: .3rem; } }
+
+/* Step 3: "All teachers present" switch above the absentee list */
+.all-present { margin-bottom: .75rem; }
+.all-present .q-block { margin-bottom: .25rem; }
+.all-present-hint { padding-left: .25rem; }
+.rs-empty.is-ok { border-color: rgba(30, 155, 75, .45); background: rgba(30, 155, 75, .06); }
+.rs-empty.is-ok > i { color: #1e9b4b; }
