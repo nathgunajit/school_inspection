@@ -158,6 +158,9 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            // Fail fast so the cache can fall over to files when Redis is down
+            'timeout' => (float) env('REDIS_TIMEOUT', 0.5),
+            'read_timeout' => (float) env('REDIS_TIMEOUT', 0.5),
         ],
 
         'cache' => [
@@ -167,6 +170,8 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'timeout' => (float) env('REDIS_TIMEOUT', 0.5),
+            'read_timeout' => (float) env('REDIS_TIMEOUT', 0.5),
         ],
 
     ],

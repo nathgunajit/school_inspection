@@ -18,7 +18,10 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    // Redis (in memory) when the phpredis extension is loaded, else files.
+    // On Redis, sessions use the "default" connection (DB 0) and the cache
+    // uses "cache" (DB 1), so `cache:clear` does not sign everyone out.
+    'driver' => env('SESSION_DRIVER', extension_loaded('redis') ? 'redis' : 'file'),
 
     /*
     |--------------------------------------------------------------------------

@@ -15,7 +15,14 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    // Fastest available: Redis (in memory) with the file cache as failover.
+    // Without the phpredis extension (e.g. plain XAMPP) "failover"/"redis"
+    // resolve to "file", so no request pays for a Redis call that cannot work.
+    'default' => (function () {
+        $store = env('CACHE_STORE', 'failover');
+
+        return in_array($store, ['failover', 'redis'], true) && ! extension_loaded('redis') ? 'file' : $store;
+    })(),
 
     /*
     |--------------------------------------------------------------------------
@@ -75,6 +82,12 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_CACHE_CONNECTION', 'cache'),
             'lock_connection' => env('REDIS_CACHE_LOCK_CONNECTION', 'default'),
+        ],
+
+        // Redis first; if it is unreachable, the file cache takes over.
+        'failover' => [
+            'driver' => 'failover',
+            'stores' => ['redis', 'file'],
         ],
 
         'dynamodb' => [

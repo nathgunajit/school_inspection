@@ -98,7 +98,7 @@ So the limit is the time PHP needs per request, not the network or the database.
 | 2 | Blade views compiled by many threads at the same moment collide on Windows (`rename(): Access is denied`) | 500 errors right after a deploy | Run `php artisan view:cache` and open each page once after a deploy. The driver does this warm-up |
 | 3 | **OPcache is off** in XAMPP, so PHP compiles about 1,000 framework files on every request (0.4 s) | Capacity is limited to about 18 req/s | Turn on OPcache (section 5). This is the biggest gain |
 | 4 | `innodb_buffer_pool_size` = 16 MB, while the test database is 99 MB | No problem yet (99.7 % hits). With 50,000 schools and years of answers the data will not fit, and disk reads will slow reports | Set it to 1–2 GB on the server |
-| 5 | Sessions and cache are stored in MariaDB: every request reads and writes the `sessions` table | One extra write per request. Fine at this size | Use Redis or files for sessions and cache when there are more than 500 officers online at the same time |
+| 5 | Sessions and cache were stored in MariaDB: every request read and wrote the `sessions` table | One extra write per request | **Done (Nov 2026):** cache is `failover` (Redis, then file) and sessions use Redis when phpredis is loaded, else files. Check with `php artisan cache:status` |
 | 6 | Login (bcrypt with 12 rounds) costs about 0.5 s more than other pages | Fine. It is the intended protection against password guessing | Keep it |
 | 7 | No errors at 100 users at the same instant, and no deadlocks on `inspections` or `inspection_answers` | The app is correct under parallel use (start guard, auto-save, unique keys) | — |
 
@@ -106,11 +106,11 @@ So the limit is the time PHP needs per request, not the network or the database.
 | # | Action | Status |
 |---|---|---|
 | 1 | Build the load-test seeder and driver, then run the login and form tests on demo data, then restore the data | Done (ACTION.md #60) |
-| 2 | Turn on PHP OPcache: `zend_extension=opcache`, `opcache.enable=1`, `opcache.memory_consumption=256`, `opcache.max_accelerated_files=20000`, `opcache.validate_timestamps=0` (clear it after each deploy) | To do at deployment |
+| 2 | Turn on PHP OPcache: `zend_extension=opcache`, `opcache.enable=1`, `opcache.memory_consumption=256`, `opcache.interned_strings_buffer=16`, `opcache.max_accelerated_files=20000`, `opcache.validate_timestamps=0` (clear it after each deploy) | To do at deployment |
 | 3 | Deploy: `php artisan optimize` (config, routes, views and events cached), `APP_DEBUG=false`. **Required on Windows/Apache** (finding 1) | To do at deployment |
 | 4 | MariaDB: `innodb_buffer_pool_size=1G` (2G with more than 50,000 schools), `max_connections` ≥ web worker count + 20, slow query log for the first week | To do at deployment |
 | 5 | Prefer Linux + Nginx/Apache + PHP-FPM (8–16 workers per 4 cores). If Windows must be used, keep the config cached | Decide with IT |
-| 6 | Sessions and cache on Redis (`SESSION_DRIVER=redis`, `CACHE_STORE=redis`) if more than 500 officers are online at once | Only if needed |
+| 6 | Sessions and cache on Redis. The app picks Redis automatically when the phpredis extension is loaded (`CACHE_STORE=failover`, session driver auto) and falls back to files. Install Redis (Linux: `apt install redis-server php8.2-redis`; Windows: Memurai + `php_redis.dll` TS x64) | Configured; install Redis on the server |
 | 7 | Re-run this test on the production server before the pilot and record the numbers here | Before the pilot |
 | 8 | Slow-network test of photo upload (V5): Chrome DevTools "Slow 4G" on the photo step | Separate V5 item |
 

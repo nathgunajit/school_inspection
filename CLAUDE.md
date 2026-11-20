@@ -13,6 +13,11 @@ Guidance for Claude Code (and developers) working in this repository.
 - Laravel 12, PHP 8.2 (XAMPP at `D:\xampp\php`), MySQL database **`schoolinspection`** (root, no password locally)
 - Blade + Bootstrap 5 + custom SCSS theme (`resources/scss`), vanilla JS modules (`resources/js`), built with Vite
 - `maatwebsite/excel` (import/export), `barryvdh/laravel-dompdf` (PDF), `mews/captcha`
+- Cache and sessions:
+  - Cache store `failover` (Redis, then file). Sessions use Redis when the phpredis extension is loaded, otherwise files. Without phpredis (plain XAMPP), both resolve to `file` (`config/cache.php`, `config/session.php`).
+  - `php artisan cache:status` shows what is in use.
+  - The pending-approvals badge uses `ApproverResolver::pendingCountFor()`: cached for 60 s, and a version key is bumped whenever a `RegistrationRequest` is saved or deleted.
+  - Turn OPcache on in production (`.env.example` checklist).
 
 ## Commands
 ```bash

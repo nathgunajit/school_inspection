@@ -1662,3 +1662,39 @@ Plan approved by the user. Decisions:
   - `npm run build` passed.
   - No migration is needed.
 - **Not verified:** a visual check in a browser. The Claude in Chrome tools were not available in this session. Please look at the Map View popup, the colour key and the filters, the Rating Report, the Login Monitoring tiles and the Daily report tab on a desktop and a phone.
+
+## 2026-11-20 · Fast caching: Redis (in memory) with file fallback, cached approvals badge
+
+- **Question:** which cache is best for speed?
+  - **OPcache** keeps compiled PHP in memory. It is the biggest gain (LOAD_TEST finding 3).
+  - **Redis** keeps the application cache and sessions in memory, shared by all threads and servers.
+  - When Redis is missing, the **file** cache is the fastest option.
+- **Done:**
+  - `config/cache.php`:
+    - New `failover` store (`redis` → `file`), now the default (`CACHE_STORE=failover`).
+    - Without the phpredis extension, `failover` and `redis` resolve to `file`, so no request waits on Redis.
+  - `config/session.php`: the default driver is `redis` when phpredis is loaded, else `file` (was `database`). Sessions use Redis DB 0 and the cache uses DB 1.
+  - `config/database.php`: redis `timeout` and `read_timeout` (`REDIS_TIMEOUT`, 0.5 s), so a dead Redis fails over quickly.
+  - Audit P1: `ApproverResolver::pendingCountFor()` caches the badge count per approver for 60 s. `flushPendingCounts()` bumps `approvals:pending:version` on every `RegistrationRequest` saved or deleted (`booted()`).
+    - Used by the layout and `DashboardController`.
+    - The Approvals page stays live.
+  - New `php artisan cache:status` (`app/Console/Commands/CacheStatus.php`): shows the cache store, the session driver, Redis ping, OPcache and whether the config is cached.
+  - `.env` / `.env.example`:
+    - `CACHE_STORE=failover`
+    - `SESSION_DRIVER` is now automatic
+    - `REDIS_TIMEOUT`
+    - production checklist lines for Redis and OPcache
+- **Docs:** `LOAD_TEST.md` (findings 5, recommendations 2 and 6), `Technical_Audit_and_Recommendations.md` (P1, P3, R6, R8), `Future_Recommendations_Gaps_and_Roadmap.md` (T5, quick fix), `CLAUDE.md`. Word file rebuilt.
+- **Verification:**
+  - New `PendingApprovalCountCacheTest`, 4 tests:
+    - the second call runs no query
+    - a new registration refreshes the count
+    - approve and reject refresh the count
+    - the layout badge shows the count
+  - Full suite: **137 passed** (1,679 assertions).
+  - `cache:status` locally shows file / file (phpredis not loaded).
+  - `php artisan serve`: the login page returns 200 and session files are written.
+- **Not done:**
+  - OPcache was not enabled in `D:\xampp\php\php.ini`. It is a system file, so it was left for the user's approval.
+  - Redis and phpredis are not installed locally.
+  - The failover with a live Redis was not tested.

@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\RegistrationRequest;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Registration approval chain (PRD 3.3).
@@ -20,6 +21,10 @@ use Illuminate\Support\Collection;
  */
 class ApproverResolver
 {
+    public const PENDING_VERSION_KEY = 'approvals:pending:version';
+
+    public const PENDING_COUNT_TTL = 60; // seconds
+
     public function __construct(
         private PermissionService $permissions,
         private JurisdictionService $jurisdictions,
@@ -65,6 +70,28 @@ class ApproverResolver
             ->get()
             ->filter(fn ($r) => $r->user && $this->canApprove($approver, $r->user))
             ->values();
+    }
+
+    /**
+     * Badge count for the layout and dashboard (audit P1), cached per approver.
+     * Any change to a registration request bumps the version, so the badge
+     * refreshes at once; the short TTL covers changes to the approvers themselves.
+     * The approvals page itself always uses the live pendingFor() list.
+     */
+    public function pendingCountFor(User $approver): int
+    {
+        $version = (int) Cache::get(self::PENDING_VERSION_KEY, 0);
+
+        return (int) Cache::remember(
+            "approvals:pending:{$version}:{$approver->id}",
+            self::PENDING_COUNT_TTL,
+            fn () => $this->pendingFor($approver)->count(),
+        );
+    }
+
+    public static function flushPendingCounts(): void
+    {
+        Cache::increment(self::PENDING_VERSION_KEY);
     }
 
     private function hasPermittedApprover(UserLevel $level, string $column, ?int $id): bool

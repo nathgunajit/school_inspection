@@ -33,7 +33,7 @@
 | T2 | No backup/restore procedure in code | Scheduled DB dump + private-disk sync to off-site storage; documented restore drill |
 | T3 | No monitoring/alerting | Error tracking (Sentry or self-hosted GlitchTip), uptime check on `/up`, scheduler heartbeat, disk-space alert for evidence |
 | T4 | Security headers missing | CSP, HSTS, frame-ancestors, Referrer-Policy, Permissions-Policy (see audit S11) |
-| T5 | Database driver for cache/session/queue | Redis for cache and sessions; a queue worker (Supervisor/NSSM) for PDFs, exports, notifications |
+| T5 | Database driver for cache/session/queue | Redis for cache and sessions; a queue worker (Supervisor/NSSM) for PDFs, exports, notifications. **Partly done:** cache and sessions use Redis when available (file fallback); the queue worker is still to do |
 | T6 | Limited automated tests on the front end | Vitest (unit) + Playwright (one full inspection on a mobile viewport, incl. offline replay) |
 | T7 | Public OSM tiles / OSRM demo server | Self-hosted tile cache and OSRM (Assam extract), or a contracted provider |
 | T8 | ClamAV optional | Enable in production; quarantine on detection |
@@ -130,7 +130,7 @@ gantt
 
 ## 5. Quick wins (low effort, visible value)
 
-- Cache the pending-approvals badge (faster every page for approvers).
+- ~~Cache the pending-approvals badge~~ (done, Nov 2026).
 - "Schools not inspected in the last N months" list per area (one query on existing data).
 - CSV export alongside Excel.
 - Add screenshots of Map, Schedules and Rating to `docs/screenshots` and to the user manual.

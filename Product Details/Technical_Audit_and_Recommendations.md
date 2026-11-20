@@ -103,9 +103,9 @@ The mobile-first UI is server-rendered with focused ES modules. It supports offl
 
 | # | Observation | Recommendation | P |
 |---|---|---|---|
-| P1 | The layout calls `ApproverResolver::pendingFor()` on **every page** for approvers. It loads all pending registrations with their relations and filters them in PHP | Cache the count per user for 1–5 minutes, or compute it with a jurisdiction-scoped SQL count | M |
+| P1 | The layout calls `ApproverResolver::pendingFor()` on **every page** for approvers. It loads all pending registrations with their relations and filters them in PHP | Cache the count per user for 1–5 minutes, or compute it with a jurisdiction-scoped SQL count | M · **Done:** `ApproverResolver::pendingCountFor()` caches the count per approver for 60 s; any `RegistrationRequest` change bumps a version key so the badge refreshes at once |
 | P2 | `MapDataService` caches per user for 60 s; aggregate queries are indexed (`DB_INDEXING.md`) | Good. With Redis, the cache store becomes cheaper than the DB cache | L |
-| P3 | Cache, session and queue all use the database driver | Use Redis in production for sessions and cache under load | M |
+| P3 | Cache, session and queue all use the database driver | Use Redis in production for sessions and cache under load | M · **Done:** cache `failover` (Redis → file), sessions on Redis when available, else files; the queue stays on the database |
 | P4 | PDF generation (DomPDF) with photos is CPU-heavy and runs in the request | Pre-size the images (already ≤ 1600 px); for bulk PDFs use a queue job | L |
 | P5 | Assets are built by Vite with targets Chrome 100+/Safari 15+; Leaflet is bundled | Good; enable gzip/brotli and long cache headers for `public/build` | L |
 | P6 | Load test results are in `LOAD_TEST.md` | Repeat them on the production hardware before go-live | M |
@@ -158,9 +158,9 @@ The mobile-first UI is server-rendered with focused ES modules. It supports offl
 | R3 | Automated backups of the DB and the private disk, with a restore drill | D8 | H |
 | R4 | CI with tests, Pint and Larastan | C5 | M |
 | R5 | Unit tests for the rating, route and validator classes; JS tests for the offline queue | C3, C4 | M |
-| R6 | Cache the pending approvals count | P1 | M |
+| R6 | Cache the pending approvals count | P1 | M · Done |
 | R7 | Implement `retention_years` (archive old inspections and logs) | D4 | M |
-| R8 | Redis for cache and session in production | P3 | M |
+| R8 | Redis for cache and session in production | P3 | M · Done (Redis needs installing on the server) |
 | R9 | Self-hosted tiles and OSRM, or a contracted provider | S20 | M |
 | R10 | Use `export_excel` on every export; fix the `questionnaire_version` default | C8, D2 | L |
 

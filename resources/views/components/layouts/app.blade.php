@@ -28,7 +28,7 @@
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
     ];
-    $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingFor($u)->count() : 0;
+    $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
 @endphp
 
 <aside class="app-sidebar" aria-label="Main navigation">

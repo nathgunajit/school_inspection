@@ -30,7 +30,7 @@ class DashboardController extends Controller
             ->where('status', InspectionStatus::Submitted)
             ->latest('submitted_at')->take(5)->get();
 
-        $pending = $user->can('approve_registrations') ? $approvers->pendingFor($user)->count() : 0;
+        $pending = $user->can('approve_registrations') ? $approvers->pendingCountFor($user) : 0;
 
         // New Module 2: the officer's published (or completed) plan for today
         $todayPlan = \App\Models\InspectionSchedule::query()->where('officer_id', $user->id)->where('schedule_date', today()->toDateString())
