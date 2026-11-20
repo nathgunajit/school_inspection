@@ -20,6 +20,12 @@ class DashboardController extends Controller
             'month' => $mine()->where('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
             'total' => $mine()->count(),
             'my_drafts' => $user->inspections()->whereIn('status', [InspectionStatus::Draft, InspectionStatus::Unlocked])->count(),
+            // Schools in the officer's own area (cluster / block / district / state), scoped by JurisdictionService
+            'schools' => $j->schools($user)->where('schools.status', 'active')->count(),
+            'schools_inspected_month' => $j->inspections($user)
+                ->where('inspections.status', InspectionStatus::Submitted)
+                ->where('inspections.inspection_date', '>=', now()->startOfMonth()->toDateString())
+                ->distinct()->count('inspections.school_id'),
         ];
 
         $drafts = $user->inspections()->with('school')

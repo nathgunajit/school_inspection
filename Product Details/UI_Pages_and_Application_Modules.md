@@ -19,7 +19,7 @@
 ### 1.2 Officer pages (layout `components/layouts/app.blade.php`)
 | Page | Route | Controller@method | Blade view | Role | Main functionality |
 |---|---|---|---|---|---|
-| Dashboard | `/dashboard` | `DashboardController` | `dashboard` | any active | Stat cards (today, month, total, drafts), continue drafts, recent reports, today's plan, pending approvals |
+| Dashboard | `/dashboard` | `DashboardController` | `dashboard` | any active | Stat cards (total schools in the officer's cluster / block / district / state with schools inspected this month, today, month, total, drafts), continue drafts, recent reports, today's plan, pending approvals |
 | Profile | `/profile` | `ProfileController@show` (+ `updatePhoto`, `requestMobileChange`) | `profile` | any | Details, postings history, photo change, mobile change request |
 | Change password | `/password/change` | `Auth\PasswordController@edit` / `@update` | `auth/change-password` | any | Forced on first login |
 | Find School | `/schools` | `SchoolController@index` | `schools/index` (+ `schools/_results` for AJAX) | `conduct_inspections` | Search by UDISE/name in the jurisdiction; status and rating badges |

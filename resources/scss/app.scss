@@ -1881,3 +1881,6 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
 .all-present-hint { padding-left: .25rem; }
 .rs-empty.is-ok { border-color: rgba(30, 155, 75, .45); background: rgba(30, 155, 75, .06); }
 .rs-empty.is-ok > i { color: #1e9b4b; }
+
+/* Dashboard: "Total schools" tile hint (schools inspected this month) */
+.kpi-hint { display: block; font-size: .68rem; color: #1e9b4b; font-weight: 500; margin-top: .1rem; }

@@ -1791,3 +1791,25 @@ Plan approved by the user. Decisions:
 - **Verification:**
   - `StepCompletionTest` asserts that `id="q-ABS_00"` appears exactly once on step 3.
   - Full suite: **147 passed** (1,754 assertions).
+
+## 2026-11-20 · Dashboard: Total schools in the officer's area (user request)
+
+- **Request:** the dashboard shows the total number of schools in the cluster for a Cluster officer, and likewise for the other levels.
+- **Done:**
+  - `DashboardController`:
+    - `stats['schools']`: active schools from `JurisdictionService::schools()`, so each level sees only its own area.
+    - `stats['schools_inspected_month']`: distinct schools in the same area with a submitted inspection this month.
+  - `dashboard.blade.php`:
+    - The new first tile reads "Total schools in your cluster / block / district / state", with the hint "N inspected this month".
+    - It links to Find School for inspecting officers.
+    - The grid is now 5 tiles: the first is full width on phones, then 2 per row; one row on desktop.
+  - `app.scss`: `.kpi-hint`.
+  - `UI_Pages_and_Application_Modules.md` (dashboard row), Word file rebuilt.
+- **Verification:**
+  - New `DashboardSchoolCountTest`, 2 tests:
+    - Cluster, Block, District and State Admin counts match the active schools of their area.
+    - The tile label is shown.
+    - Inspected this month counts submitted inspections only, not drafts, and not other clusters.
+  - Full suite: **149 passed** (1,771 assertions).
+  - `npm run build` passed.
+- **Not verified:** a visual check in the browser.

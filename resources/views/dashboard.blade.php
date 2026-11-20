@@ -4,7 +4,12 @@
         $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
         $first = \Illuminate\Support\Str::of($user->name)->before(' ');
         $mineUrl = fn ($q = []) => $user->can('conduct_inspections') ? route('inspections.mine', $q) : null;
+        $area = match ($user->level->value) {
+            'cluster' => 'cluster', 'block' => 'block', 'district' => 'district', default => 'state',
+        };
         $cards = [
+            ['Total schools in your '.$area, $stats['schools'], 'bi-building', 'primary',
+                $user->can('conduct_inspections') ? route('schools.index') : null, $stats['schools_inspected_month'].' inspected this month'],
             ['Inspected today', $stats['today'], 'bi-calendar-check', 'primary', $mineUrl()],
             ['This month', $stats['month'], 'bi-bar-chart-line', 'success', $mineUrl()],
             ['Drafts in progress', $stats['my_drafts'], 'bi-pencil-square', 'warning', $mineUrl(['status' => 'draft'])],
@@ -31,11 +36,12 @@
 
     {{-- Key figures --}}
     <div class="row g-3 mb-4">
-        @foreach ($cards as [$label, $value, $icon, $tone, $href])
-            <div class="col-6 col-xl-3">
+        @foreach ($cards as $card)
+            @php [$label, $value, $icon, $tone, $href] = $card; $hint = $card[5] ?? null; @endphp
+            <div class="{{ $loop->first ? 'col-12 col-md-4' : 'col-6 col-md-4' }} col-xl">
                 <a @if ($href) href="{{ $href }}" @endif class="kpi-card kpi-{{ $tone }} {{ $href ? '' : 'is-static' }}">
                     <span class="kpi-icon"><i class="bi {{ $icon }}"></i></span>
-                    <span class="kpi-body"><span class="kpi-value">{{ $value }}</span><span class="kpi-label">{{ $label }}</span></span>
+                    <span class="kpi-body"><span class="kpi-value">{{ $value }}</span><span class="kpi-label">{{ $label }}</span>@if ($hint)<span class="kpi-hint">{{ $hint }}</span>@endif</span>
                 </a>
             </div>
         @endforeach
