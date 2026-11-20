@@ -3,9 +3,13 @@
     $canInspect = $user->can('conduct_inspections');
 @endphp
 <x-layouts.app title="My Profile">
-    {{-- ============ Hero: photo, name, role (Modification V3 item 1) ============ --}}
+    {{-- ============ Hero: photo, name, role (Modification V3 item 1, restyled in V9) ============ --}}
     <section class="pf-hero">
-        <div class="pf-hero-band" aria-hidden="true"></div>
+        <div class="pf-hero-band" aria-hidden="true">
+            <span class="pf-hero-ring r1"></span><span class="pf-hero-ring r2"></span>
+            <img src="{{ asset('logo/SSA LOGO.png') }}" alt="" class="pf-hero-mark">
+            <div class="pf-hero-greet"><span>{{ now()->hour < 12 ? 'Good morning' : (now()->hour < 17 ? 'Good afternoon' : 'Good evening') }}</span>Samagra Shiksha, Assam</div>
+        </div>
         <div class="pf-hero-body">
             <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo pf-photo" data-photo-form
                   data-max-kb="{{ config('inspection.employee_photo.max_kb') }}">
@@ -37,10 +41,6 @@
                     <x-status-badge :status="$user->status" />
                     @if ($jur)<span class="pf-chip"><i class="bi bi-geo-alt"></i>{{ $jur->label() }}</span>@endif
                 </div>
-                <div class="pf-since">
-                    <span><i class="bi bi-calendar-check"></i>Member since {{ $user->created_at?->format('M Y') ?? '—' }}</span>
-                    <span><i class="bi bi-clock-history"></i>Last sign-in {{ $user->last_login_at?->format('d M Y, h:i A') ?? '—' }}</span>
-                </div>
             </div>
 
             <div class="pf-actions">
@@ -48,6 +48,16 @@
                 <a href="#mobile-change" class="btn btn-light"><i class="bi bi-phone"></i>Change mobile</a>
                 <form method="POST" action="{{ route('logout') }}" class="d-lg-none">@csrf<button class="btn btn-light text-danger w-100"><i class="bi bi-box-arrow-right"></i>Sign out</button></form>
             </div>
+        </div>
+
+        {{-- V9: quick facts strip --}}
+        <div class="pf-hero-meta">
+            @if ($canInspect)
+                <div class="pf-meta"><span class="pf-meta-icon tone-green"><i class="bi bi-clipboard-check"></i></span><div><b>{{ number_format($activity['total']) }}</b><span>Inspections submitted</span></div></div>
+                <div class="pf-meta"><span class="pf-meta-icon tone-blue"><i class="bi bi-calendar3"></i></span><div><b>{{ number_format($activity['month']) }}</b><span>This month</span></div></div>
+            @endif
+            <div class="pf-meta"><span class="pf-meta-icon tone-orange"><i class="bi bi-calendar-check"></i></span><div><b>{{ $user->created_at?->format('M Y') ?? '—' }}</b><span>Member since</span></div></div>
+            <div class="pf-meta"><span class="pf-meta-icon tone-slate"><i class="bi bi-clock-history"></i></span><div><b>{{ $user->last_login_at?->format('d M Y, h:i A') ?? '—' }}</b><span>Last sign-in</span></div></div>
         </div>
     </section>
 

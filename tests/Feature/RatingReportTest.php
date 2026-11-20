@@ -22,6 +22,7 @@ class RatingReportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['inspection.rating.display' => true]); // Modification V9: ratings are hidden by default
         $this->north = Cluster::orderBy('id')->first();
         $this->south = Cluster::whereHas('block', fn ($q) => $q->where('district_id', '!=', $this->north->block->district_id))->orderBy('id')->first();
     }
@@ -123,16 +124,27 @@ class RatingReportTest extends TestCase
         $this->actingAs($admin)->get(route('reports.ratings', ['from' => '2026-05-01', 'to' => '2026-01-01']))->assertSessionHasErrors('to');
     }
 
-    public function test_excel_and_pdf_exports(): void
+    public function test_hidden_by_default_modification_v9(): void
+    {
+        config(['inspection.rating.display' => false]);
+        $admin = $this->admin();
+        $this->actingAs($admin)->get(route('reports.ratings'))->assertNotFound();
+        $this->actingAs($admin)->get(route('reports.ratings.export'))->assertNotFound();
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
+    }
+
+    public function test_excel_export_and_no_pdf(): void
     {
         $this->seedRatings();
         $officer = $this->officer(UserLevel::District, $this->north);
 
         $xlsx = $this->actingAs($officer)->get(route('reports.ratings.export', ['from' => now()->subYear()->toDateString()]))->assertOk();
         $this->assertStringContainsString('spreadsheetml', $xlsx->headers->get('content-type'));
-        $pdf = $this->actingAs($officer)->get(route('reports.ratings.pdf'))->assertOk();
-        $this->assertSame('application/pdf', $pdf->headers->get('content-type'));
-        $this->assertSame(2, \App\Models\AuditLog::where('action', 'rating_report_exported')->count());
+        // Modification V9: the rating report PDF is removed
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('reports.ratings.pdf'));
+        $this->actingAs($officer)->get('/reports/ratings/pdf')->assertNotFound();
+        $this->actingAs($officer)->get(route('reports.ratings'))->assertOk()->assertDontSee('bi-file-earmark-pdf', false);
+        $this->assertSame(1, \App\Models\AuditLog::where('action', 'rating_report_exported')->count());
 
         // without view_reports (role right removed): 403; without export_excel: no Excel
         $role = \App\Models\Role::where('slug', 'district')->first();
@@ -143,6 +155,5 @@ class RatingReportTest extends TestCase
         $role->permissions()->detach(\App\Models\Permission::where('slug', \App\Models\Permission::VIEW_REPORTS)->value('id'));
         app()->forgetInstance(\App\Services\PermissionService::class);
         $this->actingAs($officer->fresh())->get(route('reports.ratings'))->assertForbidden();
-        $this->actingAs($officer->fresh())->get(route('reports.ratings.pdf'))->assertForbidden();
     }
 }

@@ -42,6 +42,9 @@ class InspectionValidator
 
     public static function visible(array $q, array $answers): bool
     {
+        if (! empty($q['hidden'])) {
+            return false; // Modification V9: question no longer asked (e.g. person met)
+        }
         if (empty($q['show_if'])) {
             return true;
         }
@@ -171,10 +174,13 @@ class InspectionValidator
             $add(3, 'ABS_00', "Remove the absent teachers, or untick 'All teachers present'");
         }
 
-        // Step 5: fund details for at least one financial year
-        if ($this->inspection->fundPositions->isEmpty()) {
-            $add(5, 'FUND', 'Enter the fund details for at least one financial year');
+        // Modification V9: no more absent teachers than Total teachers - Present (step 2)
+        $limit = self::absentLimit($this->answers);
+        if ($limit !== null && $absentRows > $limit) {
+            $add(3, 'ABSENTEE', "{$absentRows} absent teachers added, but only {$limit} can be absent (Total teachers - Present on step 2). Remove the extra rows or correct step 2.");
         }
+
+        // Step 5: fund details are optional (Modification V9)
 
         // Step 4: at least one classroom observed
         if ($this->inspection->classroomObservations->isEmpty()) {
@@ -226,6 +232,21 @@ class InspectionValidator
         return $out;
     }
 
+    /**
+     * Most absent teachers that can be added: Total teachers - Present (TSI_09, blank = 0).
+     * Null until Total teachers is known.
+     */
+    public static function absentLimit(array $answers): ?int
+    {
+        $total = QuestionnaireDefinition::totalTeachers($answers);
+        if ($total === null) {
+            return null;
+        }
+        $present = QuestionnaireDefinition::withDefaults($answers)['TSI_09'];
+
+        return is_numeric($present) ? max(0, $total - (int) $present) : null;
+    }
+
     /** Non-blocking hints (shown, but do not stop submission). */
     public function warnings(): array
     {
@@ -259,8 +280,8 @@ class InspectionValidator
                     $req++;
                 }
             }
-            if (in_array($step, [3, 4, 5], true)) {
-                $req++; // absentee (or all present), one classroom, one fund year
+            if (in_array($step, [3, 4], true)) {
+                $req++; // absentee (or all present), one classroom; fund years are optional (V9)
             }
             if ($step === $photoStep) {
                 $req += count(config('inspection.mandatory_photos'));

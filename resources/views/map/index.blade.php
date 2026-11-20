@@ -45,12 +45,14 @@
                                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                                     <span class="fw-semibold text-xs text-uppercase text-muted">School markers</span>
                                     {{-- V6 Module 9: colour the school pins by inspection status or by rating band --}}
+                                    @if (config('inspection.rating.display')) {{-- Modification V9: hidden unless RATING_DISPLAY=true --}}
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Colour schools by">
                                         <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" checked>
                                         <label class="btn btn-outline-primary" for="colourStatus">Status</label>
                                         <input type="radio" class="btn-check" name="colourBy" id="colourRating" value="rating">
                                         <label class="btn btn-outline-primary" for="colourRating">Rating</label>
                                     </div>
+                                    @endif
                                 </div>
                                 <div data-legend="status">
                                     <div><span class="dot st-inspected"></span>Inspected in the period</div>

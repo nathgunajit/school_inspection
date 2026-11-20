@@ -2,6 +2,9 @@
     use App\Questionnaire\InspectionValidator as V;
     $code = $q['code'];
     $val = $answers[$code] ?? null;
+    if (($val === null || $val === '') && array_key_exists('default', $q)) {
+        $val = $q['default']; // Modification V9: optional counts show 0 (stored as 0 at submit)
+    }
     $visible = V::visible($q, $answers);
     $enabled = V::enabled($q, $answers);
     $required = V::required($q, $answers);
@@ -21,7 +24,7 @@
      id="q-{{ $code }}" data-code="{{ $code }}" data-type="{{ $q['type'] }}" @unless($enabled) aria-disabled="true" @endunless>
     <div class="q-label">
         <span class="q-no" aria-hidden="true"><span class="n">{{ $n }}</span><i class="bi bi-check-lg"></i></span>
-        <span class="q-text">{{ $q['label'] }} <span class="q-req {{ $required ? '' : 'd-none' }}" title="Required">*</span></span>
+        <span class="q-text">{{ $q['label'] }} <span class="q-req {{ $required ? '' : 'd-none' }}" title="Required">*</span>@if (!empty($q['hint']))<small class="q-hint">{{ $q['hint'] }}</small>@endif</span>
     </div>
 
     <fieldset class="q-input" @disabled(! $enabled)>

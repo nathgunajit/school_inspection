@@ -129,8 +129,9 @@ class InspectionController extends Controller
             'inspection' => $inspection,
             'step' => $step,
             'steps' => Q::steps(),
-            'questions' => Q::questions()[$step],
+            'questions' => array_values(array_filter(Q::questions()[$step], fn ($q) => empty($q['hidden']))), // V9: hidden questions are not asked
             'answers' => $inspection->answerMap(),
+            'absentLimit' => InspectionValidator::absentLimit($inspection->answerMap()),
             'remarks' => $inspection->remarksMap(),
             'progress' => $progress,
             'photoCategories' => MasterValue::ofType('photo_category')->get(),
@@ -211,7 +212,9 @@ class InspectionController extends Controller
     public function addAbsentTeacher(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $this->addRow($inspection->absentTeachers(), $this->teacherData($request), $request);
+        $data = $this->teacherData($request);
+        $this->guardAbsentLimit($inspection, $request);
+        $this->addRow($inspection->absentTeachers(), $data, $request);
 
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
@@ -238,6 +241,24 @@ class InspectionController extends Controller
      * Adds a repeating-section row. A row sent again with the same `row_uid` (replayed after a lost network
      * answer, see resources/js/offline-queue.js) is not added twice.
      */
+    /**
+     * Modification V9: no more absent teachers than Total teachers - Present (step 2).
+     * A replay of a row already saved (same row_uid) is let through, so the offline queue stays safe.
+     */
+    private function guardAbsentLimit(Inspection $inspection, Request $request): void
+    {
+        $uid = $request->input('row_uid');
+        if (is_string($uid) && $inspection->absentTeachers()->where('row_uid', strtolower($uid))->exists()) {
+            return;
+        }
+        $limit = InspectionValidator::absentLimit($inspection->answerMap());
+        if ($limit !== null && $inspection->absentTeachers()->count() >= $limit) {
+            throw ValidationException::withMessages(['teacher_name' => $limit === 0
+                ? 'Step 2 shows no teacher absent (Total teachers = Present). Correct step 2 to add an absent teacher.'
+                : "Only {$limit} teacher(s) can be absent (Total teachers - Present on step 2). All {$limit} are already added."]);
+        }
+    }
+
     private function addRow(\Illuminate\Database\Eloquent\Relations\HasMany $rows, array $data, Request $request): void
     {
         $uid = $request->validate(['row_uid' => ['nullable', 'uuid']])['row_uid'] ?? null;
@@ -420,6 +441,13 @@ class InspectionController extends Controller
             if (! $locked->isEditable()) {
                 throw ValidationException::withMessages(['confirm' => 'This inspection has already been submitted.']);
             }
+            // Modification V9: optional counts left blank are stored as their default (0)
+            $answers = $locked->answerMap();
+            foreach (Q::defaults() as $code => $default) {
+                if (! isset($answers[$code]) || $answers[$code] === '') {
+                    $locked->answers()->updateOrCreate(['question_code' => $code], ['step' => Q::find($code)['step'], 'value' => $default]);
+                }
+            }
             $locked->fill([
                 'inspection_no' => $locked->inspection_no ?: $numbers->next($locked),
                 'submitted_at' => now(),
@@ -430,6 +458,7 @@ class InspectionController extends Controller
                 'completion_pct' => 100,
             ])->save();
             $inspection->setRawAttributes($locked->getAttributes(), true);
+            $inspection->unsetRelation('answers'); // reload with the stored defaults
         });
 
         AuditLogger::log($wasUnlocked ? 'inspection_resubmitted' : 'inspection_submitted', $inspection, ['inspection_no' => $inspection->inspection_no]);

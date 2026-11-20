@@ -26,18 +26,18 @@ class StepCompletionTest extends TestCase
         return (new InspectionValidator($i->fresh()))->progress()['steps'];
     }
 
-    public function test_new_draft_shows_absentee_and_fund_as_not_started(): void
+    public function test_new_draft_shows_absentee_as_not_started_and_fund_as_optional(): void
     {
         $i = $this->draft();
         $p = (new InspectionValidator($i->fresh()))->progress();
 
-        foreach ([3, 5] as $step) {
-            $this->assertFalse($p['steps'][$step]['complete'], "step $step not done");
-            $this->assertSame(0, $p['steps'][$step]['pct'], "step $step not started");
-        }
+        $this->assertFalse($p['steps'][3]['complete'], 'step 3 not done');
+        $this->assertSame(0, $p['steps'][3]['pct'], 'step 3 not started');
         $this->assertFalse($p['can_submit']);
         $this->assertSame('ABSENTEE', $p['missing'][3][0]['code']);
-        $this->assertSame('FUND', $p['missing'][5][0]['code']);
+        // Modification V9: fund details are optional
+        $this->assertTrue($p['steps'][5]['complete']);
+        $this->assertArrayNotHasKey(5, $p['missing']);
     }
 
     public function test_all_teachers_present_marks_step_3_done(): void
@@ -64,7 +64,7 @@ class StepCompletionTest extends TestCase
         $this->assertSame('ABS_00', $p['missing'][3][0]['code']);
     }
 
-    public function test_one_fund_year_marks_step_5_done(): void
+    public function test_fund_years_can_be_added_and_removed_step_5_stays_done(): void
     {
         $i = $this->draft();
         $fy = InspectionFundPosition::financialYears()[0];
@@ -74,7 +74,7 @@ class StepCompletionTest extends TestCase
 
         $fund = $i->fundPositions()->first();
         $this->deleteJson(route('inspections.funds.destroy', [$i, $fund]))->assertOk();
-        $this->assertFalse($this->steps($i)[5]['complete']);
+        $this->assertTrue($this->steps($i)[5]['complete']); // V9: optional
     }
 
     public function test_stepper_shows_not_started_on_a_new_draft(): void

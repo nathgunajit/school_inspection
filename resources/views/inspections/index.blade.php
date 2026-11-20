@@ -52,7 +52,7 @@
     <div class="card">
         <div class="table-responsive d-none d-md-block">
             <table class="table align-middle mb-0">
-                <thead><tr><th>Inspection</th><th>School</th>@if ($area)<th>Officer</th>@endif<th>Date</th><th>Status</th><th>Rating</th><th></th></tr></thead>
+                <thead><tr><th>Inspection</th><th>School</th>@if ($area)<th>Officer</th>@endif<th>Date</th><th>Status</th>@if (config('inspection.rating.display'))<th>Rating</th>@endif<th></th></tr></thead>
                 <tbody>
                 @forelse ($inspections as $i)
                     <tr>
@@ -62,7 +62,7 @@
                         <td class="text-sm">{{ $i->inspection_date->format('d M Y') }}</td>
                         <td><x-status-badge :status="$i->status" />
                             @if ($i->isEditable() && ! $area)<div class="progress-thin progress mt-1" style="width:80px"><div class="progress-bar" style="width: {{ $i->completion_pct }}%"></div></div>@endif</td>
-                        <td><x-rating-badge :rating="$i->rating" /></td>
+                        @if (config('inspection.rating.display'))<td><x-rating-badge :rating="$i->rating" /></td>@endif
                         <td class="text-end text-nowrap">
                             @if (! $area && $i->isEditable())
                                 <a href="{{ route('inspections.step', [$i, 1]) }}" class="btn btn-sm btn-primary">Continue</a>
@@ -85,7 +85,7 @@
                         <div class="fw-semibold text-truncate">{{ $i->school->name }}</div>
                         <div class="text-xs text-secondary text-truncate">{{ $i->inspection_no ?? 'Draft' }} · {{ $i->inspection_date->format('d M Y') }}@if ($area) · {{ $i->officer->name }}@endif</div>
                         @if ($i->isEditable() && ! $area)<div class="progress-thin progress mt-1"><div class="progress-bar" style="width: {{ $i->completion_pct }}%"></div></div>@endif
-                        @if ($i->rating)<div class="mt-1"><x-rating-badge :rating="$i->rating" /></div>@endif
+                        @if (config('inspection.rating.display') && $i->rating)<div class="mt-1"><x-rating-badge :rating="$i->rating" /></div>@endif
                     </div>
                     <x-status-badge :status="$i->status" />
                 </a>

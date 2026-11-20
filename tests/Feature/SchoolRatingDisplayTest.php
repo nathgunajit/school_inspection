@@ -15,6 +15,12 @@ use Tests\TestCase;
 /** V6 Module 9: the school's rating on the school list, the school page and the map. */
 class SchoolRatingDisplayTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['inspection.rating.display' => true]); // Modification V9: ratings are hidden by default
+    }
+
     /** A submitted, rated inspection of $school on $date with the given answers. */
     private function rated(User $officer, School $school, string $date, array $answers): Inspection
     {

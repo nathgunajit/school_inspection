@@ -406,7 +406,7 @@ const sections = {
     },
     funds: {
         list: '#fund-list', form: '#fund-form', key: 'funds', done: 'Year saved',
-        empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>Save the fund details of at least one financial year.</span>',
+        empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>Optional: save the fund details of any financial year.</span>',
         row: (f) => `<div class="rs-item fund-saved">
             <span class="rs-avatar tone-success"><i class="bi bi-calendar3"></i></span>
             <div class="rs-body">
@@ -436,7 +436,14 @@ function renderSection(s) {
     const waiting = offline.ops.filter((o) => o.section === s.key);
     list.innerHTML = rows.length || waiting.length ? rows.map(s.row).join('') + waiting.map((o) => pendingRow(s.key, o.body)).join('') : `<div class="rs-empty">${s.empty}</div>`;
     const count = $(`[data-count="${s.key}"]`);
-    if (count) { count.textContent = rows.length + waiting.length; count.classList.toggle('has', rows.length + waiting.length > 0); }
+    if (count) {
+        const n = rows.length + waiting.length;
+        // Modification V9: absent teachers show "added / allowed" (Total teachers - Present on step 2)
+        const limit = s.key === 'teachers' && Number.isInteger(SI.absentLimit) ? SI.absentLimit : null;
+        count.textContent = limit === null ? n : `${n} / ${limit}`;
+        count.classList.toggle('has', n > 0);
+        count.classList.toggle('is-full', limit !== null && n >= limit);
+    }
     if (s.editing) list.querySelector(`.rs-item[data-id="${s.editing}"]`)?.classList.add('is-editing');
     if (s.key === 'funds') { markSavedYears(); renderYearTable(); }
     if (s.key === 'teachers') syncAllPresent();
@@ -455,6 +462,14 @@ function syncAllPresent() {
     if (input) input.disabled = rows > 0 && !ticked;
     $('[data-all-present-locked]', box)?.classList.toggle('d-none', !(rows > 0 && !ticked));
     $('#teacher-form')?.classList.toggle('d-none', ticked);
+    // Modification V9: the add button rests once the limit from step 2 is reached (edit still works)
+    const form = $('#teacher-form');
+    const full = Number.isInteger(SI.absentLimit) && rows >= SI.absentLimit && !sections.teachers.editing;
+    if (form) {
+        const btn = $('.row-form-btn', form);
+        if (btn) btn.disabled = full;
+        form.classList.toggle('is-full', full);
+    }
     const list = $('#teacher-list');
     if (list && ticked && rows === 0) {
         list.innerHTML = '<div class="rs-empty is-ok"><i class="bi bi-check2-circle"></i><strong>All teachers present</strong><span>Untick above to add an absent teacher.</span></div>';
@@ -606,14 +621,31 @@ function fundDirty(dirty) {
         : `<i class="bi bi-check2-all"></i><span>Saved</span>`;
 }
 function fundSaved() { fundDirty(false); }
+/**
+ * Modification V9: amounts in lakh are written with 2 decimals: ".2" -> "0.20", "5" -> "5.00", "1.5" -> "1.50".
+ * Anything that is not a plain number with up to 2 decimals is left as typed, so validateFund() can point at it.
+ */
+function formatLakh(raw) {
+    const v = String(raw ?? '').trim().replace(/,/g, '');
+    if (v === '') return '';
+    if (!/^\d*(\.\d{0,2})?$/.test(v) || v === '.') return v;
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toFixed(2) : v;
+}
+function formatFundInput(el) {
+    const f = formatLakh(el.value);
+    if (f !== el.value) { el.value = f; return true; }
+    return false;
+}
 function validateFund() {
     clearFormErrors(fundForm);
+    $$('#fund-amounts input', fundForm).forEach(formatFundInput);
     if (!fundForm.querySelector('input[name="financial_year"]:checked')) { setFieldError(fundForm, 'financial_year', 'Select the financial year first.'); focusFirstError(fundForm); return false; }
     let ok = true, any = false;
     $$('#fund-amounts input', fundForm).forEach((el) => {
         if (el.value === '') return;
         any = true;
-        if (!/^\d+(\.\d{1,2})?$/.test(el.value)) { setFieldError(fundForm, el.name, 'Use a number with up to 2 decimals, e.g. 1.25'); ok = false; }
+        if (!/^\d+(\.\d{1,2})?$/.test(el.value)) { setFieldError(fundForm, el.name, 'Use a number with up to 2 decimals, e.g. 1.25 or .2 (= 0.20)'); ok = false; }
         else if (parseFloat(el.value) > 99999) { setFieldError(fundForm, el.name, 'Too large. Enter the amount in lakh.'); ok = false; }
     });
     if (ok && !any) { formError(fundForm, 'Enter at least one amount for this year.'); ok = false; }
@@ -622,6 +654,14 @@ function validateFund() {
 }
 if (fundForm) {
     markSavedYears();
+    // V9: format each amount when the officer leaves the box, and check it at once
+    fundForm.addEventListener('focusout', (e) => {
+        const el = e.target;
+        if (!el.matches?.('#fund-amounts input')) return;
+        if (formatFundInput(el)) fundTotals();
+        if (el.value !== '' && !/^\d+(\.\d{1,2})?$/.test(el.value)) setFieldError(fundForm, el.name, 'Use a number with up to 2 decimals, e.g. 1.25 or .2 (= 0.20)');
+        else if (el.value !== '' && parseFloat(el.value) > 99999) setFieldError(fundForm, el.name, 'Too large. Enter the amount in lakh.');
+    });
     fundForm.addEventListener('change', (e) => {
         if (e.target.name !== 'financial_year') return;
         const fy = e.target.value;
@@ -743,8 +783,9 @@ if (autoTotals.length) {
     const TEACHER_CODES = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
     const paint = (box, { total, present, absent, extra = '', bad = false }) => {
         $('[data-at="total"]', box).textContent = fmtInt(total);
-        $('[data-at="present"]', box).textContent = fmtInt(present);
-        $('[data-at="absent"]', box).textContent = absent === null ? '–' : (absent < 0 ? '−' + Math.abs(absent).toLocaleString('en-IN') : fmtInt(absent));
+        const pe = $('[data-at="present"]', box), ae = $('[data-at="absent"]', box); // V9: the teachers box shows the total only
+        if (pe) pe.textContent = fmtInt(present);
+        if (ae) ae.textContent = absent === null ? '–' : (absent < 0 ? '−' + Math.abs(absent).toLocaleString('en-IN') : fmtInt(absent));
         $('[data-at-extra]', box).textContent = extra;
         box.classList.toggle('is-bad', bad);
         box.classList.toggle('is-ready', total !== null && !bad);
@@ -761,9 +802,8 @@ if (autoTotals.length) {
             const parts = TEACHER_CODES.map(val);
             const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
             const present = val('TSI_09');
-            const absent = total !== null && present !== null ? total - present : null;
-            const bad = absent !== null && absent < 0;
-            paint(t, { total, present, absent, bad, extra: bad ? 'Present is more than the total. Please check.' : '' });
+            const bad = total !== null && present !== null && present > total;
+            paint(t, { total, present, absent: null, bad, extra: bad ? `Teachers present (${fmtInt(present)}) is more than the total. Please check.` : '' });
         }
         // Trained/untrained and male/female (TSI_10..13) must be less than or equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');

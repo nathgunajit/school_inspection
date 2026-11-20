@@ -10,7 +10,7 @@
                             <div class="font-monospace text-white-50">UDISE {{ $school->udise_code }}</div>
                         </div>
                         {{-- V6 Module 9: the school's current rating, with the change since the rating before it --}}
-                        @if ($current = $school->latestRating())
+                        @if (config('inspection.rating.display') && ($current = $school->latestRating())) {{-- V9: hidden unless RATING_DISPLAY=true --}}
                             @php
                                 $previous = $history->first(fn ($h) => $h->id !== $school->latestRatedInspection->id && $h->rating?->score_percent !== null
                                     && $h->inspection_date->lte($school->latestRatedInspection->inspection_date));
@@ -115,7 +115,7 @@
                                 <div class="text-xs text-secondary">{{ $h->officer->name }} · {{ $h->inspection_no }}</div>
                             </div>
                             @php $prev = $history->slice($loop->index + 1)->first(fn ($x) => $x->rating?->score_percent !== null); $diff = $h->rating?->score_percent !== null && $prev ? $h->rating->score_percent - $prev->rating->score_percent : null; @endphp
-                            @if ($h->rating?->score_percent !== null)
+                            @if (config('inspection.rating.display') && $h->rating?->score_percent !== null)
                                 <span class="text-end"><x-rating-badge :rating="$h->rating" />
                                     @if ($diff !== null)<span class="d-block text-xs {{ $diff >= 0 ? 'text-success' : 'text-danger' }}" title="Change since the previous rated inspection"><i class="bi {{ $diff >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }}"></i>{{ rtrim(rtrim(number_format(abs($diff), 1), '0'), '.') }} pts</span>@endif</span>
                             @else

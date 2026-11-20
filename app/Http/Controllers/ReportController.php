@@ -156,6 +156,12 @@ class ReportController extends Controller
             return $row;
         })->all();
 
+        if (! config('inspection.rating.display')) { // Modification V9: rating columns left out unless RATING_DISPLAY=true
+            $drop = array_keys(array_intersect($headings, ['Rating score (%)', 'Rating']));
+            $headings = array_values(array_diff_key($headings, array_flip($drop)));
+            $data = array_map(fn ($r) => array_values(array_diff_key($r, array_flip($drop))), $data);
+        }
+
         AuditLogger::log('inspections_exported', null, ['mode' => $mode, 'rows' => count($data), 'filters' => $request->query()]);
 
         return Excel::download(new ArrayExport($headings, $data), 'inspections-'.$mode.'-'.now()->format('Ymd-His').'.xlsx');

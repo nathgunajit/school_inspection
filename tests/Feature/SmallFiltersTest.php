@@ -10,6 +10,7 @@ class SmallFiltersTest extends TestCase
 {
     public function test_filter_inputs_are_small_on_the_three_pages(): void
     {
+        config(['inspection.rating.display' => true]); // Modification V9: ratings are hidden by default
         $admin = $this->admin();
         $officer = $this->officer(UserLevel::Cluster);
 

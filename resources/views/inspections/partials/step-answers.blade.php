@@ -10,10 +10,10 @@
 @endphp
 @if ($n === 2)
     {{-- Figures: label + large number, with automatic totals --}}
-    @php $totS = Q::totalStudents($answers); $totT = Q::totalTeachers($answers); $presT = $answers['TSI_09'] ?? null; @endphp
+    @php $totS = Q::totalStudents($answers); $totT = Q::totalTeachers($answers); $figs = Q::withDefaults($answers); /* V9: blank optional counts read 0 */ @endphp
     <div class="fig-grid">
         @foreach ($questions[$n] as $q)
-            @php $v = $answers[$q['code']] ?? null; $has = V::isFilled($v); @endphp
+            @php $v = $figs[$q['code']] ?? null; $has = V::isFilled($v); @endphp
             <div class="fig-tile {{ $has ? '' : 'is-empty' }}">
                 <span class="fig-label">{{ $q['label'] }}</span>
                 <span class="fig-value">@if ($has){{ number_format((int) $v) }}@else<span class="{{ V::required($q, $answers) ? 'text-danger' : 'text-secondary' }}">Not entered</span>@endif</span>
@@ -23,10 +23,6 @@
     <div class="fig-totals">
         <div class="fig-total"><i class="bi bi-backpack"></i><span>Total students <small>Present + Absent</small></span><b>{{ $totS === null ? '—' : number_format($totS) }}</b></div>
         <div class="fig-total"><i class="bi bi-person-workspace"></i><span>Total teachers <small>Regular + Contractual + SSA + Tutors</small></span><b>{{ $totT === null ? '—' : number_format($totT) }}</b></div>
-        @if ($totT !== null && V::isFilled($presT))
-            @php $absT = $totT - (int) $presT; @endphp
-            <div class="fig-total {{ $absT < 0 ? 'is-bad' : '' }}"><i class="bi bi-person-x"></i><span>Teachers absent <small>Total − Present ({{ (int) $presT }})</small></span><b>{{ $absT < 0 ? '−'.abs($absT) : $absT }}</b></div>
-        @endif
         @if ($bd = Q::teacherBreakdown($answers))
             @php $bdBad = $totT !== null && $bd['sum'] > $totT; @endphp
             <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>

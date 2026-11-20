@@ -48,13 +48,16 @@ class QuestionnaireDefinition
         $yn = fn (string $code, string $label, array $extra = []) => ['code' => $code, 'label' => $label, 'type' => 'radio', 'required' => true, 'options' => self::YN] + $extra;
         $su = fn (string $code, string $label) => ['code' => $code, 'label' => $label, 'type' => 'radio', 'required' => true, 'options' => self::SU];
         $num = fn (string $code, string $label) => ['code' => $code, 'label' => $label, 'type' => 'number', 'required' => true];
+        // Modification V9: optional count, shown as 0 and stored as 0 at submit when left blank
+        $num0 = fn (string $code, string $label) => ['code' => $code, 'label' => $label, 'type' => 'number', 'required' => false, 'default' => 0, 'hint' => 'Enter 0 if none'];
         $reason = fn (string $code, string $label, string $parent) => ['code' => $code, 'label' => $label, 'type' => 'textarea',
             'show_if' => [$parent, ['no']], 'required_if' => [$parent, ['no']]];
 
         return $cache = [
             1 => [
-                ['code' => 'BAS_PERSON_NAME', 'label' => 'Name of the person met at the school', 'type' => 'text', 'required' => true],
-                ['code' => 'BAS_PERSON_DESIG', 'label' => 'Designation of the person met', 'type' => 'text', 'required' => true],
+                // Modification V9: no longer asked (hidden, not required). Codes kept so earlier answers stay readable.
+                ['code' => 'BAS_PERSON_NAME', 'label' => 'Name of the person met at the school', 'type' => 'text', 'hidden' => true],
+                ['code' => 'BAS_PERSON_DESIG', 'label' => 'Designation of the person met', 'type' => 'text', 'hidden' => true],
                 ['code' => 'CND_01', 'label' => 'Type of School Building', 'type' => 'radio', 'required' => true,
                     'options' => ['pucca' => 'Pucca', 'semi_pucca' => 'Semi Pucca', 'others' => 'Others']],
                 $yn('CND_02', 'Boundary Wall'),
@@ -93,11 +96,11 @@ class QuestionnaireDefinition
                 $num('TSI_02', 'Number of Students Absent'),
                 $num('TSI_03', 'Seating Arrangement of the Students (number of benches/desks)'),
                 $num('TSI_04', 'Number of Regular Teachers'),
-                $num('TSI_05', 'Number of Contractual Teachers'),
-                $num('TSI_06', 'Number of SSA Teachers'),
-                $num('TSI_07', 'Total Number of Provincialised Tutors'),
-                $num('TSI_08', 'Total Number of Tutors Newly Accorded'),
-                $num('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
+                $num0('TSI_05', 'Number of Contractual Teachers'),
+                $num0('TSI_06', 'Number of SSA Teachers'),
+                $num0('TSI_07', 'Total Number of Provincialised Tutors'),
+                $num0('TSI_08', 'Total Number of Tutors Newly Accorded'),
+                $num0('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
                 $num('TSI_10', 'Number of Male Trained Teachers'),
                 $num('TSI_11', 'Number of Male Untrained Teachers'),
                 $num('TSI_12', 'Number of Female Trained Teachers'),
@@ -185,9 +188,28 @@ class QuestionnaireDefinition
     /** Step 2 breakdown: male trained, male untrained, female trained, female untrained. */
     public const TEACHER_BREAKDOWN_CODES = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'];
 
-    /** Teaching staff total from step 2 (regular + contractual + SSA + tutors). */
+    /** Codes whose blank answer counts as a default value (Modification V9: TSI_05..TSI_09 = 0). */
+    public static function defaults(): array
+    {
+        return collect(self::all())->filter(fn ($q) => array_key_exists('default', $q))->map(fn ($q) => $q['default'])->all();
+    }
+
+    /** Answers with the blank default codes filled in. */
+    public static function withDefaults(array $answers): array
+    {
+        foreach (self::defaults() as $code => $default) {
+            if (! isset($answers[$code]) || $answers[$code] === '') {
+                $answers[$code] = $default;
+            }
+        }
+
+        return $answers;
+    }
+
+    /** Teaching staff total from step 2 (regular + contractual + SSA + tutors); blank optional codes count as 0. */
     public static function totalTeachers(array $answers): ?int
     {
+        $answers = self::withDefaults($answers);
         $vals = array_map(fn ($c) => $answers[$c] ?? null, self::TEACHER_TOTAL_CODES);
         if (in_array(null, $vals, true) || in_array('', $vals, true)) {
             return null;

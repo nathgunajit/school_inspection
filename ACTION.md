@@ -1909,3 +1909,43 @@ Plan approved by the user. Decisions:
 - Config `inspection.login.math_captcha` (`LOGIN_MATH_CAPTCHA`, default true; false in phpunit.xml).
 - Files: app/Support/MathCaptcha.php, Auth/LoginController.php, routes/web.php, config/inspection.php, .env.example, phpunit.xml, partials/math-captcha.blade.php, auth/login.blade.php, scss/_button-busy.scss, tests/Feature/LoginMathCaptchaTest.php.
 - Result: build OK, 165 tests pass.
+
+## 2026-11-20 — Modification V9 (`Documents/Modification of the ApplicationV9.docx`)
+1. **Person met / designation** removed from the form: `BAS_PERSON_*` are `hidden` (codes kept). Report, PDF and Excel show them only for older inspections.
+2. **Absent teachers ≤ Total teachers − Present** (blocking): `InspectionValidator::absentLimit()`; `addAbsentTeacher` refuses one more row (422; a replay of a saved `row_uid` is still accepted); the counter shows "added / allowed"; the Add button rests at the limit.
+3. **Total teachers box** shows only the total (no Present / Absent) and sits above the teacher fields. The report and PDF dropped the "Teachers absent" figure.
+4. **TSI_05–TSI_09 default 0**: not required, the box shows 0 with "Enter 0 if none", counted as 0 in totals (`QuestionnaireDefinition::withDefaults()`), stored as 0 at submit.
+5. **Absent teacher list alignment**: rows on a fixed grid (avatar | details | actions), actions centred; on phones they sit under the details with 40 px buttons.
+6. **Fund details optional**; amounts formatted on blur (`.2` → `0.20`, `5` → `5.00`), errors shown at once for more than 2 decimals or more than 99,999.
+7–10. **Ratings hidden**: switch `RATING_DISPLAY` (`config('inspection.rating.display')`, default false).
+   - Ratings are still calculated at submit.
+   - With the switch off, ratings are hidden from the report, lists, school page, map (JSON and UI), sidebar and Excel. `/reports/ratings*` returns 404.
+   - The rating section of the inspection PDF and the Rating Report PDF are removed (route, method and view).
+   - Rating Settings stays for admins.
+11. **Profile header**:
+   - gradient band with rings, dot pattern, SSA logo watermark and a greeting
+   - larger avatar with a colour ring
+   - pill buttons (44 px)
+   - a quick-facts strip: submitted, this month, member since, last sign-in
+- Files:
+  - app/Questionnaire/{QuestionnaireDefinition,InspectionValidator}.php
+  - app/Http/Controllers/{InspectionController,RatingReportController,MapController,ReportController}.php
+  - routes/web.php
+  - config/inspection.php
+  - .env.example
+  - views:
+    - inspections/{step,show,pdf,index}.blade.php
+    - inspections/partials/{question,step-answers}.blade.php
+    - components/{rating-badge,layouts/app}.blade.php
+    - schools/show.blade.php
+    - map/index.blade.php
+    - reports/ratings/index.blade.php (pdf.blade.php deleted)
+    - profile.blade.php
+  - resources/js/{wizard,map}.js
+  - resources/scss/app.scss
+  - tests:
+    - tests/Feature/ModificationV9Test.php (new)
+    - updated: StepCompletion, RatingReport, InspectionRating, RatingCard, SchoolRatingDisplay, SmallFilters, InspectionFlow
+  - CLAUDE.md
+  - Product Details/INSPECTION_FORM_DOCUMENT.md, the rebuilt School_Inspection_Product_Details.docx, and Requirements/ (V9 copy)
+- Verified: `npm run build` OK; `php artisan test` 171 passed. Not checked visually in a browser.

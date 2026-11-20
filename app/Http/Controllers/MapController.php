@@ -34,6 +34,7 @@ class MapController extends Controller
                 ],
                 'canOpenSchool' => $user->can('conduct_inspections'),
                 'routing' => config('inspection.map.routing'), // V6 Module 8
+                'showRating' => (bool) config('inspection.rating.display'), // Modification V9
             ],
         ]);
     }
@@ -61,7 +62,7 @@ class MapController extends Controller
             'parent' => $parent,
             'breadcrumb' => $this->map->breadcrumb($level, $parent),
             'outline' => $this->map->outlineUrl($level, $parent),
-            'rows' => $rows,
+            'rows' => $this->withoutRatings($rows),
             'totals' => $this->map->totals($rows, count($this->map->officers($user, $level, $parent))),
         ]);
     }
@@ -90,9 +91,15 @@ class MapController extends Controller
             'parent' => $cluster,
             'breadcrumb' => $cluster !== null ? $this->map->breadcrumb('school', $cluster) : [],
             'outline' => $cluster !== null ? $this->map->outlineUrl('school', $cluster) : null,
-            'rows' => $rows,
+            'rows' => $this->withoutRatings($rows),
             'totals' => $this->map->schoolTotals($rows, $cluster !== null ? count($this->map->officers($user, 'school', $cluster)) : 0),
         ]);
+    }
+
+    /** Modification V9: ratings are left out of the map unless config('inspection.rating.display'). */
+    private function withoutRatings(array $rows): array
+    {
+        return config('inspection.rating.display') ? $rows : array_map(fn ($r) => array_diff_key($r, ['rating' => true]), $rows);
     }
 
     /** Period and officer filters, validated. The officer must be inside the user's jurisdiction. */

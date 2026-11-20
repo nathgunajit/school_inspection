@@ -97,6 +97,12 @@ return [
         'key_dir' => 'keys', // on the private disk: storage/app/private/keys
     ],
 
+    // Modification V9: ratings are still calculated at submit, but not shown to users (report, lists,
+    // school page, map, Rating Report) unless RATING_DISPLAY=true. Admin Rating Settings stays available.
+    'rating' => [
+        'display' => (bool) env('RATING_DISPLAY', false),
+    ],
+
     'max_suggestions' => 3,
     'per_page' => 25,
     'retention_years' => 5,

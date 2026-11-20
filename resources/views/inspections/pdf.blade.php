@@ -118,8 +118,10 @@
         ['Inspection ID', $inspection->inspection_no ?? '—', 'Status', $inspection->status->label()],
         ['Inspecting officer', $inspection->officer->name, 'Designation', $inspection->officer->designation_label ?? '—'],
         ['Inspection started', $inspection->started_at->format('d M Y, h:i A'), 'Submitted', $inspection->submitted_at?->format('d M Y, h:i A') ?? '—'],
-        ['Person met', $inspection->person_met_name ?: '—', 'Their designation', $inspection->person_met_designation ?: '—'],
     ];
+    if ($inspection->person_met_name) { // V9: no longer asked; printed only for older inspections that have it
+        $basic[] = ['Person met', $inspection->person_met_name, 'Their designation', $inspection->person_met_designation ?: '—'];
+    }
 @endphp
 <table class="bi">
     @foreach ($basic as [$k1, $v1, $k2, $v2])
@@ -144,10 +146,9 @@
     @endif
 
     @if ($n === 2)
-        @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $presT = $answers['TSI_09'] ?? null; @endphp
-        <table class="grid"><tr><th>Total students (Present + Absent)</th><th>Total teachers (Regular + Contractual + SSA + Tutors)</th><th>Teachers absent (Total − Present)</th></tr>
-            <tr><td class="r"><strong>{{ $totS ?? '—' }}</strong></td><td class="r"><strong>{{ $totT ?? '—' }}</strong></td>
-                <td class="r"><strong>{{ ($totT !== null && $presT !== null && $presT !== '') ? $totT - (int) $presT : '—' }}</strong></td></tr>
+        @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); @endphp
+        <table class="grid"><tr><th>Total students (Present + Absent)</th><th>Total teachers (Regular + Contractual + SSA + Tutors)</th></tr>
+            <tr><td class="r"><strong>{{ $totS ?? '—' }}</strong></td><td class="r"><strong>{{ $totT ?? '—' }}</strong></td></tr>
         </table>
         @if ($bd = QD::teacherBreakdown($answers))
             <table class="grid"><tr><th>Trained</th><th>Untrained</th><th>Male</th><th>Female</th><th>Total (not more than Total teachers)</th></tr>
@@ -236,27 +237,7 @@
     </table>
 @endif
 
-{{-- New Module 3: automatic rating --}}
-@php $rt = $rating; $hex = ['green' => '#1e9b4b', 'blue' => '#1565c0', 'yellow' => '#d4a500', 'orange' => '#f39223', 'red' => '#d93025']; @endphp
-@if ($rt && $rt->isRated())
-    <h2>School Performance Summary (automatic rating)</h2>
-    <table class="grid">
-        <tr><th style="width:40%">Overall score</th><td><strong style="font-size:12pt;color:{{ $hex[$rt->color] ?? '#000' }}">{{ rtrim(rtrim(number_format($rt->score_percent, 2), '0'), '.') }} % · {{ $rt->band }}</strong>
-            <span class="muted"> ({{ rtrim(rtrim(number_format($rt->obtained, 2), '0'), '.') }} of {{ rtrim(rtrim(number_format($rt->applicable, 2), '0'), '.') }} weighted points, scheme v{{ $rt->scheme?->version }})</span></td></tr>
-        @foreach ($rt->sections as $sec)
-            <tr><td>{{ $sec['title'] }}</td><td>@if ($sec['percent'] === null) N/A @else
-                <div style="background:#e5e7eb;height:3mm;width:60%;display:inline-block;vertical-align:middle"><div style="background:{{ $hex[$sec['color']] ?? '#64748b' }};height:3mm;width:{{ $sec['percent'] }}%"></div></div>
-                <strong> {{ rtrim(rtrim(number_format($sec['percent'], 1), '0'), '.') }} %</strong> · {{ $sec['band'] }} @endif</td></tr>
-        @endforeach
-    </table>
-    <p style="margin:2mm 0">{{ \App\Rating\RatingCalculator::summary(['score_percent' => $rt->score_percent, 'band' => $rt->band, 'sections' => $rt->sections], $inspection->school->name) }}</p>
-    <table><tr>
-        <td style="width:50%;vertical-align:top;padding-right:3mm"><strong style="color:#1b5e20">Strengths</strong>
-            <ul style="margin:1mm 0 0 4mm;padding:0">@forelse (array_slice($rt->strengths, 0, 8) as $x)<li>{{ $x['label'] }}</li>@empty<li>—</li>@endforelse</ul></td>
-        <td style="width:50%;vertical-align:top"><strong style="color:#b91c1c">Weaknesses</strong>
-            <ul style="margin:1mm 0 0 4mm;padding:0">@forelse (array_slice($rt->weaknesses, 0, 10) as $x)<li>{{ $x['label'] }}</li>@empty<li>—</li>@endforelse</ul></td>
-    </tr></table>
-@endif
+{{-- Modification V9: the automatic rating is no longer printed --}}
 
 <table style="margin-top:14mm"><tr>
     <td style="width:60%"></td>

@@ -11,16 +11,15 @@
 
     // Presentation only: short guidance per step and visual group headings (question codes are unchanged)
     $intro = [
-        1 => 'Record who you met and check the school building and facilities.',
-        2 => 'Enter today\'s numbers. Use − / + or type the figure.',
+        1 => 'Check the school building and facilities.',
+        2 => 'Enter today\'s numbers. Use − / + or type the figure. Leave 0 where there are none.',
         3 => 'Add every teacher absent today, or tick “All teachers present”.',
         4 => 'Observe at least one class and record how it was taught.',
-        5 => 'Choose a year, then enter amounts in lakh. Save at least one year.',
+        5 => 'Optional: choose a year, then enter amounts in lakh (e.g. .2 = 0.20).',
         6 => 'Record how the school is run, then add up to three suggestions.',
         7 => 'Take or upload the four required photographs.',
     ];
     $groups = [
-        'BAS_PERSON_NAME' => ['Person met', 'bi-person-badge'],
         'CND_01' => ['Building & basic facilities', 'bi-building'],
         'CND_08' => ['Electricity & classrooms', 'bi-lightning-charge'],
         'CND_17' => ['Digital learning & labs', 'bi-pc-display'],
@@ -49,6 +48,7 @@
         'teachers' => $teacherRows,
         'classrooms' => $classroomRows,
         'funds' => $fundRows,
+        'absentLimit' => $absentLimit ?? null,
         'missing' => $progress['missing'],
         'mandatory' => $mandatory,
         'maxPhotos' => config('inspection.evidence.max_photos'),
@@ -97,19 +97,21 @@
                         <div class="row g-0 num-grid">
                             @foreach ($questions as $i => $q)
                                 @if ($groupHead($q['code']))<div class="col-12">{!! $groupHead($q['code']) !!}</div>@endif
+                                @if ($q['code'] === 'TSI_04')
+                                    {{-- Modification V9: only the total, above the teacher numbers it adds up --}}
+                                    <div class="col-12"><div class="auto-total at-total-only" data-auto-total="teachers" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                        <span class="at-label">Total teachers<small>Regular + Contractual + SSA + Provincialised + Newly accorded tutors · calculated automatically</small></span>
+                                        <span class="at-parts"><span data-at-extra></span></span>
+                                        <span class="at-value" data-at="total">–</span>
+                                    </div></div>
+                                @endif
                                 <div class="col-md-6">@include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])</div>
                                 {{-- Automatic totals (display only, nothing extra is stored) --}}
                                 @if ($q['code'] === 'TSI_02')
                                     <div class="col-12"><div class="auto-total" data-auto-total="students" aria-live="polite">
                                         <span class="at-icon"><i class="bi bi-calculator"></i></span>
                                         <span class="at-label">Total students<small>Present + Absent · calculated automatically</small></span>
-                                        <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
-                                        <span class="at-value" data-at="total">–</span>
-                                    </div></div>
-                                @elseif ($q['code'] === 'TSI_09')
-                                    <div class="col-12"><div class="auto-total" data-auto-total="teachers" aria-live="polite">
-                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
-                                        <span class="at-label">Total teachers<small>Regular + Contractual + SSA + Provincialised + Newly accorded tutors</small></span>
                                         <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
@@ -148,6 +150,11 @@
                             <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
                             <span class="rs-count" data-count="teachers">0</span>
                         </div>
+                        @if ($absentLimit !== null)
+                            {{-- Modification V9: no more absent teachers than Total teachers - Present (step 2) --}}
+                            <div class="absent-limit text-xs" data-absent-limit="{{ $absentLimit }}"><i class="bi bi-info-circle"></i>
+                                <span>Step 2: {{ $absentLimit }} teacher(s) absent (Total teachers − Present). Add up to {{ $absentLimit }}.</span></div>
+                        @endif
                         <div id="teacher-list" class="rs-list"></div>
                         <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-person-plus"></i></span>

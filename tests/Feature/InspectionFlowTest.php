@@ -343,7 +343,7 @@ class InspectionFlowTest extends TestCase
         $this->get(route('inspections.review', $i))->assertOk()
             ->assertSee('ans-pill tone-good', false)                 // Yes answers as green pills
             ->assertSee('Total students')->assertSee('135')          // 120 + 15
-            ->assertSee('Total teachers')->assertSee('Teachers absent')
+            ->assertSee('Total teachers')->assertDontSee('Teachers absent') // V9: only the total
             ->assertSee('1,234.50')                                  // Indian-format lakh
             ->assertSee('All 2 years')->assertSee('−1.00')           // grand total row, negative balance
             ->assertSee('rv-photo', false)->assertSee('Required · done')

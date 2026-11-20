@@ -34,6 +34,7 @@ if (el) {
     const levelName = { district: 'District', block: 'Block', cluster: 'Cluster', school: 'School' };
     // V6 Module 9: school ratings
     let colourBy = 'status';
+    const showRating = cfg.showRating !== false; // Modification V9: ratings hidden unless RATING_DISPLAY=true
     const pct = (v) => `${Number(v).toFixed(1).replace(/\.0$/, '')}%`;
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
     const ratingIcon = (r) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
@@ -150,8 +151,8 @@ if (el) {
                 </div>
                 <div class="mp-cov"><div class="d-flex justify-content-between"><span>Coverage of ${fmt(r.schools)} schools</span><b>${r.coverage} %</b></div>
                     <div class="mp-bar"><span class="${coverageClass(cov)}" style="width:${cov}%"></span></div></div>
-                <div class="mp-row"><i class="bi bi-star-half"></i><span>Average rating</span><span class="ms-auto">${r.rating ? ratingPill(r.rating) : '<span class="text-muted">Not rated</span>'}</span></div>
-                ${r.rating ? `<div class="mp-note">${fmt(r.rating.count)} rated inspection(s)</div>` : ''}
+                ${showRating ? `<div class="mp-row"><i class="bi bi-star-half"></i><span>Average rating</span><span class="ms-auto">${r.rating ? ratingPill(r.rating) : '<span class="text-muted">Not rated</span>'}</span></div>
+                ${r.rating ? `<div class="mp-note">${fmt(r.rating.count)} rated inspection(s)</div>` : ''}` : ''}
                 <div class="mp-row"><i class="bi bi-person-badge"></i><span>Officers</span><b class="ms-auto">${fmt(r.officers.total)}</b></div>
                 <button type="button" class="btn btn-primary btn-sm w-100 mt-2" data-drill="${r.id}"><i class="bi bi-zoom-in"></i>Open ${levelName[nextLevel[level]].toLowerCase()}s</button>
             </div></div>`;
@@ -227,7 +228,7 @@ if (el) {
                 <div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">UDISE ${esc(s.udise)}</div></div></div>
             <div class="mp-body">
                 <div class="mp-chips"><span class="mp-status st-${s.status}"><span class="dot st-${s.status}"></span>${status}</span>
-                    ${s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}</div>
+                    ${!showRating ? '' : s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}</div>
                 <div class="mp-row"><i class="bi bi-geo-alt"></i><span>${esc(s.area)}</span></div>
                 ${s.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(s.address)}</span></div>` : ''}
                 ${last}
@@ -260,21 +261,21 @@ if (el) {
         const head = $('mapTableHead');
         const body = $('mapTableBody');
         if (level === 'school') {
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th><th>Rating</th><th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
             body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
                 <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
                 <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
-                <td>${s.rating ? ratingPill(s.rating) : '—'}</td>
+                ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
                 <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
                 : '<tr><td colspan="6" class="text-muted p-3">No schools match the filters.</td></tr>';
         } else {
-            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th><th class="text-end">Avg rating</th>
+            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
                 <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
             body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
                 <td><a href="#" data-drill="${r.id}">${esc(r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
                 <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
                 <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
-                <td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>
+                ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
                 : '<tr><td colspan="11" class="text-muted p-3">No areas with schools here.</td></tr>';

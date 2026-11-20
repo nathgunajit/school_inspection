@@ -90,7 +90,7 @@ Every step page has the same frame:
 ### Step 1: Condition of the School
 ![Step 1](../docs/screenshots/05-step1-condition.png)
 
-- **Person met:** name and designation (`BAS_PERSON_NAME`, `BAS_PERSON_DESIG`). They are also copied to `inspections.person_met_name` and `person_met_designation` for lists.
+- **Person met (Modification V9: no longer asked):** `BAS_PERSON_NAME` and `BAS_PERSON_DESIG` are marked `hidden` in the definition, so they are not rendered and not required. The codes are kept. Older inspections still show the person met on the report and the PDF, and in the Excel column.
 - **Building and basic facilities:** `CND_01` building type (Pucca / Semi Pucca / Others) and `CND_02`–`CND_08` Yes/No.
 - **Electricity and classrooms:** `CND_09`–`CND_16`.
 - **Digital learning and labs:** `CND_17`–`CND_26`.
@@ -103,11 +103,14 @@ Every step page has the same frame:
 ![Step 2](../docs/screenshots/06-step2-strength.png)
 
 - 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
+- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required.
+  - They have `'default' => 0`: the box shows 0 with the hint "Enter 0 if none".
+  - A blank value counts as 0 in the totals (`QuestionnaireDefinition::withDefaults()`).
+  - At submit, a blank value is stored as 0.
 - **Automatic totals (display only, not stored):**
   - total students = present + absent
-  - total teachers = regular + contractual + SSA + provincialised + newly accorded tutors
-  - teachers absent = total − present
-- **Warning (does not block):** teachers present is more than the total.
+  - **Total teachers** = regular + contractual + SSA + provincialised + newly accorded tutors. Since V9 the box sits **above** the teacher numbers and shows only the total (no Present / Absent).
+- **Blocking:** teachers present more than the total; trained/untrained (and male/female) more than the total.
 
 ### Step 3: Teachers Absentee Form
 ![Step 3](../docs/screenshots/07-step3-absentee.png)
@@ -120,6 +123,10 @@ Every step page has the same frame:
   - **reason:** CL, EL, Maternity Leave, CCL, Study Leave, Medical Leave, Un-authorised Leave
   - **remarks** (optional)
 - Rows can be edited and deleted. Every change returns the new list and the progress.
+- **Limit (Modification V9, blocking):** at most **Total teachers − Present** absent teachers (`InspectionValidator::absentLimit()`).
+  - The counter shows "added / allowed", and the Add button rests once the limit is reached.
+  - The server refuses one more row with a 422. A replay of a saved `row_uid` is still accepted.
+  - If step 2 is lowered later, the extra rows block Submit.
 - **Warning (does not block):** step 2 shows 3 teachers absent but only 1 row was entered.
 
 ### Step 4: Class Room Performance
@@ -136,7 +143,9 @@ Every step page has the same frame:
 
 ### Step 5: Fund Received & Expenditure
 ![Step 5](../docs/screenshots/09-step5-fund.png)
-> **Completion (20-11-2026):** the step shows **Not started** until at least one financial year is saved, then **Done**. At least one year is required before Submit (it was optional).
+> **Modification V9 (20-11-2026):** fund details are **optional** again. The step counts as done with no year saved, and Submit is not blocked.
+> - Amounts are formatted when the officer leaves the box: `.2` → `0.20`, `5` → `5.00`.
+> - An amount with more than 2 decimals, or one over 99,999, shows an error at once. The server rule is still `decimal:0,2`.
 
 1. **Choose the financial year:** the current one and the 5 before it, e.g. `FY-2026-27`.
 2. **Enter the amounts in lakh** (up to 2 decimals, 0–99,999), received and expenditure for each head:
@@ -508,6 +517,15 @@ The browser uses it to update the % bar, the stepper badges and "n left in this 
 - the photos by category. They are served only through `EvidenceController@show`, after a permission check.
 
 **Download PDF** (`/inspections/{id}/pdf`) gives the official printable report (dompdf, `inspections/pdf.blade.php`).
+
+**Ratings (Modification V9):**
+- The automatic rating is still calculated at submit.
+- It is **not shown** on the report, the lists, the school page, the map, the sidebar Rating Report or the Excel export unless `RATING_DISPLAY=true` (`config('inspection.rating.display')`, default false).
+- With the switch off, `/reports/ratings` returns 404.
+- These are removed for good:
+  - the rating section of the inspection PDF
+  - the Rating Report PDF (route `reports.ratings.pdf`)
+- The State Admin keeps Rating Settings.
 
 **Who can open a report** (`InspectionPolicy@view`):
 - its officer, always

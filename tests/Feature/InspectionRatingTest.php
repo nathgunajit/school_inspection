@@ -109,6 +109,7 @@ class InspectionRatingTest extends TestCase
 
     public function test_service_rates_a_submitted_v2_inspection_and_skips_drafts(): void
     {
+        config(['inspection.rating.display' => true]); // Modification V9: ratings are hidden by default
         $officer = $this->officer(UserLevel::Cluster);
         $i = $this->startInspection($officer, $this->schoolIn($officer->currentJurisdiction->cluster));
         foreach (['CND_02' => 'yes', 'CND_03' => 'no', 'GOVR_05' => 'yes'] as $code => $v) {

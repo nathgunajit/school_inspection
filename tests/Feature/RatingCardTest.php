@@ -15,6 +15,12 @@ use Tests\TestCase;
 /** Modification V7 (item 8): the redesigned rating card on the inspection report. */
 class RatingCardTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['inspection.rating.display' => true]); // Modification V9: ratings are hidden by default
+    }
+
     private function rated(User $officer, School $school, string $date, array $answers): Inspection
     {
         $i = $this->startInspection($officer, $school);

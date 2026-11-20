@@ -10,7 +10,6 @@
 <x-layouts.app title="Rating Report">
     <x-slot:actions>
         @can('export_excel')<a href="{{ route('reports.ratings.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Excel</a>@endcan
-        <a href="{{ route('reports.ratings.pdf', $keep) }}" target="_blank" rel="noopener" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </x-slot:actions>
 
     <form method="GET" class="filter-bar filter-sm mb-3" data-loader="heavy" data-loader-text="Loading rating report…">

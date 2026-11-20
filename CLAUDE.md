@@ -60,13 +60,24 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - V6 Module 9: `School::latestRatedInspection` (latest submitted rated inspection; eager-load `latestRatedInspection.rating`) and `latestRating()` feed the school page header, the Find School list and the map.
   - `MapDataService` adds `rating` to school rows and a period average to area rows (`areaRatings()`).
   - The map has a "Colour schools by Status / Rating" switch.
-- Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`, `/pdf`; views in `resources/views/reports/ratings/`).
+- Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`; views in `resources/views/reports/ratings/`). The PDF was removed in V9.
+- Modification V9, rating display switch: `config('inspection.rating.display')` (`RATING_DISPLAY`, default **false**).
+  - Ratings are still calculated at submit.
+  - With the switch off they are hidden everywhere users see them: report aside, `<x-rating-badge>`, school page, map (`MapController::withoutRatings()`, `cfg.showRating`), sidebar link, Excel columns. `/reports/ratings*` returns 404 (controller middleware).
+  - Rating Settings stays for admins.
+  - The inspection PDF never prints the rating.
 - Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK).
   - Designation "Other" stores text in `users.designation_other`; always print `$user->designation_label`, never `designation?->label`.
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
 - Step 2 teacher totals (blocking): TSI_10–13 must be less than or equal to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
+- Modification V9, questionnaire:
+  - `BAS_PERSON_*` are `'hidden' => true`: not rendered, not required (`InspectionValidator::visible()`). They are shown on the report only for older inspections.
+  - TSI_05–TSI_09 have `'default' => 0`: not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
+  - Step 2 shows only Total teachers, above TSI_04.
+  - Absent rows must be ≤ Total teachers − Present (`InspectionValidator::absentLimit()`). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
+  - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).
 - Working without network: `resources/js/offline-queue.js` keeps unsent answers, rows and photos in IndexedDB per inspection (`SI.inspectionKey`) and replays them in order. `wizard.js` `queue(fn, onInvalid, op)` needs an `op` for anything that may wait offline.
   - New rows send a `row_uid`, so replays never duplicate (`InspectionController::addRow`).
   - `review.js` locks Submit until the device queue is empty.
@@ -76,7 +87,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   2. Teacher/Student numbers (`TSI_*`)
   3. Absentee rows (`inspection_absent_teachers`), or `ABS_00` "All teachers present"; one of them is required (`InspectionValidator`)
   4. Classroom rows (`inspection_classroom_observations`)
-  5. Fund by financial year in lakh (`inspection_fund_positions`); at least one year is required
+  5. Fund by financial year in lakh (`inspection_fund_positions`); optional since V9
   6. Governance (`GOVR_*`) + 3 suggestions
   7. Photographs: 4 mandatory categories from `config('inspection.mandatory_photos')`
 
