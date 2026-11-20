@@ -300,7 +300,7 @@ function clearFormErrors(form) {
 function showServerErrors(form, errors, message) {
     clearFormErrors(form);
     const names = Object.keys(errors);
-    names.forEach((n) => setFieldError(form, n, errors[n][0]));
+    names.forEach((n) => setFieldError(form, n.startsWith('tlm_items') ? 'tlm_items' : n, errors[n][0]));
     if (!names.length) formError(form, message || 'Please check the form.');
     focusFirstError(form);
 }
@@ -331,9 +331,38 @@ function validateRequired(form) {
             ok = false;
         }
     });
+    if (form.id === 'classroom-form' && !tlmPicked()) { setFieldError(form, 'tlm_items', 'Tick at least one TLM item used.'); ok = false; }
     if (!ok) focusFirstError(form);
     return ok;
 }
+
+/* ---------------- FLN TLM items (step 4, shown when Use of TLM = Yes) ---------------- */
+const tlmBlock = document.getElementById('tlm-items');
+/** Rebuilds the TLM ticks for the class picked; keeps the ticks given (or the current ones that still apply). */
+function renderTlm(keep) {
+    const form = document.getElementById('classroom-form');
+    if (!form || !tlmBlock) return;
+    const list = tlmBlock.querySelector('[data-tlm-list]');
+    const ticked = (keep ?? [...list.querySelectorAll('input:checked')].map((i) => i.value)).map(String);
+    const cls = form.elements.class?.value || '';
+    const yes = form.querySelector('input[name="tlm_used"]:checked')?.value === 'yes';
+    const all = SI.tlmItems || [];
+    const items = cls ? all.filter((t) => t.class === null || t.class === cls) : [];
+    tlmBlock.classList.toggle('d-none', !yes || (cls ? !items.length : !all.length));
+    tlmBlock.querySelector('[data-tlm-hint]')?.classList.toggle('d-none', !!cls);
+    list.innerHTML = items.map((t) => `<input type="checkbox" class="btn-check" name="tlm_items[]" id="tlm_i_${esc(t.id)}" value="${esc(t.id)}"${ticked.includes(String(t.id)) ? ' checked' : ''}>`
+        + `<label for="tlm_i_${esc(t.id)}"><i class="bi bi-check-lg"></i><span>${esc(t.name)}${t.code ? `<small>${esc(t.code)}</small>` : ''}</span></label>`).join('');
+}
+/** True when no tick is needed (block hidden, or no items) or at least one item is ticked. */
+function tlmPicked() {
+    if (!tlmBlock || tlmBlock.classList.contains('d-none')) return true;
+    const boxes = [...tlmBlock.querySelectorAll('input[name="tlm_items[]"]')];
+    return !boxes.length || boxes.some((b) => b.checked);
+}
+document.getElementById('classroom-form')?.addEventListener('change', (e) => {
+    if (e.target.name === 'class' || e.target.name === 'tlm_used') renderTlm();
+});
+
 // clear a field's message as soon as it is corrected
 document.addEventListener('input', (e) => {
     const form = e.target.closest?.('form.row-form, form.fund-form');
@@ -341,7 +370,7 @@ document.addEventListener('input', (e) => {
 });
 document.addEventListener('change', (e) => {
     const form = e.target.closest?.('form.row-form, form.fund-form');
-    if (form && e.target.name) { clearFieldError(form, e.target.name); formError(form, ''); }
+    if (form && e.target.name) { clearFieldError(form, e.target.name.replace('[]', '')); formError(form, ''); }
 });
 
 /* ---------------- Repeating sections (absentee, classroom, fund) ---------------- */
@@ -401,6 +430,7 @@ const sections = {
                 <div class="rs-title"><span class="rs-no">${i + 1}.</span>${esc(c.subject)} <span class="rs-muted">· ${esc(c.class)}</span></div>
                 <div class="rs-sub"><i class="bi bi-person"></i>${esc(c.teacher_name)}</div>
                 <div class="rs-chips">${chip('TLM: ' + esc(c.tlm), c.tlm_ok ? 'ok' : 'bad')}${chip('Participation: ' + esc(c.participation), c.participation_ok ? 'ok' : 'bad')}</div>
+                ${(c.tlm_items || []).length ? `<div class="rs-note tlm-used"><i class="bi bi-box-seam"></i>${c.tlm_items.map(esc).join(', ')}</div>` : ''}
                 ${c.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(c.remarks)}</div>` : ''}
             </div>${rowActions(c)}</div>`,
     },
@@ -499,6 +529,7 @@ function setEditMode(s, form, row) {
         }
     }
     window.siSyncSelects?.(form);
+    if (s.key === 'classrooms') renderTlm(row?.values?.tlm_items || []);
     renderSection(s);
 }
 
@@ -514,7 +545,9 @@ for (const s of Object.values(sections)) {
         }
         const btn = form.querySelector('button:not([type=button])');
         btn.disabled = true;
-        const data = Object.fromEntries(new FormData(form));
+        const fd = new FormData(form);
+        const data = Object.fromEntries(fd);
+        if (s.key === 'classrooms') { data.tlm_items = fd.getAll('tlm_items[]'); delete data['tlm_items[]']; } // several ticks
         const editing = s.key !== 'funds' && form.dataset.editUrl;
         if (!editing && s.key !== 'funds') data.row_uid = newUid(); // a replayed add never creates a duplicate
         // Only new rows and fund years can wait on this device; editing or removing needs the network.
@@ -522,7 +555,7 @@ for (const s of Object.values(sections)) {
             method: 'post', url: form.dataset.url, body: data, section: s.key,
             key: s.key === 'funds' ? `fund:${data.financial_year}` : null,
             onQueued: () => {
-                if (s.key !== 'funds') { form.reset(); window.siSyncSelects?.(form); }
+                if (s.key !== 'funds') { form.reset(); window.siSyncSelects?.(form); if (s.key === 'classrooms') renderTlm([]); }
                 window.toast(`${s.key === 'funds' ? `FY ${fyShort(data.financial_year)}` : 'Record'} saved on this device; it will be sent when the network is back.`, 'warning');
             },
         };

@@ -1949,3 +1949,32 @@ Plan approved by the user. Decisions:
   - CLAUDE.md
   - Product Details/INSPECTION_FORM_DOCUMENT.md, the rebuilt School_Inspection_Product_Details.docx, and Requirements/ (V9 copy)
 - Verified: `npm run build` OK; `php artisan test` 171 passed. Not checked visually in a browser.
+
+## 2026-11-20 — FLN TLM list on the classroom observation (`Documents/FLN TLM list_2026-27.docx`)
+- Step 4 (Classroom performance): when **Use of TLM by teacher = Yes**, the officer ticks the TLM items used. Several can be ticked.
+  - The list is filtered by the class picked: that class's items plus any "All classes" items.
+  - At least one tick is required when the class has items. This is checked in the browser and on the server (422 `tlm_items`).
+  - With TLM = No, the ticks are cleared.
+  - A class without items needs none.
+  - An item of another class, or an inactive item, is refused. A row keeps an inactive item it already has.
+  - An offline replay (same `row_uid`) does not duplicate the row or its ticks.
+- New master **`tlm_items`**, with the link table `inspection_classroom_tlm`.
+  - The migration seeds the document's list: Class I with 6 items, Class II with 5 (code, variety 1, "One copy per child").
+- New **TLM Master** admin page (`/admin/tlm-items`, `manage_masters`, sidebar link): filter by class, search, add, edit, make inactive or active. Every change is audited (`tlm_item_created`, `_updated`, `_activated`, `_deactivated`).
+- The saved row card, the report, the review and the PDF show the items used ("Yes: Karjyapatra (Literacy) · NIPUN AXOM G1L4, …").
+- Files:
+  - database/migrations/2026_11_20_000002_create_tlm_items.php
+  - app/Models/{TlmItem,InspectionClassroomObservation}.php
+  - app/Http/Controllers/{InspectionController,ReportController,Admin/TlmItemController}.php
+  - routes/web.php
+  - views: inspections/{step,pdf}.blade.php, inspections/partials/step-answers.blade.php, admin/tlm/index.blade.php, components/layouts/app.blade.php
+  - resources/js/wizard.js
+  - resources/scss/app.scss
+  - tests/Feature/TlmItemsTest.php (new, 8 tests)
+  - CLAUDE.md
+  - Product Details/{INSPECTION_FORM_DOCUMENT,Database_Architecture_and_Schema}.md, the rebuilt School_Inspection_Product_Details.docx, and Requirements/ (TLM list copy)
+- Verified:
+  - `php artisan test`: 179 passed
+  - `npm run build`: OK
+  - `php artisan migrate` on local MySQL: 11 items
+  - Not checked visually in a browser.

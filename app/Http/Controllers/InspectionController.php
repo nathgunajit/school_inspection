@@ -8,6 +8,7 @@ use App\Models\InspectionAbsentTeacher;
 use App\Models\InspectionAnswer;
 use App\Models\InspectionClassroomObservation;
 use App\Models\InspectionFundPosition;
+use App\Models\TlmItem;
 use App\Models\MasterValue;
 use App\Models\School;
 use App\Models\User;
@@ -122,7 +123,7 @@ class InspectionController extends Controller
         }
 
         $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation',
-            'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks']);
+            'answers', 'absentTeachers', 'classroomObservations.tlmItems', 'fundPositions', 'evidence.category', 'remarks']);
         $progress = (new InspectionValidator($inspection))->progress();
 
         return view('inspections.step', [
@@ -139,6 +140,7 @@ class InspectionController extends Controller
             'classroomRows' => $this->classroomRows($inspection),
             'fundRows' => $this->fundRows($inspection),
             'financialYears' => InspectionFundPosition::financialYears(),
+            'tlmItems' => TlmItem::active()->orderBy('sort')->orderBy('name')->get()->map->toPickArray()->all(),
         ]);
     }
 
@@ -146,7 +148,7 @@ class InspectionController extends Controller
     /** Friendly field names / messages for the repeating rows (shown next to each field in the form). */
     private const ROW_ATTRIBUTES = [
         'teacher_name' => "teacher's name", 'teacher_type' => "teacher's type", 'reason' => 'reason for absence',
-        'class' => 'class', 'subject' => 'subject', 'tlm_used' => 'use of TLM', 'participation' => 'participation of students',
+        'class' => 'class', 'subject' => 'subject', 'tlm_used' => 'use of TLM', 'tlm_items' => 'TLM items', 'participation' => 'participation of students',
         'remarks' => 'remarks',
     ];
 
@@ -156,6 +158,8 @@ class InspectionController extends Controller
         'reason.required' => 'Please select the reason for absence.',
         'class.required' => 'Please select the class.',
         'tlm_used.required' => 'Please choose Yes or No for use of TLM.',
+        'tlm_items.required' => 'Tick at least one TLM item used.',
+        'tlm_items.*.in' => 'A ticked TLM item is not in the list for this class.',
         'participation.required' => 'Please choose the participation of students.',
         'in' => 'Please choose a valid :attribute from the list.',
         'min' => 'The :attribute is too short.',
@@ -259,15 +263,14 @@ class InspectionController extends Controller
         }
     }
 
-    private function addRow(\Illuminate\Database\Eloquent\Relations\HasMany $rows, array $data, Request $request): void
+    private function addRow(\Illuminate\Database\Eloquent\Relations\HasMany $rows, array $data, Request $request): \Illuminate\Database\Eloquent\Model
     {
         $uid = $request->validate(['row_uid' => ['nullable', 'uuid']])['row_uid'] ?? null;
         if ($uid === null) {
-            $rows->create($data);
-
-            return;
+            return $rows->create($data);
         }
-        $rows->createOrFirst(['row_uid' => strtolower($uid)], $data); // safe even if two copies arrive at once
+
+        return $rows->createOrFirst(['row_uid' => strtolower($uid)], $data); // safe even if two copies arrive at once
     }
 
     private function teacherData(Request $request): array
@@ -284,7 +287,8 @@ class InspectionController extends Controller
     public function addClassroom(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $this->addRow($inspection->classroomObservations(), $this->classroomData($request), $request);
+        [$data, $tlm] = $this->classroomData($request);
+        $this->addRow($inspection->classroomObservations(), $data, $request)->tlmItems()->sync($tlm); // a replay syncs the same ids
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
     }
@@ -293,7 +297,9 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         abort_unless($classroom->inspection_id === $inspection->id, 404);
-        $classroom->update($this->classroomData($request));
+        [$data, $tlm] = $this->classroomData($request, $classroom);
+        $classroom->update($data);
+        $classroom->tlmItems()->sync($tlm);
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
     }
@@ -307,20 +313,33 @@ class InspectionController extends Controller
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
     }
 
-    private function classroomData(Request $request): array
+    /** @return array{0: array, 1: int[]} the row columns and the ticked TLM item ids */
+    private function classroomData(Request $request, ?InspectionClassroomObservation $existing = null): array
     {
+        // FLN TLM: when TLM was used, tick at least one item offered for the class (if the class has any)
+        $class = is_string($request->input('class')) ? $request->input('class') : null;
+        $offered = $class !== null && array_key_exists($class, InspectionClassroomObservation::CLASSES)
+            ? TlmItem::forClass($class)->pluck('id')->all() : [];
+        $tlmYes = $request->input('tlm_used') === 'yes';
+        // an item made inactive later stays valid on the row that already has it (same class)
+        $kept = $existing && $existing->class === $class ? $existing->tlmItems()->pluck('tlm_items.id')->all() : [];
+
         $data = $request->validate([
             'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
             'class' => ['required', Rule::in(array_keys(InspectionClassroomObservation::CLASSES))],
             'subject' => ['required', 'string', 'max:100'],
             'tlm_used' => ['required', 'in:yes,no'],
+            'tlm_items' => [$tlmYes && $offered ? 'required' : 'nullable', 'array'],
+            'tlm_items.*' => $tlmYes ? ['integer', Rule::in(array_merge($offered, $kept))] : ['nullable'],
             'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
             'remarks' => ['nullable', 'string', 'max:500'],
         ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
         $data['tlm_used'] = $data['tlm_used'] === 'yes';
         $data['remarks'] ??= null;
+        $tlm = $data['tlm_used'] ? array_values(array_unique(array_map('intval', $data['tlm_items'] ?? []))) : [];
+        unset($data['tlm_items']);
 
-        return $data;
+        return [$data, $tlm];
     }
 
     /** Fund received & expenditure for a financial year, in lakh; one row per year (v2 step 5). */
@@ -390,7 +409,7 @@ class InspectionController extends Controller
     public function review(Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $inspection->load(['school', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks']);
+        $inspection->load(['school', 'answers', 'absentTeachers', 'classroomObservations.tlmItems', 'fundPositions', 'evidence.category', 'remarks']);
 
         return view('inspections.review', [
             'inspection' => $inspection,
@@ -550,7 +569,7 @@ class InspectionController extends Controller
 
     private function classroomRows(Inspection $inspection): array
     {
-        return $inspection->classroomObservations()->get()->map->toClientArray()->all();
+        return $inspection->classroomObservations()->with('tlmItems')->get()->map->toClientArray()->all();
     }
 
     private function fundRows(Inspection $inspection): array

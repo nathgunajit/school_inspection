@@ -168,7 +168,7 @@
     @if ($n === 4)
         @if ($inspection->classroomObservations->isNotEmpty())
             <table class="grid"><tr><th>Teacher</th><th>Class</th><th>Subject</th><th>Use of TLM</th><th>Participation</th><th>Remarks</th></tr>
-                @foreach ($inspection->classroomObservations as $c)<tr><td>{{ $c->teacher_name }}</td><td>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }}</td><td>{{ $c->subject }}</td><td>{{ $c->tlm_used ? 'Yes' : 'No' }}</td><td>{{ $c->participationLabel() }}</td><td>{{ $c->remarks }}</td></tr>@endforeach
+                @foreach ($inspection->classroomObservations as $c)<tr><td>{{ $c->teacher_name }}</td><td>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }}</td><td>{{ $c->subject }}</td><td>{{ $c->tlmText() }}</td><td>{{ $c->participationLabel() }}</td><td>{{ $c->remarks }}</td></tr>@endforeach
             </table>
         @else <p class="muted">No classroom records.</p> @endif
     @endif

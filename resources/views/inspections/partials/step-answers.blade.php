@@ -84,6 +84,7 @@
                 <div class="rs-title"><span class="rs-no">{{ $i + 1 }}.</span>{{ $ca['subject'] }} <span class="rs-muted">· {{ $ca['class'] }}</span></div>
                 <div class="rs-sub"><i class="bi bi-person"></i>{{ $ca['teacher_name'] }}</div>
                 <div class="rs-chips"><span class="rs-chip {{ $ca['tlm_ok'] ? 'ok' : 'bad' }}">TLM: {{ $ca['tlm'] }}</span><span class="rs-chip {{ $ca['participation_ok'] ? 'ok' : 'bad' }}">Participation: {{ $ca['participation'] }}</span></div>
+                @if ($ca['tlm_items'])<div class="rs-note tlm-used"><i class="bi bi-box-seam"></i>{{ implode(', ', $ca['tlm_items']) }}</div>@endif
                 @if ($ca['remarks'])<div class="rs-note"><i class="bi bi-chat-left-text"></i>{{ $ca['remarks'] }}</div>@endif
             </div>
         </div>

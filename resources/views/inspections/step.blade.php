@@ -49,6 +49,7 @@
         'classrooms' => $classroomRows,
         'funds' => $fundRows,
         'absentLimit' => $absentLimit ?? null,
+        'tlmItems' => $tlmItems ?? [],
         'missing' => $progress['missing'],
         'mandatory' => $mandatory,
         'maxPhotos' => config('inspection.evidence.max_photos'),
@@ -198,6 +199,12 @@
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Use of TLM by teacher <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="tlm_used"><input type="radio" name="tlm_used" id="tlm_yes" value="yes" required><label for="tlm_yes" class="tone-good">Yes</label>
                                         <input type="radio" name="tlm_used" id="tlm_no" value="no"><label for="tlm_no" class="tone-bad">No</label></div></div>
+                                {{-- FLN TLM master: which TLM items were used (shown when TLM = Yes and the class has items) --}}
+                                <div class="col-12 d-none" id="tlm-items">
+                                    <label class="form-label text-sm d-block">Which TLM was used? <span class="req">*</span> <span class="text-xs text-secondary">tick all that apply</span></label>
+                                    <div class="tlm-pick" role="group" aria-label="TLM items used" data-field="tlm_items" data-tlm-list></div>
+                                    <div class="tlm-hint text-xs text-secondary d-none" data-tlm-hint><i class="bi bi-info-circle me-1"></i>Select the class first to see its TLM list.</div>
+                                </div>
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="participation">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>
                                 <div class="col-12"><label class="form-label text-sm" for="c_remarks">Remarks</label><input id="c_remarks" name="remarks" class="form-control" maxlength="500" placeholder="Optional"></div>

@@ -68,7 +68,9 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 17 | `inspections` | Inspection header: officer, school, date, location snapshot (ids and codes), start/submit GPS, status, version, unlock/cancel data | `id` | users, schools, districts, blocks, clusters, all `inspection_*` tables |
 | 18 | `inspection_answers` | One row per question code per inspection; JSON `value` and `remarks` | `id` | inspections |
 | 19 | `inspection_absent_teachers` | Step 3 rows: absent teacher, type, leave reason | `id` | inspections |
-| 20 | `inspection_classroom_observations` | Step 4 rows: teacher, class, subject, TLM used, participation | `id` | inspections |
+| 20 | `inspection_classroom_observations` | Step 4 rows: teacher, class, subject, TLM used, participation | `id` | inspections, `inspection_classroom_tlm` |
+| 20a | `tlm_items` | FLN TLM master: items per class (null = all classes), code, variety, remarks, active | `id` | `inspection_classroom_tlm` |
+| 20b | `inspection_classroom_tlm` | TLM items ticked on a classroom observation | (`classroom_observation_id`, `tlm_item_id`) | inspection_classroom_observations, tlm_items |
 | 21 | `inspection_fund_positions` | Step 5 rows: one per financial year, received and spent per head, in lakh | `id` | inspections, master_values (v1 only) |
 | 22 | `inspection_remarks` | Suggestions (step 6) and other free-text remarks | `id` | inspections |
 | 23 | `inspection_evidence` | Photos and documents: private-disk path, SHA-256, GPS, source (camera/gallery), category | `id` | inspections, master_values, users |
@@ -448,6 +450,30 @@ CHECK `value`: `json_valid(`value`)`
 | `updated_at` | timestamp |  |  |  | Yes |  |
 
 Indexes: `inspection_classroom_observations_inspection_id_foreign` (inspection_id); **unique** `inspection_classroom_observations_inspection_id_row_uid_unique` (inspection_id, row_uid).
+
+#### `tlm_items`
+Migration `2026_11_20_000002_create_tlm_items`. It inserts the FLN TLM list for 2026-27: 6 items for Class I and 5 for Class II.
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `class` | varchar(4) | 4 |  |  | Yes | (null = all classes) |
+| `name` | varchar(150) | 150 |  |  | No |  |
+| `code` | varchar(60) | 60 |  |  | Yes |  |
+| `variety` | smallint unsigned |  |  |  | No | 1 |
+| `remarks` | varchar(200) | 200 |  |  | Yes |  |
+| `sort` | smallint unsigned |  |  |  | No | 0 |
+| `is_active` | tinyint(1) |  |  |  | No | 1 |
+| `created_at` / `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: `tlm_items_class_index` (class); **unique** `tlm_items_class_name_unique` (class, name).
+
+#### `inspection_classroom_tlm`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `classroom_observation_id` | bigint(20) unsigned |  | Yes | inspection_classroom_observations.id (cascade) | No |  |
+| `tlm_item_id` | bigint(20) unsigned |  | Yes | tlm_items.id (restrict) | No |  |
 
 #### `inspection_evidence`
 

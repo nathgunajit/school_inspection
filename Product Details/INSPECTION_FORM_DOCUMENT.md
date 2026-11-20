@@ -137,9 +137,28 @@ Every step page has the same frame:
   - **class** (I–XII)
   - **subject:** autocomplete from the subject master (`GET /subjects/suggest`); free text is also allowed
   - **TLM used** (Yes/No)
+  - **TLM items used** (FLN TLM list, shown when TLM = Yes)
   - **participation** (Satisfactory / Not Satisfactory)
   - **remarks**
 - **At least one row is required** to submit.
+
+> **FLN TLM list (20-11-2026, `Documents/FLN TLM list_2026-27.docx`):**
+> - When **Use of TLM by teacher = Yes**, a list of TLM items appears. The officer ticks every item used (several are allowed).
+> - The list shows the items of the **class picked**, plus items marked "All classes". The document gives:
+>   - Class I: 6 items (Karjyapatra Vidya Pravesh / Literacy / Numeracy, Reading Books, English Activity Book, HPC)
+>   - Class II: 5 items
+> - **At least one item must be ticked** when the class has items. This is checked in the browser and by the server: 422 on `tlm_items`, "Tick at least one TLM item used."
+>   - An item of another class, or an inactive item, is refused.
+>   - With TLM = No, the ticks are cleared.
+>   - A class without items (e.g. Class V) needs none.
+> - The items come from the **TLM Master** (`tlm_items`, Admin → TLM Master, `manage_masters`). The admin can:
+>   - add an item: class or All classes, name, serial no / code, variety, order, remarks
+>   - edit an item
+>   - make an item inactive
+> - Items are never deleted. An inactive item is no longer offered, but older rows keep it.
+> - The ticks are stored in `inspection_classroom_tlm`.
+>   - The report, the review and the PDF show "Yes: item · code, …".
+>   - An offline replay (same `row_uid`) stores the same ticks again without duplicating them.
 
 ### Step 5: Fund Received & Expenditure
 ![Step 5](../docs/screenshots/09-step5-fund.png)
@@ -417,6 +436,8 @@ Example rows after step 1 of draft #4:
 | `tlm_used` | boolean | |
 | `participation` | varchar(20) | `satisfactory`, `not_satisfactory` |
 | `remarks` | text | |
+
+TLM items ticked: `inspection_classroom_tlm` (`classroom_observation_id` FK cascade, `tlm_item_id` FK restrict; composite PK). The master `tlm_items` has these columns: `class` (null = all classes), `name`, `code`, `variety`, `remarks`, `sort`, `is_active`, with a unique key on (`class`, `name`).
 
 ### 6.6 `inspection_fund_positions`: step 5 (one row per financial year)
 | Column | Type | Meaning |

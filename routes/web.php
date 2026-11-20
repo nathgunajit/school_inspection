@@ -158,6 +158,10 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/schools', [Admin\SchoolMasterController::class, 'store'])->name('schools.store');
                 Route::get('/schools/{school}/edit', [Admin\SchoolMasterController::class, 'edit'])->name('schools.edit');
                 Route::put('/schools/{school}', [Admin\SchoolMasterController::class, 'update'])->name('schools.update');
+                // FLN TLM master (classroom observation, step 4)
+                Route::get('/tlm-items', [Admin\TlmItemController::class, 'index'])->name('tlm.index');
+                Route::post('/tlm-items', [Admin\TlmItemController::class, 'store'])->name('tlm.store');
+                Route::put('/tlm-items/{tlmItem}', [Admin\TlmItemController::class, 'update'])->name('tlm.update');
                 // Rating Settings (New Module 3)
                 Route::get('/rating', [Admin\RatingController::class, 'index'])->name('rating.index');
                 Route::post('/rating', [Admin\RatingController::class, 'update'])->name('rating.update');

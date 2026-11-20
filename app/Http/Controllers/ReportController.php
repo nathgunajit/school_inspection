@@ -172,7 +172,7 @@ class ReportController extends Controller
     private function reportData(Inspection $inspection): array
     {
         $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation',
-            'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'evidence.category', 'remarks', 'unlocker']);
+            'answers', 'absentTeachers', 'classroomObservations.tlmItems', 'fundPositions', 'evidence.category', 'remarks', 'unlocker']);
 
         return [
             'inspection' => $inspection,

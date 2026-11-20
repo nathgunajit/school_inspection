@@ -78,6 +78,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Step 2 shows only Total teachers, above TSI_04.
   - Absent rows must be ≤ Total teachers − Present (`InspectionValidator::absentLimit()`). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
   - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).
+- FLN TLM (`Documents/FLN TLM list_2026-27.docx`), step 4: when `tlm_used = yes`, the officer ticks the TLM items used.
+  - Items come from `TlmItem::forClass($class)`: the class's items plus `class = null` ("All classes").
+  - At least one tick is required when the class has items (`InspectionController::classroomData()`). Ticks are stored in `inspection_classroom_tlm`, synced on add, update and replay.
+  - The master is `tlm_items` (`Admin\TlmItemController`, `/admin/tlm-items`, `manage_masters`, audited).
+  - Items are never deleted, only made inactive. A row keeps an inactive item it already has.
+  - UI: `renderTlm()` / `tlmPicked()` in `wizard.js`. Multiple ticks are sent as `tlm_items[]` through `fd.getAll()`.
 - Working without network: `resources/js/offline-queue.js` keeps unsent answers, rows and photos in IndexedDB per inspection (`SI.inspectionKey`) and replays them in order. `wizard.js` `queue(fn, onInvalid, op)` needs an `op` for anything that may wait offline.
   - New rows send a `row_uid`, so replays never duplicate (`InspectionController::addRow`).
   - `review.js` locks Submit until the device queue is empty.
