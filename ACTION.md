@@ -1996,3 +1996,31 @@ Plan approved by the user. Decisions:
   - resources/views/admin/tlm/index.blade.php
   - app/Http/Controllers/Admin/TlmItemController.php
   - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
+
+## 2026-11-20 — Step 2 trained/untrained default 0, TLM list for all classes, cleaner lists and review tables
+- **Step 2:** TSI_10–13 (male / female, trained / untrained) are optional and default to 0.
+  - They are stored as 0 at submit, and `teacherBreakdown()` counts a blank as 0.
+  - The breakdown box is now a 2×2 grid (Trained, Untrained, Male, Female), each with its formula, plus the sum and a check against Total teachers.
+  - In the browser, any blank optional count is treated as 0.
+- **Step 4 TLM:** with "Use of TLM" = Yes, every active TLM item is shown, grouped by class (Class I, Class II, …, All classes).
+  - Each group shows how many items are ticked.
+  - At least one tick is required for any class. Unknown or inactive items are refused, and a row keeps the items it already has.
+- **Design:**
+  - Absent teachers, Classrooms observed and Saved years are a single rounded table on wide screens: header strip, Sl., avatar / class badge, coloured chips, amounts aligned right, row hover and editing accent.
+  - On phones each row is a labelled card.
+  - The classroom row lists the TLM items used as green chips.
+  - The review and report pages show absent teachers and classroom performance as tables that stack into cards on phones.
+- Files:
+  - app/Questionnaire/QuestionnaireDefinition.php
+  - app/Http/Controllers/InspectionController.php
+  - resources/views/inspections/step.blade.php
+  - resources/views/inspections/partials/step-answers.blade.php
+  - resources/js/wizard.js
+  - resources/scss/app.scss
+  - tests: TlmItems, TeacherTotals, ModificationV9, InspectionFlow, OfflineReplay
+  - CLAUDE.md
+  - Product Details/INSPECTION_FORM_DOCUMENT.md (and the rebuilt docx)
+- Verified:
+  - `php artisan test`: 179 passed
+  - `npm run build`: OK
+  - Not checked visually in a browser.

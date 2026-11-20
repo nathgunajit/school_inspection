@@ -44,25 +44,28 @@ class TlmItemsTest extends TestCase
         $this->assertSame(0, TlmItem::forClass('V')->count());
     }
 
-    public function test_tlm_yes_needs_at_least_one_item_of_the_class(): void
+    public function test_tlm_yes_needs_at_least_one_item_from_the_whole_list(): void
     {
         $i = $this->draft();
         $this->classroom($i)->assertStatus(422)->assertJsonPath('errors.tlm_items.0', 'Tick at least one TLM item used.');
-        $this->classroom($i, ['tlm_items' => [$this->ids('II')[0]]])->assertStatus(422)->assertJsonValidationErrors('tlm_items.0');
+        // every active item is offered, whatever the class observed (grouped by class on the form)
+        $this->classroom($i, ['class' => 'V'])->assertStatus(422)->assertJsonValidationErrors('tlm_items');
+        $this->classroom($i, ['class' => 'V', 'tlm_items' => [$this->ids('II')[0]]])->assertOk();
+        $this->classroom($i, ['tlm_items' => [999999]])->assertStatus(422)->assertJsonValidationErrors('tlm_items.0');
 
         [$a, $b] = $this->ids('I');
         $r = $this->classroom($i, ['tlm_items' => [$a, $b]])->assertOk();
-        $row = InspectionClassroomObservation::where('inspection_id', $i->id)->first();
+        $row = InspectionClassroomObservation::where('inspection_id', $i->id)->latest('id')->first();
         $this->assertEqualsCanonicalizing([$a, $b], $row->tlmItems()->pluck('tlm_items.id')->all());
-        $this->assertSame('Yes · 2 items', $r->json('classrooms.0.tlm'));
-        $this->assertCount(2, $r->json('classrooms.0.tlm_items'));
-        $this->assertEqualsCanonicalizing([$a, $b], $r->json('classrooms.0.values.tlm_items'));
+        $this->assertSame('Yes · 2 items', $r->json('classrooms.1.tlm'));
+        $this->assertCount(2, $r->json('classrooms.1.tlm_items'));
+        $this->assertEqualsCanonicalizing([$a, $b], $r->json('classrooms.1.values.tlm_items'));
     }
 
-    public function test_class_without_items_and_tlm_no_need_no_items(): void
+    public function test_tlm_no_needs_no_items_and_clears_them(): void
     {
         $i = $this->draft();
-        $this->classroom($i, ['class' => 'V'])->assertOk();
+        $this->classroom($i, ['class' => 'V', 'tlm_used' => 'no'])->assertOk();
         $this->classroom($i, ['tlm_used' => 'no', 'tlm_items' => [$this->ids('I')[0]]])->assertOk();
         $this->assertSame(0, DB::table('inspection_classroom_tlm')->count());
     }

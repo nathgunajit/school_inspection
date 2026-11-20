@@ -103,7 +103,7 @@ Every step page has the same frame:
 ![Step 2](../docs/screenshots/06-step2-strength.png)
 
 - 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
-- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required.
+- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. Since 20-11-2026 this also applies to `TSI_10`–`TSI_13` (male / female, trained / untrained).
   - They have `'default' => 0`: the box shows 0 with the hint "Enter 0 if none".
   - A blank value counts as 0 in the totals (`QuestionnaireDefinition::withDefaults()`).
   - At submit, a blank value is stored as 0.
@@ -144,13 +144,12 @@ Every step page has the same frame:
 
 > **FLN TLM list (20-11-2026, `Documents/FLN TLM list_2026-27.docx`):**
 > - When **Use of TLM by teacher = Yes**, a list of TLM items appears. The officer ticks every item used (several are allowed).
-> - The list shows the items of the **class picked**, plus items marked "All classes". The document gives:
+> - The list shows **every active item, grouped by class**, whatever class is observed: Class I, Class II, …, and "All classes" last. Each group shows how many items are ticked. The document gives:
 >   - Class I: 6 items (Karjyapatra Vidya Pravesh / Literacy / Numeracy, Reading Books, English Activity Book, HPC)
 >   - Class II: 5 items
 > - **At least one item must be ticked** when the class has items. This is checked in the browser and by the server: 422 on `tlm_items`, "Tick at least one TLM item used."
->   - An item of another class, or an inactive item, is refused.
+>   - An inactive or unknown item is refused. A row keeps an item it already has.
 >   - With TLM = No, the ticks are cleared.
->   - A class without items (e.g. Class V) needs none.
 > - The items come from the **TLM Master** (`tlm_items`, Admin → TLM Master, `manage_masters`). The admin can:
 >   - add an item: class or All classes, name, serial no / code, variety, order, remarks
 >   - the list is a table with Sl., Class, Name of item and Serial no / Code only ("NA" when there is no code)
@@ -160,6 +159,16 @@ Every step page has the same frame:
 > - The ticks are stored in `inspection_classroom_tlm`.
 >   - The report, the review and the PDF show "Yes: item · code, …".
 >   - An offline replay (same `row_uid`) stores the same ticks again without duplicating them.
+
+> **20-11-2026: totals and layout**
+> - **Trained / untrained and male / female:** a blank count is 0. The four totals are calculated automatically in a 2×2 box:
+>   - Trained = Male trained + Female trained
+>   - Untrained = Male untrained + Female untrained
+>   - Male = Male trained + Male untrained
+>   - Female = Female trained + Female untrained
+> - The four totals must not add up to more than Total teachers (blocking).
+> - **Lists:** Absent teachers, Classrooms observed and Saved years show as a clean table on wide screens: a header strip, Sl., chips and amounts aligned right. On phones each row becomes a card with labelled fields.
+> - On the review and report pages, the absent teachers and the classroom performance (with the TLM items used) are tables. They stack into cards on phones.
 
 ### Step 5: Fund Received & Expenditure
 ![Step 5](../docs/screenshots/09-step5-fund.png)

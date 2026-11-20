@@ -69,7 +69,7 @@ class ModificationV9Test extends TestCase
             $this->answer($i, $code, $v);
         }
         $this->postJson(route('inspections.classrooms.store', $i), ['teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics',
-            'tlm_used' => 'yes', 'participation' => 'satisfactory'])->assertOk();
+            'tlm_used' => 'yes', 'tlm_items' => [\App\Models\TlmItem::active()->value('id')], 'participation' => 'satisfactory'])->assertOk();
         foreach (array_keys(config('inspection.mandatory_photos')) as $cat) {
             $file = UploadedFile::fake()->image('photo.jpg', 400, 300);
             $this->post(route('evidence.store', $i), ['file' => $file, 'evidence_uid' => (string) Str::uuid(), 'kind' => 'photo', 'category' => $cat,
@@ -106,7 +106,7 @@ class ModificationV9Test extends TestCase
 
         $this->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect(route('inspections.submitted', $i));
         $answers = $i->fresh()->answerMap();
-        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09'] as $c) {
+        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
             $this->assertSame(0, $answers[$c], $c);
         }
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);

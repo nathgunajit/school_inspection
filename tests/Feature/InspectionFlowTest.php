@@ -52,7 +52,7 @@ class InspectionFlowTest extends TestCase
     private function classroom(Inspection $i, array $over = [])
     {
         return $this->postJson(route('inspections.classrooms.store', $i), array_merge([
-            'teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics', 'tlm_used' => 'yes', 'participation' => 'satisfactory',
+            'teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics', 'tlm_used' => 'yes', 'tlm_items' => [\App\Models\TlmItem::active()->value('id')], 'participation' => 'satisfactory',
         ], $over));
     }
 

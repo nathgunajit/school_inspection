@@ -74,13 +74,13 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - Step 2 teacher totals (blocking): TSI_10–13 must be less than or equal to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
 - Modification V9, questionnaire:
   - `BAS_PERSON_*` are `'hidden' => true`: not rendered, not required (`InspectionValidator::visible()`). They are shown on the report only for older inspections.
-  - TSI_05–TSI_09 have `'default' => 0`: not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
+  - TSI_05–TSI_13 have `'default' => 0` (TSI_10–13 since 20-11-2026; `teacherBreakdown()` applies the defaults): not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
   - Step 2 shows only Total teachers, above TSI_04.
   - Absent rows must be ≤ Total teachers − Present (`InspectionValidator::absentLimit()`). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
   - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).
 - FLN TLM (`Documents/FLN TLM list_2026-27.docx`), step 4: when `tlm_used = yes`, the officer ticks the TLM items used.
-  - Items come from `TlmItem::forClass($class)`: the class's items plus `class = null` ("All classes").
-  - At least one tick is required when the class has items (`InspectionController::classroomData()`). Ticks are stored in `inspection_classroom_tlm`, synced on add, update and replay.
+  - Every active item is offered, grouped by class in `renderTlm()` (`SI.tlmClasses`), whatever class is observed.
+  - At least one tick is required when TLM = Yes (`InspectionController::classroomData()`). Ticks are stored in `inspection_classroom_tlm`, synced on add, update and replay.
   - The master is `tlm_items` (`Admin\TlmItemController`, `/admin/tlm-items`, `manage_masters`, audited).
   - Items are never deleted, only made inactive. A row keeps an inactive item it already has.
   - UI: `renderTlm()` / `tlmPicked()` in `wizard.js`. Multiple ticks are sent as `tlm_items[]` through `fd.getAll()`.

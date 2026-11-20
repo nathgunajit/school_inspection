@@ -50,6 +50,7 @@
         'funds' => $fundRows,
         'absentLimit' => $absentLimit ?? null,
         'tlmItems' => $tlmItems ?? [],
+        'tlmClasses' => \App\Models\InspectionClassroomObservation::CLASSES,
         'missing' => $progress['missing'],
         'mandatory' => $mandatory,
         'maxPhotos' => config('inspection.evidence.max_photos'),
@@ -118,15 +119,19 @@
                                     </div></div>
                                 @elseif ($q['code'] === 'TSI_13')
                                     {{-- Trained/untrained and male/female must be less than or equal to Total teachers (blocking rule) --}}
-                                    <div class="col-12"><div class="auto-total" data-auto-total="breakdown" aria-live="polite">
-                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
-                                        <span class="at-label">Trained / untrained and male / female<small>Each pair must be less than or equal to Total teachers</small></span>
-                                        <span class="at-parts">
-                                            <span>Trained <b data-at="trained">–</b></span><span>Untrained <b data-at="untrained">–</b></span>
-                                            <span>Male <b data-at="male">–</b></span><span>Female <b data-at="female">–</b></span>
-                                            <span data-at-extra></span>
-                                        </span>
-                                        <span class="at-value" data-at="sum">–</span>
+                                    {{-- Calculated automatically; a blank count is 0. Each pair must be less than or equal to Total teachers. --}}
+                                    <div class="col-12"><div class="auto-total at-breakdown" data-auto-total="breakdown" aria-live="polite">
+                                        <div class="bd-head">
+                                            <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                            <span class="at-label">Trained / untrained and male / female<small>Calculated automatically · a blank count is 0</small></span>
+                                        </div>
+                                        <div class="bd-grid">
+                                            @foreach ([['trained', 'Trained', 'bi-patch-check', 'Male trained + Female trained'], ['untrained', 'Untrained', 'bi-patch-question', 'Male untrained + Female untrained'],
+                                                       ['male', 'Male', 'bi-gender-male', 'Male trained + Male untrained'], ['female', 'Female', 'bi-gender-female', 'Female trained + Female untrained']] as [$k, $l, $ic, $f])
+                                                <div class="bd-cell bd-{{ $k }}"><span class="bd-name"><i class="bi {{ $ic }}"></i>{{ $l }}</span><b data-at="{{ $k }}">–</b><small>{{ $f }}</small></div>
+                                            @endforeach
+                                        </div>
+                                        <div class="bd-foot"><span class="bd-status" data-at-extra></span><span class="bd-sum">Teachers counted <b data-at="sum">–</b></span></div>
                                     </div></div>
                                 @endif
                             @endforeach
@@ -203,7 +208,6 @@
                                 <div class="col-12 d-none" id="tlm-items">
                                     <label class="form-label text-sm d-block">Which TLM was used? <span class="req">*</span> <span class="text-xs text-secondary">tick all that apply</span></label>
                                     <div class="tlm-pick" role="group" aria-label="TLM items used" data-field="tlm_items" data-tlm-list></div>
-                                    <div class="tlm-hint text-xs text-secondary d-none" data-tlm-hint><i class="bi bi-info-circle me-1"></i>Select the class first to see its TLM list.</div>
                                 </div>
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="participation">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>

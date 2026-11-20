@@ -101,10 +101,10 @@ class QuestionnaireDefinition
                 $num0('TSI_07', 'Total Number of Provincialised Tutors'),
                 $num0('TSI_08', 'Total Number of Tutors Newly Accorded'),
                 $num0('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
-                $num('TSI_10', 'Number of Male Trained Teachers'),
-                $num('TSI_11', 'Number of Male Untrained Teachers'),
-                $num('TSI_12', 'Number of Female Trained Teachers'),
-                $num('TSI_13', 'Number of Female Untrained Teachers'),
+                $num0('TSI_10', 'Number of Male Trained Teachers'),
+                $num0('TSI_11', 'Number of Male Untrained Teachers'),
+                $num0('TSI_12', 'Number of Female Trained Teachers'),
+                $num0('TSI_13', 'Number of Female Untrained Teachers'),
             ],
 
             // Step 3 is done when at least one absent teacher is added, or this is ticked (InspectionValidator)
@@ -219,13 +219,14 @@ class QuestionnaireDefinition
     }
 
     /**
-     * Trained / untrained and male / female sums of the step 2 breakdown; null until all four are entered.
+     * Trained / untrained and male / female sums of the step 2 breakdown (blank = 0, TSI_10..13 default to 0).
      * Both pairs add up the same four numbers, so `sum` must not be more than Total teachers.
      *
      * @return array{trained:int, untrained:int, male:int, female:int, sum:int}|null
      */
     public static function teacherBreakdown(array $answers): ?array
     {
+        $answers = self::withDefaults($answers); // blank trained / untrained counts are 0
         $v = [];
         foreach (self::TEACHER_BREAKDOWN_CODES as $c) {
             $x = $answers[$c] ?? null;

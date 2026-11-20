@@ -51,7 +51,9 @@ class TeacherTotalsTest extends TestCase
 
     public function test_breakdown_sums(): void
     {
-        $this->assertNull(Q::teacherBreakdown(['TSI_10' => 1, 'TSI_11' => 2, 'TSI_12' => 3]));
+        // blank trained / untrained counts are 0
+        $this->assertSame(['trained' => 4, 'untrained' => 2, 'male' => 3, 'female' => 3, 'sum' => 6], Q::teacherBreakdown(['TSI_10' => 1, 'TSI_11' => 2, 'TSI_12' => 3]));
+        $this->assertSame(['trained' => 0, 'untrained' => 0, 'male' => 0, 'female' => 0, 'sum' => 0], Q::teacherBreakdown([]));
         $this->assertSame(['trained' => 4, 'untrained' => 6, 'male' => 3, 'female' => 7, 'sum' => 10],
             Q::teacherBreakdown(['TSI_10' => 1, 'TSI_11' => 2, 'TSI_12' => '3', 'TSI_13' => 4]));
     }
@@ -110,6 +112,6 @@ class TeacherTotalsTest extends TestCase
     public function test_step_page_shows_live_breakdown_box(): void
     {
         $this->actingAs($this->officer)->get(route('inspections.step', [$this->inspection, 2]))->assertOk()
-            ->assertSee('data-auto-total="breakdown"', false)->assertSee('Each pair must be less than or equal to Total teachers');
+            ->assertSee('data-auto-total="breakdown"', false)->assertSee('a blank count is 0')->assertSee('Male trained + Female trained')->assertSee('name="TSI_10" value="0"', false);
     }
 }

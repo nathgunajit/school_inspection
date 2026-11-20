@@ -338,21 +338,34 @@ function validateRequired(form) {
 
 /* ---------------- FLN TLM items (step 4, shown when Use of TLM = Yes) ---------------- */
 const tlmBlock = document.getElementById('tlm-items');
-/** Rebuilds the TLM ticks for the class picked; keeps the ticks given (or the current ones that still apply). */
+/** Rebuilds the TLM ticks: every active item, grouped by class (Class I, Class II, …, All classes); keeps the ticks given or current. */
 function renderTlm(keep) {
     const form = document.getElementById('classroom-form');
     if (!form || !tlmBlock) return;
     const list = tlmBlock.querySelector('[data-tlm-list]');
     const ticked = (keep ?? [...list.querySelectorAll('input:checked')].map((i) => i.value)).map(String);
-    const cls = form.elements.class?.value || '';
     const yes = form.querySelector('input[name="tlm_used"]:checked')?.value === 'yes';
     const all = SI.tlmItems || [];
-    const items = cls ? all.filter((t) => t.class === null || t.class === cls) : [];
-    tlmBlock.classList.toggle('d-none', !yes || (cls ? !items.length : !all.length));
-    tlmBlock.querySelector('[data-tlm-hint]')?.classList.toggle('d-none', !!cls);
-    list.innerHTML = items.map((t) => `<input type="checkbox" class="btn-check" name="tlm_items[]" id="tlm_i_${esc(t.id)}" value="${esc(t.id)}"${ticked.includes(String(t.id)) ? ' checked' : ''}>`
-        + `<label for="tlm_i_${esc(t.id)}"><i class="bi bi-check-lg"></i><span>${esc(t.name)}${t.code ? `<small>${esc(t.code)}</small>` : ''}</span></label>`).join('');
+    tlmBlock.classList.toggle('d-none', !yes || !all.length);
+    const labels = SI.tlmClasses || {};
+    const order = [...Object.keys(labels), null];
+    const chip = (t) => `<input type="checkbox" class="btn-check" name="tlm_items[]" id="tlm_i_${esc(t.id)}" value="${esc(t.id)}"${ticked.includes(String(t.id)) ? ' checked' : ''}>`
+        + `<label for="tlm_i_${esc(t.id)}"><i class="bi bi-check-lg"></i><span>${esc(t.name)}${t.code ? `<small>${esc(t.code)}</small>` : ''}</span></label>`;
+    list.innerHTML = order.map((cls) => {
+        const items = all.filter((t) => t.class === cls);
+        if (!items.length) return '';
+        const n = items.filter((t) => ticked.includes(String(t.id))).length;
+        return `<div class="tlm-group"><div class="tlm-group-head"><span class="tlm-class">${esc(cls === null ? 'All classes' : (labels[cls] || cls))}</span>`
+            + `<span class="tlm-count" data-tlm-count>${n ? `${n} ticked` : `${items.length} items`}</span></div><div class="tlm-chips">${items.map(chip).join('')}</div></div>`;
+    }).join('');
 }
+// keep each group's "n ticked" count live
+tlmBlock?.addEventListener('change', (e) => {
+    const g = e.target.closest('.tlm-group');
+    if (!g) return;
+    const n = g.querySelectorAll('input:checked').length;
+    g.querySelector('[data-tlm-count]').textContent = n ? `${n} ticked` : `${g.querySelectorAll('input').length} items`;
+});
 /** True when no tick is needed (block hidden, or no items) or at least one item is ticked. */
 function tlmPicked() {
     if (!tlmBlock || tlmBlock.classList.contains('d-none')) return true;
@@ -360,7 +373,7 @@ function tlmPicked() {
     return !boxes.length || boxes.some((b) => b.checked);
 }
 document.getElementById('classroom-form')?.addEventListener('change', (e) => {
-    if (e.target.name === 'class' || e.target.name === 'tlm_used') renderTlm();
+    if (e.target.name === 'tlm_used') renderTlm();
 });
 
 // clear a field's message as soon as it is corrected
@@ -413,39 +426,50 @@ const sections = {
     teachers: {
         list: '#teacher-list', form: '#teacher-form', key: 'teachers', done: 'Teacher added', updated: 'Teacher updated',
         empty: '<i class="bi bi-person-x"></i><strong>No absent teachers added</strong><span>Add each absent teacher below, or tick "All teachers present" above.</span>',
-        row: (t, i) => `<div class="rs-item" data-id="${esc(t.id)}">
-            <span class="rs-avatar tone-danger">${esc(initials(t.teacher_name))}</span>
-            <div class="rs-body">
-                <div class="rs-title"><span class="rs-no">${i + 1}.</span>${esc(t.teacher_name)}</div>
-                <div class="rs-chips">${chip(esc(t.type))}${chip('<i class="bi bi-calendar-x"></i>' + esc(t.reason), 'warn')}</div>
-                ${t.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(t.remarks)}</div>` : ''}
-            </div>${rowActions(t)}</div>`,
+        // table on wide screens (header below), card on phones; cells carry data-label for the phone layout
+        head: ['Sl.', 'Teacher', 'Type', 'Reason for absence', 'Remarks', ''],
+        row: (t, i) => `<div class="rs-item rs-grid rs-teacher" data-id="${esc(t.id)}">
+            <span class="rs-sl">${i + 1}</span>
+            <div class="rs-who"><span class="rs-avatar tone-danger">${esc(initials(t.teacher_name))}</span><span class="rs-title">${esc(t.teacher_name)}</span></div>
+            <div class="rs-cell" data-label="Type">${chip('<i class="bi bi-person-badge"></i>' + esc(t.type), 'type')}</div>
+            <div class="rs-cell" data-label="Reason">${chip('<i class="bi bi-calendar-x"></i>' + esc(t.reason), 'warn')}</div>
+            <div class="rs-cell rs-rem" data-label="Remarks">${t.remarks ? esc(t.remarks) : '<span class="rs-dash">—</span>'}</div>
+            ${rowActions(t)}</div>`,
     },
     classrooms: {
         list: '#classroom-list', form: '#classroom-form', key: 'classrooms', done: 'Classroom record added', updated: 'Classroom record updated',
         empty: '<i class="bi bi-easel"></i><strong>No classroom records yet</strong><span>Add at least one classroom observation below.</span>',
-        row: (c, i) => `<div class="rs-item" data-id="${esc(c.id)}">
-            <span class="rs-avatar tone-primary rs-class">${esc(String(c.values.class))}</span>
-            <div class="rs-body">
-                <div class="rs-title"><span class="rs-no">${i + 1}.</span>${esc(c.subject)} <span class="rs-muted">· ${esc(c.class)}</span></div>
-                <div class="rs-sub"><i class="bi bi-person"></i>${esc(c.teacher_name)}</div>
-                <div class="rs-chips">${chip('TLM: ' + esc(c.tlm), c.tlm_ok ? 'ok' : 'bad')}${chip('Participation: ' + esc(c.participation), c.participation_ok ? 'ok' : 'bad')}</div>
-                ${(c.tlm_items || []).length ? `<div class="rs-note tlm-used"><i class="bi bi-box-seam"></i>${c.tlm_items.map(esc).join(', ')}</div>` : ''}
-                ${c.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(c.remarks)}</div>` : ''}
-            </div>${rowActions(c)}</div>`,
+        head: ['Sl.', 'Class', 'Subject & teacher', 'Use of TLM', 'Participation', ''],
+        row: (c, i) => `<div class="rs-item rs-grid rs-class-row" data-id="${esc(c.id)}">
+            <span class="rs-sl">${i + 1}</span>
+            <span class="rs-classbadge" title="${esc(c.class)}">${esc(String(c.values.class))}</span>
+            <div class="rs-who"><div><span class="rs-title">${esc(c.subject)}</span><span class="rs-sub"><i class="bi bi-person"></i>${esc(c.teacher_name)}</span></div></div>
+            <div class="rs-cell" data-label="Use of TLM">${chip(`<i class="bi ${c.tlm_ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>` + (c.tlm_ok ? 'Yes' : 'No')
+                + ((c.tlm_items || []).length ? ` · ${c.tlm_items.length}` : ''), c.tlm_ok ? 'ok' : 'bad')}</div>
+            <div class="rs-cell" data-label="Participation">${chip(`<i class="bi ${c.participation_ok ? 'bi-emoji-smile' : 'bi-emoji-frown'}"></i>` + esc(c.participation), c.participation_ok ? 'ok' : 'bad')}</div>
+            ${rowActions(c)}
+            ${(c.tlm_items || []).length || c.remarks ? `<div class="rs-extra">
+                ${(c.tlm_items || []).length ? `<div class="rs-tlm"><span class="rs-tlm-label"><i class="bi bi-box-seam"></i>TLM used</span>${c.tlm_items.map((n) => `<span class="rs-tlm-chip">${esc(n)}</span>`).join('')}</div>` : ''}
+                ${c.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(c.remarks)}</div>` : ''}</div>` : ''}
+            </div>`,
     },
     funds: {
         list: '#fund-list', form: '#fund-form', key: 'funds', done: 'Year saved',
         empty: '<i class="bi bi-cash-stack"></i><strong>No years saved yet</strong><span>Optional: save the fund details of any financial year.</span>',
-        row: (f) => `<div class="rs-item fund-saved">
-            <span class="rs-avatar tone-success"><i class="bi bi-calendar3"></i></span>
-            <div class="rs-body">
-                <div class="rs-title">FY ${esc(fyShort(f.financial_year))}</div>
-                <div class="rs-chips">${chip('Received ₹ ' + esc(fmt(toNum(f.total_received))) + ' L')}${chip('Spent ₹ ' + esc(fmt(toNum(f.total_expenditure))) + ' L')}
-                    ${chip('Balance ₹ ' + esc(fmt(toNum(f.balance))) + ' L', toNum(f.balance) < 0 ? 'bad' : 'ok')}</div>
-                <div class="fund-saved-heads">${f.heads.filter((h) => h.received !== '0.00' || h.expenditure !== '0.00')
-                    .map((h) => `<span class="src-${esc(h.source)}"><b>${SRC[h.source] || ''}</b>${esc(h.label.replace(/\s*\(SSA\)$/, ''))}: ${esc(h.received)} / ${esc(h.expenditure)}</span>`).join('')}</div>
-            </div>${rowActions({ id: f.financial_year, delete_url: f.delete_url }, 'data-edit-fund')}</div>`,
+        head: ['Financial year', 'Received', 'Expenditure', 'Balance', ''],
+        row: (f) => {
+            const bal = toNum(f.balance);
+            const heads = f.heads.filter((h) => h.received !== '0.00' || h.expenditure !== '0.00');
+            return `<div class="rs-item rs-grid rs-fund fund-saved">
+            <div class="rs-who"><span class="rs-fy"><i class="bi bi-calendar3"></i>FY ${esc(fyShort(f.financial_year))}</span></div>
+            <div class="rs-cell rs-amt" data-label="Received">₹ ${esc(fmt(toNum(f.total_received)))} <em>L</em></div>
+            <div class="rs-cell rs-amt" data-label="Expenditure">₹ ${esc(fmt(toNum(f.total_expenditure)))} <em>L</em></div>
+            <div class="rs-cell rs-amt ${bal < 0 ? 'neg' : 'pos'}" data-label="Balance">₹ ${esc(fmt(bal))} <em>L</em></div>
+            ${rowActions({ id: f.financial_year, delete_url: f.delete_url }, 'data-edit-fund')}
+            ${heads.length ? `<div class="rs-extra"><div class="fund-saved-heads">${heads
+                .map((h) => `<span class="src-${esc(h.source)}"><b>${SRC[h.source] || ''}</b>${esc(h.label.replace(/\s*\(SSA\)$/, ''))}<i>${esc(h.received)} / ${esc(h.expenditure)}</i></span>`).join('')}</div></div>` : ''}
+            </div>`;
+        },
     },
 };
 
@@ -464,7 +488,11 @@ function renderSection(s) {
     if (!list) return;
     const rows = SI[s.key] || [];
     const waiting = offline.ops.filter((o) => o.section === s.key);
-    list.innerHTML = rows.length || waiting.length ? rows.map(s.row).join('') + waiting.map((o) => pendingRow(s.key, o.body)).join('') : `<div class="rs-empty">${s.empty}</div>`;
+    const any = rows.length || waiting.length;
+    // a table on wide screens: header strip + rows in one rounded box; on phones each row is a card
+    const head = any && s.head ? `<div class="rs-thead rs-grid rs-${s.key === 'teachers' ? 'teacher' : s.key === 'classrooms' ? 'class-row' : 'fund'}" aria-hidden="true">${s.head.map((h) => `<span>${esc(h)}</span>`).join('')}</div>` : '';
+    list.classList.toggle('rs-table', !!any && !!s.head);
+    list.innerHTML = any ? head + rows.map(s.row).join('') + waiting.map((o) => pendingRow(s.key, o.body)).join('') : `<div class="rs-empty">${s.empty}</div>`;
     const count = $(`[data-count="${s.key}"]`);
     if (count) {
         const n = rows.length + waiting.length;
@@ -808,6 +836,9 @@ const autoTotals = $$('[data-auto-total]');
 if (autoTotals.length) {
     const val = (code) => {
         const el = document.querySelector(`input[name="${code}"]`);
+        // a blank optional count (question with a default, e.g. TSI_05..13) counts as its default (0)
+        const def = SI.questions?.[code]?.default;
+        if (el && el.value === '' && def !== undefined) return Number(def);
         if (!el || el.value === '') return null;
         const n = parseInt(el.value, 10);
         return Number.isFinite(n) ? n : null;

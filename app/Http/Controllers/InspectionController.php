@@ -140,7 +140,7 @@ class InspectionController extends Controller
             'classroomRows' => $this->classroomRows($inspection),
             'fundRows' => $this->fundRows($inspection),
             'financialYears' => InspectionFundPosition::financialYears(),
-            'tlmItems' => TlmItem::active()->orderBy('sort')->orderBy('name')->get()->map->toPickArray()->all(),
+            'tlmItems' => TlmItem::active()->orderByRaw('class is null')->orderBy('sort')->orderBy('name')->get()->map->toPickArray()->all(),
         ]);
     }
 
@@ -159,7 +159,7 @@ class InspectionController extends Controller
         'class.required' => 'Please select the class.',
         'tlm_used.required' => 'Please choose Yes or No for use of TLM.',
         'tlm_items.required' => 'Tick at least one TLM item used.',
-        'tlm_items.*.in' => 'A ticked TLM item is not in the list for this class.',
+        'tlm_items.*.in' => 'A ticked TLM item is no longer in the TLM list.',
         'participation.required' => 'Please choose the participation of students.',
         'in' => 'Please choose a valid :attribute from the list.',
         'min' => 'The :attribute is too short.',
@@ -316,13 +316,11 @@ class InspectionController extends Controller
     /** @return array{0: array, 1: int[]} the row columns and the ticked TLM item ids */
     private function classroomData(Request $request, ?InspectionClassroomObservation $existing = null): array
     {
-        // FLN TLM: when TLM was used, tick at least one item offered for the class (if the class has any)
-        $class = is_string($request->input('class')) ? $request->input('class') : null;
-        $offered = $class !== null && array_key_exists($class, InspectionClassroomObservation::CLASSES)
-            ? TlmItem::forClass($class)->pluck('id')->all() : [];
+        // FLN TLM: when TLM was used, tick at least one item; every active item is offered (grouped by class)
+        $offered = TlmItem::active()->pluck('id')->all();
         $tlmYes = $request->input('tlm_used') === 'yes';
-        // an item made inactive later stays valid on the row that already has it (same class)
-        $kept = $existing && $existing->class === $class ? $existing->tlmItems()->pluck('tlm_items.id')->all() : [];
+        // an item made inactive later stays valid on the row that already has it
+        $kept = $existing ? $existing->tlmItems()->pluck('tlm_items.id')->all() : [];
 
         $data = $request->validate([
             'teacher_name' => ['required', 'string', 'min:2', 'max:120'],

@@ -33,7 +33,7 @@ class OfflineReplayTest extends TestCase
         $this->postJson(route('inspections.teachers.store', $i), ['row_uid' => strtoupper($uid)] + $row)->assertJsonCount(1, 'teachers');
         $this->postJson(route('inspections.teachers.store', $i), ['row_uid' => null] + $row)->assertJsonCount(2, 'teachers');
 
-        $cls = ['teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics', 'tlm_used' => 'yes', 'participation' => 'satisfactory', 'row_uid' => (string) Str::uuid()];
+        $cls = ['teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics', 'tlm_used' => 'yes', 'tlm_items' => [\App\Models\TlmItem::active()->value('id')], 'participation' => 'satisfactory', 'row_uid' => (string) Str::uuid()];
         $this->postJson(route('inspections.classrooms.store', $i), $cls)->assertJsonCount(1, 'classrooms');
         $this->postJson(route('inspections.classrooms.store', $i), $cls)->assertJsonCount(1, 'classrooms');
 

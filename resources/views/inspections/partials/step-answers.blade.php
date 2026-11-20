@@ -60,38 +60,52 @@
 @endif
 
 @if ($n === 3)
-    <div class="rs-list">
-    @forelse ($inspection->absentTeachers as $i => $t)
-        <div class="rs-item">
-            <span class="rs-avatar tone-danger">{{ collect(preg_split('/\s+/', trim($t->teacher_name)))->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') }}</span>
-            <div class="rs-body">
-                <div class="rs-title"><span class="rs-no">{{ $i + 1 }}.</span>{{ $t->teacher_name }}</div>
-                <div class="rs-chips"><span class="rs-chip">{{ $t->typeLabel() }}</span><span class="rs-chip warn"><i class="bi bi-calendar-x"></i>{{ $t->reasonLabel() }}</span></div>
-                @if ($t->remarks)<div class="rs-note"><i class="bi bi-chat-left-text"></i>{{ $t->remarks }}</div>@endif
-            </div>
+    @if ($inspection->absentTeachers->isNotEmpty())
+        <div class="rv-table-wrap">
+            <table class="rv-table">
+                <thead><tr><th>Sl.</th><th>Name of the teacher</th><th>Type</th><th>Reason for absence</th><th>Remarks</th></tr></thead>
+                <tbody>
+                @foreach ($inspection->absentTeachers as $i => $t)
+                    <tr>
+                        <td class="rv-sl">{{ $i + 1 }}</td>
+                        <td class="rv-wide"><div class="rs-who"><span class="rs-avatar tone-danger">{{ collect(preg_split('/\s+/', trim($t->teacher_name)))->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') }}</span><span class="rv-name">{{ $t->teacher_name }}</span></div></td>
+                        <td data-label="Type"><span class="rs-chip type"><i class="bi bi-person-badge"></i>{{ $t->typeLabel() }}</span></td>
+                        <td data-label="Reason"><span class="rs-chip warn"><i class="bi bi-calendar-x"></i>{{ $t->reasonLabel() }}</span></td>
+                        <td data-label="Remarks" class="rv-wide">{!! $t->remarks ? e($t->remarks) : '<span class="rs-dash">—</span>' !!}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
         </div>
-    @empty
+    @else
         <div class="review-line text-secondary"><i class="bi bi-person-check text-success"></i>{{ V::allTeachersPresent($answers) ? "All teachers present (no absent teacher)." : "No absent teachers recorded." }}</div>
-    @endforelse
-    </div>
+    @endif
 @elseif ($n === 4)
-    <div class="rs-list">
-    @forelse ($inspection->classroomObservations as $i => $c)
-        @php $ca = $c->toClientArray(); @endphp
-        <div class="rs-item">
-            <span class="rs-avatar tone-primary rs-class">{{ $c->class }}</span>
-            <div class="rs-body">
-                <div class="rs-title"><span class="rs-no">{{ $i + 1 }}.</span>{{ $ca['subject'] }} <span class="rs-muted">· {{ $ca['class'] }}</span></div>
-                <div class="rs-sub"><i class="bi bi-person"></i>{{ $ca['teacher_name'] }}</div>
-                <div class="rs-chips"><span class="rs-chip {{ $ca['tlm_ok'] ? 'ok' : 'bad' }}">TLM: {{ $ca['tlm'] }}</span><span class="rs-chip {{ $ca['participation_ok'] ? 'ok' : 'bad' }}">Participation: {{ $ca['participation'] }}</span></div>
-                @if ($ca['tlm_items'])<div class="rs-note tlm-used"><i class="bi bi-box-seam"></i>{{ implode(', ', $ca['tlm_items']) }}</div>@endif
-                @if ($ca['remarks'])<div class="rs-note"><i class="bi bi-chat-left-text"></i>{{ $ca['remarks'] }}</div>@endif
-            </div>
+    @if ($inspection->classroomObservations->isNotEmpty())
+        <div class="rv-table-wrap">
+            <table class="rv-table">
+                <thead><tr><th>Sl.</th><th>Class</th><th>Subject &amp; teacher</th><th>Use of TLM</th><th>Participation</th><th>Remarks</th></tr></thead>
+                <tbody>
+                @foreach ($inspection->classroomObservations as $i => $c)
+                    @php $ca = $c->toClientArray(); @endphp
+                    <tr>
+                        <td class="rv-sl">{{ $i + 1 }}</td>
+                        <td class="rv-badge"><span class="rs-classbadge" title="{{ $ca['class'] }}">{{ $c->class }}</span></td>
+                        <td class="rv-wide"><span class="rv-name">{{ $ca['subject'] }}</span><span class="rv-sub"><i class="bi bi-person me-1"></i>{{ $ca['teacher_name'] }} · {{ $ca['class'] }}</span></td>
+                        <td data-label="Use of TLM" class="rv-wide">
+                            <span class="rs-chip {{ $ca['tlm_ok'] ? 'ok' : 'bad' }}"><i class="bi {{ $ca['tlm_ok'] ? 'bi-check-circle-fill' : 'bi-x-circle-fill' }}"></i>{{ $ca['tlm_ok'] ? 'Yes' : 'No' }}</span>
+                            @if ($ca['tlm_items'])<div class="rs-tlm">@foreach ($ca['tlm_items'] as $tn)<span class="rs-tlm-chip">{{ $tn }}</span>@endforeach</div>@endif
+                        </td>
+                        <td data-label="Participation"><span class="rs-chip {{ $ca['participation_ok'] ? 'ok' : 'bad' }}"><i class="bi {{ $ca['participation_ok'] ? 'bi-emoji-smile' : 'bi-emoji-frown' }}"></i>{{ $ca['participation'] }}</span></td>
+                        <td data-label="Remarks">{!! $ca['remarks'] ? e($ca['remarks']) : '<span class="rs-dash">—</span>' !!}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
         </div>
-    @empty
+    @else
         <div class="review-line text-danger"><i class="bi bi-exclamation-circle"></i>At least one classroom record is needed.</div>
-    @endforelse
-    </div>
+    @endif
 @elseif ($n === 5)
     @include('inspections.partials.fund-summary', ['funds' => $inspection->fundPositions])
 @elseif ($n === 6 && $suggestions->isNotEmpty())
