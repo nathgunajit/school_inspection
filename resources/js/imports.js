@@ -15,7 +15,7 @@ if (root) {
         root.querySelectorAll('[data-school-only]').forEach((el) => el.classList.toggle('d-none', !school));
         root.querySelectorAll('[data-location-only]').forEach((el) => el.classList.toggle('d-none', school));
         district.required = school;
-        form.action = school ? form.dataset.previewUrl : form.dataset.storeUrl;
+        form.action = form.dataset.previewUrl; // both types are checked before saving
     };
     const syncTemplate = () => {
         const id = district.value;

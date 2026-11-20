@@ -17,20 +17,51 @@
     {{-- ================= Upload ================= --}}
     <div class="tab-pane fade {{ $tab === 'upload' ? 'show active' : '' }}" id="tab-upload" role="tabpanel">
         @if ($preview && $pending)
+            @php $isLoc = ($pending['type'] ?? 'school') === 'location'; @endphp
             {{-- Preview of the checked file (nothing saved yet) --}}
             <div class="imp-card imp-preview mb-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                     <div>
                         <h2 class="imp-title"><i class="bi bi-clipboard-check"></i>File checked: nothing is saved yet</h2>
-                        <div class="text-sm text-secondary"><i class="bi bi-file-earmark-excel me-1"></i>{{ $pending['name'] }} · <b>{{ $pending['district'] }}</b> district</div>
+                        <div class="text-sm text-secondary"><i class="bi bi-file-earmark-excel me-1"></i>{{ $pending['name'] }} ·
+                            @if ($isLoc) <b>Location Master</b> @else <b>{{ $pending['district'] }}</b> district @endif</div>
                     </div>
                 </div>
                 <div class="imp-tiles mb-3">
                     <div class="t-total"><b>{{ $preview['total'] }}</b><span>Rows found</span></div>
-                    <div class="t-new"><b>{{ $preview['added'] }}</b><span>New schools</span></div>
-                    <div class="t-upd"><b>{{ $preview['updated'] }}</b><span>Will be updated</span></div>
+                    <div class="t-new"><b>{{ $preview['added'] }}</b><span>{{ $isLoc ? 'New locations' : 'New schools' }}</span></div>
+                    @if ($isLoc)
+                        <div class="t-upd"><b>{{ $preview['summary']['renamed_count'] ?? 0 }}</b><span>Names corrected</span></div>
+                    @else
+                        <div class="t-upd"><b>{{ $preview['updated'] }}</b><span>Will be updated</span></div>
+                    @endif
                     <div class="t-err"><b>{{ $preview['rejected'] }}</b><span>Errors</span></div>
                 </div>
+                @if ($isLoc && ($preview['summary']['renamed'] ?? []))
+                    <div class="fw-semibold text-sm mb-1"><i class="bi bi-pencil-square text-primary me-1"></i>Name corrections (the ID and all linked schools, users and inspections stay the same)</div>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm imp-table mb-0">
+                            <thead><tr><th>Type</th><th>Code</th><th>Old name</th><th></th><th>New name</th></tr></thead>
+                            <tbody>
+                                @foreach ($preview['summary']['renamed'] as $r)
+                                    <tr><td class="text-capitalize">{{ $r['type'] }}</td><td><span class="rs-code">{{ $r['code'] }}</span></td>
+                                        <td class="imp-old">{{ $r['old'] }}</td><td class="text-secondary"><i class="bi bi-arrow-right"></i></td><td class="imp-new">{{ $r['new'] }}</td></tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+                @if ($isLoc && ($preview['summary']['added_items'] ?? []))
+                    <div class="fw-semibold text-sm mb-1"><i class="bi bi-plus-circle text-success me-1"></i>New locations</div>
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        @foreach ($preview['summary']['added_items'] as $a)
+                            <span class="imp-chip text-capitalize">{{ $a['type'] }} {{ $a['code'] }} · {{ $a['name'] }}</span>
+                        @endforeach
+                    </div>
+                @endif
+                @if ($isLoc && ($preview['summary']['unchanged'] ?? 0))
+                    <div class="text-xs text-secondary mb-3"><i class="bi bi-check2 me-1"></i>{{ $preview['summary']['unchanged'] }} rows are the same as the saved data and will not change.</div>
+                @endif
                 @if ($preview['summary']['blocks'] ?? [])
                     <div class="table-responsive mb-3">
                         <table class="table table-sm imp-table mb-0">
@@ -56,7 +87,7 @@
                 @endif
                 <div class="d-flex flex-wrap gap-2">
                     <form method="POST" action="{{ route('admin.imports.confirm') }}">@csrf
-                        <button class="btn btn-success" @disabled($preview['added'] + $preview['updated'] === 0)><i class="bi bi-check2-circle"></i>Confirm and save {{ $preview['added'] + $preview['updated'] }} {{ \Illuminate\Support\Str::plural('school', $preview['added'] + $preview['updated']) }}</button>
+                        <button class="btn btn-success" @disabled($preview['added'] + $preview['updated'] === 0)><i class="bi bi-check2-circle"></i>Confirm and save {{ $preview['added'] + $preview['updated'] }} {{ \Illuminate\Support\Str::plural($isLoc ? 'change' : 'school', $preview['added'] + $preview['updated']) }}</button>
                     </form>
                     <form method="POST" action="{{ route('admin.imports.cancel') }}">@csrf
                         <button class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i>Cancel</button>
@@ -67,7 +98,7 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <form method="POST" action="{{ $type === 'school' ? route('admin.imports.preview') : route('admin.imports.store') }}" enctype="multipart/form-data" class="imp-card" id="imp-form"
+                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form"
                       data-preview-url="{{ route('admin.imports.preview') }}" data-store-url="{{ route('admin.imports.store') }}">
                     @csrf
                     {{-- Step 1 --}}
@@ -103,8 +134,11 @@
                                 <div class="form-text">Columns: <code>udise_code</code>, <code>school_name</code>, <code>cluster_code</code> (required), then management, category, address, latitude, longitude, status. The second sheet lists the district's cluster codes.</div>
                             </div>
                             <div data-location-only @class(['d-none' => $type === 'school'])>
-                                <a href="{{ route('admin.imports.template', 'location') }}" class="btn btn-soft-primary btn-sm"><i class="bi bi-download"></i>Location template</a>
-                                <div class="form-text">Upload the Location Master before the School Master.</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{{ route('admin.imports.template', ['location', 'current' => 1]) }}" class="btn btn-soft-primary btn-sm"><i class="bi bi-download"></i>Current locations (to correct names)</a>
+                                    <a href="{{ route('admin.imports.template', 'location') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark"></i>Blank template</a>
+                                </div>
+                                <div class="form-text"><b>To correct a District, Block or Cluster name:</b> download the current locations, keep the <code>code</code> and change only the <code>name</code>. The record ID and every linked school, user and inspection stay the same. The parent cannot be changed here. Upload the Location Master before the School Master.</div>
                             </div>
                         </div>
                     </div>
@@ -120,11 +154,8 @@
                                 <span class="imp-drop-hint">.xlsx, .xls or .csv · up to 20 MB</span>
                             </label>
                             @error('file')<div class="text-danger text-sm mt-1">{{ $message }}</div>@enderror
-                            <button class="btn btn-primary imp-submit mt-3" data-submit>
-                                <span data-school-only @class(['d-none' => $type !== 'school'])><i class="bi bi-search"></i>Check file</span>
-                                <span data-location-only @class(['d-none' => $type === 'school'])><i class="bi bi-cloud-upload"></i>Upload &amp; save</span>
-                            </button>
-                            <div class="form-text" data-school-only @class(['d-none' => $type !== 'school'])>You will see what will be added or updated before anything is saved.</div>
+                            <button class="btn btn-primary imp-submit mt-3" data-submit><i class="bi bi-search"></i>Check file</button>
+                            <div class="form-text">You will see what will be added, updated or renamed before anything is saved.</div>
                         </div>
                     </div>
                 </form>
@@ -193,10 +224,25 @@
                                 <span class="badge-soft badge-soft-success">{{ $b->added }} added</span>
                                 <span class="badge-soft badge-soft-info">{{ $b->updated }} updated</span>
                                 <span class="badge-soft badge-soft-{{ $b->rejected ? 'danger' : 'secondary' }}">{{ $b->rejected }} rejected</span>
+                                @if ($b->summary['renamed_count'] ?? 0)
+                                    <a class="badge-soft badge-soft-primary" data-bs-toggle="collapse" href="#ren-{{ $b->id }}" role="button" aria-expanded="false">{{ $b->summary['renamed_count'] }} renamed <i class="bi bi-chevron-down"></i></a>
+                                @endif
                                 @if ($b->summary['blocks'] ?? [])
                                     <a class="text-xs" data-bs-toggle="collapse" href="#sum-{{ $b->id }}" role="button" aria-expanded="false">By block <i class="bi bi-chevron-down"></i></a>
                                 @endif
                             </div>
+                            @if ($b->summary['renamed'] ?? [])
+                                <div class="collapse" id="ren-{{ $b->id }}">
+                                    <table class="table table-sm imp-table mt-2 mb-0">
+                                        <thead><tr><th>Type</th><th>Code</th><th>Old name</th><th>New name</th></tr></thead>
+                                        <tbody>
+                                            @foreach ($b->summary['renamed'] as $r)
+                                                <tr><td class="text-capitalize">{{ $r['type'] }}</td><td>{{ $r['code'] }}</td><td class="imp-old">{{ $r['old'] }}</td><td class="imp-new">{{ $r['new'] }}</td></tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
                             @if ($b->summary['blocks'] ?? [])
                                 <div class="collapse" id="sum-{{ $b->id }}">
                                     <table class="table table-sm imp-table mt-2 mb-0">

@@ -90,6 +90,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Pick a district; the file needs only `udise_code`, `school_name`, `cluster_code` (block and district come from the cluster, which must be in that district). Old files with `district_code` / `block_code` still import, and those columns are checked when filled.
   - `imports.preview` checks the file in a rolled-back transaction (nothing saved; file kept in `private:imports/pending`, token in session), then `imports.confirm` saves. `import_batches.district_id` + `summary` (per-block counts).
   - District template (`?district=`) has a second sheet with the district's clusters (`App\Exports\SchoolTemplateExport`).
+  - Location Master is also checked before saving. Matching is by code, so a new `name` corrects the name and keeps the ID and all links (audited `location_renamed`). A different `parent_code` for an existing record is rejected (no moves). The "Current locations" download (`imports.template` location `?current=1`) is the file to edit.
   - District report tab: `App\Services\SchoolCountReport` (schools per district / block, active, closed, with GPS), block drill-down `imports.district`, Excel `imports.report`.
 - `config/inspection.php`: the configurable "Proposed" values (PRD 30): draft expiry, lockout, limits, retention
 - `database/migrations/`: schema; master tables run first (`0001_01_00_*`)

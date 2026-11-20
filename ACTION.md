@@ -1865,3 +1865,13 @@ Plan approved by the user. Decisions:
 - Migration `2026_11_20_000001_add_district_to_import_batches` (district_id, summary); run on MySQL.
 - Files: app/Http/Controllers/Admin/ImportController.php, app/Services/MasterImportService.php, app/Services/SchoolCountReport.php (new), app/Exports/SchoolTemplateExport.php (new), app/Models/ImportBatch.php, routes/web.php, resources/views/admin/imports/index.blade.php, resources/js/imports.js (new), resources/scss/_imports.scss (new), CLAUDE.md, tests/Feature/DistrictSchoolImportTest.php (new)
 - Verified: `npm run build` OK; `php artisan test` 155 passed. Not checked visually in a browser.
+
+## 2026-11-20: Excel Upload corrects District / Block / Cluster names without changing IDs
+- Location Master upload matches by code and corrects the name (and status / coordinates); the record ID and every linked school, user, jurisdiction and inspection stay the same.
+- An existing district, block or cluster can no longer be moved to another parent by a wrong `parent_code`: the row is rejected, naming the current parent.
+- Location uploads go through Check file first: Name corrections table (old name struck through, new name), new locations, unchanged rows; then Confirm or Cancel.
+- "Current locations (to correct names)" download: all existing states, districts, blocks and clusters with their codes, ready to edit and upload again.
+- Each rename is audited (`location_renamed`: id, code, old, new); History shows "N renamed" with the list.
+- Checked local data: 24 schools, all linked to the right block and district for their cluster (no mismatches).
+- Files: app/Services/MasterImportService.php, app/Http/Controllers/Admin/ImportController.php, resources/views/admin/imports/index.blade.php, resources/js/imports.js, resources/scss/_imports.scss, CLAUDE.md, tests/Feature/LocationRenameImportTest.php (new)
+- Verified: `npm run build` OK; `php artisan test` 158 passed.

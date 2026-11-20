@@ -60,3 +60,5 @@
 }
 .btn-soft-success { background: rgba($success, .1); color: darken($success, 4%); border: 0;
     &:hover, &:focus { background: rgba($success, .16); color: darken($success, 8%); } }
+.imp-old { color: #94a3b8; text-decoration: line-through; }
+.imp-new { color: darken($success, 6%); font-weight: 700; }

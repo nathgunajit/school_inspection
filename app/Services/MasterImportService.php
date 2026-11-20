@@ -54,6 +54,28 @@ class MasterImportService
         );
     }
 
+    /** Every existing location with its current code and name: edit the names, keep the codes, upload again. */
+    public static function currentLocations(): ArrayExport
+    {
+        $coord = fn ($m) => [$m->latitude ?? '', $m->longitude ?? ''];
+        $status = fn ($m) => $m->is_active ? 'active' : 'inactive';
+        $rows = [];
+        foreach (State::orderBy('code')->get() as $s) {
+            $rows[] = ['state', $s->code, $s->name, '', $status($s), '', ''];
+        }
+        foreach (District::with('state:id,code')->orderBy('code')->get() as $d) {
+            $rows[] = ['district', $d->code, $d->name, $d->state?->code, $status($d), ...$coord($d)];
+        }
+        foreach (Block::with('district:id,code')->orderBy('code')->get() as $b) {
+            $rows[] = ['block', $b->code, $b->name, $b->district?->code, $status($b), ...$coord($b)];
+        }
+        foreach (Cluster::with('block:id,code')->orderBy('code')->get() as $c) {
+            $rows[] = ['cluster', $c->code, $c->name, $c->block?->code, $status($c), '', ''];
+        }
+
+        return new ArrayExport([...self::LOCATION_COLUMNS, ...self::LOCATION_OPTIONAL], $rows);
+    }
+
     public static function template(string $type): ArrayExport
     {
         return $type === 'location'
@@ -84,7 +106,8 @@ class MasterImportService
         }
 
         return ['total' => $rows->count(), 'added' => $result['added'], 'updated' => $result['updated'], 'rejected' => count($result['errors']),
-            'errors' => array_slice(array_map(fn ($e) => ['row' => $e[0], 'reason' => $e[1], 'udise' => $e[2] ?? ''], $result['errors']), 0, 20),
+            'type' => $type,
+            'errors' => array_slice(array_map(fn ($e) => ['row' => $e[0], 'reason' => $e[1], 'udise' => $type === 'location' ? ($e[3] ?? '') : ($e[2] ?? '')], $result['errors']), 0, 20),
             'summary' => $result['summary'] ?? []];
     }
 
@@ -139,7 +162,13 @@ class MasterImportService
             $batch->update(['error_file_path' => $path]);
         }
 
-        AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'added' => $result['added'], 'updated' => $result['updated'], 'rejected' => count($result['errors'])]);
+        AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'added' => $result['added'], 'updated' => $result['updated'],
+            'renamed' => $result['summary']['renamed_count'] ?? 0, 'rejected' => count($result['errors'])]);
+
+        // each name correction is recorded on its own (ID unchanged)
+        foreach ($result['summary']['renamed'] ?? [] as $r) {
+            AuditLogger::log('location_renamed', $batch, ['type' => $r['type'], 'id' => $r['id'], 'code' => $r['code'], 'old_name' => $r['old'], 'new_name' => $r['new']]);
+        }
 
         return $batch;
     }
@@ -150,6 +179,7 @@ class MasterImportService
         $added = $updated = 0;
         $errors = [];
         $seen = [];
+        $changes = ['renamed' => [], 'added_items' => [], 'unchanged' => 0];
 
         // parents first so a single file can create a full hierarchy
         $indexed = $rows->map(fn ($r, $i) => [$i + 2, $r])
@@ -195,20 +225,44 @@ class MasterImportService
                 // an empty cell leaves existing coordinates unchanged
             }
 
+            $rec = $model::firstOrNew(['code' => $code]);
+
             if ($parentModel) {
                 $parent = $parentModel::where('code', $parentCode)->first();
                 if (! $parent) { $fail('Parent code not found in Location Master'); continue; }
-                $attrs[$fk] = $parent->id;
+                // Matching is by code, so the record ID and every link to it are kept. An existing
+                // record is never moved to another parent from here (that would re-home its schools).
+                if ($rec->exists && (int) $rec->{$fk} !== (int) $parent->id) {
+                    $current = $parentModel::find($rec->{$fk});
+                    $fail(ucfirst($type)." {$code} belongs to ".($current ? "{$current->name} ({$current->code})" : 'another parent').'; changing the parent is not allowed here (IDs and links are kept)');
+                    continue;
+                }
+                if (! $rec->exists) {
+                    $attrs[$fk] = $parent->id;
+                }
             }
 
-            $rec = $model::firstOrNew(['code' => $code]);
-            $rec->exists ? $updated++ : $added++;
-            $rec->fill($attrs)->save();
+            $oldName = $rec->exists ? $rec->name : null;
+            $rec->fill($attrs);
+            if (! $rec->exists) {
+                $added++;
+                $changes['added_items'][] = ['type' => $type, 'code' => $code, 'name' => $name];
+            } elseif ($rec->isDirty()) {
+                $updated++;
+                if ($oldName !== $name) {
+                    $changes['renamed'][] = ['type' => $type, 'code' => $code, 'id' => $rec->id, 'old' => $oldName, 'new' => $name];
+                }
+            } else {
+                $changes['unchanged']++;
+            }
+            $rec->save();
         }
 
         usort($errors, fn ($a, $b) => $a[0] <=> $b[0]);
+        $summary = ['renamed' => array_slice($changes['renamed'], 0, 200), 'added_items' => array_slice($changes['added_items'], 0, 200),
+            'renamed_count' => count($changes['renamed']), 'unchanged' => $changes['unchanged']];
 
-        return compact('added', 'updated', 'errors');
+        return compact('added', 'updated', 'errors', 'summary');
     }
 
     /**
