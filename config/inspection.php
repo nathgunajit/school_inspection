@@ -13,6 +13,10 @@ return [
         'lock_minutes' => (int) env('LOGIN_LOCK_MINUTES', 20),
     ],
 
+    // Only one active officer per area at these levels (Modification V9). An inactive, rejected or
+    // pending officer does not hold the area. Add 'block' or 'district' to extend the rule.
+    'single_officer_levels' => array_filter(array_map('trim', explode(',', env('SINGLE_OFFICER_LEVELS', 'cluster')))),
+
     'id_proof' => [
         'max_kb' => 2048,
         'mimes' => ['pdf', 'jpg', 'jpeg', 'png'],

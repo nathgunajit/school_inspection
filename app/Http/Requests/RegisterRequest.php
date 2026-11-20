@@ -9,6 +9,8 @@ use App\Models\Cluster;
 use App\Models\District;
 use App\Models\MasterValue;
 use App\Models\User;
+use App\Services\AreaOfficerGuard;
+use App\Services\AuditLogger;
 use App\Services\RegisterUploadStash;
 use App\Support\FileSize;
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
@@ -135,7 +137,19 @@ class RegisterRequest extends FormRequest
                 $c = Cluster::where('is_active', true)->find($this->input('cluster_id'));
                 if (! $c || $c->block_id != $this->input('block_id')) {
                     $v->errors()->add('cluster_id', 'Select a cluster of the selected block.');
+
+                    return;
                 }
+            }
+
+            // Modification V9: one active officer per cluster
+            $guard = app(AreaOfficerGuard::class);
+            $loc = $this->only(['district_id', 'block_id', 'cluster_id']);
+            if ($holder = $guard->holder($level, $loc, $this->reapplyingUser()?->id)) {
+                $field = $level->needsCluster() ? 'cluster_id' : ($level->needsBlock() ? 'block_id' : 'district_id');
+                $v->errors()->add($field, 'An active officer is already registered for this '.strtolower($level->value).'.');
+                $v->errors()->add('area_taken', $guard->message($holder, $loc));
+                AuditLogger::log('registration_blocked_area_taken', $holder, ['level' => $level->value, 'area' => $loc, 'mobile_tail' => substr((string) $this->input('mobile'), -4)]);
             }
         }];
     }

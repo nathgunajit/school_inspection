@@ -825,3 +825,19 @@ Source: `Documents/Modification of the ApplicationV8.docx`. All 8 items are scre
 - Full suite: 133 passed.
 
 **Deploy:** `npm run build`.
+
+## 13. One active officer per cluster (20-11-2026)
+
+A cluster can have only **one active officer**. `App\Services\AreaOfficerGuard` holds the rule. The levels it covers come from `config('inspection.single_officer_levels')`: `SINGLE_OFFICER_LEVELS`, default `cluster`. Add `block` or `district` to apply the same rule there.
+
+| When | What happens |
+|---|---|
+| Registration (`RegisterRequest::after()`) | If the cluster already has an Active or Locked officer, the form is refused. It shows "Officer already registered" with that officer's name, designation and masked mobile (`******1234`), and asks the applicant to contact their higher officials (Block or District officer, or the State Admin) to deactivate or transfer the existing account. Nothing is saved. The attempt is audited (`registration_blocked_area_taken`) |
+| The existing officer is Inactive, Rejected or Pending | Registration goes ahead normally (status Pending) |
+| Approval (`ApprovalController::approve`) | If another officer has become active for the cluster in the meantime, Approve is disabled and the review page explains why. A forced POST is refused. Rejecting still works |
+| Re-activation (`UserController::toggleStatus`) | Refused while another officer is active in the cluster |
+| Transfer (`UserController::transfer`) | Refused into a cluster that already has an active officer |
+
+Existing duplicates are not changed automatically. Deactivate or transfer the extra accounts from User Management.
+
+Tests: `tests/Feature/OneOfficerPerClusterTest.php`.

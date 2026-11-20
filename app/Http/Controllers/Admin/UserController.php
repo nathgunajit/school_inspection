@@ -13,6 +13,7 @@ use App\Models\Permission;
 use App\Models\State;
 use App\Models\User;
 use App\Models\UserJurisdiction;
+use App\Services\AreaOfficerGuard;
 use App\Services\AuditLogger;
 use App\Services\JurisdictionService;
 use App\Services\PermissionService;
@@ -24,7 +25,7 @@ use Illuminate\Validation\Rule;
 /** User management (PRD 6.1). */
 class UserController extends Controller
 {
-    public function __construct(private JurisdictionService $j) {}
+    public function __construct(private JurisdictionService $j, private AreaOfficerGuard $guard) {}
 
     public function index(Request $request)
     {
@@ -98,6 +99,11 @@ class UserController extends Controller
         abort_unless(in_array($user->status, [UserStatus::Active, UserStatus::Inactive, UserStatus::Locked], true), 422);
 
         $new = $user->status === UserStatus::Inactive ? UserStatus::Active : UserStatus::Inactive;
+
+        // Modification V9: re-activating must not give a cluster a second active officer
+        if ($new === UserStatus::Active && ($holder = $this->guard->holderFor($user))) {
+            return back()->with('error', $this->guard->message($holder, $user->currentJurisdiction->only(['district_id', 'block_id', 'cluster_id']), false));
+        }
         $user->update(['status' => $new, 'failed_login_attempts' => 0, 'locked_until' => null]);
         AuditLogger::log($new === UserStatus::Active ? 'user_activated' : 'user_deactivated', $user);
 
@@ -122,6 +128,12 @@ class UserController extends Controller
             || $level->needsBlock() && Block::find($data['block_id'])?->district_id != $data['district_id']
             || $level->needsCluster() && Cluster::find($data['cluster_id'])?->block_id != $data['block_id']) {
             return back()->withErrors(['district_id' => 'The selected locations do not belong together.']);
+        }
+
+        // Modification V9: the new cluster must not already have an active officer
+        if (in_array($user->status, [UserStatus::Active, UserStatus::Locked], true)
+            && ($holder = $this->guard->holder($level, $data, $user->id))) {
+            return back()->with('error', $this->guard->message($holder, $data, false))->withInput();
         }
 
         DB::transaction(function () use ($request, $user, $level, $data) {

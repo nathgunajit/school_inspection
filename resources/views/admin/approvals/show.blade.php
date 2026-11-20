@@ -32,10 +32,19 @@
 
             <div class="card mt-4">
                 <div class="card-body">
-                    <form method="POST" action="{{ route('admin.approvals.approve', $registration) }}" data-confirm="Approve {{ $u->name }}?">
-                        @csrf
-                        <button class="btn btn-success w-100 btn-lg"><i class="bi bi-check2-circle"></i>Approve registration</button>
-                    </form>
+                    @if ($areaTaken)
+                        {{-- Modification V9: one active officer per cluster --}}
+                        <div class="alert alert-warning border-0 d-flex gap-2 align-items-start text-sm" data-area-taken>
+                            <i class="bi bi-person-lock fs-5"></i>
+                            <div><div class="fw-semibold mb-1">Cannot approve: officer already active</div>{{ $areaTaken }} You can reject this request with that reason.</div>
+                        </div>
+                        <button class="btn btn-success w-100 btn-lg" disabled><i class="bi bi-check2-circle"></i>Approve registration</button>
+                    @else
+                        <form method="POST" action="{{ route('admin.approvals.approve', $registration) }}" data-confirm="Approve {{ $u->name }}?">
+                            @csrf
+                            <button class="btn btn-success w-100 btn-lg"><i class="bi bi-check2-circle"></i>Approve registration</button>
+                        </form>
+                    @endif
                     <hr>
                     <form method="POST" action="{{ route('admin.approvals.reject', $registration) }}">
                         @csrf

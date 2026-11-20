@@ -17,7 +17,13 @@
     </x-slot:hero>
 
     <div class="reg-card">
-        @if ($errors->any())
+        @if ($errors->has('area_taken'))
+            {{-- Modification V9: one active officer per cluster --}}
+            <div class="alert alert-warning border-0 d-flex gap-2 align-items-start mb-4" role="alert" data-area-taken>
+                <i class="bi bi-person-lock fs-5"></i>
+                <div><div class="fw-semibold mb-1">Officer already registered</div>{{ $errors->first('area_taken') }}</div>
+            </div>
+        @elseif ($errors->any())
             <div class="alert alert-danger border-0 d-flex gap-2 align-items-center mb-4"><i class="bi bi-exclamation-octagon"></i>Please correct the highlighted fields below.</div>
         @endif
 

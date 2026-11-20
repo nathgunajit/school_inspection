@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RegistrationRequest;
 use App\Models\User;
 use App\Services\ApproverResolver;
+use App\Services\AreaOfficerGuard;
 use App\Services\AuditLogger;
 use App\Services\JurisdictionService;
 use App\Services\Otp\OtpSender;
@@ -30,12 +31,22 @@ class ApprovalController extends Controller
         $registration->load(['user.designation', 'user.currentJurisdiction.state', 'user.currentJurisdiction.district', 'user.currentJurisdiction.block', 'user.currentJurisdiction.cluster']);
         $history = RegistrationRequest::where('user_id', $registration->user_id)->whereKeyNot($registration->id)->latest()->get();
 
-        return view('admin.approvals.show', compact('registration', 'history'));
+        $guard = app(AreaOfficerGuard::class);
+        $holder = $guard->holderFor($registration->user);
+        $areaTaken = $holder ? $guard->message($holder, $registration->user->currentJurisdiction?->only(['district_id', 'block_id', 'cluster_id']) ?? [], false) : null;
+
+        return view('admin.approvals.show', compact('registration', 'history', 'holder', 'areaTaken'));
     }
 
-    public function approve(Request $request, RegistrationRequest $registration, OtpSender $sms)
+    public function approve(Request $request, RegistrationRequest $registration, OtpSender $sms, AreaOfficerGuard $guard)
     {
         $this->authorizeAct($request->user(), $registration);
+
+        // Modification V9: another officer may have been activated for the cluster since this request
+        if ($holder = $guard->holderFor($registration->user)) {
+            return back()->with('error', $guard->message($holder, $registration->user->currentJurisdiction->only(['district_id', 'block_id', 'cluster_id']), false)
+                .' You can reject this request with that reason.');
+        }
 
         DB::transaction(function () use ($request, $registration) {
             $registration->update(['status' => 'approved', 'approver_id' => $request->user()->id, 'decided_at' => now()]);

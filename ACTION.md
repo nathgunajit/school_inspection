@@ -1698,3 +1698,35 @@ Plan approved by the user. Decisions:
   - OPcache was not enabled in `D:\xampp\php\php.ini`. It is a system file, so it was left for the user's approval.
   - Redis and phpredis are not installed locally.
   - The failover with a live Redis was not tested.
+
+## 2026-11-20 · One active officer per cluster (user request)
+
+- **Request:** an officer cannot register for a cluster that already has an active officer.
+  - Show the existing officer and ask the applicant to contact the higher officials.
+  - If the existing officer is not active, create the user as usual.
+- **Done:**
+  - New `app/Services/AreaOfficerGuard.php`:
+    - `holder()` and `holderFor()` find the Active or Locked officer of the same level whose current jurisdiction is that cluster.
+    - `message()` builds the standard text: name, designation, masked mobile, and whom to contact.
+  - `config/inspection.php` `single_officer_levels` (`SINGLE_OFFICER_LEVELS`, default `cluster`; can be extended to block or district).
+  - `RegisterRequest::after()`:
+    - errors on `cluster_id` and `area_taken`
+    - audit `registration_blocked_area_taken`
+    - the re-applying rejected user is excluded
+  - `auth/register.blade.php`: warning box "Officer already registered".
+  - `ApprovalController`:
+    - `show` disables Approve and explains why.
+    - `approve` refuses the request (flash error).
+    - Reject still works.
+  - `UserController`: `toggleStatus` (re-activate) and `transfer` are refused into an occupied cluster.
+  - `admin/approvals/show.blade.php`: warning box.
+  - Docs: `PROJECT_DOCUMENT.md` section 13, `CLAUDE.md` domain rule 15, Word file rebuilt.
+- **Verification:**
+  - New `OneOfficerPerClusterTest`, 5 tests:
+    - registration refused, the message names the officer and masks the mobile, no user created, audited
+    - allowed when the existing officer is Inactive, Rejected or Pending
+    - other clusters and the Block level are unaffected
+    - approval blocked; reject still works
+    - re-activation and transfer refused
+  - Full suite: **142 passed** (1,708 assertions).
+- **Found in the local MySQL data (not changed):** Hillview Cluster 1 already has 3 active Cluster officers (Test User, GUNAJIT NATH, Rohit Nath). The demo pending officer Amit Phukan (Riverside Cluster 1, where Arjun Saikia is active) can no longer be approved; this is the intended behaviour.
