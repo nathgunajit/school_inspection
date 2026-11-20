@@ -19,4 +19,11 @@ class PageLoaderTest extends TestCase
         $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()
             ->assertSee('id="si-loader"', false)->assertSee('Samagra Shiksha, Assam')->assertSee('id="si-net-banner"', false);
     }
+
+    public function test_heavy_actions_are_marked_for_the_full_loader(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->get(route('admin.imports.index'))->assertSee('data-loader="heavy"', false)->assertSee('Checking the file');
+        $this->get(route('admin.rating.index'))->assertSee('Re-rating all inspections');
+    }
 }

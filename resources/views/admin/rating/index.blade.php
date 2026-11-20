@@ -8,7 +8,7 @@
 @endphp
 <x-layouts.app title="Rating Settings">
     <x-slot:actions>
-        <form method="POST" action="{{ route('admin.rating.recalculate') }}" data-confirm="Re-rate every submitted inspection with version {{ $scheme->version }}?">@csrf
+        <form method="POST" action="{{ route('admin.rating.recalculate') }}" data-loader="heavy" data-loader-text="Re-rating all inspections…" data-confirm="Re-rate every submitted inspection with version {{ $scheme->version }}?">@csrf
             <button class="btn btn-soft-primary"><i class="bi bi-arrow-repeat"></i><span class="d-none d-sm-inline">Recalculate all</span></button></form>
     </x-slot:actions>
 
@@ -38,7 +38,7 @@
         <div class="alert alert-danger">{!! collect($errors->all())->map(fn ($m) => e($m))->implode('<br>') !!}</div>
     @endif
 
-    <form method="POST" action="{{ route('admin.rating.update') }}" id="rs-form">
+    <form method="POST" action="{{ route('admin.rating.update') }}" id="rs-form" data-loader="heavy" data-loader-text="Saving rating version…">
         @csrf
         <div class="row g-4">
             <div class="col-xl-8">

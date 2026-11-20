@@ -1889,3 +1889,10 @@ Plan approved by the user. Decisions:
 - `resources/js/network-status.js`: banner `#si-net-banner` — slow (Network Information API 2g / downlink < 0.5 / rtt > 1500, or page load > 8 s), offline, back online (3 s). Slow warning dismissible per session.
 - Files: components/page-loader.blade.php, layouts/app + portal, js/network-status.js, js/app.js, scss/_page-loader.scss, scss/app.scss, tests/Feature/PageLoaderTest.php, CLAUDE.md.
 - Result: build OK; 160 tests, all pass (one known flaky assertion in InspectionFlowTest — random photo name can end in "p.jpg" — passed on re-run).
+
+## 2026-11-20 — Loader only when slow or heavy; double load and double submit fixed
+- Full splash now shows only: page still loading after 1.5 s (slow internet), slow connection detected, or a form/link marked `data-loader="heavy"` (Excel check + confirm, Recalculate all, rating save, rating report, login reports) with its own message.
+- Double load fixed: the leaving page hands off to the next one (`sessionStorage si-loader-handoff`), so one continuous loader instead of two flashes.
+- Standard cases: thin top progress bar after 600 ms; submit button disabled with a spinner (stops double submits); reset on back/forward, after 4 s for downloads, 20 s safety.
+- Files: components/page-loader.blade.php, js/network-status.js, imports/rating/report/login-report views, tests/Feature/PageLoaderTest.php, CLAUDE.md.
+- Result: build OK, 161 tests pass.

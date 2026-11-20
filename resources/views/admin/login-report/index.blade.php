@@ -17,7 +17,7 @@
         <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Never signed in" :value="number_format($s['never'])" icon="bi-person-dash" tone="orange" hint="active officers" /></div>
     </div>
 
-    <form method="GET" class="filter-bar mb-3">
+    <form method="GET" class="filter-bar mb-3" data-loader="heavy" data-loader-text="Loading login report…">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-from">From</label><input type="date" id="f-from" name="from" value="{{ $filters['from'] }}" class="form-control"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-to">To</label><input type="date" id="f-to" name="to" value="{{ $filters['to'] }}" class="form-control"></div>

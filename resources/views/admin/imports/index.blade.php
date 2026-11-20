@@ -86,7 +86,7 @@
                     </div>
                 @endif
                 <div class="d-flex flex-wrap gap-2">
-                    <form method="POST" action="{{ route('admin.imports.confirm') }}">@csrf
+                    <form method="POST" action="{{ route('admin.imports.confirm') }}" data-loader="heavy" data-loader-text="Saving records, please wait…">@csrf
                         <button class="btn btn-success" @disabled($preview['added'] + $preview['updated'] === 0)><i class="bi bi-check2-circle"></i>Confirm and save {{ $preview['added'] + $preview['updated'] }} {{ \Illuminate\Support\Str::plural($isLoc ? 'change' : 'school', $preview['added'] + $preview['updated']) }}</button>
                     </form>
                     <form method="POST" action="{{ route('admin.imports.cancel') }}">@csrf
@@ -98,7 +98,7 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form"
+                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form" data-loader="heavy" data-loader-text="Checking the file…"
                       data-preview-url="{{ route('admin.imports.preview') }}" data-store-url="{{ route('admin.imports.store') }}">
                     @csrf
                     {{-- Step 1 --}}

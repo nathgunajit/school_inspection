@@ -31,7 +31,7 @@
         <div class="col-6 col-md-3"><x-stat-card wrap label="Refused attempts" :value="number_format($s['refused'])" icon="bi-shield-exclamation" tone="danger" hint="wrong or blocked" /></div>
     </div>
 
-    <form method="GET" class="filter-bar mb-3">
+    <form method="GET" class="filter-bar mb-3" data-loader="heavy" data-loader-text="Loading daily report…">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="d-date">Date</label><input type="date" id="d-date" name="date" value="{{ $filters['date'] }}" max="{{ today()->toDateString() }}" class="form-control" data-autosubmit></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="d-level">Level</label>

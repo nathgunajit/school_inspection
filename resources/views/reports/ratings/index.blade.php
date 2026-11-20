@@ -13,7 +13,7 @@
         <a href="{{ route('reports.ratings.pdf', $keep) }}" target="_blank" rel="noopener" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </x-slot:actions>
 
-    <form method="GET" class="filter-bar filter-sm mb-3">
+    <form method="GET" class="filter-bar filter-sm mb-3" data-loader="heavy" data-loader-text="Loading rating report…">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-from">From</label><input type="date" id="r-from" name="from" value="{{ $filters['from'] }}" class="form-control form-control-sm"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-to">To</label><input type="date" id="r-to" name="to" value="{{ $filters['to'] }}" class="form-control form-control-sm"></div>

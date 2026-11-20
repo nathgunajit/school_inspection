@@ -43,26 +43,66 @@ if (banner) {
     evaluate();
 }
 
-// Show the loader again when leaving the page by a normal link or form submit
+// Leaving a page:
+//  - full splash only when the connection is slow or the form/link is marked data-loader="heavy" (big imports, re-rating, reports)
+//  - otherwise a thin top bar after 600 ms (standard), and the submit button is disabled with a spinner (no double submit)
 if (loader) {
-    const skip = (url) => /\/(export|pdf|download|template|report\/export|evidence|photo)\b|\.(xlsx|csv|pdf|zip)(\?|$)/i.test(url);
-    const leave = () => {
-        if (!navigator.onLine) return;
-        loader.show();
-        setTimeout(loader.hide, 15000); // never stuck, e.g. a file download that keeps the page
+    const topbar = document.getElementById('si-topbar');
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const slowNet = () => loader.slowLoad || (!!conn && (['slow-2g', '2g'].includes(conn.effectiveType)
+        || (conn.downlink > 0 && conn.downlink < 0.5) || conn.rtt > 1500));
+    const isDownload = (url) => /\/(export|pdf|download|template|evidence|photo)\b|\.(xlsx|csv|pdf|zip)(\?|$)/i.test(url || '');
+    let barTimer;
+    const reset = () => {
+        clearTimeout(barTimer);
+        topbar?.classList.remove('is-on');
+        loader.hide();
+        try { sessionStorage.removeItem('si-loader-handoff'); } catch { /* private mode */ }
+        document.querySelectorAll('[data-si-busy]').forEach((b) => {
+            b.disabled = false;
+            b.removeAttribute('aria-busy');
+            b.removeAttribute('data-si-busy');
+            b.querySelector('.si-btn-spin')?.remove();
+        });
     };
+    const leave = (el) => {
+        if (!navigator.onLine) return;
+        const heavy = el.closest('[data-loader="heavy"]');
+        if (heavy || slowNet()) {
+            loader.show(heavy?.dataset.loaderText || (heavy ? 'Processing, please wait…' : 'Slow connection, loading…'));
+        } else {
+            barTimer = setTimeout(() => topbar?.classList.add('is-on'), 600);
+        }
+        setTimeout(reset, 20000); // never stuck (e.g. a response that keeps the page)
+    };
+    const busy = (form, submitter) => {
+        const btn = submitter || form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+        if (!btn || btn.disabled || btn.matches('[data-submit]')) return; // imports.js handles its own button
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+        btn.setAttribute('data-si-busy', '');
+        if (btn.tagName === 'BUTTON') btn.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1 si-btn-spin" aria-hidden="true"></span>');
+    };
+
     document.addEventListener('click', (e) => {
         const a = e.target.closest('a[href]');
-        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         const href = a.getAttribute('href');
         if (!href || href.startsWith('#') || href.startsWith('javascript:') || a.target === '_blank' || a.hasAttribute('download')
-            || a.hasAttribute('data-bs-toggle') || a.closest('[data-no-loader]') || a.origin !== location.origin || skip(a.href)) return;
+            || a.hasAttribute('data-bs-toggle') || a.closest('[data-no-loader]') || a.origin !== location.origin || isDownload(a.href)) return;
         if (a.pathname === location.pathname && a.search === location.search && a.hash) return;
-        setTimeout(() => { if (!e.defaultPrevented) leave(); }, 0);
+        setTimeout(() => { if (!e.defaultPrevented) leave(a); }, 0);
     });
     document.addEventListener('submit', (e) => {
         const f = e.target;
-        if (f.target === '_blank' || f.closest('[data-no-loader]') || skip(f.action || '')) return;
-        setTimeout(() => { if (!e.defaultPrevented) leave(); }, 0);
+        const submitter = e.submitter;
+        if (f.target === '_blank' || f.closest('[data-no-loader]')) return;
+        setTimeout(() => {
+            if (e.defaultPrevented) return; // cancelled confirm, or an AJAX form
+            busy(f, submitter);
+            if (!isDownload(submitter?.formAction || f.action) && !submitter?.hasAttribute('formtarget')) leave(f);
+            else setTimeout(reset, 4000); // a download keeps the page: release the button soon
+        }, 0);
     });
+    window.addEventListener('pageshow', (e) => { if (e.persisted) reset(); });
 }
