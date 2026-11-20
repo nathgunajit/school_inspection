@@ -4,6 +4,7 @@ import './password-encrypt';
 import './mobile-input';
 import './date-picker';
 import './rating-settings';
+import './imports';
 
 window.bootstrap = bootstrap;
 window.axios = axios;

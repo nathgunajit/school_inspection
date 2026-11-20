@@ -1,0 +1,62 @@
+// =============================================================
+//  Excel Upload page (/admin/imports): tabs, 1-2-3 steps, drop zone, preview, district report
+// =============================================================
+.imp-tabs { gap: .4rem; flex-wrap: wrap;
+    button { border: 1px solid rgba($primary, .12); background: #fff; color: #475569; font-weight: 600; font-size: .84rem; padding: .55rem 1rem; border-radius: 999px;
+        display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; transition: all .15s;
+        &:hover { border-color: rgba($primary, .35); color: $primary; }
+        &.active { background: $primary; border-color: $primary; color: #fff; box-shadow: 0 6px 14px rgba($primary, .25); .imp-count { background: rgba(255,255,255,.22); color: #fff; } } } }
+.imp-count { font-size: .68rem; background: rgba($primary, .1); color: $primary; padding: .05rem .45rem; border-radius: 999px; }
+.imp-card { background: #fff; border: 1px solid rgba($primary, .08); border-radius: 16px; padding: 1.2rem 1.3rem; box-shadow: 0 2px 10px rgba(16,42,84,.05); }
+.imp-title { font-size: .98rem; font-weight: 700; display: flex; align-items: center; gap: .45rem; margin-bottom: .3rem; i { color: $primary; } }
+.imp-step { display: flex; gap: 1rem; position: relative; padding-bottom: 1.3rem;
+    &:not(:last-child)::before { content: ''; position: absolute; left: 17px; top: 40px; bottom: 4px; width: 2px; background: linear-gradient($primary, rgba($primary, .1)); }
+    &:last-child { padding-bottom: 0; }
+    h3 { font-size: .92rem; font-weight: 700; margin: .45rem 0 .7rem; } }
+.imp-step-no { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, $primary, #42a5f5); box-shadow: 0 4px 10px rgba($primary, .3); }
+.imp-step-body { flex: 1 1 auto; min-width: 0; }
+.imp-drop { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; text-align: center; cursor: pointer;
+    min-height: 150px; padding: 1.2rem; border: 2px dashed rgba($primary, .3); border-radius: 14px; background: #f7faff; margin: 0; transition: all .15s;
+    input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    &:hover, &.is-over { border-color: $primary; background: rgba($primary, .06); }
+    &.is-over { transform: scale(1.01); }
+    &.has-file { border-style: solid; border-color: $success; background: rgba($success, .06); .imp-drop-icon { color: $success; &::before { content: "\F26A"; } } }
+    &.is-invalid { border-color: $danger; background: rgba($danger, .05); .imp-drop-icon { color: $danger; } } }
+.imp-drop-icon { font-size: 2.2rem; color: $primary; line-height: 1; }
+.imp-drop-text { font-size: .86rem; word-break: break-all; }
+.imp-drop-hint { font-size: .72rem; color: $secondary; }
+.imp-submit { min-width: 12rem; padding: .6rem 1.2rem; border-radius: 11px; font-weight: 700; }
+.imp-checks ul { padding-left: 0; list-style: none; margin: .5rem 0 0; font-size: .82rem; color: #475569;
+    li { position: relative; padding-left: 1.5rem; margin-bottom: .5rem;
+        &::before { content: "\F26E"; font-family: bootstrap-icons; position: absolute; left: 0; color: $success; } } }
+.imp-preview { border-color: rgba($success, .3); box-shadow: 0 8px 24px rgba($success, .1); }
+.imp-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem;
+    > div { border-radius: 12px; padding: .7rem .8rem; background: #f4f7fb; }
+    b { display: block; font-size: 1.35rem; line-height: 1.1; }
+    span { font-size: .7rem; color: $secondary; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+    .t-total b { color: $primary; } .t-new { background: rgba($success, .08); b { color: $success; } }
+    .t-upd { background: rgba($primary, .07); b { color: $primary; } } .t-err { background: rgba($danger, .07); b { color: $danger; } } }
+.imp-table { font-size: .82rem;
+    thead th { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: $secondary; font-weight: 700; background: #f7f9fc; border-bottom: 0; }
+    tfoot th { background: #f7f9fc; border-top: 2px solid rgba($primary, .15); } }
+.imp-errors { background: rgba($danger, .04); border: 1px solid rgba($danger, .15); border-radius: 12px; padding: .7rem .9rem;
+    ul { list-style: none; padding: 0; margin: 0 0 .4rem; max-height: 14rem; overflow: auto; font-size: .8rem; }
+    li { padding: .2rem 0; border-bottom: 1px dashed rgba($danger, .12); } }
+.imp-row { display: inline-block; min-width: 4rem; font-weight: 700; color: $danger; font-size: .72rem; }
+.imp-report {
+    .imp-district { cursor: pointer; td { transition: background .15s; } &:hover td { background: #f6f9fd; }
+        &[aria-expanded="true"] { td { background: rgba($primary, .05); } .imp-caret { transform: rotate(90deg); } }
+        &.is-loading .imp-caret { animation: impSpin 1s linear infinite; } }
+    .imp-block td { background: #fbfcfe; font-size: .78rem; } }
+.imp-caret { display: inline-block; color: $primary; margin-right: .35rem; transition: transform .2s; font-size: .75rem; }
+.imp-indent { display: inline-block; width: 1.6rem; }
+.imp-chip { display: inline-flex; align-items: center; gap: .2rem; background: rgba($primary, .08); color: $primary; font-weight: 600; padding: .05rem .45rem; border-radius: 999px; }
+@keyframes impSpin { to { transform: rotate(360deg); } }
+@include media-breakpoint-down(md) {
+    .imp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .imp-card { padding: 1rem; }
+    .imp-submit { width: 100%; }
+}
+.btn-soft-success { background: rgba($success, .1); color: darken($success, 4%); border: 0;
+    &:hover, &:focus { background: rgba($success, .16); color: darken($success, 8%); } }

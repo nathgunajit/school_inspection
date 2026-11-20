@@ -31,6 +31,29 @@ class MasterImportService
 
     public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
 
+    /** District-wise upload: block and district come from the cluster, so these columns are enough. */
+    public const SCHOOL_REQUIRED = ['udise_code', 'school_name', 'cluster_code'];
+
+    public const SCHOOL_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
+
+    /** Template for one district: a Schools sheet without district/block columns, plus a sheet listing its clusters. */
+    public static function districtTemplate(District $district): \App\Exports\SchoolTemplateExport
+    {
+        $clusters = Cluster::query()->join('blocks', 'blocks.id', '=', 'clusters.block_id')
+            ->where('blocks.district_id', $district->id)
+            ->orderBy('blocks.name')->orderBy('clusters.name')
+            ->get(['clusters.code', 'clusters.name', 'blocks.code as block_code', 'blocks.name as block_name']);
+        $first = $clusters->first();
+
+        return new \App\Exports\SchoolTemplateExport(
+            new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
+                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, '.$district->name, '', '', 'active',
+            ]]),
+            new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name'], $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name])->all()),
+            'Clusters of '.$district->name,
+        );
+    }
+
     public static function template(string $type): ArrayExport
     {
         return $type === 'location'
@@ -45,10 +68,31 @@ class MasterImportService
             ]);
     }
 
-    public function import(string $type, UploadedFile $file, User $user): ImportBatch
+    /**
+     * Check a file without saving anything: same rules as import(), rolled back.
+     *
+     * @return array{total:int, added:int, updated:int, rejected:int, errors:array, summary:array}
+     */
+    public function preview(string $type, UploadedFile|string $file, ?District $district = null): array
+    {
+        $rows = $this->readRows($type, $file, $district);
+        DB::beginTransaction();
+        try {
+            $result = $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district);
+        } finally {
+            DB::rollBack();
+        }
+
+        return ['total' => $rows->count(), 'added' => $result['added'], 'updated' => $result['updated'], 'rejected' => count($result['errors']),
+            'errors' => array_slice(array_map(fn ($e) => ['row' => $e[0], 'reason' => $e[1], 'udise' => $e[2] ?? ''], $result['errors']), 0, 20),
+            'summary' => $result['summary'] ?? []];
+    }
+
+    private function readRows(string $type, UploadedFile|string $file, ?District $district): Collection
     {
         $headings = (new HeadingRowImport)->toArray($file)[0][0] ?? [];
-        $expected = $type === 'location' ? self::LOCATION_COLUMNS : self::SCHOOL_COLUMNS;
+        $expected = $type === 'location' ? self::LOCATION_COLUMNS
+            : ($district ? self::SCHOOL_REQUIRED : [...self::SCHOOL_REQUIRED, 'district_code']);
         $missingCols = array_diff($expected, $headings);
         if ($missingCols) {
             throw \Illuminate\Validation\ValidationException::withMessages([
@@ -60,29 +104,42 @@ class MasterImportService
             public function collection(Collection $rows) {}
         }, $file)->first() ?? collect();
 
-        $rows = $rows->map(fn ($r) => collect($r)->map(fn ($v) => is_string($v) ? trim($v) : $v))
+        return $rows->map(fn ($r) => collect($r)->map(fn ($v) => is_string($v) ? trim($v) : $v))
             ->filter(fn ($r) => $r->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty())
             ->values();
+    }
 
-        $result = DB::transaction(fn () => $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows));
+    public function import(string $type, UploadedFile|string $file, User $user, ?District $district = null, ?string $fileName = null): ImportBatch
+    {
+        $rows = $this->readRows($type, $file, $district);
+        $expected = $type === 'location' ? self::LOCATION_COLUMNS : self::SCHOOL_COLUMNS;
+
+        $result = DB::transaction(fn () => $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district));
 
         $batch = ImportBatch::create([
             'type' => $type,
-            'file_name' => mb_substr($file->getClientOriginalName(), 0, 255),
+            'district_id' => $district?->id,
+            'file_name' => mb_substr($fileName ?? ($file instanceof UploadedFile ? $file->getClientOriginalName() : basename($file)), 0, 255),
             'uploaded_by' => $user->id,
             'total_rows' => $rows->count(),
             'added' => $result['added'],
             'updated' => $result['updated'],
             'rejected' => count($result['errors']),
+            'summary' => $result['summary'] ?? null,
         ]);
 
+        return $this->finish($batch, $type, $expected, $result);
+    }
+
+    private function finish(ImportBatch $batch, string $type, array $expected, array $result): ImportBatch
+    {
         if ($result['errors']) {
             $path = 'imports/errors-'.$batch->id.'-'.Str::random(8).'.xlsx';
             Excel::store(new ArrayExport(['row_number', 'reason', ...$expected, ...($type === 'location' ? self::LOCATION_OPTIONAL : [])], $result['errors']), $path, 'private');
             $batch->update(['error_file_path' => $path]);
         }
 
-        AuditLogger::log('master_upload', $batch, ['type' => $type, 'added' => $result['added'], 'updated' => $result['updated'], 'rejected' => count($result['errors'])]);
+        AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'added' => $result['added'], 'updated' => $result['updated'], 'rejected' => count($result['errors'])]);
 
         return $batch;
     }
@@ -154,35 +211,59 @@ class MasterImportService
         return compact('added', 'updated', 'errors');
     }
 
-    private function importSchools(Collection $rows): array
+    /**
+     * With $district (district-wise upload) only udise_code, school_name and cluster_code are needed:
+     * block and district come from the cluster, which must lie in that district. district_code /
+     * block_code are still checked when a file carries them. Without $district (old files) district_code
+     * and block_code are required as before.
+     */
+    private function importSchools(Collection $rows, ?District $district = null): array
     {
         $added = $updated = 0;
         $errors = [];
         $seen = [];
+        $summary = ['blocks' => []];
         $districts = District::all()->keyBy('code');
+        $districtsById = $districts->keyBy('id');
         $blocks = Block::all()->keyBy('code');
+        $blocksById = $blocks->keyBy('id');
         $clusters = Cluster::all()->keyBy('code');
+        $required = $district ? self::SCHOOL_REQUIRED : ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code'];
+        $tally = function (?Block $b, string $what) use (&$summary) {
+            $k = $b ? (string) $b->id : '0';
+            $summary['blocks'][$k] ??= ['name' => $b?->name ?? 'Unknown block', 'added' => 0, 'updated' => 0, 'rejected' => 0];
+            $summary['blocks'][$k][$what]++;
+        };
 
         foreach ($rows as $i => $r) {
             $rowNo = $i + 2;
-            $fail = function ($reason) use (&$errors, $rowNo, $r) {
-                $errors[] = [$rowNo, $reason, ...array_values($r->only(self::SCHOOL_COLUMNS)->all())];
+            $known = fn () => $blocksById[$clusters[(string) ($r['cluster_code'] ?? '')]->block_id ?? 0] ?? null;
+            $fail = function ($reason) use (&$errors, $rowNo, $r, $tally, $known) {
+                $errors[] = [$rowNo, $reason, ...array_map(fn ($c) => $r[$c] ?? '', self::SCHOOL_COLUMNS)];
+                $tally($known(), 'rejected');
             };
-            $udise = preg_replace('/\D/', '', (string) $r['udise_code']);
+            $udise = preg_replace('/\D/', '', (string) ($r['udise_code'] ?? ''));
 
-            foreach (['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code'] as $col) {
+            foreach ($required as $col) {
                 if (($r[$col] ?? '') === '' || $r[$col] === null) { $fail("Mandatory column '$col' is empty"); continue 2; }
             }
             if (strlen($udise) !== 11) { $fail('UDISE Code must be exactly 11 digits'); continue; }
             if (isset($seen[$udise])) { $fail('Duplicate UDISE Code in file (first at row '.$seen[$udise].')'); continue; }
             $seen[$udise] = $rowNo;
 
-            $d = $districts[(string) $r['district_code']] ?? null;
-            $b = $blocks[(string) $r['block_code']] ?? null;
             $c = $clusters[(string) $r['cluster_code']] ?? null;
-            if (! $d) { $fail('District code not found in Location Master'); continue; }
-            if (! $b || $b->district_id !== $d->id) { $fail('Block code not found or not in the given district'); continue; }
-            if (! $c || $c->block_id !== $b->id) { $fail('Cluster code not found or not in the given block'); continue; }
+            if (! $c) { $fail('Cluster code not found in Location Master'); continue; }
+            $b = $blocksById[$c->block_id] ?? null;
+            $d = $b ? ($districtsById[$b->district_id] ?? null) : null;
+            if (! $b || ! $d) { $fail('Cluster is not linked to a block and district'); continue; }
+            if ($district && $d->id !== $district->id) { $fail("Cluster {$c->code} is not in the chosen district ({$district->name})"); continue; }
+
+            $dc = (string) ($r['district_code'] ?? '');
+            $bc = (string) ($r['block_code'] ?? '');
+            if ($dc !== '' && ! isset($districts[$dc])) { $fail('District code not found in Location Master'); continue; }
+            if ($bc !== '' && (! isset($blocks[$bc]) || ($dc !== '' && $blocks[$bc]->district_id !== $districts[$dc]->id))) { $fail('Block code not found or not in the given district'); continue; }
+            if ($bc !== '' && $blocks[$bc]->id !== $b->id) { $fail("Cluster {$c->code} is not in the given block (it is in {$b->name})"); continue; }
+            if ($dc !== '' && $districts[$dc]->id !== $d->id) { $fail("Cluster {$c->code} is not in the given district (it is in {$d->name})"); continue; }
 
             $lat = $r['latitude'] ?? null;
             $lng = $r['longitude'] ?? null;
@@ -208,10 +289,11 @@ class MasterImportService
                 'status' => $status,
             ]);
             $school->deleted_at = null;
+            $tally($b, $school->exists ? 'updated' : 'added');
             $school->save();
         }
 
-        return compact('added', 'updated', 'errors');
+        return compact('added', 'updated', 'errors', 'summary');
     }
 
     /** Match a master value by code or label; add it if new (UDISE exports vary in wording). */

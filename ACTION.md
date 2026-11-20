@@ -1854,3 +1854,14 @@ Plan approved by the user. Decisions:
   - Stacks cleanly on phones.
 - Files: resources/views/admin/rating/index.blade.php, resources/scss/_rating-settings.scss (imported in app.scss), resources/js/rating-settings.js (imported in app.js), tests/Feature/InspectionRatingTest.php
 - Verified: `npm run build` OK; `php artisan test` 150 passed. Not checked visually in a browser.
+
+## 2026-11-20: Excel Upload district-wise, school count report, easier upload
+- School Master upload is now district-wise: pick a district; the file needs only `udise_code`, `school_name`, `cluster_code` (District and Block columns removed; taken from the cluster, which must be in the chosen district). Old files with district/block codes still work.
+- Check before save: "Check file" runs all rules without saving and shows rows found / new / updated / errors, per-block counts and the first 20 errors; then Confirm and save or Cancel.
+- District template download with a second sheet listing that district's cluster and block codes.
+- New District report tab: blocks, clusters, schools, active, closed, with GPS, last upload per district; tap a district for its blocks; Export Excel (Districts + Blocks sheets).
+- History shows the district and a per-block added / updated / rejected summary.
+- Page redesign: Upload / District report / History tabs, 1-2-3 steps, drag and drop box with file name, size and type check.
+- Migration `2026_11_20_000001_add_district_to_import_batches` (district_id, summary); run on MySQL.
+- Files: app/Http/Controllers/Admin/ImportController.php, app/Services/MasterImportService.php, app/Services/SchoolCountReport.php (new), app/Exports/SchoolTemplateExport.php (new), app/Models/ImportBatch.php, routes/web.php, resources/views/admin/imports/index.blade.php, resources/js/imports.js (new), resources/scss/_imports.scss (new), CLAUDE.md, tests/Feature/DistrictSchoolImportTest.php (new)
+- Verified: `npm run build` OK; `php artisan test` 155 passed. Not checked visually in a browser.

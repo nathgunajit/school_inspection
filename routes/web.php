@@ -166,6 +166,12 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/imports', [Admin\ImportController::class, 'index'])->name('imports.index');
                 Route::post('/imports', [Admin\ImportController::class, 'store'])->name('imports.store');
                 Route::get('/imports/template/{type}', [Admin\ImportController::class, 'template'])->name('imports.template');
+                // District-wise School Master upload: check (dry run) then confirm; district school counts
+                Route::post('/imports/preview', [Admin\ImportController::class, 'preview'])->name('imports.preview');
+                Route::post('/imports/confirm', [Admin\ImportController::class, 'confirm'])->name('imports.confirm');
+                Route::post('/imports/cancel', [Admin\ImportController::class, 'cancel'])->name('imports.cancel');
+                Route::get('/imports/district-blocks', [Admin\ImportController::class, 'district'])->name('imports.district');
+                Route::get('/imports/report/export', [Admin\ImportController::class, 'report'])->name('imports.report');
                 Route::get('/imports/{batch}/errors', [Admin\ImportController::class, 'errors'])->name('imports.errors');
             });
         });
