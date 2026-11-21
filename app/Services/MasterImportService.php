@@ -36,6 +36,28 @@ class MasterImportService
 
     public const SCHOOL_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
 
+    /** V12 item 6: heading names used by UDISE+ exports, read as the template columns. */
+    public const SCHOOL_ALIASES = ['udise_sch_code' => 'udise_code', 'udise' => 'udise_code', 'udise_code_11' => 'udise_code', 'clcode' => 'cluster_code', 'cluster' => 'cluster_code',
+        'crc_code' => 'cluster_code', 'sch_name' => 'school_name', 'name_of_school' => 'school_name', 'dist_code' => 'district_code', 'distcd' => 'district_code', 'blk_code' => 'block_code', 'blkcd' => 'block_code'];
+
+    /** V12 item 6: template for all districts at once: the Schools sheet plus every cluster with its block and district. */
+    public static function allDistrictsTemplate(): \App\Exports\SchoolTemplateExport
+    {
+        $clusters = Cluster::query()->join('blocks', 'blocks.id', '=', 'clusters.block_id')->join('districts', 'districts.id', '=', 'blocks.district_id')
+            ->orderBy('districts.name')->orderBy('blocks.name')->orderBy('clusters.name')
+            ->get(['clusters.code', 'clusters.name', 'blocks.code as block_code', 'blocks.name as block_name', 'districts.code as district_code', 'districts.name as district_name']);
+        $first = $clusters->first();
+
+        return new \App\Exports\SchoolTemplateExport(
+            new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
+                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '', '', 'active',
+            ]]),
+            new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name', 'district_code', 'district_name'],
+                $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name, $c->district_code, $c->district_name])->all()),
+            'Clusters (all districts)',
+        );
+    }
+
     /** Template for one district: a Schools sheet without district/block columns, plus a sheet listing its clusters. */
     public static function districtTemplate(District $district): \App\Exports\SchoolTemplateExport
     {
@@ -95,12 +117,12 @@ class MasterImportService
      *
      * @return array{total:int, added:int, updated:int, rejected:int, errors:array, summary:array}
      */
-    public function preview(string $type, UploadedFile|string $file, ?District $district = null): array
+    public function preview(string $type, UploadedFile|string $file, ?District $district = null, bool $all = false): array
     {
-        $rows = $this->readRows($type, $file, $district);
+        $rows = $this->readRows($type, $file, $district, $all);
         DB::beginTransaction();
         try {
-            $result = $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district);
+            $result = $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district, $all);
         } finally {
             DB::rollBack();
         }
@@ -111,11 +133,12 @@ class MasterImportService
             'summary' => $result['summary'] ?? []];
     }
 
-    private function readRows(string $type, UploadedFile|string $file, ?District $district): Collection
+    private function readRows(string $type, UploadedFile|string $file, ?District $district, bool $all = false): Collection
     {
-        $headings = (new HeadingRowImport)->toArray($file)[0][0] ?? [];
+        $alias = fn ($h) => $type === 'school' ? (self::SCHOOL_ALIASES[$h] ?? $h) : $h;
+        $headings = array_map($alias, (new HeadingRowImport)->toArray($file)[0][0] ?? []);
         $expected = $type === 'location' ? self::LOCATION_COLUMNS
-            : ($district ? self::SCHOOL_REQUIRED : [...self::SCHOOL_REQUIRED, 'district_code']);
+            : ($district || $all ? self::SCHOOL_REQUIRED : [...self::SCHOOL_REQUIRED, 'district_code']);
         $missingCols = array_diff($expected, $headings);
         if ($missingCols) {
             throw \Illuminate\Validation\ValidationException::withMessages([
@@ -127,17 +150,17 @@ class MasterImportService
             public function collection(Collection $rows) {}
         }, $file)->first() ?? collect();
 
-        return $rows->map(fn ($r) => collect($r)->map(fn ($v) => is_string($v) ? trim($v) : $v))
+        return $rows->map(fn ($r) => collect($r)->mapWithKeys(fn ($v, $k) => [$alias($k) => is_string($v) ? trim($v) : $v]))
             ->filter(fn ($r) => $r->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty())
             ->values();
     }
 
-    public function import(string $type, UploadedFile|string $file, User $user, ?District $district = null, ?string $fileName = null): ImportBatch
+    public function import(string $type, UploadedFile|string $file, User $user, ?District $district = null, ?string $fileName = null, bool $all = false): ImportBatch
     {
-        $rows = $this->readRows($type, $file, $district);
+        $rows = $this->readRows($type, $file, $district, $all);
         $expected = $type === 'location' ? self::LOCATION_COLUMNS : self::SCHOOL_COLUMNS;
 
-        $result = DB::transaction(fn () => $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district));
+        $result = DB::transaction(fn () => $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district, $all));
 
         $batch = ImportBatch::create([
             'type' => $type,
@@ -148,7 +171,7 @@ class MasterImportService
             'added' => $result['added'],
             'updated' => $result['updated'],
             'rejected' => count($result['errors']),
-            'summary' => $result['summary'] ?? null,
+            'summary' => ($result['summary'] ?? null) === null ? null : $result['summary'] + ($all ? ['all_districts' => true] : []),
         ]);
 
         return $this->finish($batch, $type, $expected, $result);
@@ -162,8 +185,9 @@ class MasterImportService
             $batch->update(['error_file_path' => $path]);
         }
 
-        AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'added' => $result['added'], 'updated' => $result['updated'],
-            'renamed' => $result['summary']['renamed_count'] ?? 0, 'rejected' => count($result['errors'])]);
+        AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'all_districts' => (bool) ($batch->summary['all_districts'] ?? false),
+            'added' => $result['added'], 'updated' => $result['updated'], 'renamed' => $result['summary']['renamed_count'] ?? 0, 'rejected' => count($result['errors']),
+            'districts' => collect($result['summary']['districts'] ?? [])->map(fn ($d) => $d['added'] + $d['updated'])->all()]);
 
         // each name correction is recorded on its own (ID unchanged)
         foreach ($result['summary']['renamed'] ?? [] as $r) {
@@ -269,23 +293,28 @@ class MasterImportService
      * With $district (district-wise upload) only udise_code, school_name and cluster_code are needed:
      * block and district come from the cluster, which must lie in that district. district_code /
      * block_code are still checked when a file carries them. Without $district (old files) district_code
-     * and block_code are required as before.
+     * and block_code are required as before. With $all (V12 item 6: every district in one file) the same three
+     * columns are enough and the cluster decides the district. The summary counts rows per district and per block.
      */
-    private function importSchools(Collection $rows, ?District $district = null): array
+    private function importSchools(Collection $rows, ?District $district = null, bool $all = false): array
     {
         $added = $updated = 0;
         $errors = [];
         $seen = [];
-        $summary = ['blocks' => []];
+        $summary = ['districts' => [], 'blocks' => []];
         $districts = District::all()->keyBy('code');
         $districtsById = $districts->keyBy('id');
         $blocks = Block::all()->keyBy('code');
         $blocksById = $blocks->keyBy('id');
         $clusters = Cluster::all()->keyBy('code');
-        $required = $district ? self::SCHOOL_REQUIRED : ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code'];
-        $tally = function (?Block $b, string $what) use (&$summary) {
+        $required = $district || $all ? self::SCHOOL_REQUIRED : ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code'];
+        $tally = function (?Block $b, string $what) use (&$summary, $districtsById) {
+            $d = $b ? ($districtsById[$b->district_id] ?? null) : null;
+            $dk = $d ? (string) $d->id : '0';
+            $summary['districts'][$dk] ??= ['name' => $d?->name ?? 'Unknown district', 'code' => $d?->code, 'added' => 0, 'updated' => 0, 'rejected' => 0];
+            $summary['districts'][$dk][$what]++;
             $k = $b ? (string) $b->id : '0';
-            $summary['blocks'][$k] ??= ['name' => $b?->name ?? 'Unknown block', 'added' => 0, 'updated' => 0, 'rejected' => 0];
+            $summary['blocks'][$k] ??= ['name' => $b?->name ?? 'Unknown block', 'district_id' => $d?->id, 'district' => $d?->name, 'added' => 0, 'updated' => 0, 'rejected' => 0];
             $summary['blocks'][$k][$what]++;
         };
 
@@ -346,6 +375,8 @@ class MasterImportService
             $tally($b, $school->exists ? 'updated' : 'added');
             $school->save();
         }
+
+        uasort($summary['districts'], fn ($x, $y) => strcmp($x['name'], $y['name']));
 
         return compact('added', 'updated', 'errors', 'summary');
     }

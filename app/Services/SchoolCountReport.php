@@ -37,6 +37,13 @@ class SchoolCountReport
             ->select('blocks.district_id', DB::raw('count(*) as n'))->pluck('n', 'district_id');
         $uploads = ImportBatch::whereNotNull('district_id')->groupBy('district_id')
             ->select('district_id', DB::raw('max(created_at) as last'))->pluck('last', 'district_id');
+        foreach (ImportBatch::where('type', 'school')->whereNull('district_id')->whereNotNull('summary')->latest()->limit(50)->get(['created_at', 'summary']) as $b) {
+            foreach ($b->summary['districts'] ?? [] as $id => $c) { // V12 item 6: all-districts files
+                if (($c['added'] ?? 0) + ($c['updated'] ?? 0) > 0 && (! isset($uploads[$id]) || $b->created_at->gt($uploads[$id]))) {
+                    $uploads[$id] = $b->created_at->toDateTimeString();
+                }
+            }
+        }
 
         return District::orderBy('name')->get(['id', 'code', 'name'])->map(fn ($d) => (object) [
             'id' => $d->id, 'code' => $d->code, 'name' => $d->name,

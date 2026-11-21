@@ -64,10 +64,10 @@ class MasterImportAndAuditTest extends TestCase
         // form: both-or-neither, range checked
         $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '26.1445',
-        ])->assertSessionHasErrors('longitude');
+        ])->assertSessionHasErrorsIn('edit', 'longitude');
         $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '126', 'longitude' => '91.7',
-        ])->assertSessionHasErrors('latitude');
+        ])->assertSessionHasErrorsIn('edit', 'latitude');
         $this->actingAs($admin)->put(route('admin.locations.update', ['districts', \App\Support\UrlId::encode(\App\Models\District::class, $district->id)]), [
             'code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id, 'latitude' => '26.1445', 'longitude' => '91.7362',
         ])->assertSessionHas('success');

@@ -114,5 +114,8 @@ return [
 
     'max_suggestions' => 3,
     'per_page' => 25,
+
+    // V12 item 6: largest Excel upload (School / Location Master), in KB. A state-wide School Master file is large.
+    'import_max_kb' => (int) env('IMPORT_MAX_KB', 51200),
     'retention_years' => 5,
 ];

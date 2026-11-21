@@ -77,11 +77,15 @@
                 <div class="card-body wizard-body">
 
                     {{-- Modification V11 item 4: answers copied from the school's previous inspection --}}
-                    @if ($inspection->prefilled_from_id && in_array($step, \App\Services\InspectionPrefill::STEPS, true) && ($src = $inspection->prefilledFrom))
+                    @if ($inspection->prefilled_from_id && in_array($step, \App\Services\InspectionPrefill::BANNER_STEPS, true) && ($src = $inspection->prefilledFrom))
                         <div class="prefill-note mt-3"><i class="bi bi-arrow-repeat"></i>
                             <div><strong>Filled from the last visit on {{ \Illuminate\Support\Carbon::parse($src->inspection_date)->format('d-m-Y') }}{{ $src->inspection_no ? ' ('.$src->inspection_no.')' : '' }}.</strong>
-                                Check each answer and change what is different today.
-                                @if ($step === 2)<span class="d-block">Students present / absent and Teachers present are not copied: enter today's figures.</span>@endif</div>
+                                @if ($step === 4)
+                                    The classrooms observed last time are listed below. Edit each row with today's observation, or remove it.
+                                @else
+                                    Check each answer and change what is different today.
+                                @endif
+                                @if ($step === 2)<span class="d-block">Students present / absent are not copied, and Teachers present starts at 0: enter today's figures. The Teachers Absentee Form starts blank.</span>@endif</div>
                         </div>
                     @endif
                     <div id="step-warnings">

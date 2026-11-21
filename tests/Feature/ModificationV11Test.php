@@ -120,9 +120,10 @@ class ModificationV11Test extends TestCase
         $this->assertSame('pucca', $map['CND_01']);
         $this->assertSame(6, $map['TSI_04']);
         $this->assertSame('conventional', $map['GOVR_01']);
-        foreach (InspectionPrefill::FRESH as $code) {
+        foreach (array_diff(InspectionPrefill::FRESH, InspectionPrefill::ZERO) as $code) {
             $this->assertArrayNotHasKey($code, $map, "$code is asked fresh");
         }
+        $this->assertSame(0, $map['TSI_09'], 'V12: Teachers present starts at 0');
         $this->assertSame(0, $next->absentTeachers()->count());
         $this->assertSame(0, $next->classroomObservations()->count());
         $this->assertSame(0, $next->evidence()->count());
@@ -131,7 +132,7 @@ class ModificationV11Test extends TestCase
         $this->assertSame('pucca', $first->fresh()->answerMap()['CND_01']); // source untouched
 
         $this->get(route('inspections.step', [$next, 1]))->assertOk()->assertSee('Filled from the last visit on');
-        $this->get(route('inspections.step', [$next, 2]))->assertSee('Teachers present are not copied');
+        $this->get(route('inspections.step', [$next, 2]))->assertSee('Teachers present starts at 0');
         $this->get(route('inspections.step', [$next, 3]))->assertDontSee('Filled from the last visit on');
 
         // reopening the draft does not copy again

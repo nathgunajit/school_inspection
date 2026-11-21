@@ -125,7 +125,7 @@ class DistrictBoundaryTest extends TestCase
         $base = ['code' => $district->code, 'name' => $district->name, 'state_id' => $district->state_id];
 
         $this->actingAs($admin)->get(route('admin.locations.index', 'districts'))->assertOk()->assertSee('Map boundary')->assertSee('Southpur');
-        $this->actingAs($admin)->put($url, $base + ['boundary_name' => 'Nowhere'])->assertSessionHasErrors('boundary_name');
+        $this->actingAs($admin)->put($url, $base + ['boundary_name' => 'Nowhere'])->assertSessionHasErrorsIn('edit', 'boundary_name');
         $this->actingAs($admin)->put($url, $base + ['boundary_name' => 'Southpur'])->assertSessionHasNoErrors();
         $this->assertSame('Southpur', $district->fresh()->boundary_name);
         $this->actingAs($admin)->put($url, $base + ['boundary_name' => ''])->assertSessionHasNoErrors();

@@ -72,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ---------- Flash messages -> toasts ---------- */
     document.querySelectorAll('[data-flash]').forEach((f) => toast(f.dataset.flash, f.dataset.type || 'success'));
 
+    /* ---------- V12 item 7: an Edit window whose save failed opens again with its errors ---------- */
+    const reopen = document.querySelector('.modal[data-reopen]');
+    if (reopen) bootstrap.Modal.getOrCreateInstance(reopen).show();
+
     /* ---------- Tooltips ---------- */
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => new bootstrap.Tooltip(el));
 

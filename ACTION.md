@@ -2227,3 +2227,27 @@ How each point was read (asked): item 1 means the bottom bars auto-hide; item 2 
   - Step 2 total boxes are aligned with the answer column, tick boxes are aligned with their labels, and the answer column is wider (no wrap in "Method of Teaching").
   - The signature stays on the photos page.
 - Verified: rendered the PDF and checked every page (section 4 fits on one page); `php artisan test` passed.
+
+## 2026-11-21: Modification V12 (`Documents/Modification of the ApplicationV12.docx`)
+How the points were read (not asked, best reading of the document): items 3 and 4 mean the previous visit's data, including classroom performance, is fetched first and then edited. Item 8 covers what leads to "Not Found" after a session or draft has expired.
+
+| # | V12 point | Action taken |
+|---|---|---|
+| 1 | Same CRCC, 2nd inspection: Teachers present default 0, Teachers Absentee Form blank, validate present against total | `InspectionPrefill::ZERO` stores `TSI_09 = 0` in the pre-filled draft. Absentees are never copied. The existing rule still applies: Present > Total is blocking, and step 3 needs Total − Present rows. The step 2 banner says "Teachers present starts at 0 … The Teachers Absentee Form starts blank". |
+| 2 | All teachers present today: remove the list | When a step 2 save makes Present exactly equal to Total teachers, `InspectionController::saveAnswer` deletes the absentee rows. It is audited `absent_teachers_cleared`, the response carries `absent_removed`, and the wizard shows a toast. Present typed above Total removes nothing. |
+| 3 | Edit option: previous data fetched first | Covered by the V11 pre-fill (steps 1, 2, 5, 6 copied, then edited), now extended to step 4 (item 4). The step 4 banner explains that last visit's rows can be edited or removed. |
+| 4 | Class room performance: previous data fetched | `InspectionPrefill::apply()` copies the classroom rows (teacher, class, subject, TLM used, participation, remarks) with their TLM ticks into the new draft (fresh rows, `row_uid` null). The source is untouched, and the rows are edited with the normal step 4 form. |
+| 5 | Inspection view page: not all tabs visible | Cause: a later `.rp-nav` rule (`nowrap`, hidden scrollbar) clipped the tabs past the column width. The bar now wraps onto a second line, the Photographs tab is always shown (with "No photos uploaded yet."), and `.min-w-0` is a real utility. |
+| 6 | Excel Upload: all districts, then show the upload district-wise | New "All districts (one file)" choice: the cluster decides each school's district. Preview and History show a District-wise table (New / Updated / Errors / Total) with blocks listed under their district. The batch stores `summary['districts']` + `all_districts`. The District report "Last upload" includes all-district files. All-districts template (`?district=all`). UDISE+ headings (`udise_sch_code`, `clcode`) are read. The size limit is `IMPORT_MAX_KB` (50 MB). |
+| 7 | TLM and Location: three-dot Edit form does not open properly | Cause: the whole edit form sat inside the dropdown. Clicks on labels or gaps closed it, the transform animation fought Popper's position, and the tall menu was clipped or covered. Now the three-dot menu has Edit / Make inactive, and Edit opens a modal per row outside the table. Edit errors go to the `edit` error bag, the modal opens again with the message, and the Add form is no longer filled by a failed edit. Dropdowns fade only. |
+| 8 | After expired: Not Found page | Guest and user redirects use `route()` (the hard-coded `/login` was a 404 when the app runs in a sub-folder, e.g. XAMPP). A 419 on a form returns with a warning (logout goes to sign-in). After sign-in, background URLs (photo, PDF, export, JSON) are not used as the return page. An expired (cancelled) draft opens My inspections with the reason, and a submitted one opens its report. `/submitted` redirects. Friendly 403 / 404 / 419 / 429 / 500 pages offer Dashboard / Sign in. |
+
+- Files:
+  - `app/Services/{InspectionPrefill,MasterImportService,SchoolCountReport}.php`
+  - `app/Http/Controllers/{InspectionController,Auth/LoginController,Admin/ImportController,Admin/TlmItemController,Admin/LocationController}.php`
+  - `bootstrap/app.php`, `config/inspection.php`
+  - `resources/views/inspections/{step,show}.blade.php`, `resources/views/admin/{tlm,locations,imports}/index.blade.php`, `resources/views/errors/*`
+  - `resources/js/{app,wizard,imports}.js`, `resources/scss/app.scss`
+  - tests: new `ModificationV12Test` (5 tests); `StepCompletionTest`, `ModificationV11Test`, `DistrictBoundaryTest` and `MasterImportAndAuditTest` updated
+  - docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, V12 docx copy in `Product Details/Requirements/`, rebuilt docx
+- Verified: `php artisan test` 204 passed; `npm run build` OK. Not checked in a browser. The real state-wide UDISE file (22 MB, about 168 MB of sheet XML) was not test-uploaded and may need more PHP memory / time.

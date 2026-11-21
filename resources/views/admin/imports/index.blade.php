@@ -4,9 +4,12 @@
         $districtId = old('district_id', $pending['district_id'] ?? request('district'));
         $tab = $preview ? 'upload' : request('tab', 'upload');
         $tot = fn ($k) => $report->sum($k);
+        $ALL = \App\Http\Controllers\Admin\ImportController::ALL;
+        $maxMb = round(config('inspection.import_max_kb', 51200) / 1024);
+        if (! empty($pending['all'])) { $districtId = $ALL; }
     @endphp
 
-    <div data-imports data-template-url="{{ route('admin.imports.template', 'school') }}" data-blocks-url="{{ route('admin.imports.district') }}">
+    <div data-imports data-max-bytes="{{ config('inspection.import_max_kb', 51200) * 1024 }}" data-template-url="{{ route('admin.imports.template', 'school') }}" data-blocks-url="{{ route('admin.imports.district') }}">
     <ul class="nav imp-tabs mb-3" role="tablist">
         <li><button class="{{ $tab === 'upload' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#tab-upload" type="button" role="tab"><i class="bi bi-cloud-upload"></i>Upload</button></li>
         <li><button class="{{ $tab === 'report' ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#tab-report" type="button" role="tab"><i class="bi bi-bar-chart"></i>District report <span class="imp-count">{{ number_format($tot('schools')) }}</span></button></li>
@@ -24,7 +27,7 @@
                     <div>
                         <h2 class="imp-title"><i class="bi bi-clipboard-check"></i>File checked: nothing is saved yet</h2>
                         <div class="text-sm text-secondary"><i class="bi bi-file-earmark-excel me-1"></i>{{ $pending['name'] }} ·
-                            @if ($isLoc) <b>Location Master</b> @else <b>{{ $pending['district'] }}</b> district @endif</div>
+                            @if ($isLoc) <b>Location Master</b> @elseif (! empty($pending['all'])) <b>All districts</b> (district from each cluster code) @else <b>{{ $pending['district'] }}</b> district @endif</div>
                     </div>
                 </div>
                 <div class="imp-tiles mb-3">
@@ -62,13 +65,30 @@
                 @if ($isLoc && ($preview['summary']['unchanged'] ?? 0))
                     <div class="text-xs text-secondary mb-3"><i class="bi bi-check2 me-1"></i>{{ $preview['summary']['unchanged'] }} rows are the same as the saved data and will not change.</div>
                 @endif
+                @if (count($preview['summary']['districts'] ?? []) > 1 || ! empty($pending['all']))
+                    {{-- V12 item 6: district-wise count of the records in the file --}}
+                    @php $dsum = collect($preview['summary']['districts'] ?? []); @endphp
+                    <div class="fw-semibold text-sm mb-1"><i class="bi bi-map text-primary me-1"></i>District-wise ({{ $dsum->count() }} {{ \Illuminate\Support\Str::plural('district', $dsum->count()) }})</div>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm imp-table mb-0">
+                            <thead><tr><th>District</th><th class="text-end">New</th><th class="text-end">Updated</th><th class="text-end">Errors</th><th class="text-end">Total</th></tr></thead>
+                            <tbody>
+                                @foreach ($dsum as $d)
+                                    <tr><td>{{ $d['name'] }}@if ($d['code'])<span class="rs-code ms-1">{{ $d['code'] }}</span>@endif</td><td class="text-end text-success fw-semibold">{{ $d['added'] }}</td><td class="text-end text-primary fw-semibold">{{ $d['updated'] }}</td>
+                                        <td class="text-end {{ $d['rejected'] ? 'text-danger fw-semibold' : 'text-secondary' }}">{{ $d['rejected'] }}</td><td class="text-end fw-semibold">{{ $d['added'] + $d['updated'] + $d['rejected'] }}</td></tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot><tr class="fw-semibold"><td>Total</td><td class="text-end">{{ $dsum->sum('added') }}</td><td class="text-end">{{ $dsum->sum('updated') }}</td><td class="text-end">{{ $dsum->sum('rejected') }}</td><td class="text-end">{{ $dsum->sum('added') + $dsum->sum('updated') + $dsum->sum('rejected') }}</td></tr></tfoot>
+                        </table>
+                    </div>
+                @endif
                 @if ($preview['summary']['blocks'] ?? [])
                     <div class="table-responsive mb-3">
                         <table class="table table-sm imp-table mb-0">
-                            <thead><tr><th>Block</th><th class="text-end">New</th><th class="text-end">Updated</th><th class="text-end">Errors</th></tr></thead>
+                            <thead><tr><th>Block</th>@if (! empty($pending['all']))<th>District</th>@endif<th class="text-end">New</th><th class="text-end">Updated</th><th class="text-end">Errors</th></tr></thead>
                             <tbody>
-                                @foreach (collect($preview['summary']['blocks'])->sortBy('name') as $b)
-                                    <tr><td>{{ $b['name'] }}</td><td class="text-end text-success fw-semibold">{{ $b['added'] }}</td><td class="text-end text-primary fw-semibold">{{ $b['updated'] }}</td><td class="text-end {{ $b['rejected'] ? 'text-danger fw-semibold' : 'text-secondary' }}">{{ $b['rejected'] }}</td></tr>
+                                @foreach (collect($preview['summary']['blocks'])->sortBy(fn ($b) => ($b['district'] ?? '').'|'.$b['name']) as $b)
+                                    <tr><td>{{ $b['name'] }}</td>@if (! empty($pending['all']))<td class="text-secondary">{{ $b['district'] ?? '—' }}</td>@endif<td class="text-end text-success fw-semibold">{{ $b['added'] }}</td><td class="text-end text-primary fw-semibold">{{ $b['updated'] }}</td><td class="text-end {{ $b['rejected'] ? 'text-danger fw-semibold' : 'text-secondary' }}">{{ $b['rejected'] }}</td></tr>
                                 @endforeach
                             </tbody>
                         </table>
@@ -114,13 +134,14 @@
                                 <label class="form-label" for="district_id">District</label>
                                 <select name="district_id" id="district_id" class="form-select @error('district_id') is-invalid @enderror" @required($type === 'school')>
                                     <option value="">Choose a district…</option>
+                                    <option value="{{ $ALL }}" @selected((string) $districtId === $ALL)>All districts (one file) · {{ number_format($tot('schools')) }} schools</option>
                                     @foreach ($districts as $d)
                                         @php $r = $report->firstWhere('id', $d->id); @endphp
                                         <option value="{{ $d->id }}" @selected((string) $districtId === (string) $d->id)>{{ $d->name }} ({{ $d->code }}) · {{ $r->schools ?? 0 }} schools</option>
                                     @endforeach
                                 </select>
                                 @error('district_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                <div class="form-text">No District or Block columns are needed: they are taken from each school's cluster code.</div>
+                                <div class="form-text">No District or Block columns are needed: they are taken from each school's cluster code. Choose <b>All districts</b> to upload the whole state in one file; the result is shown district-wise.</div>
                             </div>
                         </div>
                     </div>
@@ -130,8 +151,8 @@
                         <div class="imp-step-body">
                             <h3>Download the template</h3>
                             <div data-school-only @class(['d-none' => $type !== 'school'])>
-                                <a href="{{ $districtId ? route('admin.imports.template', ['school', 'district' => $districtId]) : '#' }}" class="btn btn-soft-primary btn-sm @if (! $districtId) disabled @endif" data-district-template><i class="bi bi-download"></i>School template for the district</a>
-                                <div class="form-text">Columns: <code>udise_code</code>, <code>school_name</code>, <code>cluster_code</code> (required), then management, category, address, latitude, longitude, status. The second sheet lists the district's cluster codes.</div>
+                                <a href="{{ $districtId ? route('admin.imports.template', ['school', 'district' => $districtId]) : '#' }}" class="btn btn-soft-primary btn-sm @if (! $districtId) disabled @endif" data-district-template><i class="bi bi-download"></i><span data-template-label>{{ (string) $districtId === $ALL ? 'School template for all districts' : 'School template for the district' }}</span></a>
+                                <div class="form-text">Columns: <code>udise_code</code>, <code>school_name</code>, <code>cluster_code</code> (required), then management, category, address, latitude, longitude, status. The second sheet lists the cluster codes. UDISE+ headings (<code>udise_sch_code</code>, <code>clcode</code>) are also read.</div>
                             </div>
                             <div data-location-only @class(['d-none' => $type === 'school'])>
                                 <div class="d-flex flex-wrap gap-2">
@@ -151,7 +172,7 @@
                                 <input type="file" name="file" id="file" accept=".xlsx,.xls,.csv" required>
                                 <i class="bi bi-cloud-arrow-up imp-drop-icon"></i>
                                 <span class="imp-drop-text" data-drop-text><b>Drag your Excel file here</b> or <u>browse</u></span>
-                                <span class="imp-drop-hint">.xlsx, .xls or .csv · up to 20 MB</span>
+                                <span class="imp-drop-hint">.xlsx, .xls or .csv · up to {{ $maxMb }} MB</span>
                             </label>
                             @error('file')<div class="text-danger text-sm mt-1">{{ $message }}</div>@enderror
                             <button class="btn btn-primary imp-submit mt-3" data-submit data-loading-text="Checking the file…"><i class="bi bi-search"></i>Check file</button>
@@ -166,7 +187,7 @@
                     <ul>
                         <li>UDISE Code is exactly 11 digits</li>
                         <li>No duplicate UDISE codes in the file</li>
-                        <li>The cluster code exists and is in the chosen district</li>
+                        <li>The cluster code exists and is in the chosen district (with All districts, the cluster decides the district)</li>
                         <li>School name and cluster code are filled</li>
                         <li>Existing UDISE codes are updated, new ones are added; schools missing from the file are <b>not</b> removed</li>
                     </ul>
@@ -219,13 +240,16 @@
                         <span class="stat-icon tone-{{ $b->type === 'school' ? 'primary' : 'accent' }}" style="width:40px;height:40px;border-radius:10px;display:grid;place-items:center"><i class="bi bi-{{ $b->type === 'school' ? 'building' : 'geo-alt' }}"></i></span>
                         <div class="flex-grow-1 min-w-0">
                             <div class="fw-semibold text-truncate">{{ $b->file_name }}</div>
-                            <div class="text-xs text-secondary">{{ ucfirst($b->type) }} master @if ($b->district)· <span class="imp-chip"><i class="bi bi-geo"></i>{{ $b->district->name }}</span>@endif · {{ $b->created_at->format('d M Y, h:i A') }} · {{ $b->uploader?->name }}</div>
+                            <div class="text-xs text-secondary">{{ ucfirst($b->type) }} master @if ($b->district)· <span class="imp-chip"><i class="bi bi-geo"></i>{{ $b->district->name }}</span>@elseif ($b->summary['all_districts'] ?? false)· <span class="imp-chip"><i class="bi bi-map"></i>All districts</span>@endif · {{ $b->created_at->format('d M Y, h:i A') }} · {{ $b->uploader?->name }}</div>
                             <div class="d-flex gap-2 mt-1 text-xs flex-wrap">
                                 <span class="badge-soft badge-soft-success">{{ $b->added }} added</span>
                                 <span class="badge-soft badge-soft-info">{{ $b->updated }} updated</span>
                                 <span class="badge-soft badge-soft-{{ $b->rejected ? 'danger' : 'secondary' }}">{{ $b->rejected }} rejected</span>
                                 @if ($b->summary['renamed_count'] ?? 0)
                                     <a class="badge-soft badge-soft-primary" data-bs-toggle="collapse" href="#ren-{{ $b->id }}" role="button" aria-expanded="false">{{ $b->summary['renamed_count'] }} renamed <i class="bi bi-chevron-down"></i></a>
+                                @endif
+                                @if (count($b->summary['districts'] ?? []) > 1 || ($b->summary['all_districts'] ?? false))
+                                    <a class="text-xs" data-bs-toggle="collapse" href="#dis-{{ $b->id }}" role="button" aria-expanded="false">By district <i class="bi bi-chevron-down"></i></a>
                                 @endif
                                 @if ($b->summary['blocks'] ?? [])
                                     <a class="text-xs" data-bs-toggle="collapse" href="#sum-{{ $b->id }}" role="button" aria-expanded="false">By block <i class="bi bi-chevron-down"></i></a>
@@ -238,6 +262,18 @@
                                         <tbody>
                                             @foreach ($b->summary['renamed'] as $r)
                                                 <tr><td class="text-capitalize">{{ $r['type'] }}</td><td>{{ $r['code'] }}</td><td class="imp-old">{{ $r['old'] }}</td><td class="imp-new">{{ $r['new'] }}</td></tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                            @if (count($b->summary['districts'] ?? []) > 1 || ($b->summary['all_districts'] ?? false))
+                                <div class="collapse" id="dis-{{ $b->id }}">
+                                    <table class="table table-sm imp-table mt-2 mb-0">
+                                        <thead><tr><th>District</th><th class="text-end">Added</th><th class="text-end">Updated</th><th class="text-end">Rejected</th><th class="text-end">Uploaded</th></tr></thead>
+                                        <tbody>
+                                            @foreach ($b->summary['districts'] ?? [] as $s)
+                                                <tr><td>{{ $s['name'] }}</td><td class="text-end">{{ $s['added'] }}</td><td class="text-end">{{ $s['updated'] }}</td><td class="text-end">{{ $s['rejected'] }}</td><td class="text-end fw-semibold">{{ $s['added'] + $s['updated'] }}</td></tr>
                                             @endforeach
                                         </tbody>
                                     </table>

@@ -76,7 +76,8 @@ class LocationController extends Controller
             return back()->with('success', $rec->name.' is now '.($rec->is_active ? 'active' : 'inactive').'.');
         }
 
-        $data = $request->validate($this->rules($type, $fk, $parentModel, $rec->id));
+        // V12 item 7: edit errors go to their own bag, so they show in the Edit window, not under Add
+        $data = $request->validateWithBag('edit', $this->rules($type, $fk, $parentModel, $rec->id));
         $rec->update($data);
         AuditLogger::log('location_updated', $rec, ['type' => $type] + $data);
 

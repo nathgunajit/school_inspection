@@ -60,7 +60,11 @@ class TlmItemController extends Controller
             return back()->with('success', $tlmItem->name.' is now '.($tlmItem->is_active ? 'active' : 'inactive').'.');
         }
 
-        $data = $this->validated($request, $tlmItem);
+        try { // V12 item 7: edit errors go to their own bag, so they show in the Edit window, not under Add
+            $data = $this->validated($request, $tlmItem);
+        } catch (ValidationException $e) {
+            throw $e->errorBag('edit');
+        }
         $tlmItem->update($data);
         AuditLogger::log('tlm_item_updated', $tlmItem, $data);
 

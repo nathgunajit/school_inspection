@@ -13,12 +13,16 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
- * Excel Upload (PRD 7.3). School Master is uploaded district-wise: pick a district, check the
- * file (dry run, nothing saved), then confirm. The District report counts schools per district / block.
+ * Excel Upload (PRD 7.3). School Master is uploaded for one district or (V12 item 6) for all districts in one
+ * file: check the file (dry run, nothing saved), then confirm. The result is counted district-wise and block-wise.
+ * The District report counts schools per district / block.
  */
 class ImportController extends Controller
 {
     private const PENDING = 'import_pending';
+
+    /** V12 item 6: district_id value for one file covering every district. */
+    public const ALL = 'all';
 
     public function index(Request $request, SchoolCountReport $report)
     {
@@ -37,6 +41,9 @@ class ImportController extends Controller
         if ($type === 'location' && $request->boolean('current')) {
             return Excel::download(MasterImportService::currentLocations(), 'location_master_current_'.now()->format('Y-m-d').'.xlsx');
         }
+        if ($type === 'school' && $request->query('district') === self::ALL) {
+            return Excel::download(MasterImportService::allDistrictsTemplate(), 'school_master_all_districts.xlsx');
+        }
         if ($type === 'school' && $request->filled('district')) {
             $district = District::findOrFail((int) $request->query('district'));
 
@@ -52,7 +59,7 @@ class ImportController extends Controller
         $data = $request->validate([
             'type' => ['required', 'in:location,school'],
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:'.config('inspection.import_max_kb', 51200)],
         ]);
         $district = isset($data['district_id']) ? District::find($data['district_id']) : null;
 
@@ -66,24 +73,30 @@ class ImportController extends Controller
     {
         $data = $request->validate([
             'type' => ['nullable', 'in:location,school'],
-            'district_id' => ['required_unless:type,location', 'nullable', 'integer', 'exists:districts,id'],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
-        ], ['district_id.required_unless' => 'Choose the district first.']);
+            'district_id' => ['required_unless:type,location', 'nullable', function ($attr, $v, $fail) {
+                if ($v !== self::ALL && ! District::whereKey((int) $v)->exists()) {
+                    $fail('Choose a district from the list, or All districts.');
+                }
+            }],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:'.config('inspection.import_max_kb', 51200)],
+        ], ['district_id.required_unless' => 'Choose the district (or All districts) first.']);
         $type = $data['type'] ?? 'school';
-        $district = $type === 'school' ? District::findOrFail($data['district_id']) : null;
+        $all = $type === 'school' && ($data['district_id'] ?? null) === self::ALL;
+        $district = $type === 'school' && ! $all ? District::findOrFail((int) $data['district_id']) : null;
         $file = $request->file('file');
 
         $this->discardPending($request);
         $path = $file->storeAs('imports/pending', Str::random(32).'.'.($file->getClientOriginalExtension() ?: 'xlsx'), 'private');
 
         try {
-            $result = $service->preview($type, Storage::disk('private')->path($path), $district);
+            $result = $service->preview($type, Storage::disk('private')->path($path), $district, $all);
         } catch (\Throwable $e) {
             Storage::disk('private')->delete($path);
             throw $e;
         }
 
-        $request->session()->put(self::PENDING, ['path' => $path, 'type' => $type, 'district_id' => $district?->id, 'district' => $district?->name, 'name' => mb_substr($file->getClientOriginalName(), 0, 255)]);
+        $request->session()->put(self::PENDING, ['path' => $path, 'type' => $type, 'district_id' => $district?->id, 'all' => $all,
+            'district' => $all ? 'All districts' : $district?->name, 'name' => mb_substr($file->getClientOriginalName(), 0, 255)]);
 
         return redirect()->route('admin.imports.index')->with('import_preview', $result);
     }
@@ -100,7 +113,7 @@ class ImportController extends Controller
 
         $type = $p['type'] ?? 'school';
         $batch = $service->import($type, Storage::disk('private')->path($p['path']), $request->user(),
-            $type === 'school' ? District::findOrFail($p['district_id']) : null, $p['name']);
+            $type === 'school' && empty($p['all']) ? District::findOrFail($p['district_id']) : null, $p['name'], $type === 'school' && ! empty($p['all']));
         $this->discardPending($request);
 
         return $this->done($batch);

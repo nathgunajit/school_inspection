@@ -221,7 +221,15 @@ function saveAnswer(block, value) {
     return queue(() => axios.post(SI.saveUrl, { code, value }), (errors, message) => {
         questionError(block, (errors.value || [])[0] || message || 'Please check this answer.');
         refreshRules();
-    }, { method: 'post', url: SI.saveUrl, body: { code, value }, key: `a:${code}` });
+    }, { method: 'post', url: SI.saveUrl, body: { code, value }, key: `a:${code}` }).then((res) => {
+        // V12 item 2: all teachers present -> the server removed the absentee list
+        const n = res?.data?.absent_removed;
+        if (n) {
+            SI.teachers = [];
+            window.toast?.(`All teachers present: the absentee list (${n} row${n === 1 ? '' : 's'}) was removed.`, 'info');
+        }
+        return res;
+    });
 }
 
 $$('.q-block').forEach((block) => {

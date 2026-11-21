@@ -7,7 +7,7 @@ if (root) {
     const fileInput = root.querySelector('#file');
     const drop = root.querySelector('[data-drop]');
     const dropText = root.querySelector('[data-drop-text]');
-    const MAX = 20 * 1024 * 1024;
+    const MAX = parseInt(root.dataset.maxBytes, 10) || 50 * 1024 * 1024;
 
     const isSchool = () => form.querySelector('input[name="type"]:checked')?.value === 'school';
     const syncType = () => {
@@ -21,6 +21,8 @@ if (root) {
         const id = district.value;
         tplLink.classList.toggle('disabled', !id);
         tplLink.href = id ? `${root.dataset.templateUrl}?district=${encodeURIComponent(id)}` : '#';
+        const label = tplLink.querySelector('[data-template-label]');
+        if (label) label.textContent = id === 'all' ? 'School template for all districts' : 'School template for the district';
     };
     const size = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
     const showFile = () => {
@@ -29,7 +31,7 @@ if (root) {
         if (!f) { dropText.innerHTML = '<b>Drag your Excel file here</b> or <u>browse</u>'; return; }
         const ok = /\.(xlsx|xls|csv)$/i.test(f.name) && f.size <= MAX;
         drop.classList.add(ok ? 'has-file' : 'is-invalid');
-        dropText.textContent = ok ? `${f.name} · ${size(f.size)}` : `${f.name}: use an .xlsx, .xls or .csv file up to 20 MB`;
+        dropText.textContent = ok ? `${f.name} · ${size(f.size)}` : `${f.name}: use an .xlsx, .xls or .csv file up to ${Math.round(MAX / 1048576)} MB`;
         fileInput.setCustomValidity(ok ? '' : 'Invalid file');
     };
 

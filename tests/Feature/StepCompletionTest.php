@@ -83,10 +83,16 @@ class StepCompletionTest extends TestCase
         $this->assertTrue($this->steps($i)[3]['complete']);
         $this->addAbsent($i)->assertStatus(422); // a third is refused
 
-        // step 2 corrected to all present: the rows must go
-        $this->postJson(route('inspections.answers', $i), ['code' => 'TSI_09', 'value' => 5])->assertOk();
-        $p = (new InspectionValidator($i->fresh()))->progress();
-        $this->assertStringContainsString('All teachers are present (step 2): remove the 2', $p['missing'][3][0]['message']);
+        // Present typed above Total: nothing is removed (step 2 shows the error)
+        $this->postJson(route('inspections.answers', $i), ['code' => 'TSI_09', 'value' => 9])->assertOk()->assertJsonMissingPath('absent_removed');
+        $this->assertSame(2, $i->absentTeachers()->count());
+
+        // V12 item 2: step 2 corrected to all present: the absentee list is removed automatically
+        $this->postJson(route('inspections.answers', $i), ['code' => 'TSI_09', 'value' => 5])->assertOk()
+            ->assertJsonPath('absent_removed', 2)->assertJsonCount(0, 'teachers');
+        $this->assertSame(0, $i->absentTeachers()->count());
+        $this->assertTrue($this->steps($i)[3]['complete']);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'absent_teachers_cleared', 'auditable_id' => $i->id]);
     }
 
     /** Present (TSI_09) is required; until it is entered step 3 waits for step 2. The old ABS_00 tick no longer counts. */

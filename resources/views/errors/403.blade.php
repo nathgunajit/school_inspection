@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '403', 'tint' => '#f39223', 'title' => 'Not allowed', 'text' => 'You do not have access to this page, or the record is outside your area or can no longer be changed.'])

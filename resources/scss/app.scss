@@ -737,9 +737,13 @@ $q-choice-col: 230px;   // all short answers line up in one column
     @include media-breakpoint-down(sm) { .btn { flex: 1; min-height: 44px; } } }
 
 // ---------- Smooth Bootstrap dropdown menus (account menu, actions) ----------
-@keyframes si-drop-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+// V12 item 7: fade only. A transform animation overrode Popper's inline position, so menus flashed in the wrong place
+@keyframes si-drop-in { from { opacity: 0; } to { opacity: 1; } }
 .dropdown-menu { border: 1px solid $border-color; border-radius: .75rem; box-shadow: 0 12px 32px -12px rgba(15, 23, 42, .25); padding: .35rem; }
-.dropdown-menu.show { animation: si-drop-in .16s ease-out; transform-origin: top right; }
+.dropdown-menu.show { animation: si-drop-in .14s ease-out; }
+.dropdown-menu.row-actions { min-width: 11rem; z-index: 1040;
+    .dropdown-item { display: flex; align-items: center; gap: .55rem; min-height: 38px; i { font-size: 1rem; } }
+    form { margin: 0; } }
 .dropdown-item { border-radius: .5rem; padding: .45rem .7rem; font-size: .8125rem; }
 @media (prefers-reduced-motion: reduce) { .dropdown-menu.show { animation: none; } }
 
@@ -2059,11 +2063,13 @@ $rp-step-colors: (1: #1565c0, 2: #00897b, 3: #d93025, 4: #f39223, 5: #1e9b4b, 6:
 .rp-dt-icon { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 11px; display: grid; place-items: center; background: rgba($primary, .09); color: $primary; font-size: 1rem;
     &.tone-green { background: rgba($success, .1); color: $success; } &.tone-orange { background: rgba($warning, .13); color: #b45309; } }
 
-.rp-nav { padding: .45rem; gap: .3rem; border-radius: 999px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; }
+// V12 item 5: every tab stays visible; the bar wraps to a second line instead of hiding tabs off-screen
+.rp-nav { padding: .45rem; gap: .3rem; border-radius: 1rem; flex-wrap: wrap; overflow: visible;
     a { white-space: nowrap; background: transparent; padding: .35rem .75rem .35rem .35rem;
         span { background: #eef3fa; }
         &.is-active { background: $primary; color: #fff; span { background: #fff; color: $primary; } } }
-    @include media-breakpoint-down(md) { border-radius: .9rem; } }
+    @include media-breakpoint-down(md) { border-radius: .9rem; a { padding: .3rem .6rem .3rem .3rem; font-size: .74rem; } } }
+.min-w-0 { min-width: 0; }
 
 .rp-glance { gap: .55rem;
     > div { position: relative; padding: .75rem .8rem .7rem; background: #fff; border: 1px solid #eaeef5; border-radius: .85rem;

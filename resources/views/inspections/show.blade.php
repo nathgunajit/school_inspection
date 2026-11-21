@@ -22,7 +22,7 @@
         6 => $suggestions->count().' suggestion(s)',
         7 => $photos->count().' photo(s)',
     ];
-    $showSteps = collect($steps)->filter(fn ($st, $n) => $n !== count($steps) || $photos->isNotEmpty());
+    $showSteps = collect($steps); // V12 item 5: every step has its tab (Photographs shows "No photos" when empty)
 @endphp
 <x-layouts.app :title="$inspection->inspection_no ?: 'Inspection draft'" :back="url()->previous() !== url()->current() ? url()->previous() : route('inspections.mine')">
     <x-slot:actions>

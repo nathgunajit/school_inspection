@@ -2,6 +2,7 @@
     use App\Http\Controllers\Admin\TlmItemController as TC;
     $tabs = ['' => 'All'] + collect($classes)->filter(fn ($l, $k) => isset($counts[$k]))->all() + [TC::ALL => 'All classes'];
     $keepList = $list !== '' ? ['list' => $list] : [];
+    $addOld = fn ($f, $d = null) => old('_edit') ? $d : old($f, $d); // a failed Edit must not fill the Add form
 @endphp
 <x-layouts.app title="TLM Master">
     {{-- Modification V10: two lists, FLN and ECCE --}}
@@ -46,35 +47,18 @@
                                             @if ($item->remarks)<div class="text-xs text-secondary fw-normal">{{ $item->remarks }}</div>@endif</td>
                                         <td class="font-monospace text-nowrap">{{ $item->code ?: 'NA' }}</td>
                                         <td class="text-end">
+                                            {{-- V12 item 7: the three-dot menu holds only actions; Edit opens a window (the form no longer sits inside the dropdown) --}}
                                             <div class="dropdown">
-                                                <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Actions"><i class="bi bi-three-dots-vertical"></i></button>
-                                                <div class="dropdown-menu dropdown-menu-end p-3 shadow border-0 text-start" style="width:300px">
-                                                    <form method="POST" action="{{ route('admin.tlm.update', $item) }}">
-                                                        @csrf @method('PUT')
-                                                        <label class="form-label text-sm">List</label>
-                                                        <select name="list" class="form-select mb-2" required>
-                                                            @foreach ($lists as $k => $l)<option value="{{ $k }}" @selected($item->list === $k)>{{ $l }}</option>@endforeach
-                                                        </select>
-                                                        <label class="form-label text-sm">Class</label>
-                                                        <select name="class" class="form-select mb-2" required>
-                                                            <option value="{{ TC::ALL }}" @selected($item->class === null)>All classes</option>
-                                                            @foreach ($classes as $k => $l)<option value="{{ $k }}" @selected($item->class === (string) $k)>{{ $l }}</option>@endforeach
-                                                        </select>
-                                                        <label class="form-label text-sm">Group</label><input name="section" value="{{ $item->section }}" class="form-control mb-2" maxlength="60" placeholder="e.g. TLM for schools">
-                                                        <label class="form-label text-sm">Name</label><input name="name" value="{{ $item->name }}" class="form-control mb-2" maxlength="150" required>
-                                                        <label class="form-label text-sm">Serial no / code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" maxlength="60">
-                                                        <div class="row g-2 mb-2">
-                                                            <div class="col-6"><label class="form-label text-sm">Variety</label><input name="variety" value="{{ $item->variety }}" type="number" min="1" class="form-control"></div>
-                                                            <div class="col-6"><label class="form-label text-sm">Order</label><input name="sort" value="{{ $item->sort }}" type="number" min="0" class="form-control"></div>
-                                                        </div>
-                                                        <label class="form-label text-sm">Remarks</label><input name="remarks" value="{{ $item->remarks }}" class="form-control mb-2" maxlength="200">
-                                                        <button class="btn btn-primary btn-sm w-100">Save</button>
-                                                    </form>
-                                                    <form method="POST" action="{{ route('admin.tlm.update', $item) }}" class="mt-2">
-                                                        @csrf @method('PUT')<input type="hidden" name="toggle" value="1">
-                                                        <button class="btn btn-sm w-100 {{ $item->is_active ? 'btn-soft-danger' : 'btn-success' }}">{{ $item->is_active ? 'Make inactive' : 'Make active' }}</button>
-                                                    </form>
-                                                </div>
+                                                <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Actions for {{ $item->name }}"><i class="bi bi-three-dots-vertical"></i></button>
+                                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 row-actions">
+                                                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#tlm-edit-{{ $item->id }}"><i class="bi bi-pencil-square text-primary"></i>Edit</button></li>
+                                                    <li>
+                                                        <form method="POST" action="{{ route('admin.tlm.update', $item) }}">
+                                                            @csrf @method('PUT')<input type="hidden" name="toggle" value="1">
+                                                            <button class="dropdown-item {{ $item->is_active ? 'text-danger' : 'text-success' }}"><i class="bi {{ $item->is_active ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>{{ $item->is_active ? 'Make inactive' : 'Make active' }}</button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
                                             </div>
                                         </td>
                                     </tr>
@@ -85,6 +69,57 @@
                 @endif
             </div>
             <div class="mt-3">{{ $items->links() }}</div>
+            {{-- V12 item 7: one Edit window per row, outside the table so nothing clips or closes it --}}
+            @foreach ($items as $item)
+                @php
+                    $mine = (string) old('_edit') === (string) $item->id;
+                    $v = fn ($f, $d) => $mine ? old($f, $d) : $d;
+                    $err = $mine ? $errors->edit : new \Illuminate\Support\MessageBag;
+                    $cls = $item->class === null ? TC::ALL : (string) $item->class;
+                @endphp
+                <div class="modal fade" id="tlm-edit-{{ $item->id }}" tabindex="-1" aria-labelledby="tlm-edit-title-{{ $item->id }}" aria-hidden="true" @if ($mine && $errors->edit->any()) data-reopen @endif>
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                        <form method="POST" action="{{ route('admin.tlm.update', $item) }}" class="modal-content">
+                            @csrf @method('PUT')
+                            <input type="hidden" name="_edit" value="{{ $item->id }}">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="tlm-edit-title-{{ $item->id }}"><i class="bi bi-pencil-square text-primary me-2"></i>Edit TLM item</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                @if ($err->any())<div class="alert alert-danger py-2 text-sm">{{ $err->first() }}</div>@endif
+                                <div class="row g-3">
+                                    <div class="col-sm-6"><label class="form-label">List</label>
+                                        <select name="list" class="form-select" required>
+                                            @foreach ($lists as $k => $l)<option value="{{ $k }}" @selected($v('list', $item->list) === $k)>{{ $l }}</option>@endforeach
+                                        </select></div>
+                                    <div class="col-sm-6"><label class="form-label">Class</label>
+                                        <select name="class" class="form-select {{ $err->has('class') ? 'is-invalid' : '' }}" required>
+                                            <option value="{{ TC::ALL }}" @selected($v('class', $cls) === TC::ALL)>All classes</option>
+                                            @foreach ($classes as $k => $l)<option value="{{ $k }}" @selected((string) $v('class', $cls) === (string) $k)>{{ $l }}</option>@endforeach
+                                        </select></div>
+                                    <div class="col-12"><label class="form-label">Name of item</label>
+                                        <input name="name" value="{{ $v('name', $item->name) }}" class="form-control {{ $err->has('name') ? 'is-invalid' : '' }}" maxlength="150" required>
+                                        @if ($err->has('name'))<div class="invalid-feedback">{{ $err->first('name') }}</div>@endif</div>
+                                    <div class="col-sm-6"><label class="form-label">Group <span class="opt">optional</span></label>
+                                        <input name="section" value="{{ $v('section', $item->section) }}" class="form-control" maxlength="60" placeholder="e.g. TLM for schools"></div>
+                                    <div class="col-sm-6"><label class="form-label">Serial no / code <span class="opt">optional</span></label>
+                                        <input name="code" value="{{ $v('code', $item->code) }}" class="form-control" maxlength="60"></div>
+                                    <div class="col-6"><label class="form-label">Variety</label><input name="variety" value="{{ $v('variety', $item->variety) }}" type="number" min="1" class="form-control"></div>
+                                    <div class="col-6"><label class="form-label">Order</label><input name="sort" value="{{ $v('sort', $item->sort) }}" type="number" min="0" class="form-control"></div>
+                                    <div class="col-12"><label class="form-label">Remarks <span class="opt">optional</span></label>
+                                        <input name="remarks" value="{{ $v('remarks', $item->remarks) }}" class="form-control" maxlength="200"></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                <button class="btn btn-primary"><i class="bi bi-check-lg"></i>Save changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endforeach
+
         </div>
 
         <div class="col-lg-4">
@@ -93,7 +128,7 @@
                 <div class="card-body">
                     <form method="POST" action="{{ route('admin.tlm.store') }}">
                         @csrf
-                        @php $pick = old('class', array_key_exists($class, $classes) ? $class : ''); $pickList = old('list', $list !== '' ? $list : 'fln'); @endphp
+                        @php $pick = $addOld('class', array_key_exists($class, $classes) ? $class : ''); $pickList = $addOld('list', $list !== '' ? $list : 'fln'); @endphp
                         <label class="form-label">List</label>
                         <select name="list" class="form-select mb-3 @error('list') is-invalid @enderror" required>
                             @foreach ($lists as $k => $l)<option value="{{ $k }}" @selected($pickList === $k)>{{ $l }}</option>@endforeach
@@ -107,18 +142,18 @@
                         </select>
                         @error('class')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
                         <label class="form-label">Group <span class="opt">optional</span></label>
-                        <input name="section" value="{{ old('section') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. TLM for schools (ECCE)">
+                        <input name="section" value="{{ $addOld('section') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. TLM for schools (ECCE)">
                         <label class="form-label">Name of item</label>
-                        <input name="name" value="{{ old('name') }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Karjyapatra (Literacy)" required>
+                        <input name="name" value="{{ $addOld('name') }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Karjyapatra (Literacy)" required>
                         @error('name')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
                         <label class="form-label">Serial no / code <span class="opt">optional</span></label>
-                        <input name="code" value="{{ old('code') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. NIPUN AXOM G1L4">
+                        <input name="code" value="{{ $addOld('code') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. NIPUN AXOM G1L4">
                         <div class="row g-2 mb-3">
-                            <div class="col-6"><label class="form-label">Variety</label><input name="variety" value="{{ old('variety', 1) }}" type="number" min="1" class="form-control"></div>
-                            <div class="col-6"><label class="form-label">Order</label><input name="sort" value="{{ old('sort', 0) }}" type="number" min="0" class="form-control"></div>
+                            <div class="col-6"><label class="form-label">Variety</label><input name="variety" value="{{ $addOld('variety', 1) }}" type="number" min="1" class="form-control"></div>
+                            <div class="col-6"><label class="form-label">Order</label><input name="sort" value="{{ $addOld('sort', 0) }}" type="number" min="0" class="form-control"></div>
                         </div>
                         <label class="form-label">Remarks <span class="opt">optional</span></label>
-                        <input name="remarks" value="{{ old('remarks') }}" maxlength="200" class="form-control mb-3" placeholder="e.g. One copy per child">
+                        <input name="remarks" value="{{ $addOld('remarks') }}" maxlength="200" class="form-control mb-3" placeholder="e.g. One copy per child">
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>
                 </div>

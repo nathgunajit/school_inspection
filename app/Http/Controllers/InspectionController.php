@@ -119,6 +119,9 @@ class InspectionController extends Controller
 
     public function step(Request $request, Inspection $inspection, int $step)
     {
+        if ($gone = $this->notEditable($request, $inspection)) {
+            return $gone;
+        }
         $this->authorize('update', $inspection);
         abort_unless(isset(Q::steps()[$step]), 404);
 
@@ -214,7 +217,18 @@ class InspectionController extends Controller
             $inspection->person_met_designation = is_string($value) ? mb_substr($value, 0, 120) : null;
         }
 
-        return $this->progressResponse($inspection);
+        // V12 item 2: all teachers present (Total = Present on step 2) -> the absentee list is removed
+        // (only when Present is exactly equal to Total: a mistyped Present above Total removes nothing)
+        $removed = 0;
+        $map = $request->has('value') && in_array($code, ['TSI_09', ...Q::TEACHER_TOTAL_CODES], true) ? $inspection->unsetRelation('answers')->answerMap() : null;
+        $total = $map !== null ? Q::totalTeachers($map) : null;
+        if ($total !== null && is_numeric($map['TSI_09'] ?? null) && (int) $map['TSI_09'] === $total
+            && ($removed = $inspection->absentTeachers()->count()) > 0) {
+            $inspection->absentTeachers()->delete();
+            AuditLogger::log('absent_teachers_cleared', $inspection, ['rows' => $removed, 'reason' => 'all teachers present']);
+        }
+
+        return $this->progressResponse($inspection, $removed ? ['absent_removed' => $removed, 'teachers' => []] : []);
     }
 
     /** Teachers Absentee Form row (v2 step 3). */
@@ -409,8 +423,11 @@ class InspectionController extends Controller
 
     /* ======================= Review & submit ======================= */
 
-    public function review(Inspection $inspection)
+    public function review(Request $request, Inspection $inspection)
     {
+        if ($gone = $this->notEditable($request, $inspection)) {
+            return $gone;
+        }
         $this->authorize('update', $inspection);
         $inspection->load(['school', 'answers', 'absentTeachers', 'classroomObservations.tlmItems', 'fundPositions', 'evidence.category', 'remarks']);
 
@@ -520,10 +537,29 @@ class InspectionController extends Controller
         return redirect()->route('inspections.submitted', $inspection);
     }
 
+    /**
+     * V12 item 8: the officer's own inspection that can no longer be edited (draft expired and cancelled,
+     * or already submitted) is not a dead end: they are taken to its report (or their list) with the reason.
+     */
+    private function notEditable(Request $request, Inspection $inspection)
+    {
+        if ($inspection->isEditable() || $inspection->officer_id !== $request->user()?->id) {
+            return null;
+        }
+        if ($inspection->status === InspectionStatus::Cancelled) {
+            return redirect()->route('inspections.mine')->with('warning', 'This draft for '.($inspection->school?->name ?? 'the school').' has expired'
+                .($inspection->cancelled_reason ? ' ('.$inspection->cancelled_reason.')' : '').'. Start the inspection again from the school page.');
+        }
+
+        return redirect()->route('inspections.show', $inspection)->with('warning', 'This inspection is already '.strtolower($inspection->status->label()).' and can no longer be edited.');
+    }
+
     public function submitted(Inspection $inspection)
     {
         $this->authorize('view', $inspection);
-        abort_unless($inspection->status === InspectionStatus::Submitted, 404);
+        if ($inspection->status !== InspectionStatus::Submitted) { // V12 item 8: an old link (e.g. after sign-in) opens the report, not a 404
+            return redirect()->route('inspections.show', $inspection);
+        }
 
         return view('inspections.submitted', ['inspection' => $inspection->load('school')]);
     }

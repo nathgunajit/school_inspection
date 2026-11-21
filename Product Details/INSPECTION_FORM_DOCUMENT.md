@@ -91,6 +91,12 @@ Every step page has the same frame:
 > - **Pre-fill from the last visit.** When a new inspection of a school starts, `App\Services\InspectionPrefill` copies the answers and remarks of steps 1, 2, 5 and 6, and the fund years, from the school's latest submitted or unlocked inspection (any officer). Steps 1, 2, 5 and 6 show the banner "Filled from the last visit on dd-mm-yyyy". The officer checks each answer and changes what is different.
 >   - Never copied: Students present / absent (`TSI_01`, `TSI_02`), Teachers present (`TSI_09`), the network question (`NET_01`), absent teachers, classroom records, suggestions and photographs.
 >   - A reopened draft is not filled again. The source is stored in `inspections.prefilled_from_id` and audited as `inspection_prefilled`.
+
+> **Modification V12 (21-11-2026):**
+> - **Next visit by the same officer:** Teachers present (`TSI_09`) starts at **0**, so the officer enters today's figure; the Teachers Absentee Form starts blank. Present must not be more than Total teachers.
+> - **Classroom performance from the last visit:** the classroom records of the previous inspection (with the TLM items ticked) are listed on step 4, ready to edit or remove.
+> - **All teachers present:** when Teachers present is changed to equal Total teachers, the absentee list is removed automatically (the officer sees a message; audited).
+> - **Report page:** the section bar wraps onto a second line, so every step (including Photographs) is visible.
 > - **No internet at the school?** The school page and the step 1 officer card link to a printable **blank inspection form** (PDF, `GET /schools/{school}/blank-form`). It has the school details pre-printed and every question with boxes, blank absentee / classroom / fund tables and signatures.
 > - **Bottom bars** (phone navigation and the Back / Next bar) slide away while scrolling down and come back on scroll up or after a short pause.
 

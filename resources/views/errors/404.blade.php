@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '404', 'tint' => '#1565c0', 'title' => 'Page not found', 'text' => 'This page is not available. The link may be old, the record may have been removed, or your session may have ended. Please start again from the Dashboard.'])

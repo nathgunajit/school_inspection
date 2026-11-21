@@ -11,6 +11,7 @@ use App\Support\MathCaptcha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -122,7 +123,30 @@ class LoginController extends Controller
         AuditLogger::log('login', $user, [], $user);
         $this->monitor->success($request, $user);
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->to($this->safeIntended($request));
+    }
+
+    /**
+     * V12 item 8: after the session expired, the page to return to is kept only when it is a screen
+     * (not a photo, PDF, download or data request that was loading in the background) and still exists.
+     */
+    private function safeIntended(Request $request): string
+    {
+        $home = route('dashboard');
+        $url = $request->session()->pull('url.intended');
+        if (! is_string($url) || parse_url($url, PHP_URL_HOST) !== $request->getHost()) {
+            return $home;
+        }
+        try {
+            $route = app('router')->getRoutes()->match(Request::create($url, 'GET'));
+        } catch (\Throwable) {
+            return $home; // no such page
+        }
+        $deny = ['evidence.*', 'session.*', 'map.schools', 'map.areas', 'subjects.suggest', 'inspections.teacher-names', 'inspections.progress',
+            'inspections.pdf', 'inspections.export', 'schools.blank-form', '*.export', '*.template', '*.photo', 'register.*', 'login*', 'locations.*'];
+        $name = (string) $route->getName();
+
+        return $name === '' || Str::is($deny, $name) ? $home : $url;
     }
 
     public function logout(Request $request)

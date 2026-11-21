@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '500', 'tint' => '#dc3545', 'title' => 'Something went wrong', 'text' => 'The server could not complete this request. Your saved work is safe. Please try again in a moment.'])
