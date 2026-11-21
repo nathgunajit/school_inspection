@@ -2164,3 +2164,11 @@ Plan approved by the user. Decisions:
 - The login CAPTCHA label changed from "Solve the sum" to "Enter the correct answer".
 - Files: `resources/views/partials/math-captcha.blade.php`, `tests/Feature/LoginMathCaptchaTest.php`
 - Verified: `php artisan test`: all pass.
+
+## 2026-11-21 — Step 2: total trained / untrained only, must equal Total teachers
+- Request: in Teacher's & Student's Information, under Trained / Untrained teachers, show only Total trained and Total untrained after the four counts (no male / female), and validate them as equal to Total teachers.
+- The officer still enters TSI_10–13. The live box shows Total trained (Male trained + Female trained) and Total untrained (Male untrained + Female untrained), with "Equal to / Less than / More than Total teachers".
+- `InspectionValidator::teacherConsistency()`: blocking error on `TSI_10` when Trained + Untrained ≠ Total teachers (was "more than"). Blank counts are 0, so they must be filled when Total teachers > 0.
+- Report tile and PDF (now 3 boxes) show Trained / Untrained only. `teacherBreakdown()` and the rating are unchanged; no codes changed.
+- Files: `resources/views/inspections/{step,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `app/Questionnaire/InspectionValidator.php`; tests `TeacherTotalsTest`, `ModificationV9Test`, `ModificationV10Test`; docs `CLAUDE.md`, `Product Details/{INSPECTION_FORM_DOCUMENT,School_Inspection_Mechanism,PROJECT_DOCUMENT}.md`, rebuilt docx.
+- Verified: `php artisan test` 193 passed; `npm run build` OK. Not checked visually in a browser.

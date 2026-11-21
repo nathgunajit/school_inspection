@@ -29,9 +29,9 @@
         <div class="fig-total"><i class="bi bi-backpack"></i><span>Total students <small>Present + Absent</small></span><b>{{ $totS === null ? '—' : number_format($totS) }}</b></div>
         <div class="fig-total"><i class="bi bi-person-workspace"></i><span>Total teachers <small>Regular + Contractual + SSA + Tutors</small></span><b>{{ $totT === null ? '—' : number_format($totT) }}</b></div>
         @if ($bd = Q::teacherBreakdown($answers))
-            @php $bdBad = $totT !== null && $bd['sum'] > $totT; @endphp
+            @php $bdBad = $totT !== null && $bd['sum'] !== $totT; /* must be equal to Total teachers; totals only, no male / female */ @endphp
             <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>
-                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>{{ $bd['split'] ? 'Male '.$bd['male'].' · Female '.$bd['female'] : 'Trained + Untrained' }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>Trained + Untrained{{ $bdBad ? ' · not equal to Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
         @endif
     </div>
 @elseif ($n !== 3 && ! empty($questions[$n]))

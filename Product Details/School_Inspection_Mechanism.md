@@ -114,7 +114,7 @@ Answer types used: `radio` (Yes/No, Satisfactory/Unsatisfactory, other lists), `
 **Blocking consistency rule** (`InspectionValidator::teacherConsistency()`, live box in `wizard.js`):
 - Total teachers = `TSI_04` + `TSI_05` + `TSI_06` + `TSI_07` + `TSI_08`.
 - `TSI_09` must be ≤ Total teachers.
-- `TSI_10` + `TSI_11` + `TSI_12` + `TSI_13` (trained + untrained = male + female) must be ≤ Total teachers.
+- `TSI_10` + `TSI_11` + `TSI_12` + `TSI_13` (Trained + Untrained) must be **equal to** Total teachers (since 21-11-2026). Only Total trained / Total untrained are shown.
 - Derived figures shown: total students = `TSI_01` + `TSI_02`; teachers absent = total − present.
 
 ### 4.4 Steps 3–5, repeating rows

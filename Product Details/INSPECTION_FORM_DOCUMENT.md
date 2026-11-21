@@ -182,6 +182,10 @@ Every step page has the same frame:
 > - **Lists:** Absent teachers, Classrooms observed and Saved years show as a clean table on wide screens: a header strip, Sl., chips and amounts aligned right. On phones each row becomes a card with labelled fields.
 > - On the review and report pages, the absent teachers and the classroom performance (with the TLM items used) are tables. They stack into cards on phones.
 
+> **21-11-2026: total trained / untrained only, equal to Total teachers**
+> - The four counts (`TSI_10`–`TSI_13`) are still entered, but the box under them shows only **Total trained** (Male trained + Female trained) and **Total untrained** (Male untrained + Female untrained). Male and Female totals are no longer shown on the form, the report or the PDF.
+> - Trained + Untrained must be **equal to** Total teachers (blocking). The box shows "Equal to Total teachers", "Less than Total teachers: N more to count" or "More than Total teachers". Blank counts are 0, so the counts must be filled whenever Total teachers is more than 0.
+
 > **Field size (20-11-2026):** every input, dropdown, number box and button uses the portal standard: **14 px text, 40 px tall** on desktop and tablet, and 16 px / 44 px on phones (no iOS zoom, easy to tap).
 
 ### Step 5: Fund Received & Expenditure

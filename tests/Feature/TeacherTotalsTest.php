@@ -12,7 +12,7 @@ use App\Questionnaire\QuestionnaireDefinition as Q;
 use Tests\TestCase;
 
 /**
- * Step 2: Trained + Untrained and Male + Female (TSI_10..13) must be less than or equal to Total teachers (TSI_04..08),
+ * Step 2: Trained + Untrained (TSI_10..13) must be equal to Total teachers (TSI_04..08); only the totals are shown (no male / female),
  * and teachers present (TSI_09) cannot be more than Total teachers. Both are blocking.
  */
 class TeacherTotalsTest extends TestCase
@@ -68,7 +68,7 @@ class TeacherTotalsTest extends TestCase
 
         $msg = collect($this->step2())->firstWhere('code', 'TSI_10')['message'] ?? '';
         $this->assertStringContainsString('Trained (9) + Untrained (3) = 12', $msg);
-        $this->assertStringContainsString('Male (5) + Female (7) = 12', $msg);
+        $this->assertStringNotContainsString('Male', $msg);
         $this->assertStringContainsString('more than Total teachers (10)', $msg);
         $this->assertFalse((new InspectionValidator($this->inspection->fresh()))->progress()['steps'][2]['complete']);
 
@@ -82,13 +82,15 @@ class TeacherTotalsTest extends TestCase
         $this->assertNotContains('TSI_10', $this->codes());
     }
 
-    public function test_breakdown_less_than_or_equal_to_total_is_allowed(): void
+    public function test_breakdown_must_be_equal_to_total(): void
     {
-        // fewer than the total (e.g. training status not known for every teacher) is accepted
-        $this->fill(self::TOTAL + ['TSI_09' => 8, 'TSI_10' => 3, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 9 ≤ 10
-        $this->assertNotContains('TSI_10', $this->codes());
-        $this->fill(['TSI_10' => 0, 'TSI_11' => 0, 'TSI_12' => 0, 'TSI_13' => 0]); // 0 ≤ 10
-        $this->assertNotContains('TSI_10', $this->codes());
+        // fewer than the total is not accepted
+        $this->fill(self::TOTAL + ['TSI_09' => 8, 'TSI_10' => 3, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 9 < 10
+        $msg = collect($this->step2())->firstWhere('code', 'TSI_10')['message'] ?? '';
+        $this->assertStringContainsString('= 9, which is less than Total teachers (10)', $msg);
+        $this->assertStringContainsString('must be equal to Total teachers', $msg);
+        $this->fill(['TSI_10' => 0, 'TSI_11' => 0, 'TSI_12' => 0, 'TSI_13' => 0]); // blank / 0 counts: 0 < 10
+        $this->assertContains('TSI_10', $this->codes());
         $this->fill(['TSI_10' => 4, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 1]); // 10 = 10
         $this->assertNotContains('TSI_10', $this->codes());
         $this->fill(['TSI_13' => 2]); // 11 > 10
@@ -116,7 +118,8 @@ class TeacherTotalsTest extends TestCase
     public function test_step_page_shows_live_breakdown_box(): void
     {
         $this->actingAs($this->officer)->get(route('inspections.step', [$this->inspection, 2]))->assertOk()
-            ->assertSee('data-auto-total="breakdown"', false)->assertSee('a blank count is 0')->assertSee('Male trained + Female trained')->assertSee('name="TSI_10" value="0"', false)
+            ->assertSee('data-auto-total="breakdown"', false)->assertSee('Total trained / untrained teachers')->assertSee('Male trained + Female trained')->assertSee('must be equal to Total teachers')
+            ->assertDontSee('data-at="male"', false)->assertDontSee('data-at="female"', false)->assertSee('name="TSI_10" value="0"', false)
             ->assertDontSee('name="TSI_14"', false)->assertDontSee('name="TSI_15"', false); // V10 totals rolled back
     }
 }

@@ -219,18 +219,13 @@
     <table class="h"><tr><td class="n">{{ $sec }}</td><td class="t">{{ $st['title'] }}</td><td class="c">{{ $count }}</td></tr></table><div class="h-rule"></div>
 
     @if ($n === 2)
-        {{-- figures first: four boxes with the automatic totals --}}
+        {{-- figures first: three boxes with the automatic totals --}}
         @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $bd = QD::teacherBreakdown($answers); $fa = QD::withDefaults($answers); @endphp
-        @php $split = ! $bd || $bd['split']; /* false only for a V10 totals-only inspection (rolled back): 3 boxes */ @endphp
-        <table class="figs {{ $split ? '' : 'three' }}"><tr>
+        {{-- three boxes: total trained / untrained only, no male / female --}}
+        <table class="figs three"><tr>
             <td><div class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></div></td>
             <td><div class="fig"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
-            @if ($split)
-                <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted</div></div></td>
-                <td class="last"><div class="fig"><div class="lbl">Male / Female</div><div class="big">{{ $bd ? $bd['male'].' / '.$bd['female'] : '—' }}</div><div class="small">not more than Total teachers</div></div></td>
-            @else
-                <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd['trained'].' / '.$bd['untrained'] }}</div><div class="small">of {{ $bd['sum'] }} counted · not more than Total teachers</div></div></td>
-            @endif
+            <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted · equal to Total teachers</div></div></td>
         </tr></table>
         @if ($qs->isNotEmpty())
             <table class="qa" style="margin-top:2.4mm">

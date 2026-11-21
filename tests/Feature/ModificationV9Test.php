@@ -68,6 +68,8 @@ class ModificationV9Test extends TestCase
             $answers[$code] = $v;
             $this->answer($i, $code, $v);
         }
+        // Trained + Untrained must be equal to Total teachers (TSI_04 = 3, the rest blank = 0); the other three counts stay blank
+        $this->answer($i, 'TSI_10', Q::totalTeachers($answers));
         $this->postJson(route('inspections.classrooms.store', $i), ['teacher_name' => 'B. Devi', 'class' => 'V', 'subject' => 'Mathematics',
             'tlm_used' => 'yes', 'tlm_items' => [\App\Models\TlmItem::active()->value('id')], 'participation' => 'satisfactory'])->assertOk();
         foreach (array_keys(config('inspection.mandatory_photos')) as $cat) {
@@ -106,7 +108,8 @@ class ModificationV9Test extends TestCase
 
         $this->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect(route('inspections.submitted', $i));
         $answers = $i->fresh()->answerMap();
-        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
+        $this->assertSame(3, $answers['TSI_10']);
+        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
             $this->assertSame(0, $answers[$c], $c);
         }
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);

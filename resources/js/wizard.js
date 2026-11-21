@@ -902,7 +902,7 @@ if (autoTotals.length) {
             const bad = total !== null && present !== null && present > total;
             paint(t, { total, present, absent: null, bad, extra: bad ? `Teachers present (${fmtInt(present)}) is more than the total. Please check.` : '' });
         }
-        // Trained/untrained and male/female (TSI_10..13) must be less than or equal to Total teachers
+        // Total trained / untrained (TSI_10..13) only; Trained + Untrained must be equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');
         if (bd) {
             const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
@@ -912,15 +912,14 @@ if (autoTotals.length) {
             const sum = (...xs) => (xs.every((x) => x !== null) ? xs.reduce((a, b) => a + b, 0) : null);
             $('[data-at="trained"]', bd).textContent = fmtInt(sum(mt, ft));
             $('[data-at="untrained"]', bd).textContent = fmtInt(sum(mu, fu));
-            $('[data-at="male"]', bd).textContent = fmtInt(sum(mt, mu));
-            $('[data-at="female"]', bd).textContent = fmtInt(sum(ft, fu));
             const s = all ? mt + mu + ft + fu : null;
             $('[data-at="sum"]', bd).textContent = fmtInt(s);
             const checked = all && total !== null;
-            const bad = checked && s > total; // less than or equal to Total teachers is allowed
+            const bad = checked && s !== total; // must be exactly equal to Total teachers
             $('[data-at-extra]', bd).innerHTML = !checked ? (total === null ? 'Enter the teacher numbers above first.' : '')
-                : bad ? `<i class="bi bi-x-circle-fill"></i> More than Total teachers (${fmtInt(total)})`
-                    : `<i class="bi bi-check-circle-fill"></i> Within Total teachers (${fmtInt(total)})`;
+                : s > total ? `<i class="bi bi-x-circle-fill"></i> More than Total teachers (${fmtInt(total)})`
+                    : s < total ? `<i class="bi bi-x-circle-fill"></i> Less than Total teachers (${fmtInt(total)}): ${fmtInt(total - s)} more to count`
+                        : `<i class="bi bi-check-circle-fill"></i> Equal to Total teachers (${fmtInt(total)})`;
             bd.classList.toggle('is-bad', bad);
             bd.classList.toggle('is-ready', checked && !bad);
         }

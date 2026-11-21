@@ -119,16 +119,15 @@
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
                                 @elseif ($q['code'] === 'TSI_13')
-                                    {{-- Trained/untrained and male/female must be less than or equal to Total teachers (blocking rule) --}}
-                                    {{-- Calculated automatically; a blank count is 0. Each pair must be less than or equal to Total teachers. --}}
+                                    {{-- Total trained / untrained only (no male / female). Trained + Untrained must be equal to Total teachers (blocking rule). --}}
+                                    {{-- Calculated automatically; a blank count is 0. --}}
                                     <div class="col-12"><div class="auto-total at-breakdown" data-auto-total="breakdown" aria-live="polite">
                                         <div class="bd-head">
                                             <span class="at-icon"><i class="bi bi-calculator"></i></span>
-                                            <span class="at-label">Trained / untrained and male / female<small>Calculated automatically · a blank count is 0</small></span>
+                                            <span class="at-label">Total trained / untrained teachers<small>Calculated automatically · must be equal to Total teachers</small></span>
                                         </div>
                                         <div class="bd-grid">
-                                            @foreach ([['trained', 'Trained', 'bi-patch-check', 'Male trained + Female trained'], ['untrained', 'Untrained', 'bi-patch-question', 'Male untrained + Female untrained'],
-                                                       ['male', 'Male', 'bi-gender-male', 'Male trained + Male untrained'], ['female', 'Female', 'bi-gender-female', 'Female trained + Female untrained']] as [$k, $l, $ic, $f])
+                                            @foreach ([['trained', 'Total trained', 'bi-patch-check', 'Male trained + Female trained'], ['untrained', 'Total untrained', 'bi-patch-question', 'Male untrained + Female untrained']] as [$k, $l, $ic, $f])
                                                 <div class="bd-cell bd-{{ $k }}"><span class="bd-name"><i class="bi {{ $ic }}"></i>{{ $l }}</span><b data-at="{{ $k }}">–</b><small>{{ $f }}</small></div>
                                             @endforeach
                                         </div>

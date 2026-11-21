@@ -225,11 +225,11 @@ class InspectionValidator
             $out[] = ['TSI_09', "Teachers present ({$present}) cannot be more than Total teachers ({$total})."];
         }
         $b = QuestionnaireDefinition::teacherBreakdown($this->answers);
-        if ($b !== null && $b['sum'] > $total) {
-            // male / female message on TSI_10; a V10 totals-only inspection (rolled back) is reported on TSI_14
-            $out[] = $b['split']
-                ? ['TSI_10', "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']} and Male ({$b['male']}) + Female ({$b['female']}) = {$b['sum']}, which is more than Total teachers ({$total}). They must be less than or equal to Total teachers."]
-                : ['TSI_14', "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']}, which is more than Total teachers ({$total}). It must be less than or equal to Total teachers."];
+        if ($b !== null && $b['sum'] !== $total) {
+            // Trained + Untrained must be equal to Total teachers. Reported on TSI_10; a V10 totals-only inspection (rolled back) on TSI_14.
+            $how = $b['sum'] > $total ? 'more than' : 'less than';
+            $out[] = [$b['split'] ? 'TSI_10' : 'TSI_14',
+                "Trained ({$b['trained']}) + Untrained ({$b['untrained']}) = {$b['sum']}, which is {$how} Total teachers ({$total}). Trained + Untrained must be equal to Total teachers."];
         }
 
         return $out;

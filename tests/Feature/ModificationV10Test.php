@@ -48,7 +48,7 @@ class ModificationV10Test extends TestCase
         foreach (['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) {
             $this->assertStringContainsString('name="'.$c.'" value="0"', $html);
         }
-        $this->assertStringContainsString('data-at="male"', $html);
+        $this->assertStringNotContainsString('data-at="male"', $html); // totals only since 21-11-2026
         $this->assertStringNotContainsString('Total Number of Trained Teachers', $html);
 
         $missing = collect((new InspectionValidator($i->fresh()))->missing()[2] ?? [])->pluck('code');
@@ -57,14 +57,14 @@ class ModificationV10Test extends TestCase
         }
     }
 
-    public function test_report_shows_the_male_female_split(): void
+    public function test_report_shows_total_trained_untrained_only(): void
     {
         $i = $this->draft();
-        foreach (['TSI_04' => 6, 'TSI_10' => 1, 'TSI_11' => 1, 'TSI_12' => 2, 'TSI_13' => 1] as $c => $v) {
+        foreach (['TSI_04' => 5, 'TSI_10' => 1, 'TSI_11' => 1, 'TSI_12' => 2, 'TSI_13' => 1] as $c => $v) {
             $this->answer($i, $c, $v);
         }
         $this->get(route('inspections.review', $i))->assertOk()
-            ->assertSee('Number of Male Trained Teachers')->assertSee('Male 2 · Female 3')->assertDontSee('Total Number of Trained Teachers');
+            ->assertSee('Number of Male Trained Teachers')->assertSee('Trained 3 · Untrained 2')->assertDontSee('Male 2 · Female 3')->assertDontSee('Total Number of Trained Teachers');
         $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('Content-Type', 'application/pdf');
     }
 
