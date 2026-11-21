@@ -2159,3 +2159,8 @@ Plan approved by the user. Decisions:
   - `php artisan test`: 192 passed, 1 failed. The failure is `LoginMathCaptchaTest`, caused by the uncommitted login label change in `resources/views/partials/math-captcha.blade.php`, which is not part of this change and stays out of the commit.
   - `npm run build`: OK.
   - Not checked visually in a browser.
+
+## 2026-11-21 — Login math CAPTCHA label: "Enter the correct answer"
+- The login CAPTCHA label changed from "Solve the sum" to "Enter the correct answer".
+- Files: `resources/views/partials/math-captcha.blade.php`, `tests/Feature/LoginMathCaptchaTest.php`
+- Verified: `php artisan test`: all pass.

@@ -27,7 +27,7 @@ class LoginMathCaptchaTest extends TestCase
 
     public function test_login_page_shows_the_sum_image_and_the_answer_is_not_in_the_page(): void
     {
-        $html = $this->get(route('login'))->assertOk()->assertSee('Solve the sum')->assertSee('name="math_answer"', false)->getContent();
+        $html = $this->get(route('login'))->assertOk()->assertSee('Enter the correct answer')->assertSee('name="math_answer"', false)->getContent();
         $this->assertStringNotContainsString(session('math_captcha.q'), $html);
         $this->get(route('login.math-captcha'))->assertOk()->assertHeader('Content-Type', 'image/svg+xml');
     }

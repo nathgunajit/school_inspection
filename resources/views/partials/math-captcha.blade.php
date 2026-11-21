@@ -1,6 +1,6 @@
 {{-- Math CAPTCHA (App\Support\MathCaptcha): the sum is an image, the answer stays in the session --}}
 <div class="mb-3 math-captcha" data-math-captcha data-src="{{ route('login.math-captcha') }}">
-    <label class="form-label" for="math_answer"><i class="bi bi-calculator me-1 text-primary"></i>Solve the sum <span class="req">*</span></label>
+    <label class="form-label" for="math_answer"><i class="bi bi-calculator me-1 text-primary"></i>Enter the correct answer <span class="req">*</span></label>
     <div class="math-captcha-row">
         <div class="math-captcha-img">
             <img src="{{ route('login.math-captcha') }}?t={{ now()->timestamp }}" alt="A short sum to solve" width="200" height="56" data-math-img>
