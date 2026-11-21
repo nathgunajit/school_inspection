@@ -2215,3 +2215,15 @@ How each point was read (asked): item 1 means the bottom bars auto-hide; item 2 
   - tests: new `ModificationV11Test` (4 tests); `InspectionFlowTest` and `ModificationV9Test` answer `NET_01 = no`; the rating tests clear pre-filled answers before rating exact answers
   - docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, a copy of the V11 docx in `Product Details/Requirements/`, rebuilt docx
 - Verified: `php artisan test` 199 passed; `npm run build` OK; migration run on local MySQL. Not checked visually in a browser.
+
+## 2026-11-21: Blank form PDF ("No internet"): Class Room Performance layout fixed
+- Problem: section 4 broke across pages. The heading was left alone on a page, the next page was a full-height blue header block with the labels scattered ("Use of TLM · items (FLN" / "/ ECCE)"), and the rows were cramped on the page after.
+- Cause: `page-break-inside: avoid` on whole tables. When the table did not fit, DomPDF stretched the header row instead of moving the table.
+- Fix (`resources/views/inspections/blank-form.blade.php`):
+  - Data tables use a repeating `<thead>`, and only rows avoid breaking.
+  - Section 4 always starts a new page.
+  - The classroom table was redesigned for hand-filling. Each of the 5 records has a details row (name, class, subject, ☐ Yes / ☐ No for TLM, FLN / ECCE item lines in blue / orange, ☐ Satisfactory / ☐ Not satisfactory) and a full-width Remarks row, with zebra per record and short single-line headers.
+  - Absentee Type column is now tick boxes, and the reason codes are shown as chips.
+  - Step 2 total boxes are aligned with the answer column, tick boxes are aligned with their labels, and the answer column is wider (no wrap in "Method of Teaching").
+  - The signature stays on the photos page.
+- Verified: rendered the PDF and checked every page (section 4 fits on one page); `php artisan test` passed.
