@@ -977,6 +977,8 @@ $$('[data-ac]').forEach((wrap) => {
     const list = $('.ac-list', wrap);
     const cache = new Map();
     let items = [], active = -1, timer = null, seq = 0;
+    const icon = wrap.dataset.acIcon || 'bi-book'; // V11: teacher names use bi-person
+    const freeHint = wrap.dataset.acFree !== 'off'; // names: no "keep as typed" line, the list just stays closed
 
     const close = () => { list.classList.add('d-none'); input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; };
     const mark = (label, q) => {
@@ -986,9 +988,9 @@ $$('[data-ac]').forEach((wrap) => {
     const render = (q) => {
         const typed = input.value.trim();
         const exact = items.some((s) => s.toLowerCase() === typed.toLowerCase());
-        if (!items.length && !typed) { close(); return; }
-        list.innerHTML = items.map((s, i) => `<div class="ac-item" role="option" id="${input.id}_opt${i}" data-i="${i}" aria-selected="false"><i class="bi bi-book"></i><span>${mark(s, q)}</span></div>`).join('')
-            + (typed && !exact ? `<div class="ac-free"><i class="bi bi-pencil"></i>Not in the list? Keep “${esc(typed)}” as typed.</div>` : '');
+        if (!items.length && (!typed || !freeHint)) { close(); return; }
+        list.innerHTML = items.map((s, i) => `<div class="ac-item" role="option" id="${input.id}_opt${i}" data-i="${i}" aria-selected="false"><i class="bi ${icon}"></i><span>${mark(s, q)}</span></div>`).join('')
+            + (typed && !exact && freeHint ? `<div class="ac-free"><i class="bi bi-pencil"></i>Not in the list? Keep “${esc(typed)}” as typed.</div>` : '');
         list.classList.remove('d-none');
         input.setAttribute('aria-expanded', 'true');
         active = -1;
@@ -1012,7 +1014,7 @@ $$('[data-ac]').forEach((wrap) => {
         if (cache.has(key)) { items = cache.get(key); render(q); return; }
         const my = ++seq;
         axios.get(wrap.dataset.url, { params: { q } }).then((r) => {
-            cache.set(key, r.data.subjects || []);
+            cache.set(key, r.data.items || r.data.subjects || []);
             if (my !== seq) return; // a newer request is on its way
             items = cache.get(key);
             render(q);

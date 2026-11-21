@@ -332,3 +332,26 @@ document.querySelectorAll('[data-enhance-selects] select.form-select').forEach(e
         if (left <= WARN_BEFORE) show(left); else hide();
     }, 1000);
 })();
+
+/* ---------------- Modification V11 item 1: bottom bars hide while scrolling down ----------------
+ * The phone bottom nav and the wizard Back / Next bar slide away on scroll down and come back on
+ * scroll up, after a short pause, or at the page bottom. Never while a modal is open or the bar has focus. */
+(() => {
+    if (!document.querySelector('.bottom-nav, .action-bar')) return;
+    const body = document.body;
+    let lastY = window.scrollY, ticking = false, idle = null;
+    const show = () => body.classList.remove('bars-hidden');
+    const update = () => {
+        ticking = false;
+        const y = window.scrollY;
+        const atBottom = window.innerHeight + y >= document.documentElement.scrollHeight - 24;
+        const keep = body.classList.contains('modal-open') || document.activeElement?.closest?.('.action-bar, .bottom-nav');
+        if (keep || atBottom || y < 120) show();
+        else if (y - lastY > 8) body.classList.add('bars-hidden');
+        else if (lastY - y > 8) show();
+        if (Math.abs(y - lastY) > 8) lastY = y;
+        clearTimeout(idle);
+        idle = setTimeout(show, 700); // stopped scrolling: bring them back
+    };
+    window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+})();

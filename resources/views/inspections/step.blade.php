@@ -23,6 +23,7 @@
         'CND_01' => ['Building & basic facilities', 'bi-building'],
         'CND_08' => ['Electricity & classrooms', 'bi-lightning-charge'],
         'CND_17' => ['Digital learning & labs', 'bi-pc-display'],
+        'NET_01' => ['Network at the school', 'bi-wifi-off'], // V11
         'TSI_01' => ['Students', 'bi-backpack'],
         'TSI_04' => ['Teachers & tutors', 'bi-person-workspace'],
         'TSI_10' => ['Trained / untrained teachers', 'bi-mortarboard'],
@@ -75,6 +76,14 @@
                 </div>
                 <div class="card-body wizard-body">
 
+                    {{-- Modification V11 item 4: answers copied from the school's previous inspection --}}
+                    @if ($inspection->prefilled_from_id && in_array($step, \App\Services\InspectionPrefill::STEPS, true) && ($src = $inspection->prefilledFrom))
+                        <div class="prefill-note mt-3"><i class="bi bi-arrow-repeat"></i>
+                            <div><strong>Filled from the last visit on {{ \Illuminate\Support\Carbon::parse($src->inspection_date)->format('d-m-Y') }}{{ $src->inspection_no ? ' ('.$src->inspection_no.')' : '' }}.</strong>
+                                Check each answer and change what is different today.
+                                @if ($step === 2)<span class="d-block">Students present / absent and Teachers present are not copied: enter today's figures.</span>@endif</div>
+                        </div>
+                    @endif
                     <div id="step-warnings">
                         @foreach ($warnings as $w)
                             <div class="alert alert-warning text-sm py-2 mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>{{ $w }}</div>
@@ -94,6 +103,9 @@
                                 @else <strong class="text-warning">Not captured</strong><small>{{ $inspection->school->block?->name }}</small> @endif
                             </div>
                         </div>
+                        {{-- Modification V11 item 2 --}}
+                        <a href="{{ route('schools.blank-form', $inspection->school) }}" class="paper-form-link text-xs" data-no-loader data-no-busy>
+                            <i class="bi bi-file-earmark-arrow-down"></i>No internet? Download the paper form (PDF)</a>
                     @endif
 
                     @if ($step === 2)
@@ -191,7 +203,7 @@
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-person-plus"></i></span>
                                 <span data-form-title data-add="Add an absent teacher" data-edit="Edit absent teacher">Add an absent teacher</span></div>
                             <div class="row g-2">
-                                <div class="col-md-6"><label class="form-label text-sm" for="t_name">Teacher's name <span class="req">*</span></label><input id="t_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="t_name">Teacher's name <span class="req">*</span></label>{{-- V11 item 3: names already recorded for this school --}}<div class="ac-wrap" data-ac data-ac-icon="bi-person" data-ac-free="off" data-url="{{ route('inspections.teacher-names', $inspection) }}"><input id="t_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name · earlier names of this school are suggested" autocomplete="off" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="t_name_list"><div class="ac-list d-none" id="t_name_list" role="listbox" aria-label="Teacher names recorded for this school"></div></div></div>
                                 <div class="col-md-6"><label class="form-label text-sm" for="t_type">Teacher's type <span class="req">*</span></label>
                                     <select id="t_type" name="teacher_type" class="form-select" required><option value="">Select</option>@foreach (AT::TYPES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                                 <div class="col-md-6"><label class="form-label text-sm" for="t_reason">Reason for absence <span class="req">*</span></label>
@@ -217,7 +229,7 @@
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-journal-plus"></i></span>
                                 <span data-form-title data-add="Add a classroom observation" data-edit="Edit classroom observation">Add a classroom observation</span></div>
                             <div class="row g-2">
-                                <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name" autocomplete="off" required></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label>{{-- V11 item 3: names already recorded for this school --}}<div class="ac-wrap" data-ac data-ac-icon="bi-person" data-ac-free="off" data-url="{{ route('inspections.teacher-names', $inspection) }}"><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name · earlier names of this school are suggested" autocomplete="off" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="c_name_list"><div class="ac-list d-none" id="c_name_list" role="listbox" aria-label="Teacher names recorded for this school"></div></div></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_class">Class <span class="req">*</span></label>
                                     <select id="c_class" name="class" class="form-select" required><option value="">Select</option>@foreach (CO::CLASSES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_subject">Subject <span class="req">*</span></label>

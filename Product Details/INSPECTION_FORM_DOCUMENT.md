@@ -87,6 +87,13 @@ Every step page has the same frame:
 - **Officer card:** officer, school, server date and time, and the start location with its distance from the school.
 - **Bottom bar:** Back, "n left in this step", and Next (Review on step 7). Below it is **Cancel this draft**.
 
+> **Modification V11 (21-11-2026):**
+> - **Pre-fill from the last visit.** When a new inspection of a school starts, `App\Services\InspectionPrefill` copies the answers and remarks of steps 1, 2, 5 and 6, and the fund years, from the school's latest submitted or unlocked inspection (any officer). Steps 1, 2, 5 and 6 show the banner "Filled from the last visit on dd-mm-yyyy". The officer checks each answer and changes what is different.
+>   - Never copied: Students present / absent (`TSI_01`, `TSI_02`), Teachers present (`TSI_09`), the network question (`NET_01`), absent teachers, classroom records, suggestions and photographs.
+>   - A reopened draft is not filled again. The source is stored in `inspections.prefilled_from_id` and audited as `inspection_prefilled`.
+> - **No internet at the school?** The school page and the step 1 officer card link to a printable **blank inspection form** (PDF, `GET /schools/{school}/blank-form`). It has the school details pre-printed and every question with boxes, blank absentee / classroom / fund tables and signatures.
+> - **Bottom bars** (phone navigation and the Back / Next bar) slide away while scrolling down and come back on scroll up or after a short pause.
+
 ### Step 1: Condition of the School
 ![Step 1](../docs/screenshots/05-step1-condition.png)
 
@@ -97,6 +104,7 @@ Every step page has the same frame:
 - **Dependent questions:**
   - **Greyed out** (`enable_if`): `CND_18` "Internet is Functional" is enabled only when `CND_17` = Yes, and `CND_20` only when `CND_19` = Yes. They stay on screen but greyed. When the parent changes to No, the saved child answer is **cleared on the server**.
   - **Hidden** (`show_if`): `CND_25` (agency) and `CND_26` (Tinkering lab functional) appear only when `CND_24` = Yes.
+- **Network at the school (Modification V11):** `NET_01` "Internet / network problem at the school during this inspection" (Yes / No, optional). **Yes** needs a remark describing the problem. The inspections that report it are listed under **Reports → Network Issues** (`/reports/network-issues`, jurisdiction-scoped, drafts included), so the administration can arrange connectivity and raise the issue.
 - A tick next to a question means it is saved. A red star means it is required.
 
 ### Step 2: Teacher's & Student's Information
@@ -122,7 +130,7 @@ Every step page has the same frame:
 > **Completion (20-11-2026):** the step shows **Not started** until the officer acts, and becomes **Done** when at least one absent teacher is added **or** the switch **ABS_00 "All teachers present"** is ticked. Both together is an error ("remove the absent teachers, or untick"). While rows exist, the switch is locked; when it is ticked, the add form is hidden. Required before Submit.
 
 - Add one row per absent teacher:
-  - **name** (2–120 characters)
+  - **name** (2–120 characters). Since V11 the name box suggests names already recorded for this school in earlier inspections (absent teachers and classroom teachers, `GET /inspections/{inspection}/teacher-names`). The same applies to the teacher name on step 4.
   - **type:** Regular Teacher / Contractual Teacher / Tutor
   - **reason:** CL, EL, Maternity Leave, CCL, Study Leave, Medical Leave, Un-authorised Leave
   - **remarks** (optional)

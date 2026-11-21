@@ -99,4 +99,30 @@ class SchoolController extends Controller
 
         return view('schools.show', compact('school', 'today', 'history', 'start', 'mapConfig'));
     }
+
+    /**
+     * Modification V11 item 2: printable blank inspection form, for a school without internet.
+     * Same jurisdiction check as the school page; nothing about the school is changed.
+     */
+    public function blankForm(Request $request, School $school)
+    {
+        abort_unless($this->j->coversSchool($request->user(), $school), 404);
+        $school->load(['district', 'block', 'cluster']);
+
+        $questions = array_map(fn ($qs) => array_values(array_filter($qs, fn ($q) => empty($q['hidden']))), \App\Questionnaire\QuestionnaireDefinition::questions());
+        $labels = \App\Models\MasterValue::where('type', 'photo_category')->pluck('label', 'code');
+        $photoLabels = collect(array_keys(config('inspection.mandatory_photos')))->map(fn ($c) => $labels[$c] ?? $c)->all();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('inspections.blank-form', [
+            'school' => $school,
+            'steps' => \App\Questionnaire\QuestionnaireDefinition::steps(),
+            'questions' => $questions,
+            'logos' => \App\Support\PdfLogos::all(),
+            'photoLabels' => $photoLabels,
+        ])->setPaper('a4');
+
+        \App\Services\AuditLogger::log('blank_form_downloaded', $school);
+
+        return $pdf->download('Inspection-form-'.$school->udise_code.'.pdf');
+    }
 }

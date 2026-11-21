@@ -11,6 +11,7 @@ use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CoverageReportController;
+use App\Http\Controllers\NetworkIssueController;
 use App\Http\Controllers\RatingReportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
@@ -55,6 +56,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::middleware('can:conduct_inspections')->group(function () {
             Route::get('/schools', [SchoolController::class, 'index'])->name('schools.index');
             Route::get('/schools/{school}', [SchoolController::class, 'show'])->name('schools.show');
+            Route::get('/schools/{school}/blank-form', [SchoolController::class, 'blankForm'])->middleware('throttle:30,1')->name('schools.blank-form'); // V11
             Route::post('/schools/{school}/inspections', [InspectionController::class, 'start'])->name('inspections.start');
             Route::get('/my-inspections', [ReportController::class, 'mine'])->name('inspections.mine');
             Route::get('/subjects/suggest', [InspectionController::class, 'subjectSuggestions'])->middleware('throttle:120,1')->name('subjects.suggest');
@@ -64,6 +66,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/step/{step}', [InspectionController::class, 'step'])->whereNumber('step')->name('inspections.step');
             Route::post('/answers', [InspectionController::class, 'saveAnswer'])->name('inspections.answers');
             Route::get('/progress', [InspectionController::class, 'progress'])->name('inspections.progress');
+            Route::get('/teacher-names', [InspectionController::class, 'teacherNames'])->middleware('throttle:120,1')->name('inspections.teacher-names'); // V11
             Route::post('/teachers', [InspectionController::class, 'addAbsentTeacher'])->name('inspections.teachers.store');
             Route::put('/teachers/{teacher}', [InspectionController::class, 'updateAbsentTeacher'])->name('inspections.teachers.update');
             Route::delete('/teachers/{teacher}', [InspectionController::class, 'removeAbsentTeacher'])->name('inspections.teachers.destroy');
@@ -94,6 +97,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/settings', [CoverageReportController::class, 'settings'])->middleware('can:configure_coverage')->name('.settings');
             Route::put('/settings', [CoverageReportController::class, 'updateSettings'])->middleware('can:configure_coverage')->name('.settings.update');
         });
+        // Modification V11 item 2: network / internet problems reported at schools
+        Route::get('/reports/network-issues', [NetworkIssueController::class, 'index'])->middleware('can:view_reports')->name('reports.network');
         // V6 Module 10: rating report
         Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
             Route::get('/', [RatingReportController::class, 'index'])->name('');

@@ -59,7 +59,7 @@ class ModificationV9Test extends TestCase
             if (! InspectionValidator::visible($q, $answers) || ! InspectionValidator::enabled($q, $answers) || array_key_exists('default', $q)) {
                 continue;
             }
-            $v = match ($q['type']) {
+            $v = $code === 'NET_01' ? 'no' : match ($q['type']) { // V11: optional network question, Yes would need a remark
                 'radio', 'select' => array_key_first($q['options']),
                 'multi' => [array_key_first($q['options'])],
                 'number' => in_array($code, ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'], true) ? 0 : 3,

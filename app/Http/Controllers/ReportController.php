@@ -89,12 +89,7 @@ class ReportController extends Controller
         });
 
         // Official header logos (Modification V4), embedded so DomPDF needs no file or remote access
-        $logo = function (string $file) {
-            $path = public_path('logo/'.$file);
-
-            return is_file($path) ? 'data:image/png;base64,'.base64_encode(file_get_contents($path)) : null;
-        };
-        $data['logos'] = ['assam' => $logo('ASSAM GOVT LOGO.png'), 'ssa' => $logo('SSA LOGO.png')];
+        $data['logos'] = \App\Support\PdfLogos::all();
         $data['generatedAt'] = now(); // shown as DD-MM-YYYY HH:MM in the footer
 
         AuditLogger::log('inspection_pdf', $inspection);

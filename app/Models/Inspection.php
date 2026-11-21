@@ -19,6 +19,7 @@ class Inspection extends Model
         'start_lat', 'start_lng', 'start_accuracy', 'submit_lat', 'submit_lng', 'submit_accuracy',
         'person_met_name', 'person_met_designation', 'status', 'completion_pct', 'questionnaire_version',
         'unlocked_by', 'unlocked_at', 'unlock_reason', 'cancelled_reason',
+        'prefilled_from_id', // V11 item 4
     ];
 
     protected function casts(): array
@@ -48,6 +49,7 @@ class Inspection extends Model
 
     public function officer() { return $this->belongsTo(User::class, 'officer_id')->withTrashed(); }
     public function school() { return $this->belongsTo(School::class)->withTrashed(); }
+    public function prefilledFrom() { return $this->belongsTo(Inspection::class, 'prefilled_from_id'); } // V11 item 4
     public function district() { return $this->belongsTo(District::class); }
     public function block() { return $this->belongsTo(Block::class); }
     public function cluster() { return $this->belongsTo(Cluster::class); }

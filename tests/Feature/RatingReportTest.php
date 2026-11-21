@@ -31,6 +31,8 @@ class RatingReportTest extends TestCase
     private function rated(User $officer, School $school, string $date, array $answers): Inspection
     {
         $i = $this->startInspection($officer, $school);
+        $i->answers()->delete(); // V11: a later visit is pre-filled from the last one; these tests rate exactly the given answers
+        $i->fundPositions()->delete();
         $i->update(['inspection_date' => $date, 'status' => InspectionStatus::Submitted, 'submitted_at' => now(), 'inspection_no' => 'SI/RR/'.$i->id]);
         foreach ($answers as $code => $v) {
             InspectionAnswer::create(['inspection_id' => $i->id, 'step' => 1, 'question_code' => $code, 'value' => $v]);

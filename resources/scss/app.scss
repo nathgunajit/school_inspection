@@ -2355,3 +2355,20 @@ $ecce: #f39223; $ecce-dk: #9a4a00; $ecce-soft: #fff4e6;
         tbody + tbody tr:first-child td { border-top: 0; }
         tbody:hover td { background: transparent; } }
 }
+
+// Modification V11 item 1: bottom nav and wizard action bar hide while scrolling down (resources/js/app.js)
+.bottom-nav, .action-bar { transition: transform .25s ease, opacity .25s ease; }
+body.bars-hidden {
+    .bottom-nav { transform: translateY(110%); }
+    .action-bar { transform: translateY(calc(100% + var(--si-bottomnav-h) + 1rem)); opacity: 0; pointer-events: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bottom-nav, .action-bar { transition: none; } }
+
+// Modification V11 item 4: "filled from the last visit" note on steps 1, 2, 5, 6
+.prefill-note { display: flex; gap: .65rem; align-items: flex-start; padding: .7rem .9rem; border-radius: .8rem; font-size: .8rem; color: #334155;
+    border: 1px solid rgba($primary, .25); background: linear-gradient(135deg, rgba($primary, .07), rgba($primary, .02));
+    > i { width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center; background: #fff; color: $primary; box-shadow: 0 1px 2px rgba(15, 23, 42, .08); }
+    strong { color: #0d47a1; } span { color: #64748b; font-size: .75rem; } }
+// V11 item 2: paper form link under the step 1 info card
+.paper-form-link { display: inline-flex; align-items: center; gap: .35rem; margin: .1rem 0 .4rem; color: $primary; text-decoration: none; font-weight: 500;
+    &:hover { text-decoration: underline; } }

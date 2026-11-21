@@ -60,7 +60,7 @@ class InspectionFlowTest extends TestCase
     private function completeAll(Inspection $i): void
     {
         // every number is 1, so Total teachers = 5; the trained/untrained breakdown must add up to it
-        $overrides = ['TSI_09' => 5, 'TSI_10' => 2]; // all 5 present, so step 3 needs no absent row
+        $overrides = ['TSI_09' => 5, 'TSI_10' => 2, 'NET_01' => 'no']; // all 5 present, so step 3 needs no absent row; no network problem (V11)
         $answers = [];
         foreach (Q::all() as $code => $q) {
             if (! InspectionValidator::visible($q, $answers)) {

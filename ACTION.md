@@ -2195,3 +2195,23 @@ Plan approved by the user. Decisions:
 - Review: Expand all / Collapse all is a pill button with icons (`.rv-toggle-all`); each step has a round Show / Hide toggle (`.review-caret`) and an open step gets a blue accent (`.review-step.is-open`, `review.js`).
 - Files: `app/Questionnaire/{QuestionnaireDefinition,InspectionValidator}.php`, `resources/views/inspections/{step,review,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/js/{wizard,review}.js`, `resources/scss/app.scss`; tests `StepCompletionTest` (3 new), `InspectionFlowTest`, `ModificationV9Test`; docs `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, rebuilt docx.
 - Verified: `php artisan test` 195 passed; `npm run build` OK. Not checked visually in a browser.
+
+## 2026-11-21: Modification V11 (`Documents/Modification of the ApplicationV11.docx`)
+How each point was read (asked): item 1 means the bottom bars auto-hide; item 2 is a blank form plus a network remark with an admin list; item 3 uses names from the same school's past records; item 4 copies steps 1, 2, 5 and 6.
+
+| # | V11 point | Action taken |
+|---|---|---|
+| 1 | Review section: hide the button section automatically while scrolling | The phone bottom nav and the wizard Back / Next bar slide away while scrolling down, and come back on scroll up, after a 700 ms pause, at the page bottom, or while a modal is open (`resources/js/app.js`, `body.bars-hidden` in `app.scss`, reduced-motion safe). Applies to every step and the Review page. |
+| 2 | PDF form to download when the school has no internet; remark on the internet issue so the admin can raise it | New printable **blank inspection form** `GET /schools/{school}/blank-form` (`SchoolController::blankForm()`, `inspections/blank-form.blade.php`, jurisdiction check as on the school page, audited `blank_form_downloaded`). It is linked from the school page and the step 1 officer card. New optional step 1 question `NET_01` "Internet / network problem at the school"; Yes needs a remark. New **Reports → Network Issues** list (`/reports/network-issues`, `NetworkIssueController`, `view_reports`, jurisdiction-scoped, date and district filters). Logos moved to `App\Support\PdfLogos` (also used by the report PDF). |
+| 3 | Auto-suggest the teacher name if already recorded for the same school | `GET /inspections/{inspection}/teacher-names?q=` returns up to 10 distinct names from the school's other non-cancelled inspections (absent teachers and classroom teachers), prefix matches first, then the most recent. The step 3 and step 4 name boxes use the existing autocomplete (`data-ac`, person icon, no "keep as typed" line). Free text is still allowed. |
+| 4 | Next visit pre-filled from the previous inspection; absentee, classroom and photos blank; some step 2 figures fresh (e.g. Teachers present) | `App\Services\InspectionPrefill` runs only when a new draft is created. It copies steps 1, 2, 5 and 6 answers and remarks, plus fund years, from the school's latest Submitted / Unlocked inspection (current questionnaire version). Never copied: `TSI_01`, `TSI_02`, `TSI_09`, `NET_01`, absentees, classrooms, suggestions, photos. Migration `2026_11_21_000002` adds `inspections.prefilled_from_id`; the wizard banner reads "Filled from the last visit on …"; audited `inspection_prefilled`. The source inspection is never changed, and a reopened draft is not filled again. |
+
+- Files:
+  - `app/Questionnaire/QuestionnaireDefinition.php`, `app/Http/Controllers/{InspectionController,SchoolController,ReportController,NetworkIssueController}.php`
+  - `app/Services/InspectionPrefill.php`, `app/Support/PdfLogos.php`, `app/Models/Inspection.php`, migration
+  - `routes/web.php`
+  - `resources/views/inspections/{blank-form,step}.blade.php`, `resources/views/schools/show.blade.php`, `resources/views/reports/network/index.blade.php`, sidebar in `components/layouts/app.blade.php`
+  - `resources/js/{app,wizard}.js`, `resources/scss/app.scss`
+  - tests: new `ModificationV11Test` (4 tests); `InspectionFlowTest` and `ModificationV9Test` answer `NET_01 = no`; the rating tests clear pre-filled answers before rating exact answers
+  - docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, a copy of the V11 docx in `Product Details/Requirements/`, rebuilt docx
+- Verified: `php artisan test` 199 passed; `npm run build` OK; migration run on local MySQL. Not checked visually in a browser.

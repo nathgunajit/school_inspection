@@ -107,6 +107,11 @@ class InspectionController extends Controller
 
         AuditLogger::log('inspection_started', $inspection, ['school' => $school->udise_code, 'lat' => $loc['lat'] ?? null, 'lng' => $loc['lng'] ?? null]);
 
+        // Modification V11 item 4: a brand-new draft starts from the school's previous inspection
+        if ($inspection->wasRecentlyCreated) {
+            app(\App\Services\InspectionPrefill::class)->apply($inspection);
+        }
+
         return redirect()->route('inspections.step', [$inspection, 1]);
     }
 
@@ -434,6 +439,32 @@ class InspectionController extends Controller
         }
 
         return response()->json(['subjects' => $all->take(10)->values()]);
+    }
+
+    /**
+     * Modification V11 item 3: teacher names already recorded for this school (absent teachers and
+     * classroom teachers of its other, non-cancelled inspections), most recent first. Free text stays allowed.
+     */
+    public function teacherNames(Request $request, Inspection $inspection)
+    {
+        $this->authorize('update', $inspection);
+        $q = trim(mb_substr((string) $request->query('q', ''), 0, 50));
+        $others = Inspection::where('school_id', $inspection->school_id)->whereKeyNot($inspection->id)
+            ->where('status', '!=', InspectionStatus::Cancelled)->select('id');
+
+        $names = collect();
+        foreach ([InspectionAbsentTeacher::class, \App\Models\InspectionClassroomObservation::class] as $model) {
+            $names = $names->concat($model::whereIn('inspection_id', $others)
+                ->when($q !== '', fn ($w) => $w->where('teacher_name', 'like', '%'.addcslashes($q, '%_\\').'%'))
+                ->latest('id')->limit(200)->get(['teacher_name', 'id'])->map(fn ($r) => [trim(preg_replace('/\s+/', ' ', $r->teacher_name)), $r->id]));
+        }
+        $needle = mb_strtolower($q);
+        $items = $names->sortByDesc(fn ($n) => $n[1])
+            ->unique(fn ($n) => mb_strtolower($n[0]))
+            ->sortBy(fn ($n) => $needle !== '' && str_starts_with(mb_strtolower($n[0]), $needle) ? 0 : 1) // prefix matches first, then most recent
+            ->pluck(0)->filter()->take(10)->values();
+
+        return response()->json(['items' => $items]);
     }
 
     public function submit(Request $request, Inspection $inspection, InspectionNumberGenerator $numbers)

@@ -89,6 +89,9 @@ class QuestionnaireDefinition
                 ['code' => 'CND_26', 'label' => 'Tinkering Lab is Functional', 'type' => 'radio',
                     'options' => ['yes' => 'Yes', 'no' => 'No', 'na' => 'Not Applicable'],
                     'show_if' => ['CND_24', ['yes']], 'required_if' => ['CND_24', ['yes']]],
+                // Modification V11 item 2: optional; Yes needs a remark so the admin can arrange and raise the issue (reports.network). Never pre-filled.
+                ['code' => 'NET_01', 'label' => 'Internet / network problem at the school during this inspection', 'type' => 'radio', 'required' => false,
+                    'options' => self::YN, 'remarks_if' => ['yes'], 'hint' => 'Optional · if Yes, describe the problem (no signal, slow data, …)'],
             ],
 
             2 => [

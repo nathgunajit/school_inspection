@@ -101,6 +101,11 @@
                             <div class="text-xs text-secondary text-center mt-2" id="loc-status"><i class="bi bi-geo-alt"></i> Location will be captured on start</div>
                         </form>
                     @endif
+                    @if ($school->isActive())
+                        {{-- Modification V11 item 2: paper form for a school without internet --}}
+                        <a href="{{ route('schools.blank-form', $school) }}" class="btn btn-light w-100 mt-2" data-no-loader data-no-busy>
+                            <i class="bi bi-file-earmark-arrow-down"></i>No internet? Download the blank form (PDF)</a>
+                    @endif
                 </div>
             </div>
 

@@ -1,0 +1,142 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\InspectionStatus;
+use App\Enums\UserLevel;
+use App\Models\Inspection;
+use App\Models\InspectionFundPosition;
+use App\Questionnaire\InspectionValidator;
+use App\Services\InspectionPrefill;
+use Tests\TestCase;
+
+/**
+ * Modification V11 (Documents/Modification of the ApplicationV11.docx):
+ * 1 bottom bars hide on scroll (JS/CSS only), 2 blank form PDF + network issue (NET_01, reports.network),
+ * 3 teacher name suggestions from the same school, 4 next visit pre-filled from the previous inspection.
+ */
+class ModificationV11Test extends TestCase
+{
+    private function answer(Inspection $i, string $code, mixed $value, ?string $remarks = null)
+    {
+        return $this->postJson(route('inspections.answers', $i), ['code' => $code, 'value' => $value] + ($remarks !== null ? ['remarks' => $remarks] : []))->assertOk();
+    }
+
+    private function absent(Inspection $i, string $name)
+    {
+        return $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => $name, 'teacher_type' => 'regular', 'reason' => 'CL']);
+    }
+
+    /** Turn a draft into last month's submitted inspection (so the same officer may start a new one today). */
+    private function submitLastMonth(Inspection $i): Inspection
+    {
+        $i->forceFill(['status' => InspectionStatus::Submitted, 'submitted_at' => now()->subMonth(), 'inspection_date' => now()->subMonth()->toDateString(),
+            'inspection_no' => 'TEST/'.$i->id])->save();
+
+        return $i->fresh();
+    }
+
+    public function test_blank_form_pdf_for_a_school_in_the_area_only(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $school = $this->schoolIn($officer->currentJurisdiction->cluster);
+        $res = $this->actingAs($officer)->get(route('schools.blank-form', $school))->assertOk();
+        $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'blank_form_downloaded', 'auditable_id' => $school->id]);
+
+        $other = $this->schoolIn($this->otherCluster($officer->currentJurisdiction->cluster));
+        $this->get(route('schools.blank-form', $other))->assertNotFound();
+        $this->get(route('schools.show', $school))->assertSee(route('schools.blank-form', $school), false);
+    }
+
+    public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $i = $this->startInspection($officer, $this->schoolIn($cluster));
+        $codes = fn () => collect((new InspectionValidator($i->fresh()))->missing()[1] ?? [])->pluck('code');
+        $this->assertNotContains('NET_01', $codes()); // optional
+
+        $this->answer($i, 'NET_01', 'yes');
+        $this->assertContains('NET_01', $codes()); // Yes needs a remark
+        $this->answer($i, 'NET_01', 'yes', 'No mobile signal in the school campus');
+        $this->assertNotContains('NET_01', $codes());
+
+        $district = $this->officer(UserLevel::District, $cluster);
+        $this->actingAs($district)->get(route('reports.network'))->assertOk()
+            ->assertSee('No mobile signal in the school campus')->assertSee($i->school->name);
+
+        $outside = $this->officer(UserLevel::District, $this->otherCluster($cluster));
+        $this->actingAs($outside)->get(route('reports.network'))->assertOk()->assertDontSee('No mobile signal in the school campus');
+    }
+
+    public function test_teacher_names_come_from_earlier_inspections_of_the_same_school(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $school = $this->schoolIn($cluster);
+        $first = $this->startInspection($officer, $school);
+        $this->absent($first, 'Rina Kalita')->assertOk();
+        $this->postJson(route('inspections.classrooms.store', $first), ['teacher_name' => 'Bijoy Das', 'class' => 'V', 'subject' => 'Mathematics',
+            'tlm_used' => 'no', 'participation' => 'satisfactory'])->assertOk();
+        $this->submitLastMonth($first);
+
+        // another school's teacher must not be offered
+        $otherCluster = $this->otherCluster($cluster);
+        $elsewhere = $this->officer(UserLevel::Cluster, $otherCluster);
+        $this->absent($this->startInspection($elsewhere, $this->schoolIn($otherCluster)), 'Rina Outsider')->assertOk();
+
+        $today = $this->startInspection($officer, $school);
+        $this->actingAs($officer)->getJson(route('inspections.teacher-names', [$today, 'q' => 'rin']))->assertOk()
+            ->assertJsonPath('items', ['Rina Kalita']);
+        $all = $this->getJson(route('inspections.teacher-names', $today))->json('items');
+        $this->assertEqualsCanonicalizing(['Rina Kalita', 'Bijoy Das'], $all);
+        $this->get(route('inspections.step', [$today, 4]))->assertSee(route('inspections.teacher-names', $today), false);
+
+        $this->actingAs($elsewhere)->getJson(route('inspections.teacher-names', $today))->assertForbidden();
+    }
+
+    public function test_next_visit_is_prefilled_except_todays_figures_and_rows(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $school = $this->schoolIn($officer->currentJurisdiction->cluster);
+
+        $first = $this->startInspection($officer, $school);
+        $this->assertNull($first->prefilled_from_id, 'first visit: nothing to copy');
+        $this->answer($first, 'CND_01', 'pucca');
+        $this->answer($first, 'TSI_01', 120);
+        $this->answer($first, 'TSI_04', 6);
+        $this->answer($first, 'TSI_09', 5);
+        $this->answer($first, 'GOVR_01', 'conventional');
+        $this->answer($first, 'NET_01', 'yes', 'No signal');
+        $this->absent($first, 'Rina Kalita')->assertOk();
+        $this->postJson(route('inspections.funds.store', $first), ['financial_year' => InspectionFundPosition::financialYears()[0], 'asg_received' => 1.5])->assertOk();
+        $first = $this->submitLastMonth($first);
+
+        $next = $this->startInspection($officer, $school);
+        $this->assertNotSame($first->id, $next->id);
+        $this->assertSame($first->id, $next->prefilled_from_id);
+        $map = $next->answerMap();
+        $this->assertSame('pucca', $map['CND_01']);
+        $this->assertSame(6, $map['TSI_04']);
+        $this->assertSame('conventional', $map['GOVR_01']);
+        foreach (InspectionPrefill::FRESH as $code) {
+            $this->assertArrayNotHasKey($code, $map, "$code is asked fresh");
+        }
+        $this->assertSame(0, $next->absentTeachers()->count());
+        $this->assertSame(0, $next->classroomObservations()->count());
+        $this->assertSame(0, $next->evidence()->count());
+        $this->assertSame(1, $next->fundPositions()->count());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'inspection_prefilled', 'auditable_id' => $next->id]);
+        $this->assertSame('pucca', $first->fresh()->answerMap()['CND_01']); // source untouched
+
+        $this->get(route('inspections.step', [$next, 1]))->assertOk()->assertSee('Filled from the last visit on');
+        $this->get(route('inspections.step', [$next, 2]))->assertSee('Teachers present are not copied');
+        $this->get(route('inspections.step', [$next, 3]))->assertDontSee('Filled from the last visit on');
+
+        // reopening the draft does not copy again
+        $count = $next->answers()->count();
+        $this->assertSame($next->id, $this->startInspection($officer, $school)->id);
+        $this->assertSame($count, $next->answers()->count());
+    }
+}
