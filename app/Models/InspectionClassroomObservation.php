@@ -37,6 +37,41 @@ class InspectionClassroomObservation extends Model
         return $names ? 'Yes: '.implode(', ', $names) : 'Yes';
     }
 
+    /**
+     * TLM ticks split by list (FLN, then ECCE; only lists with ticks), for the coloured groups on step 4, the report and the PDF.
+     * Items read "name · code" without the "ECCE · " prefix: the group says which list.
+     *
+     * @return array<int, array{list:string, short:string, label:string, items:array<int,string>}>
+     */
+    public function tlmGroups(): array
+    {
+        if (! $this->tlm_used) {
+            return [];
+        }
+        $out = [];
+        foreach (array_keys(TlmItem::LISTS) as $key) {
+            $mine = $this->tlmItems->filter(fn (TlmItem $t) => ($t->list ?: 'fln') === $key);
+            if ($mine->isEmpty()) {
+                continue;
+            }
+            $first = $mine->first();
+            $out[] = ['list' => $key, 'short' => $first->listShort(), 'label' => $first->listLabel(),
+                'items' => $mine->map(fn (TlmItem $t) => $t->name.($t->code ? ' · '.$t->code : ''))->values()->all()];
+        }
+
+        return $out;
+    }
+
+    /** "Yes · FLN 2 · ECCE 1" / "Yes" / "No". */
+    public function tlmSummary(): string
+    {
+        if (! $this->tlm_used) {
+            return 'No';
+        }
+
+        return collect($this->tlmGroups())->map(fn ($g) => $g['short'].' '.count($g['items']))->prepend('Yes')->implode(' · ');
+    }
+
     public function participationLabel(): string
     {
         return self::PARTICIPATION[$this->participation] ?? $this->participation;
@@ -49,8 +84,9 @@ class InspectionClassroomObservation extends Model
             'teacher_name' => $this->teacher_name,
             'class' => self::CLASSES[$this->class] ?? $this->class,
             'subject' => $this->subject,
-            'tlm' => $this->tlm_used ? 'Yes'.($this->tlmItems->count() ? ' · '.$this->tlmItems->count().' item'.($this->tlmItems->count() > 1 ? 's' : '') : '') : 'No',
+            'tlm' => $this->tlmSummary(),
             'tlm_items' => $this->tlmItems->map->fullLabel()->values()->all(),
+            'tlm_groups' => $this->tlmGroups(),
             'participation' => $this->participationLabel(),
             'remarks' => $this->remarks,
             'tlm_ok' => (bool) $this->tlm_used,

@@ -336,7 +336,7 @@ function validateRequired(form) {
     return ok;
 }
 
-/* ---------------- FLN TLM items (step 4, shown when Use of TLM = Yes) ---------------- */
+/* ---------------- FLN / ECCE TLM items (step 4, shown when Use of TLM = Yes) ---------------- */
 const tlmBlock = document.getElementById('tlm-items');
 /**
  * Rebuilds the TLM ticks: every active item, in two lists (Modification V10): FLN grouped by class
@@ -370,15 +370,27 @@ function renderTlm(keep) {
             const names = [...new Set(mine.map((t) => t.section || ''))];
             groups = names.map((s) => group(s || 'Items', mine.filter((t) => (t.section || '') === s)));
         }
-        return `<div class="tlm-list is-${esc(key)}"><div class="tlm-list-head"><i class="bi bi-box-seam"></i>${esc(lists[key])}</div>${groups.join('')}</div>`;
+        const n = mine.filter((t) => ticked.includes(String(t.id))).length;
+        const icon = { fln: 'bi-book-half', ecce: 'bi-balloon-heart' }[key] || 'bi-box-seam';
+        return `<div class="tlm-list is-${esc(key)}"><div class="tlm-list-head"><span class="tlm-list-icon"><i class="bi ${icon}"></i></span>`
+            + `<span class="tlm-list-name"><b>${esc(key.toUpperCase())}</b>${esc(lists[key])}</span>`
+            + `<span class="tlm-list-count${n ? ' has' : ''}" data-tlm-list-count>${n ? `${n} ticked` : `${mine.length} items`}</span></div>`
+            + `<div class="tlm-list-body">${groups.join('')}</div></div>`;
     }).join('');
 }
-// keep each group's "n ticked" count live
+// keep each group's and each list's "n ticked" count live
 tlmBlock?.addEventListener('change', (e) => {
     const g = e.target.closest('.tlm-group');
     if (!g) return;
     const n = g.querySelectorAll('input:checked').length;
     g.querySelector('[data-tlm-count]').textContent = n ? `${n} ticked` : `${g.querySelectorAll('input').length} items`;
+    const l = g.closest('.tlm-list');
+    const lc = l?.querySelector('[data-tlm-list-count]');
+    if (lc) {
+        const ln = l.querySelectorAll('input:checked').length;
+        lc.textContent = ln ? `${ln} ticked` : `${l.querySelectorAll('input').length} items`;
+        lc.classList.toggle('has', ln > 0);
+    }
 });
 /** True when no tick is needed (block hidden, or no items) or at least one item is ticked. */
 function tlmPicked() {
@@ -435,6 +447,18 @@ const rowActions = (r, editAttr = 'data-edit') => `<div class="rs-actions">
     <button type="button" class="rs-btn rs-del" data-del="${esc(r.delete_url)}" aria-label="Remove"><i class="bi bi-trash"></i></button></div>`;
 const chip = (text, tone = '') => `<span class="rs-chip ${tone}">${text}</span>`;
 const SRC = { ssa: 'SSA', govt: 'Govt', other: 'Other' };
+// TLM ticks as coloured groups: FLN (blue) and ECCE (orange). Older payloads have only tlm_items strings ("ECCE · name").
+const TLM_ICON = { fln: 'bi-book-half', ecce: 'bi-balloon-heart' };
+function tlmGroupsOf(c) {
+    if (Array.isArray(c.tlm_groups)) return c.tlm_groups;
+    const items = c.tlm_items || [];
+    const ecce = items.filter((n) => String(n).startsWith('ECCE · ')).map((n) => String(n).slice(7));
+    const fln = items.filter((n) => !String(n).startsWith('ECCE · '));
+    return [['fln', 'FLN', fln], ['ecce', 'ECCE', ecce]].filter((g) => g[2].length).map(([list, short, its]) => ({ list, short, label: (SI.tlmLists || {})[list] || short, items: its }));
+}
+const tlmBadges = (c) => tlmGroupsOf(c).map((g) => `<span class="tlm-badge is-${esc(g.list)}">${esc(g.short)} <b>${g.items.length}</b></span>`).join('');
+const tlmGroupHtml = (g) => `<div class="tlm-grp is-${esc(g.list)}"><div class="tlm-grp-head"><i class="bi ${TLM_ICON[g.list] || 'bi-box-seam'}"></i><span>${esc(g.label)}</span>`
+    + `<span class="tlm-grp-n">${g.items.length}</span></div><div class="tlm-grp-items">${g.items.map((n) => `<span class="tlm-grp-chip">${esc(n)}</span>`).join('')}</div></div>`;
 
 const sections = {
     teachers: {
@@ -463,12 +487,11 @@ const sections = {
             <span class="rs-sl">${i + 1}</span>
             <span class="rs-classbadge" title="${esc(c.class)}">${esc(String(c.values.class))}</span>
             <div class="rs-who"><div><span class="rs-title">${esc(c.subject)}</span><span class="rs-sub"><i class="bi bi-person"></i>${esc(c.teacher_name)}</span></div></div>
-            <div class="rs-cell" data-label="Use of TLM">${chip(`<i class="bi ${c.tlm_ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>` + (c.tlm_ok ? 'Yes' : 'No')
-                + ((c.tlm_items || []).length ? ` · ${c.tlm_items.length}` : ''), c.tlm_ok ? 'ok' : 'bad')}</div>
+            <div class="rs-cell" data-label="Use of TLM"><div class="tlm-use">${chip(`<i class="bi ${c.tlm_ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>` + (c.tlm_ok ? 'Yes' : 'No'), c.tlm_ok ? 'ok' : 'bad')}${tlmBadges(c)}</div></div>
             <div class="rs-cell" data-label="Participation">${chip(`<i class="bi ${c.participation_ok ? 'bi-emoji-smile' : 'bi-emoji-frown'}"></i>` + esc(c.participation), c.participation_ok ? 'ok' : 'bad')}</div>
             ${rowActions(c)}
-            ${(c.tlm_items || []).length || c.remarks ? `<div class="rs-extra">
-                ${(c.tlm_items || []).length ? `<div class="rs-tlm"><span class="rs-tlm-label"><i class="bi bi-box-seam"></i>TLM used</span>${c.tlm_items.map((n) => `<span class="rs-tlm-chip">${esc(n)}</span>`).join('')}</div>` : ''}
+            ${tlmGroupsOf(c).length || c.remarks ? `<div class="rs-extra">
+                ${tlmGroupsOf(c).length ? `<div class="tlm-grps">${tlmGroupsOf(c).map(tlmGroupHtml).join('')}</div>` : ''}
                 ${c.remarks ? `<div class="rs-note"><i class="bi bi-chat-left-text"></i>${esc(c.remarks)}</div>` : ''}</div>` : ''}
             </div>`,
     },

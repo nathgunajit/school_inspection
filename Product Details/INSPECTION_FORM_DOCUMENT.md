@@ -169,7 +169,7 @@ Every step page has the same frame:
 >   - TLM for schools (11): Alphabet Card, Number Card, Picture Story, Picture Reading Poster, Poem Poster, Sound Domino, Pre Number Concept Card, Sequential Thinking Card, Self Corrective Puzzle, Jig Saw Puzzle, User Manual
 > - The "at least one tick" rule counts ticks in both lists.
 > - `tlm_items.list` (`fln` / `ecce`) and `tlm_items.section` (the group) were added; the unique key is now (list, class, name), so the same name may be in both lists.
-> - ECCE items read "ECCE · Number Card" on the report, the review and the PDF, so the two lists are told apart.
+> - The two lists are told apart by colour everywhere (21-11-2026): **FLN in blue** (book icon) and **ECCE in orange** (balloon icon). On step 4 each list is a card with a coloured header and a live "n ticked" count. Saved rows, the Review / report page and the PDF show the ticks as two coloured groups ("FLN TLM (2026-27)", "ECCE TLM (2025-26)") with counts, and the Use of TLM cell carries "FLN n" / "ECCE n" badges. The Review page also has a summary strip: observed, using TLM, FLN items, ECCE items, satisfactory. (`InspectionClassroomObservation::tlmGroups()` / `tlmSummary()`; `tlmText()` and the `tlm_items` strings still read "ECCE · Number Card".)
 > - TLM Master: a list filter (All lists / FLN / ECCE), a List column, and List + Group in the add and edit forms.
 
 > **20-11-2026: totals and layout**

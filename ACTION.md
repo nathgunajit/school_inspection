@@ -2172,3 +2172,14 @@ Plan approved by the user. Decisions:
 - Report tile and PDF (now 3 boxes) show Trained / Untrained only. `teacherBreakdown()` and the rating are unchanged; no codes changed.
 - Files: `resources/views/inspections/{step,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `app/Questionnaire/InspectionValidator.php`; tests `TeacherTotalsTest`, `ModificationV9Test`, `ModificationV10Test`; docs `CLAUDE.md`, `Product Details/{INSPECTION_FORM_DOCUMENT,School_Inspection_Mechanism,PROJECT_DOCUMENT}.md`, rebuilt docx.
 - Verified: `php artisan test` 193 passed; `npm run build` OK. Not checked visually in a browser.
+
+## 2026-11-21 — Step 4 & Review: FLN / ECCE TLM shown as distinct coloured groups
+- Request: make the Review and Classroom Performance sections more attractive, with ECCE and FLN clearly told apart.
+- Colours everywhere: FLN blue (`bi-book-half`), ECCE orange (`bi-balloon-heart`).
+- `InspectionClassroomObservation::tlmGroups()` (ticks per list, FLN first, items without the "ECCE · " prefix) and `tlmSummary()` ("Yes · FLN 2 · ECCE 1"); `toClientArray()` adds `tlm_groups`, and `tlm` uses the summary. `tlm_items` / `tlmText()` are unchanged.
+- Step 4 picker: each list is a card with a coloured header band, icon, full name and a live "n ticked" pill; ticked chips use the list colour.
+- Step 4 saved rows: Use of TLM shows Yes/No plus "FLN n" / "ECCE n" badges; the ticks show as coloured group blocks (falls back to `tlm_items` for older payloads).
+- Review / report: summary strip (observed, using TLM, FLN items, ECCE items, satisfactory); each record is a `<tbody>` with a TLM-groups row under it; on phones each record is one card.
+- PDF: FLN / ECCE tags on the Use of TLM cell, and one tagged line per list under the record.
+- Files: `app/Models/InspectionClassroomObservation.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/views/inspections/pdf.blade.php`, `tests/Feature/TlmItemsTest.php`; docs `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, rebuilt docx.
+- Verified: `php artisan test` 194 passed; `npm run build` OK. Not checked visually in a browser.

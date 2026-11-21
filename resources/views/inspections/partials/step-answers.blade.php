@@ -88,25 +88,52 @@
     @endif
 @elseif ($n === 4)
     @if ($inspection->classroomObservations->isNotEmpty())
+        @php
+            $obs = $inspection->classroomObservations;
+            $grpCount = fn (string $list) => $obs->sum(fn ($c) => count(collect($c->tlmGroups())->firstWhere('list', $list)['items'] ?? []));
+            $tlmIcon = ['fln' => 'bi-book-half', 'ecce' => 'bi-balloon-heart'];
+        @endphp
+        {{-- Summary strip: observed, using TLM, FLN / ECCE items ticked, satisfactory participation --}}
+        <div class="cls-summary">
+            <span class="cls-sum"><i class="bi bi-easel"></i><b>{{ $obs->count() }}</b> observed</span>
+            <span class="cls-sum ok"><i class="bi bi-check2-circle"></i><b>{{ $obs->where('tlm_used', true)->count() }}</b> using TLM</span>
+            <span class="cls-sum is-fln"><i class="bi bi-book-half"></i><b>{{ $grpCount('fln') }}</b> FLN items</span>
+            <span class="cls-sum is-ecce"><i class="bi bi-balloon-heart"></i><b>{{ $grpCount('ecce') }}</b> ECCE items</span>
+            <span class="cls-sum ok"><i class="bi bi-emoji-smile"></i><b>{{ $obs->where('participation', 'satisfactory')->count() }}</b> satisfactory</span>
+        </div>
         <div class="rv-table-wrap">
-            <table class="rv-table">
+            <table class="rv-table rv-cls">
                 <thead><tr><th>Sl.</th><th>Class</th><th>Subject &amp; teacher</th><th>Use of TLM</th><th>Participation</th><th>Remarks</th></tr></thead>
-                <tbody>
-                @foreach ($inspection->classroomObservations as $i => $c)
-                    @php $ca = $c->toClientArray(); @endphp
+                @foreach ($obs as $i => $c)
+                    @php $ca = $c->toClientArray(); $groups = $ca['tlm_groups']; @endphp
+                    <tbody class="rv-cls-rec">
                     <tr>
                         <td class="rv-sl">{{ $i + 1 }}</td>
                         <td class="rv-badge"><span class="rs-classbadge" title="{{ $ca['class'] }}">{{ $c->class }}</span></td>
                         <td class="rv-wide"><span class="rv-name">{{ $ca['subject'] }}</span><span class="rv-sub"><i class="bi bi-person me-1"></i>{{ $ca['teacher_name'] }} · {{ $ca['class'] }}</span></td>
-                        <td data-label="Use of TLM" class="rv-wide">
-                            <span class="rs-chip {{ $ca['tlm_ok'] ? 'ok' : 'bad' }}"><i class="bi {{ $ca['tlm_ok'] ? 'bi-check-circle-fill' : 'bi-x-circle-fill' }}"></i>{{ $ca['tlm_ok'] ? 'Yes' : 'No' }}</span>
-                            @if ($ca['tlm_items'])<div class="rs-tlm">@foreach ($ca['tlm_items'] as $tn)<span class="rs-tlm-chip">{{ $tn }}</span>@endforeach</div>@endif
+                        <td data-label="Use of TLM">
+                            <div class="tlm-use">
+                                <span class="rs-chip {{ $ca['tlm_ok'] ? 'ok' : 'bad' }}"><i class="bi {{ $ca['tlm_ok'] ? 'bi-check-circle-fill' : 'bi-x-circle-fill' }}"></i>{{ $ca['tlm_ok'] ? 'Yes' : 'No' }}</span>
+                                @foreach ($groups as $g)<span class="tlm-badge is-{{ $g['list'] }}">{{ $g['short'] }} <b>{{ count($g['items']) }}</b></span>@endforeach
+                            </div>
                         </td>
                         <td data-label="Participation"><span class="rs-chip {{ $ca['participation_ok'] ? 'ok' : 'bad' }}"><i class="bi {{ $ca['participation_ok'] ? 'bi-emoji-smile' : 'bi-emoji-frown' }}"></i>{{ $ca['participation'] }}</span></td>
                         <td data-label="Remarks">{!! $ca['remarks'] ? e($ca['remarks']) : '<span class="rs-dash">—</span>' !!}</td>
                     </tr>
+                    @if ($groups)
+                        <tr class="rv-tlm-row"><td class="rv-sl"></td><td colspan="5" class="rv-wide">
+                            <div class="tlm-grps">
+                                @foreach ($groups as $g)
+                                    <div class="tlm-grp is-{{ $g['list'] }}">
+                                        <div class="tlm-grp-head"><i class="bi {{ $tlmIcon[$g['list']] ?? 'bi-box-seam' }}"></i><span>{{ $g['label'] }}</span><span class="tlm-grp-n">{{ count($g['items']) }}</span></div>
+                                        <div class="tlm-grp-items">@foreach ($g['items'] as $tn)<span class="tlm-grp-chip">{{ $tn }}</span>@endforeach</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </td></tr>
+                    @endif
+                    </tbody>
                 @endforeach
-                </tbody>
             </table>
         </div>
     @else

@@ -57,7 +57,8 @@ class TlmItemsTest extends TestCase
         $r = $this->classroom($i, ['tlm_items' => [$a, $b]])->assertOk();
         $row = InspectionClassroomObservation::where('inspection_id', $i->id)->latest('id')->first();
         $this->assertEqualsCanonicalizing([$a, $b], $row->tlmItems()->pluck('tlm_items.id')->all());
-        $this->assertSame('Yes · 2 items', $r->json('classrooms.1.tlm'));
+        $this->assertSame('Yes · FLN 2', $r->json('classrooms.1.tlm'));
+        $this->assertSame(['fln'], array_column($r->json('classrooms.1.tlm_groups'), 'list'));
         $this->assertCount(2, $r->json('classrooms.1.tlm_items'));
         $this->assertEqualsCanonicalizing([$a, $b], $r->json('classrooms.1.values.tlm_items'));
     }
@@ -123,7 +124,27 @@ class TlmItemsTest extends TestCase
         $card = TlmItem::where('list', 'ecce')->where('name', 'Number Card')->firstOrFail();
         $r = $this->classroom($i, ['tlm_items' => [$card->id, $this->ids('I')[0]]])->assertOk();
         $this->assertContains('ECCE · Number Card', $r->json('classrooms.0.tlm_items'));
-        $this->get(route('inspections.review', $i))->assertOk()->assertSee('ECCE · Number Card');
+        // FLN and ECCE ticks come back as two groups (FLN first); the ECCE group drops the "ECCE · " prefix
+        $groups = $r->json('classrooms.0.tlm_groups');
+        $this->assertSame(['fln', 'ecce'], array_column($groups, 'list'));
+        $this->assertSame(['Number Card'], $groups[1]['items']);
+        $this->assertSame('ECCE TLM (2025-26)', $groups[1]['label']);
+        $this->assertSame('Yes · FLN 1 · ECCE 1', $r->json('classrooms.0.tlm'));
+        $this->get(route('inspections.review', $i))->assertOk()->assertSee('tlm-grp is-fln', false)->assertSee('tlm-grp is-ecce', false)
+            ->assertSee('Number Card')->assertSee('FLN items')->assertSee('ECCE items');
+    }
+
+    public function test_tlm_groups_split_by_list(): void
+    {
+        $i = $this->draft();
+        $card = TlmItem::where('list', 'ecce')->where('name', 'Number Card')->firstOrFail();
+        $this->classroom($i, ['tlm_items' => [$card->id]])->assertOk();
+        $this->classroom($i, ['tlm_used' => 'no'])->assertOk();
+        [$ecceOnly, $no] = $i->classroomObservations()->orderBy('id')->get()->all();
+        $this->assertSame(['ecce'], array_column($ecceOnly->tlmGroups(), 'list'));
+        $this->assertSame('Yes · ECCE 1', $ecceOnly->tlmSummary());
+        $this->assertSame([], $no->tlmGroups());
+        $this->assertSame('No', $no->tlmSummary());
     }
 
     public function test_admin_filters_by_list_and_a_name_may_repeat_across_lists(): void

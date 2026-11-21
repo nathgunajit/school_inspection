@@ -95,7 +95,11 @@
     .dt.cls tr.z td { background: #f8fafc; }
     .dt.cls tr.main td { border-bottom: 0; }
     .dt.cls tr.sub td { padding-top: 0; font-size: 7.6pt; color: #475569; }
-    .dt.cls tr.sub b { color: #15803d; }
+    .dt.cls tr.sub b.fln { color: #0d47a1; } .dt.cls tr.sub b.ecce { color: #9a4a00; }
+    /* FLN (blue) / ECCE (orange) TLM tags */
+    .tag { display: inline-block; padding: .1mm 1.3mm; border-radius: 1.5mm; font-size: 6.6pt; font-weight: bold; margin-left: .8mm; }
+    .tag.fln { background: #e3eefb; color: #0d47a1; } .tag.ecce { background: #fff1de; color: #9a4a00; }
+    .dt.cls tr.sub .tag { margin-left: 0; }
     /* V10: absent teachers on one line */
     .dt.abs td { vertical-align: middle; }
     .dt td.nw { white-space: nowrap; overflow: hidden; }
@@ -265,16 +269,17 @@
         @if ($inspection->classroomObservations->isNotEmpty())
             <table class="dt cls"><thead><tr><th class="sl">Sl.</th><th style="width:13%">Class</th><th style="width:29%">Subject &amp; teacher</th><th style="width:14%">Use of TLM</th><th style="width:18%">Participation</th><th style="width:19%">Remarks</th></tr></thead>
                 @foreach ($inspection->classroomObservations as $i => $c)
-                    @php $items = $c->tlm_used ? $c->tlmItems : collect(); $z = $i % 2 ? 'z' : ''; @endphp
-                    <tr class="{{ $z }} {{ $items->isNotEmpty() ? 'main' : '' }}"><td class="sl">{{ $i + 1 }}</td>
+                    @php $groups = $c->tlmGroups(); $z = $i % 2 ? 'z' : ''; @endphp
+                    <tr class="{{ $z }} {{ $groups ? 'main' : '' }}"><td class="sl">{{ $i + 1 }}</td>
                         <td><b>{{ \App\Models\InspectionClassroomObservation::CLASSES[$c->class] ?? $c->class }}</b></td>
                         <td><b>{{ $c->subject }}</b><div class="small">{{ $c->teacher_name }}</div></td>
-                        <td><span class="pill {{ $c->tlm_used ? 'ok' : 'bad' }}">{{ $c->tlm_used ? 'Yes' : 'No' }}</span></td>
+                        <td><span class="pill {{ $c->tlm_used ? 'ok' : 'bad' }}">{{ $c->tlm_used ? 'Yes' : 'No' }}</span>
+                            @foreach ($groups as $g)<span class="tag {{ $g['list'] }}">{{ $g['short'] }} {{ count($g['items']) }}</span>@endforeach</td>
                         <td><span class="pill {{ $c->participation === 'satisfactory' ? 'ok' : 'bad' }}">{{ $c->participationLabel() }}</span></td>
                         <td>{{ $c->remarks ?: '—' }}</td></tr>
-                    @if ($items->isNotEmpty())
-                        <tr class="sub {{ $z }}"><td></td><td colspan="5"><b>TLM used:</b> {{ $items->map->fullLabel()->implode(' · ') }}</td></tr>
-                    @endif
+                    @foreach ($groups as $g)
+                        <tr class="sub {{ $z }} {{ $loop->last ? '' : 'main' }}"><td></td><td colspan="5"><span class="tag {{ $g['list'] }}">{{ $g['short'] }}</span> <b class="{{ $g['list'] }}">{{ $g['label'] }}:</b> {{ implode(' · ', $g['items']) }}</td></tr>
+                    @endforeach
                 @endforeach
             </table>
         @else <div class="note">No classroom records.</div> @endif

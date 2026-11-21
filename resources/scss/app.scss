@@ -1170,10 +1170,9 @@ nav[role="navigation"] p.small, .pagination + * { font-size: .74rem; }
 .rs-chip { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem; padding: .12rem .55rem; border-radius: 999px; background: #f1f5f9; color: #475569;
     &.ok { background: rgba($success, .1); color: #15803d; } &.bad { background: rgba($danger, .08); color: $danger; } &.warn { background: rgba($warning, .14); color: #b45309; } }
 .rs-note { display: flex; gap: .35rem; margin-top: .35rem; font-size: .72rem; color: #64748b; i { color: #94a3b8; margin-top: .1rem; } }
-.rs-note.tlm-used { color: #166534; i { color: #1e9b4b; } }
 
-/* FLN TLM items ticked on a classroom observation (step 4) */
-#tlm-items { padding: .7rem .75rem .6rem; border: 1px dashed #b7dfc5; border-radius: .75rem; background: #f4fbf6; }
+/* FLN / ECCE TLM items ticked on a classroom observation (step 4) */
+#tlm-items { padding: .7rem .75rem .75rem; border: 1px solid #e3e8f0; border-radius: .85rem; background: #f8fafc; }
 .tlm-pick {
     display: flex; flex-wrap: wrap; gap: .45rem;
     &.is-invalid label { border-color: #f1aeb5; }
@@ -2167,9 +2166,36 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     &.type { background: rgba($primary, .08); color: #0d47a1; } }
 .rs-extra { grid-column: 1 / -1; display: flex; flex-direction: column; gap: .35rem; padding-top: .1rem;
     .rs-note { margin-top: 0; } }
-.rs-tlm { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
-.rs-tlm-label { display: inline-flex; align-items: center; gap: .3rem; font-size: .66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #15803d; margin-right: .15rem; }
-.rs-tlm-chip { font-size: .68rem; padding: .12rem .55rem; border-radius: 999px; background: #ecf8f0; color: #166534; border: 1px solid #cdeed8; }
+
+// TLM ticks as coloured groups (step 4 rows, review / report): FLN blue, ECCE orange
+$fln: #1565c0; $fln-dk: #0d47a1; $fln-soft: #eaf2fc;
+$ecce: #f39223; $ecce-dk: #9a4a00; $ecce-soft: #fff4e6;
+.tlm-use { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
+.tlm-badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .64rem; font-weight: 700; letter-spacing: .04em; padding: .14rem .5rem; border-radius: 999px; white-space: nowrap;
+    b { font-weight: 700; padding: 0 .3rem; border-radius: 999px; background: #fff; font-variant-numeric: tabular-nums; }
+    &.is-fln { background: $fln-soft; color: $fln-dk; border: 1px solid rgba($fln, .25); }
+    &.is-ecce { background: $ecce-soft; color: $ecce-dk; border: 1px solid rgba($ecce, .35); } }
+.tlm-grps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: .5rem; }
+.tlm-grp { position: relative; padding: .5rem .65rem .55rem .85rem; border-radius: .7rem; border: 1px solid; overflow: hidden;
+    &::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+    &.is-fln { background: linear-gradient(135deg, $fln-soft, #fff 70%); border-color: rgba($fln, .2); &::before { background: $fln; }
+        .tlm-grp-head { color: $fln-dk; i { color: $fln; } } .tlm-grp-n { background: $fln; }
+        .tlm-grp-chip { color: $fln-dk; border-color: rgba($fln, .25); } }
+    &.is-ecce { background: linear-gradient(135deg, $ecce-soft, #fff 70%); border-color: rgba($ecce, .3); &::before { background: $ecce; }
+        .tlm-grp-head { color: $ecce-dk; i { color: $ecce; } } .tlm-grp-n { background: $ecce; }
+        .tlm-grp-chip { color: $ecce-dk; border-color: rgba($ecce, .35); } } }
+.tlm-grp-head { display: flex; align-items: center; gap: .4rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem;
+    i { font-size: .9rem; } span:first-of-type { flex: 1; min-width: 0; } }
+.tlm-grp-n { min-width: 20px; height: 20px; padding: 0 .35rem; border-radius: 999px; display: inline-grid; place-items: center; color: #fff; font-size: .66rem; font-variant-numeric: tabular-nums; }
+.tlm-grp-items { display: flex; flex-wrap: wrap; gap: .3rem; }
+.tlm-grp-chip { font-size: .7rem; padding: .14rem .55rem; border-radius: 999px; background: #fff; border: 1px solid; line-height: 1.35; }
+// Review: classroom summary strip
+.cls-summary { display: flex; flex-wrap: wrap; gap: .4rem; margin: .1rem 0 .6rem; }
+.cls-sum { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .7rem; border-radius: 999px; font-size: .74rem; color: #475569; background: #fff; border: 1px solid #e3e8f0;
+    i { color: #94a3b8; } b { color: #0f172a; font-variant-numeric: tabular-nums; }
+    &.ok { i, b { color: #137a3a; } }
+    &.is-fln { background: $fln-soft; border-color: rgba($fln, .25); color: $fln-dk; i, b { color: $fln-dk; } }
+    &.is-ecce { background: $ecce-soft; border-color: rgba($ecce, .35); color: $ecce-dk; i, b { color: $ecce-dk; } } }
 .rs-fy { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .75rem; border-radius: 999px; font-weight: 700; font-size: .8rem; color: #0d47a1;
     background: rgba($primary, .08); i { color: $primary; } }
 .rs-amt { font-weight: 600; font-variant-numeric: tabular-nums; color: #0f172a; white-space: nowrap;
@@ -2218,18 +2244,28 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     &::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #1e9b4b; } }
 .tlm-count { font-size: .66rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: #ecf8f0; color: #15803d; }
 .tlm-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
-// Modification V10: FLN and ECCE lists, each under its own heading
-.tlm-list { display: flex; flex-direction: column; gap: .5rem;
-    & + .tlm-list { margin-top: .35rem; padding-top: .7rem; border-top: 1px dashed #dbe3ef; } }
-.tlm-list-head { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; color: #0d47a1; i { color: $primary; } }
-.tlm-list.is-ecce {
-    .tlm-list-head { color: #9a4a00; i { color: $warning; } }
-    .tlm-group { border-color: #f6dfc2; }
-    .tlm-class { color: #9a4a00; &::before { background: $warning; } }
-    .tlm-count { background: #fff4e6; color: #9a4a00; } }
+// Modification V10: FLN (blue) and ECCE (orange) lists, each a card with a tinted header band
+.tlm-list { border-radius: .8rem; border: 1px solid; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    --tl: #{$fln}; --tl-dk: #{$fln-dk}; --tl-soft: #{$fln-soft}; border-color: rgba($fln, .25);
+    &.is-ecce { --tl: #{$ecce}; --tl-dk: #{$ecce-dk}; --tl-soft: #{$ecce-soft}; border-color: rgba($ecce, .35); } }
+.tlm-list-head { display: flex; align-items: center; gap: .6rem; padding: .55rem .7rem; background: linear-gradient(90deg, var(--tl-soft), #fff); border-bottom: 1px solid rgba(15, 23, 42, .06); }
+.tlm-list-icon { width: 32px; height: 32px; flex: 0 0 32px; border-radius: 10px; display: grid; place-items: center; background: var(--tl); color: #fff; font-size: .95rem;
+    box-shadow: 0 4px 10px -6px var(--tl); }
+.tlm-list-name { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; font-size: .72rem; color: #64748b;
+    b { font-size: .86rem; letter-spacing: .05em; color: var(--tl-dk); } }
+.tlm-list-count { font-size: .68rem; font-weight: 600; padding: .15rem .6rem; border-radius: 999px; background: #fff; color: var(--tl-dk); border: 1px solid var(--tl-soft); white-space: nowrap;
+    &.has { background: var(--tl); color: #fff; border-color: var(--tl); } }
+.tlm-list-body { display: flex; flex-direction: column; gap: .5rem; padding: .6rem; }
+.tlm-list {
+    .tlm-group { border-color: var(--tl-soft); }
+    .tlm-class { color: var(--tl-dk); &::before { background: var(--tl); } }
+    .tlm-count { background: var(--tl-soft); color: var(--tl-dk); }
+    label:hover { border-color: var(--tl); }
+    .btn-check:checked + label { background: var(--tl-soft); border-color: var(--tl); box-shadow: 0 0 0 .15rem rgba(15, 23, 42, .05);
+        > i { background: var(--tl); border-color: var(--tl); } } }
 .tlm-list-badge { font-weight: 700; letter-spacing: .04em;
-    &.is-fln { background: rgba($success, .12); color: #137a3a; }
-    &.is-ecce { background: rgba($warning, .15); color: #9a4a00; } }
+    &.is-fln { background: $fln-soft; color: $fln-dk; }
+    &.is-ecce { background: $ecce-soft; color: $ecce-dk; } }
 
 // Step 2: total trained / untrained (one row of two cells)
 .auto-total.at-breakdown { display: block; padding: .8rem .9rem; }
@@ -2259,8 +2295,10 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     .rv-name { font-weight: 600; color: #0f172a; }
     .rv-sub { display: block; font-size: .72rem; color: #64748b; font-weight: 400; }
     .rs-classbadge { width: 34px; height: 34px; font-size: .72rem; border-radius: 10px; }
-    .rs-tlm { margin-top: .35rem; }
-    .rs-tlm-chip { font-size: .66rem; }
+    // classroom records: one <tbody> per record (main row + TLM groups row)
+    &.rv-cls { tbody + tbody tr:first-child td { border-top: 1px solid #e3e8f0; }
+        tbody:hover td { background: #f8fbff; }
+        tr.rv-tlm-row td { border-top: 0; padding-top: 0; } }
     // V10: absent teachers on one line: type and reason keep their width, cells centred
     .rv-nowrap { white-space: nowrap; width: 1%; }
     &.rv-absent td { vertical-align: middle; } }
@@ -2277,4 +2315,10 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
         .rv-nowrap { width: auto; }
         .rv-badge { position: absolute; top: .7rem; right: .8rem; }
         .rv-badge + td { padding-right: 2.8rem; } }
+    // a classroom record (main row + TLM row) is one card
+    .rv-table.rv-cls { tbody.rv-cls-rec { display: block; margin-bottom: .55rem; background: #fff; border: 1px solid #e3e8f0; border-radius: .85rem; overflow: hidden; }
+        tbody.rv-cls-rec tr { margin: 0; border: 0; border-radius: 0; }
+        tr.rv-tlm-row { display: block; padding-top: 0; }
+        tbody + tbody tr:first-child td { border-top: 0; }
+        tbody:hover td { background: transparent; } }
 }
