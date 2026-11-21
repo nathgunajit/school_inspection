@@ -69,7 +69,7 @@ Answer types used: `radio` (Yes/No, Satisfactory/Unsatisfactory, other lists), `
 | Step | Title | Storage | Mandatory |
 |---|---|---|---|
 | 1 | Condition of the School | `inspection_answers` (`BAS_PERSON_*`, `CND_01`–`CND_26`) | Yes (conditional ones when their parent is answered) |
-| 2 | Teacher's & Student's Information | `inspection_answers` (`TSI_01`–`TSI_09`, `TSI_14`, `TSI_15`; `TSI_10`–`TSI_13` for older inspections) | Yes, the required numbers + the teacher totals rule |
+| 2 | Teacher's & Student's Information | `inspection_answers` (`TSI_01`–`TSI_13`) | Yes, all 13 numbers + the teacher totals rule |
 | 3 | Teachers Absentee Form | `inspection_absent_teachers` rows | No (warning if fewer rows than absent teachers) |
 | 4 | Class Room Performance | `inspection_classroom_observations` rows | At least 1 row |
 | 5 | Fund Received & Expenditure | `inspection_fund_positions` (one row per financial year, lakh) | No |
@@ -109,12 +109,12 @@ Answer types used: `radio` (Yes/No, Satisfactory/Unsatisfactory, other lists), `
 | `CND_26` | Tinkering Lab is Functional | Yes / No / Not Applicable | shown and required if `CND_24` = Yes |
 
 ### 4.3 Step 2, Teacher's & Student's Information (all `number`, required)
-`TSI_01` Students present · `TSI_02` Students absent · `TSI_03` Seating (benches/desks) · `TSI_04` Regular teachers · `TSI_05` Contractual teachers · `TSI_06` SSA teachers · `TSI_07` Provincialised tutors · `TSI_08` Tutors newly accorded · `TSI_09` Teachers present today · `TSI_14` Total trained teachers · `TSI_15` Total untrained teachers (Modification V10). `TSI_10` Male trained · `TSI_11` Male untrained · `TSI_12` Female trained · `TSI_13` Female untrained are no longer asked since V10 (hidden; kept for older inspections).
+`TSI_01` Students present · `TSI_02` Students absent · `TSI_03` Seating (benches/desks) · `TSI_04` Regular teachers · `TSI_05` Contractual teachers · `TSI_06` SSA teachers · `TSI_07` Provincialised tutors · `TSI_08` Tutors newly accorded · `TSI_09` Teachers present today · `TSI_10` Male trained · `TSI_11` Male untrained · `TSI_12` Female trained · `TSI_13` Female untrained.
 
 **Blocking consistency rule** (`InspectionValidator::teacherConsistency()`, live box in `wizard.js`):
 - Total teachers = `TSI_04` + `TSI_05` + `TSI_06` + `TSI_07` + `TSI_08`.
 - `TSI_09` must be ≤ Total teachers.
-- `TSI_14` + `TSI_15` (trained + untrained) must be ≤ Total teachers. For an inspection answered before V10, `TSI_10` + `TSI_11` + `TSI_12` + `TSI_13` is checked instead.
+- `TSI_10` + `TSI_11` + `TSI_12` + `TSI_13` (trained + untrained = male + female) must be ≤ Total teachers.
 - Derived figures shown: total students = `TSI_01` + `TSI_02`; teachers absent = total − present.
 
 ### 4.4 Steps 3–5, repeating rows

@@ -78,14 +78,14 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
-- Step 2 teacher totals (blocking): Trained + Untrained must be less than or equal to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
+- Step 2 teacher totals (blocking): TSI_10–13 must be less than or equal to Total teachers (TSI_04–08), and TSI_09 must not exceed it (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
 - Modification V10 (`Documents/Modification of the ApplicationV10.docx`):
-  - Step 2 asks only `TSI_14` Total trained and `TSI_15` Total untrained (`$num0`, default 0). `TSI_10`–`TSI_13` (male / female split) are `'hidden' => true` with no default: not asked or stored for new inspections. Older inspections still show them (`Q::legacyTeacherBreakdown()`, `Q::shownBreakdownCodes()`), and `teacherBreakdown()` returns `legacy` plus male / female only for those. The rating metric `trained_teachers` follows the same split.
+  - Step 2 "totals only" (item 2) was **rolled back** on 21-11-2026: the four male / female counts TSI_10–13 are asked again. `TSI_14` / `TSI_15` (Total trained / untrained) stay as `'hidden' => true` codes with no default, never reused. An inspection with only those answers is read through `Q::totalsOnlyBreakdown()` / `Q::shownBreakdownCodes()`; `teacherBreakdown()['split']` is false for it (male / female null), and the rating metric `trained_teachers` uses them.
   - TLM has two lists: `tlm_items.list` (`fln` / `ecce`, `TlmItem::LISTS`) and `tlm_items.section` (ECCE group). Unique key (list, class, name). Step 4 shows FLN (by class), then ECCE (by section) in `renderTlm()`; both are offered for every class. ECCE items print as "ECCE · name" (`fullLabel()`).
   - Absent teachers stay on one line (wizard `.rs-teacher`, report `.rv-absent` / `.rv-nowrap`, PDF `.dt.abs`); Type shows on phones too.
 - Modification V9, questionnaire:
   - `BAS_PERSON_*` are `'hidden' => true`: not rendered, not required (`InspectionValidator::visible()`). They are shown on the report only for older inspections.
-  - TSI_05–TSI_09 and TSI_14–15 (V10) have `'default' => 0`: not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
+  - TSI_05–TSI_13 have `'default' => 0` (TSI_10–13 since 20-11-2026; `teacherBreakdown()` applies the defaults): not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
   - Step 2 shows only Total teachers, above TSI_04.
   - Absent rows must be ≤ Total teachers − Present (`InspectionValidator::absentLimit()`). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
   - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).

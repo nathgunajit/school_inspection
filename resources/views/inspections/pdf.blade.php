@@ -202,8 +202,8 @@
     @php
         $sec++;
         $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_') || $q['code'] === 'ABS_00')
-            // V10: an older inspection still prints its male / female split (TSI_10..13, hidden now) instead of TSI_14 / TSI_15
-            ->filter(fn ($q) => $n === 2 && in_array($q['code'], array_merge(QD::TEACHER_BREAKDOWN_CODES, QD::LEGACY_BREAKDOWN_CODES), true)
+            // the male / female split (TSI_10..13); an inspection with only the V10 totals (TSI_14 / TSI_15, rolled back) prints those
+            ->filter(fn ($q) => $n === 2 && in_array($q['code'], array_merge(QD::TEACHER_BREAKDOWN_CODES, QD::TOTALS_ONLY_CODES), true)
                 ? in_array($q['code'], QD::shownBreakdownCodes($answers), true) : V::visible($q, $answers))->values();
         $count = match ($n) {
             3 => $inspection->absentTeachers->count().' absent', 4 => $inspection->classroomObservations->count().' observed',
@@ -221,14 +221,15 @@
     @if ($n === 2)
         {{-- figures first: four boxes with the automatic totals --}}
         @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $bd = QD::teacherBreakdown($answers); $fa = QD::withDefaults($answers); @endphp
-        <table class="figs {{ $bd && $bd['legacy'] ? '' : 'three' }}"><tr>
+        @php $split = ! $bd || $bd['split']; /* false only for a V10 totals-only inspection (rolled back): 3 boxes */ @endphp
+        <table class="figs {{ $split ? '' : 'three' }}"><tr>
             <td><div class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></div></td>
             <td><div class="fig"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
-            @if ($bd && $bd['legacy'])
-                <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd['trained'].' / '.$bd['untrained'] }}</div><div class="small">of {{ $bd['sum'] }} counted</div></div></td>
-                <td class="last"><div class="fig"><div class="lbl">Male / Female</div><div class="big">{{ $bd['male'].' / '.$bd['female'] }}</div><div class="small">not more than Total teachers</div></div></td>
+            @if ($split)
+                <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted</div></div></td>
+                <td class="last"><div class="fig"><div class="lbl">Male / Female</div><div class="big">{{ $bd ? $bd['male'].' / '.$bd['female'] : '—' }}</div><div class="small">not more than Total teachers</div></div></td>
             @else
-                <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted · not more than Total teachers</div></div></td>
+                <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd['trained'].' / '.$bd['untrained'] }}</div><div class="small">of {{ $bd['sum'] }} counted · not more than Total teachers</div></div></td>
             @endif
         </tr></table>
         @if ($qs->isNotEmpty())

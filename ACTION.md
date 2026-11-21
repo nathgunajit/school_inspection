@@ -2145,3 +2145,17 @@ Plan approved by the user. Decisions:
   - `php artisan migrate` (local MySQL): 13 ECCE + 11 FLN items.
   - `npm run build`: OK.
   - Not checked visually in a browser.
+
+## 2026-11-21 — Roll back V10 Step 2: male / female trained / untrained counts restored
+- Request: roll back the previous update to the Student Information section (Step 2, V10 item 2, commit `5702100`). V10 items 1 (ECCE TLM) and 3 (absent teachers on one line) stay.
+- Step 2 is back to its `d1991a8` form: `TSI_10`–`TSI_13` (male trained / untrained, female trained / untrained, optional, default 0), the 2×2 Trained / Untrained / Male / Female box, the error on `TSI_10`, and the rating `trained_teachers` = (TSI_10+TSI_12)/(TSI_10..13).
+- `TSI_14` / `TSI_15` stay as hidden codes with no default (codes are never removed or reused). One local inspection was saved with them. `QuestionnaireDefinition::totalsOnlyBreakdown()` / `shownBreakdownCodes()` and `teacherBreakdown()['split']` keep such an inspection readable on the report (Trained / Untrained) and the PDF (3 boxes), and its rating uses them. A submit that stores blank TSI_10..13 as 0 does not hide them.
+- Files:
+  - `app/Questionnaire/QuestionnaireDefinition.php`, `app/Questionnaire/InspectionValidator.php`, `app/Rating/RatingCalculator.php`
+  - `resources/views/inspections/{step,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/js/wizard.js`, `resources/scss/app.scss`
+  - tests: `TeacherTotalsTest`, `ModificationV9Test`, `InspectionFlowTest` restored from `d1991a8` (+ split / totals-only cases); `ModificationV10Test` rewritten; `InspectionRatingTest` comment
+  - docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`; `School_Inspection_Mechanism.md`, `PROJECT_DOCUMENT.md` and `NEW_MODULES_PLAN.md` restored; rebuilt docx
+- Verified:
+  - `php artisan test`: 192 passed, 1 failed. The failure is `LoginMathCaptchaTest`, caused by the uncommitted login label change in `resources/views/partials/math-captcha.blade.php`, which is not part of this change and stays out of the commit.
+  - `npm run build`: OK.
+  - Not checked visually in a browser.

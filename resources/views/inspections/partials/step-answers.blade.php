@@ -12,8 +12,8 @@
     {{-- Figures: label + large number, with automatic totals --}}
     @php
         $totS = Q::totalStudents($answers); $totT = Q::totalTeachers($answers); $figs = Q::withDefaults($answers); /* V9: blank optional counts read 0 */
-        // V10: TSI_14 / TSI_15 totals, or the male / female split (TSI_10..13) for an older inspection
-        $skipFig = array_diff(array_merge(Q::TEACHER_BREAKDOWN_CODES, Q::LEGACY_BREAKDOWN_CODES), Q::shownBreakdownCodes($answers));
+        // the male / female split (TSI_10..13), or the V10 totals (TSI_14 / TSI_15, rolled back) for an inspection that has only those
+        $skipFig = array_diff(array_merge(Q::TEACHER_BREAKDOWN_CODES, Q::TOTALS_ONLY_CODES), Q::shownBreakdownCodes($answers));
     @endphp
     <div class="fig-grid">
         @foreach ($questions[$n] as $q)
@@ -31,7 +31,7 @@
         @if ($bd = Q::teacherBreakdown($answers))
             @php $bdBad = $totT !== null && $bd['sum'] > $totT; @endphp
             <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>
-                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>{{ $bd['legacy'] ? 'Male '.$bd['male'].' · Female '.$bd['female'] : 'Trained + Untrained' }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>{{ $bd['split'] ? 'Male '.$bd['male'].' · Female '.$bd['female'] : 'Trained + Untrained' }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
         @endif
     </div>
 @elseif ($n !== 3 && ! empty($questions[$n]))

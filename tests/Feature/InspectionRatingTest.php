@@ -100,7 +100,7 @@ class InspectionRatingTest extends TestCase
         $this->assertEquals(0.5, $points['classroom_participation']);
         $this->assertEquals(1.0, $points['fund_utilisation']); // 2 of 2 lakh
 
-        // Modification V10: trained share from the totals TSI_14 / TSI_15 (the answers above are an older inspection)
+        // an inspection saved while V10's totals were asked (rolled back): trained share from TSI_14 / TSI_15
         $v10 = array_diff_key($answers, array_flip(['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'])) + ['TSI_14' => 3, 'TSI_15' => 1];
         $this->assertEquals(0.75, collect(RatingCalculator::calculate($all, DefaultScheme::BANDS, $v10, $rows)['details'])->pluck('points', 'code')['trained_teachers']);
         $none = array_diff_key($v10, ['TSI_14' => 1, 'TSI_15' => 1]) + ['TSI_14' => 0, 'TSI_15' => 0];

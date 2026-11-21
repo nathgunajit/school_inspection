@@ -12,7 +12,8 @@ use Tests\TestCase;
 /**
  * Modification V10 (Documents/Modification of the ApplicationV10.docx):
  *  1. ECCE TLM list next to FLN (see TlmItemsTest);
- *  2. Step 2 asks only Total trained (TSI_14) and Total untrained (TSI_15); TSI_10..13 kept for older inspections;
+ *  2. Step 2 totals only (TSI_14 / TSI_15): ROLLED BACK on 21-11-2026. The four male / female counts
+ *     (TSI_10..13) are asked again; TSI_14 / TSI_15 stay hidden so answers saved meanwhile still read;
  *  3. absent teachers on one line, Type and Reason shown on every screen size.
  */
 class ModificationV10Test extends TestCase
@@ -31,21 +32,24 @@ class ModificationV10Test extends TestCase
         $this->post(route('inspections.answers', $i), ['code' => $code, 'value' => $value])->assertOk();
     }
 
-    public function test_male_female_codes_are_hidden_and_the_totals_are_asked(): void
+    public function test_step_2_asks_the_four_male_female_counts_again(): void
     {
-        foreach (Q::LEGACY_BREAKDOWN_CODES as $c) {
+        foreach (Q::TEACHER_BREAKDOWN_CODES as $c) {
+            $this->assertEmpty(Q::find($c)['hidden'] ?? false, $c);
+            $this->assertSame(0, Q::defaults()[$c], $c);
+        }
+        foreach (Q::TOTALS_ONLY_CODES as $c) {
             $this->assertTrue(Q::find($c)['hidden'] ?? false, $c); // code kept, not asked
             $this->assertArrayNotHasKey($c, Q::defaults());
         }
-        $this->assertSame(0, Q::defaults()['TSI_14']);
-        $this->assertSame(0, Q::defaults()['TSI_15']);
 
         $i = $this->draft();
         $html = $this->get(route('inspections.step', [$i, 2]))->assertOk()->getContent();
-        $this->assertStringContainsString('Total Number of Trained Teachers', $html);
-        $this->assertStringContainsString('Total Number of Untrained Teachers', $html);
-        $this->assertStringNotContainsString('Male Untrained', $html);
-        $this->assertStringNotContainsString('data-at="male"', $html);
+        foreach (['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) {
+            $this->assertStringContainsString('name="'.$c.'" value="0"', $html);
+        }
+        $this->assertStringContainsString('data-at="male"', $html);
+        $this->assertStringNotContainsString('Total Number of Trained Teachers', $html);
 
         $missing = collect((new InspectionValidator($i->fresh()))->missing()[2] ?? [])->pluck('code');
         foreach (['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13', 'TSI_14', 'TSI_15'] as $c) {
@@ -53,26 +57,31 @@ class ModificationV10Test extends TestCase
         }
     }
 
-    public function test_report_shows_the_totals_or_the_old_split(): void
+    public function test_report_shows_the_male_female_split(): void
+    {
+        $i = $this->draft();
+        foreach (['TSI_04' => 6, 'TSI_10' => 1, 'TSI_11' => 1, 'TSI_12' => 2, 'TSI_13' => 1] as $c => $v) {
+            $this->answer($i, $c, $v);
+        }
+        $this->get(route('inspections.review', $i))->assertOk()
+            ->assertSee('Number of Male Trained Teachers')->assertSee('Male 2 · Female 3')->assertDontSee('Total Number of Trained Teachers');
+        $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_inspection_saved_with_the_v10_totals_still_reads(): void
     {
         $i = $this->draft();
         foreach (['TSI_04' => 6, 'TSI_14' => 4, 'TSI_15' => 2] as $c => $v) {
             $this->answer($i, $c, $v);
         }
         $this->get(route('inspections.review', $i))->assertOk()
-            ->assertSee('Total Number of Trained Teachers')->assertSee('Trained 4 · Untrained 2')->assertDontSee('Male Trained Teachers');
-        $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('Content-Type', 'application/pdf');
-    }
+            ->assertSee('Total Number of Trained Teachers')->assertSee('Trained 4 · Untrained 2')->assertDontSee('Number of Male Trained Teachers');
+        $this->get(route('inspections.pdf', $i))->assertOk();
 
-    public function test_older_inspection_keeps_its_male_female_split_on_the_report(): void
-    {
-        $old = $this->draft();
-        foreach (['TSI_04' => 6, 'TSI_10' => 1, 'TSI_11' => 1, 'TSI_12' => 2, 'TSI_13' => 1] as $c => $v) {
-            $this->answer($old, $c, $v);
-        }
-        $this->get(route('inspections.review', $old))->assertOk()
-            ->assertSee('Number of Male Trained Teachers')->assertSee('Male 2 · Female 3')->assertDontSee('Total Number of Trained Teachers');
-        $this->get(route('inspections.pdf', $old))->assertOk();
+        // over the total: reported on TSI_14
+        $this->answer($i, 'TSI_14', 9);
+        $codes = collect((new InspectionValidator($i->fresh()))->missing()[2] ?? [])->pluck('code');
+        $this->assertContains('TSI_14', $codes);
     }
 
     public function test_absent_teacher_row_shows_type_and_reason_on_one_line(): void

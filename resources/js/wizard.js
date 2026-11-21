@@ -902,16 +902,19 @@ if (autoTotals.length) {
             const bad = total !== null && present !== null && present > total;
             paint(t, { total, present, absent: null, bad, extra: bad ? `Teachers present (${fmtInt(present)}) is more than the total. Please check.` : '' });
         }
-        // Modification V10: Total trained + Total untrained (TSI_14 + TSI_15) must be less than or equal to Total teachers
+        // Trained/untrained and male/female (TSI_10..13) must be less than or equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');
         if (bd) {
-            const [tr, un] = ['TSI_14', 'TSI_15'].map(val);
+            const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
             const parts = TEACHER_CODES.map(val);
             const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
-            const all = tr !== null && un !== null;
-            $('[data-at="trained"]', bd).textContent = fmtInt(tr);
-            $('[data-at="untrained"]', bd).textContent = fmtInt(un);
-            const s = all ? tr + un : null;
+            const all = [mt, mu, ft, fu].every((x) => x !== null);
+            const sum = (...xs) => (xs.every((x) => x !== null) ? xs.reduce((a, b) => a + b, 0) : null);
+            $('[data-at="trained"]', bd).textContent = fmtInt(sum(mt, ft));
+            $('[data-at="untrained"]', bd).textContent = fmtInt(sum(mu, fu));
+            $('[data-at="male"]', bd).textContent = fmtInt(sum(mt, mu));
+            $('[data-at="female"]', bd).textContent = fmtInt(sum(ft, fu));
+            const s = all ? mt + mu + ft + fu : null;
             $('[data-at="sum"]', bd).textContent = fmtInt(s);
             const checked = all && total !== null;
             const bad = checked && s > total; // less than or equal to Total teachers is allowed

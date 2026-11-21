@@ -25,7 +25,7 @@
         'CND_17' => ['Digital learning & labs', 'bi-pc-display'],
         'TSI_01' => ['Students', 'bi-backpack'],
         'TSI_04' => ['Teachers & tutors', 'bi-person-workspace'],
-        'TSI_14' => ['Trained / untrained teachers', 'bi-mortarboard'],
+        'TSI_10' => ['Trained / untrained teachers', 'bi-mortarboard'],
         'GOVR_01' => ['Teaching & SMC', 'bi-people'],
         'GOVR_05' => ['Assembly & entitlements', 'bi-book'],
         'GOVR_10' => ['Cleanliness, MDM & health', 'bi-heart-pulse'],
@@ -118,13 +118,21 @@
                                         <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
-                                @elseif ($q['code'] === 'TSI_15')
-                                    {{-- Modification V10: only Total trained + Total untrained; must be less than or equal to Total teachers (blocking rule) --}}
+                                @elseif ($q['code'] === 'TSI_13')
+                                    {{-- Trained/untrained and male/female must be less than or equal to Total teachers (blocking rule) --}}
+                                    {{-- Calculated automatically; a blank count is 0. Each pair must be less than or equal to Total teachers. --}}
                                     <div class="col-12"><div class="auto-total at-breakdown" data-auto-total="breakdown" aria-live="polite">
-                                        <span class="at-icon"><i class="bi bi-calculator"></i></span>
-                                        <span class="at-label">Trained + Untrained teachers<small>Calculated automatically · a blank count is 0</small></span>
-                                        <span class="at-parts"><span>Trained <b data-at="trained">–</b></span><span>Untrained <b data-at="untrained">–</b></span><span data-at-extra></span></span>
-                                        <span class="at-value" data-at="sum">–</span>
+                                        <div class="bd-head">
+                                            <span class="at-icon"><i class="bi bi-calculator"></i></span>
+                                            <span class="at-label">Trained / untrained and male / female<small>Calculated automatically · a blank count is 0</small></span>
+                                        </div>
+                                        <div class="bd-grid">
+                                            @foreach ([['trained', 'Trained', 'bi-patch-check', 'Male trained + Female trained'], ['untrained', 'Untrained', 'bi-patch-question', 'Male untrained + Female untrained'],
+                                                       ['male', 'Male', 'bi-gender-male', 'Male trained + Male untrained'], ['female', 'Female', 'bi-gender-female', 'Female trained + Female untrained']] as [$k, $l, $ic, $f])
+                                                <div class="bd-cell bd-{{ $k }}"><span class="bd-name"><i class="bi {{ $ic }}"></i>{{ $l }}</span><b data-at="{{ $k }}">–</b><small>{{ $f }}</small></div>
+                                            @endforeach
+                                        </div>
+                                        <div class="bd-foot"><span class="bd-status" data-at-extra></span><span class="bd-sum">Teachers counted <b data-at="sum">–</b></span></div>
                                     </div></div>
                                 @endif
                             @endforeach

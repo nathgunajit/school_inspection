@@ -33,7 +33,7 @@ This document goes deeper into the form than `PROJECT_DOCUMENT.md` (section 4.4)
 | Step | Title in the app | What the officer records | Stored in | Required to submit |
 |---|---|---|---|---|
 | 1 | Condition of the School | Person met at the school, and 26 building and facility questions (Yes/No and choices) | `inspection_answers` (`BAS_PERSON_*`, `CND_01`–`CND_26`) | Yes. Every visible, enabled question |
-| 2 | Teacher's & Student's Information | 11 numbers: students present and absent, benches, teachers by type, teachers present, total trained and total untrained (V10) | `inspection_answers` (`TSI_01`–`TSI_09`, `TSI_14`, `TSI_15`; `TSI_10`–`TSI_13` for older inspections) | Yes. Optional counts read 0 |
+| 2 | Teacher's & Student's Information | 13 numbers: students present and absent, benches, teachers by type, teachers present, trained and untrained | `inspection_answers` (`TSI_01`–`TSI_13`) | Yes. All 13 |
 | 3 | Teachers Absentee Form | One row per absent teacher: name, type, reason for leave | `inspection_absent_teachers` | No. Leave it empty if all were present; a warning shows if the numbers don't match |
 | 4 | Class Room Performance | One row per class observed: teacher, class, subject, TLM used, participation, remarks | `inspection_classroom_observations` | Yes. At least 1 row |
 | 5 | Fund Received & Expenditure | Per financial year, in lakh: received and spent for ASG, MDM, Government and Other | `inspection_fund_positions` | No (optional) |
@@ -102,20 +102,17 @@ Every step page has the same frame:
 ### Step 2: Teacher's & Student's Information
 ![Step 2](../docs/screenshots/06-step2-strength.png)
 
-- 11 whole numbers (`TSI_01`–`TSI_09`, `TSI_14`, `TSI_15`), with − and + buttons. The server accepts only 0–100,000.
-- **Modification V10 (21-11-2026):** only **Total Number of Trained Teachers** (`TSI_14`) and **Total Number of Untrained Teachers** (`TSI_15`) are asked.
-  - The male / female split (`TSI_10`–`TSI_13`) is no longer asked: `'hidden' => true`, no default, not stored for new inspections. The codes are kept, so an inspection answered before V10 still shows its male / female numbers on the report and the PDF.
-  - Which set is used: `QuestionnaireDefinition::legacyTeacherBreakdown()` (TSI_10–13 answered and neither TSI_14 nor TSI_15). Once the officer enters a V10 total, the V10 codes are used.
-  - The rating metric "trained teachers" is TSI_14 / (TSI_14 + TSI_15); older inspections keep the old formula, which gives the same result.
-- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. This also applies to `TSI_14` / `TSI_15` (V10).
+- 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
+- **V10 Step 2 change rolled back (21-11-2026):** V10 briefly replaced the male / female counts with two totals (`TSI_14` Total trained, `TSI_15` Total untrained). That was rolled back the same day: the four counts `TSI_10`–`TSI_13` are asked again.
+  - `TSI_14` / `TSI_15` are kept as hidden codes (no default, never reused). An inspection saved with only those totals still shows them on the report and the PDF (`QuestionnaireDefinition::totalsOnlyBreakdown()`), and its rating uses them.
+- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. Since 20-11-2026 this also applies to `TSI_10`–`TSI_13` (male / female, trained / untrained).
   - They have `'default' => 0`: the box shows 0 with the hint "Enter 0 if none".
   - A blank value counts as 0 in the totals (`QuestionnaireDefinition::withDefaults()`).
   - At submit, a blank value is stored as 0.
 - **Automatic totals (display only, not stored):**
   - total students = present + absent
   - **Total teachers** = regular + contractual + SSA + provincialised + newly accorded tutors. Since V9 the box sits **above** the teacher numbers and shows only the total (no Present / Absent).
-  - **Trained + Untrained** (V10): one line under `TSI_15` showing Trained, Untrained and their sum, with "Within / More than Total teachers".
-- **Blocking:** teachers present more than the total; Trained + Untrained more than the total (message on `TSI_14`; on `TSI_10` with male / female for an older draft).
+- **Blocking:** teachers present more than the total; trained/untrained (and male/female) more than the total.
 
 ### Step 3: Teachers Absentee Form
 ![Step 3](../docs/screenshots/07-step3-absentee.png)
@@ -176,7 +173,6 @@ Every step page has the same frame:
 > - TLM Master: a list filter (All lists / FLN / ECCE), a List column, and List + Group in the add and edit forms.
 
 > **20-11-2026: totals and layout**
-> - *(Replaced by Modification V10: only Total trained / Total untrained are asked now. The text below describes inspections answered before 21-11-2026.)*
 > - **Trained / untrained and male / female:** a blank count is 0. The four totals are calculated automatically in a 2×2 box:
 >   - Trained = Male trained + Female trained
 >   - Untrained = Male untrained + Female untrained

@@ -101,14 +101,13 @@ class QuestionnaireDefinition
                 $num0('TSI_07', 'Total Number of Provincialised Tutors'),
                 $num0('TSI_08', 'Total Number of Tutors Newly Accorded'),
                 $num0('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
-                // Modification V10: male / female split no longer asked (hidden, no default). Kept so older answers stay readable.
-                ['code' => 'TSI_10', 'label' => 'Number of Male Trained Teachers', 'type' => 'number', 'hidden' => true],
-                ['code' => 'TSI_11', 'label' => 'Number of Male Untrained Teachers', 'type' => 'number', 'hidden' => true],
-                ['code' => 'TSI_12', 'label' => 'Number of Female Trained Teachers', 'type' => 'number', 'hidden' => true],
-                ['code' => 'TSI_13', 'label' => 'Number of Female Untrained Teachers', 'type' => 'number', 'hidden' => true],
-                // Modification V10: only the totals are asked
-                $num0('TSI_14', 'Total Number of Trained Teachers'),
-                $num0('TSI_15', 'Total Number of Untrained Teachers'),
+                $num0('TSI_10', 'Number of Male Trained Teachers'),
+                $num0('TSI_11', 'Number of Male Untrained Teachers'),
+                $num0('TSI_12', 'Number of Female Trained Teachers'),
+                $num0('TSI_13', 'Number of Female Untrained Teachers'),
+                // V10 totals, rolled back on 21-11-2026: no longer asked (hidden, no default). Codes kept so answers saved meanwhile stay readable.
+                ['code' => 'TSI_14', 'label' => 'Total Number of Trained Teachers', 'type' => 'number', 'hidden' => true],
+                ['code' => 'TSI_15', 'label' => 'Total Number of Untrained Teachers', 'type' => 'number', 'hidden' => true],
             ],
 
             // Step 3 is done when at least one absent teacher is added, or this is ticked (InspectionValidator)
@@ -189,13 +188,13 @@ class QuestionnaireDefinition
     /** Step 2 codes that make up Total teachers (regular, contractual, SSA, provincialised, newly accorded). */
     public const TEACHER_TOTAL_CODES = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
 
-    /** Step 2 breakdown (Modification V10): total trained, total untrained. */
-    public const TEACHER_BREAKDOWN_CODES = ['TSI_14', 'TSI_15'];
+    /** Step 2 breakdown: male trained, male untrained, female trained, female untrained. */
+    public const TEACHER_BREAKDOWN_CODES = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'];
 
-    /** Before V10: male trained, male untrained, female trained, female untrained (hidden, kept for older inspections). */
-    public const LEGACY_BREAKDOWN_CODES = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'];
+    /** V10 totals (total trained, total untrained), rolled back on 21-11-2026: hidden, read only for answers saved meanwhile. */
+    public const TOTALS_ONLY_CODES = ['TSI_14', 'TSI_15'];
 
-    /** Codes whose blank answer counts as a default value (Modification V9: TSI_05..TSI_09 = 0). */
+    /** Codes whose blank answer counts as a default value (Modification V9: TSI_05..TSI_13 = 0). */
     public static function defaults(): array
     {
         return collect(self::all())->filter(fn ($q) => array_key_exists('default', $q))->map(fn ($q) => $q['default'])->all();
@@ -225,77 +224,65 @@ class QuestionnaireDefinition
         return array_sum(array_map('intval', $vals));
     }
 
-    private static function filled(array $answers, string $code): bool
-    {
-        return isset($answers[$code]) && $answers[$code] !== '' && $answers[$code] !== null;
-    }
-
     /**
-     * True for an inspection answered before Modification V10: it has the male / female split
-     * (TSI_10..13) and neither of the new totals (TSI_14, TSI_15).
+     * True for an inspection answered while V10's totals were asked (21-11-2026, rolled back the same day):
+     * it has TSI_14 / TSI_15 and no male / female count above 0 (a submit stores blank TSI_10..13 as 0).
      */
-    public static function legacyTeacherBreakdown(array $answers): bool
+    public static function totalsOnlyBreakdown(array $answers): bool
     {
+        $has = fn ($c) => isset($answers[$c]) && $answers[$c] !== '' && $answers[$c] !== null;
+        if (! $has('TSI_14') && ! $has('TSI_15')) {
+            return false;
+        }
         foreach (self::TEACHER_BREAKDOWN_CODES as $c) {
-            if (self::filled($answers, $c)) {
+            if ($has($c) && (int) $answers[$c] !== 0) {
                 return false;
             }
         }
-        foreach (self::LEGACY_BREAKDOWN_CODES as $c) {
-            if (self::filled($answers, $c)) {
-                return true;
-            }
-        }
 
-        return false;
+        return true;
     }
 
-    /** Step 2 codes shown on the report: the V10 totals, or the male / female split for an older inspection. */
+    /** Step 2 breakdown codes shown on the report: the male / female split, or the V10 totals for such an inspection. */
     public static function shownBreakdownCodes(array $answers): array
     {
-        return self::legacyTeacherBreakdown($answers) ? self::LEGACY_BREAKDOWN_CODES : self::TEACHER_BREAKDOWN_CODES;
+        return self::totalsOnlyBreakdown($answers) ? self::TOTALS_ONLY_CODES : self::TEACHER_BREAKDOWN_CODES;
     }
 
     /**
-     * Trained / untrained totals of step 2 (blank = 0). `sum` must not be more than Total teachers.
-     * V10: trained = TSI_14, untrained = TSI_15. An older inspection (TSI_10..13) gives the same sums,
-     * plus `male` / `female` (null otherwise).
+     * Trained / untrained and male / female sums of the step 2 breakdown (blank = 0, TSI_10..13 default to 0).
+     * Both pairs add up the same four numbers, so `sum` must not be more than Total teachers.
+     * `split` is false only for a V10 totals-only inspection (TSI_14 / TSI_15): male / female are then null.
      *
-     * @return array{trained:int, untrained:int, male:?int, female:?int, sum:int, legacy:bool}|null
+     * @return array{trained:int, untrained:int, male:?int, female:?int, sum:int, split:bool}|null
      */
     public static function teacherBreakdown(array $answers): ?array
     {
-        if (self::legacyTeacherBreakdown($answers)) {
-            $v = [];
-            foreach (self::LEGACY_BREAKDOWN_CODES as $c) {
-                $x = $answers[$c] ?? 0; // a blank count of an older inspection is 0
-                if ($x === '' || $x === null) {
-                    $x = 0;
-                }
-                if (! is_numeric($x)) {
-                    return null;
-                }
-                $v[$c] = (int) $x;
-            }
+        if (self::totalsOnlyBreakdown($answers)) {
+            $t = is_numeric($answers['TSI_14'] ?? null) ? (int) $answers['TSI_14'] : 0;
+            $u = is_numeric($answers['TSI_15'] ?? null) ? (int) $answers['TSI_15'] : 0;
 
-            return [
-                'trained' => $v['TSI_10'] + $v['TSI_12'],
-                'untrained' => $v['TSI_11'] + $v['TSI_13'],
-                'male' => $v['TSI_10'] + $v['TSI_11'],
-                'female' => $v['TSI_12'] + $v['TSI_13'],
-                'sum' => array_sum($v),
-                'legacy' => true,
-            ];
+            return ['trained' => $t, 'untrained' => $u, 'male' => null, 'female' => null, 'sum' => $t + $u, 'split' => false];
         }
 
         $answers = self::withDefaults($answers); // blank trained / untrained counts are 0
-        $t = $answers['TSI_14'] ?? null;
-        $u = $answers['TSI_15'] ?? null;
-        if (! is_numeric($t) || ! is_numeric($u)) {
-            return null;
+        $v = [];
+        foreach (self::TEACHER_BREAKDOWN_CODES as $c) {
+            $x = $answers[$c] ?? null;
+            if ($x === null || $x === '' || ! is_numeric($x)) {
+                return null;
+            }
+            $v[$c] = (int) $x;
         }
 
-        return ['trained' => (int) $t, 'untrained' => (int) $u, 'male' => null, 'female' => null, 'sum' => (int) $t + (int) $u, 'legacy' => false];
+        return [
+            'trained' => $v['TSI_10'] + $v['TSI_12'],
+            'untrained' => $v['TSI_11'] + $v['TSI_13'],
+            'male' => $v['TSI_10'] + $v['TSI_11'],
+            'female' => $v['TSI_12'] + $v['TSI_13'],
+            'sum' => array_sum($v),
+            'split' => true,
+        ];
     }
 
     /** Total students = present (TSI_01) + absent (TSI_02); null until both are entered. */
