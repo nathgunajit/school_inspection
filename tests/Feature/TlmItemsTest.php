@@ -104,7 +104,38 @@ class TlmItemsTest extends TestCase
         $this->assertSame(1, $row->tlmItems()->count());
 
         $this->get(route('inspections.step', [$i, 4]))->assertOk()->assertSee('id="tlm-items"', false)
-            ->assertViewHas('tlmItems', fn ($t) => count($t) === 10 && ! in_array($item->id, array_column($t, 'id'), true));
+            ->assertViewHas('tlmItems', fn ($t) => count($t) === 10 + 13 && ! in_array($item->id, array_column($t, 'id'), true)); // FLN 11 - 1 inactive, ECCE 13
+    }
+
+    /** Modification V10: the ECCE list (Documents/TLM -2025-26-ECCE (1).docx) next to FLN. */
+    public function test_ecce_list_is_seeded_offered_and_saved(): void
+    {
+        $this->assertSame(13, TlmItem::where('list', 'ecce')->count());
+        $this->assertSame(2, TlmItem::where('list', 'ecce')->where('section', 'TLM for students')->count());
+        $this->assertSame(11, TlmItem::where('list', 'ecce')->where('section', 'TLM for schools')->count());
+        $this->assertSame(11, TlmItem::where('list', 'fln')->count());
+        $this->assertSame(0, TlmItem::forClass('I', 'ecce')->whereNotNull('class')->count());
+
+        $i = $this->draft();
+        $this->get(route('inspections.step', [$i, 4]))->assertOk()->assertSee('ECCE TLM (2025-26)')->assertSee('FLN TLM (2026-27)')
+            ->assertViewHas('tlmItems', fn ($t) => $t[0]['list'] === 'fln' && end($t)['list'] === 'ecce' && in_array('TLM for schools', array_column($t, 'section'), true));
+
+        $card = TlmItem::where('list', 'ecce')->where('name', 'Number Card')->firstOrFail();
+        $r = $this->classroom($i, ['tlm_items' => [$card->id, $this->ids('I')[0]]])->assertOk();
+        $this->assertContains('ECCE · Number Card', $r->json('classrooms.0.tlm_items'));
+        $this->get(route('inspections.review', $i))->assertOk()->assertSee('ECCE · Number Card');
+    }
+
+    public function test_admin_filters_by_list_and_a_name_may_repeat_across_lists(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin)->get(route('admin.tlm.index', ['list' => 'ecce']))->assertOk()->assertSee('Sound Domino')->assertDontSee('Vidya Pravesh');
+        $this->actingAs($admin)->get(route('admin.tlm.index', ['list' => 'fln']))->assertOk()->assertDontSee('Sound Domino');
+
+        $this->actingAs($admin)->post(route('admin.tlm.store'), ['list' => 'fln', 'class' => 'all', 'name' => 'Number Card'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post(route('admin.tlm.store'), ['list' => 'ecce', 'class' => 'all', 'name' => 'Number Card'])->assertSessionHasErrors('name');
+        $this->assertSame(2, TlmItem::where('name', 'Number Card')->count());
+        $this->assertSame('fln', TlmItem::where('name', 'Number Card')->where('list', 'fln')->value('list'));
     }
 
     public function test_report_and_pdf_show_the_items(): void

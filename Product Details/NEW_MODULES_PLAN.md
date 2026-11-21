@@ -195,7 +195,7 @@ Facts found:
 | Section | What is scored |
 |---|---|
 | Condition | CND yes/no facilities: yes = 1, no = 0. CND_01: Pucca 1, Semi-pucca 0.5, Others 0. CND_12 "ACR required" is inverted. CND_18 and CND_20 are N/A when the parent is No. CND_26 "na" → N/A. CND_25 is not scored |
-| Strength | **Metrics:** student attendance = TSI_01/(TSI_01+TSI_02); teacher attendance = TSI_09/total teachers; trained teachers = (TSI_10+TSI_12)/(TSI_10..13) |
+| Strength | **Metrics:** student attendance = TSI_01/(TSI_01+TSI_02); teacher attendance = TSI_09/total teachers; trained teachers = TSI_14/(TSI_14+TSI_15) since V10 (older inspections: (TSI_10+TSI_12)/(TSI_10..13)) |
 | Absentee | Share of absences with a recognised reason (N/A when there are no absentees) |
 | Classroom | Average of TLM used (yes = 1) and participation level per observation (N/A when there are none) |
 | Fund | Utilisation = expenditure ÷ received over all heads, capped at 100 % (N/A when nothing was received) |

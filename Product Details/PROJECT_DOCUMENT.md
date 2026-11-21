@@ -757,7 +757,7 @@ Two follow-up requests from users of the inspection questionnaire. Each was buil
 ### 11.1 Teacher totals (step 2)
 | Rule | Checked when | Effect |
 |---|---|---|
-| Male trained + Male untrained + Female trained + Female untrained (TSI_10–13) **≤** Total teachers (TSI_04–08), i.e. less than or equal (changed from "equal" on 19-11-2026, ACTION #87). This covers both Trained + Untrained and Male + Female. | Total teachers and all four breakdown numbers are entered | **Blocking**: step 2 is not complete and Submit is refused |
+| Total trained + Total untrained (TSI_14 + TSI_15, Modification V10) **≤** Total teachers (TSI_04–08), i.e. less than or equal (changed from "equal" on 19-11-2026, ACTION #87). An inspection answered before V10 is checked on its male / female split (TSI_10–13) instead. | Total teachers is entered (blank trained / untrained counts are 0) | **Blocking**: step 2 is not complete and Submit is refused |
 | Teachers present (TSI_09) ≤ Total teachers | Both are entered | **Blocking** (it was a warning before) |
 
 - **On screen:**

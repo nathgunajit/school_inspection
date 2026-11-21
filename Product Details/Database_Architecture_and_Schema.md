@@ -69,7 +69,7 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 18 | `inspection_answers` | One row per question code per inspection; JSON `value` and `remarks` | `id` | inspections |
 | 19 | `inspection_absent_teachers` | Step 3 rows: absent teacher, type, leave reason | `id` | inspections |
 | 20 | `inspection_classroom_observations` | Step 4 rows: teacher, class, subject, TLM used, participation | `id` | inspections, `inspection_classroom_tlm` |
-| 20a | `tlm_items` | FLN TLM master: items per class (null = all classes), code, variety, remarks, active | `id` | `inspection_classroom_tlm` |
+| 20a | `tlm_items` | TLM master, FLN and ECCE lists (V10): list, items per class (null = all classes), group, code, variety, remarks, active | `id` | `inspection_classroom_tlm` |
 | 20b | `inspection_classroom_tlm` | TLM items ticked on a classroom observation | (`classroom_observation_id`, `tlm_item_id`) | inspection_classroom_observations, tlm_items |
 | 21 | `inspection_fund_positions` | Step 5 rows: one per financial year, received and spent per head, in lakh | `id` | inspections, master_values (v1 only) |
 | 22 | `inspection_remarks` | Suggestions (step 6) and other free-text remarks | `id` | inspections |
@@ -452,12 +452,14 @@ CHECK `value`: `json_valid(`value`)`
 Indexes: `inspection_classroom_observations_inspection_id_foreign` (inspection_id); **unique** `inspection_classroom_observations_inspection_id_row_uid_unique` (inspection_id, row_uid).
 
 #### `tlm_items`
-Migration `2026_11_20_000002_create_tlm_items`. It inserts the FLN TLM list for 2026-27: 6 items for Class I and 5 for Class II.
+Migration `2026_11_20_000002_create_tlm_items`. It inserts the FLN TLM list for 2026-27: 6 items for Class I and 5 for Class II. Migration `2026_11_21_000001_tlm_lists_ecce` (Modification V10) adds `list` and `section` and inserts the ECCE TLM list 2025-26: 2 items "TLM for students" and 11 "TLM for schools" (all classes).
 
 | Field | Data type | Length | PK | FK | Nullable | Default |
 |---|---|---|---|---|---|---|
 | `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `list` | varchar(10) | 10 |  |  | No | `fln` (`fln` / `ecce`, V10) |
 | `class` | varchar(4) | 4 |  |  | Yes | (null = all classes) |
+| `section` | varchar(60) | 60 |  |  | Yes | group inside a list, e.g. "TLM for schools" (V10) |
 | `name` | varchar(150) | 150 |  |  | No |  |
 | `code` | varchar(60) | 60 |  |  | Yes |  |
 | `variety` | smallint unsigned |  |  |  | No | 1 |
@@ -466,7 +468,7 @@ Migration `2026_11_20_000002_create_tlm_items`. It inserts the FLN TLM list for 
 | `is_active` | tinyint(1) |  |  |  | No | 1 |
 | `created_at` / `updated_at` | timestamp |  |  |  | Yes |  |
 
-Indexes: `tlm_items_class_index` (class); **unique** `tlm_items_class_name_unique` (class, name).
+Indexes: `tlm_items_class_index` (class); `tlm_items_list_index` (list); **unique** `tlm_items_list_class_name_unique` (list, class, name), which replaced (class, name) in V10.
 
 #### `inspection_classroom_tlm`
 

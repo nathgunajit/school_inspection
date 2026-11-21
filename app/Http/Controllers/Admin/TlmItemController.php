@@ -22,17 +22,21 @@ class TlmItemController extends Controller
     public function index(Request $request)
     {
         $class = (string) $request->query('class', '');
+        $list = array_key_exists((string) $request->query('list'), TlmItem::LISTS) ? (string) $request->query('list') : '';
         $items = TlmItem::query()
+            ->when($list !== '', fn ($q) => $q->where('list', $list))
             ->when($class === self::ALL, fn ($q) => $q->whereNull('class'))
             ->when($class !== '' && $class !== self::ALL, fn ($q) => $q->where('class', $class))
             ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('code', 'like', "%$s%")))
-            ->orderByRaw('class is null')->orderBy('class')->orderBy('sort')->orderBy('name')
+            ->orderByRaw("list = 'ecce'")->orderByRaw('class is null')->orderBy('class')->orderBy('sort')->orderBy('name')
             ->paginate(config('inspection.per_page'))->withQueryString();
 
-        $counts = TlmItem::query()->get(['class'])->countBy(fn ($i) => $i->class ?? self::ALL);
+        $all = TlmItem::query()->get(['list', 'class']);
+        $counts = $all->when($list !== '', fn ($c) => $c->where('list', $list))->countBy(fn ($i) => $i->class ?? self::ALL);
 
         return view('admin.tlm.index', [
-            'items' => $items, 'class' => $class, 'counts' => $counts, 'total' => $counts->sum(),
+            'items' => $items, 'class' => $class, 'list' => $list, 'counts' => $counts, 'total' => $counts->sum(),
+            'listCounts' => $all->countBy('list'), 'lists' => TlmItem::LISTS,
             'classes' => InspectionClassroomObservation::CLASSES,
         ]);
     }
@@ -66,6 +70,8 @@ class TlmItemController extends Controller
     private function validated(Request $request, ?TlmItem $item = null): array
     {
         $data = $request->validate([
+            'list' => ['nullable', Rule::in(array_keys(TlmItem::LISTS))],
+            'section' => ['nullable', 'string', 'max:60'],
             'class' => ['required', Rule::in([self::ALL, ...array_keys(InspectionClassroomObservation::CLASSES)])],
             'name' => ['required', 'string', 'min:2', 'max:150'],
             'code' => ['nullable', 'string', 'max:60'],
@@ -74,6 +80,8 @@ class TlmItemController extends Controller
             'sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
         ], ['class.required' => 'Select the class.', 'class.in' => 'Select a class from the list.']);
 
+        $data['list'] = $data['list'] ?? ($item?->list ?? 'fln');
+        $data['section'] = isset($data['section']) && trim($data['section']) !== '' ? trim($data['section']) : null;
         $data['class'] = $data['class'] === self::ALL ? null : $data['class'];
         $data['name'] = trim($data['name']);
         $data['code'] = isset($data['code']) && trim($data['code']) !== '' ? trim($data['code']) : null;
@@ -81,12 +89,12 @@ class TlmItemController extends Controller
         $data['sort'] = (int) ($data['sort'] ?? 0);
         $data['remarks'] = isset($data['remarks']) && trim($data['remarks']) !== '' ? trim($data['remarks']) : null;
 
-        // one name per class (for "All classes" the DB unique key cannot catch it, since class is null)
-        $dup = TlmItem::where('name', $data['name'])
+        // one name per list and class (for "All classes" the DB unique key cannot catch it, since class is null)
+        $dup = TlmItem::where('list', $data['list'])->where('name', $data['name'])
             ->where(fn ($q) => $data['class'] === null ? $q->whereNull('class') : $q->where('class', $data['class']))
             ->when($item, fn ($q) => $q->whereKeyNot($item->id))->exists();
         if ($dup) {
-            throw ValidationException::withMessages(['name' => 'This item is already in the list for this class.']);
+            throw ValidationException::withMessages(['name' => 'This item is already in the '.(TlmItem::LISTS[$data['list']] ?? 'TLM').' list for this class.']);
         }
 
         return $data;

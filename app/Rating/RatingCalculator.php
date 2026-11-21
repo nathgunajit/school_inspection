@@ -184,6 +184,13 @@ class RatingCalculator
 
                 return $ratio($n('TSI_09'), $total === null ? null : (float) $total);
             case 'trained_teachers':
+                // Modification V10: trained / (trained + untrained) from TSI_14 / TSI_15; older inspections use TSI_10..13
+                if (! Q::legacyTeacherBreakdown($a)) {
+                    $t = $n('TSI_14');
+                    $u = $n('TSI_15');
+
+                    return $t === null || $u === null ? [null, null] : $ratio($t, $t + $u);
+                }
                 $parts = array_map($n, ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13']);
                 if (in_array(null, $parts, true)) {
                     return [null, null];

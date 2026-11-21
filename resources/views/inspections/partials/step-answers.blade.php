@@ -10,9 +10,14 @@
 @endphp
 @if ($n === 2)
     {{-- Figures: label + large number, with automatic totals --}}
-    @php $totS = Q::totalStudents($answers); $totT = Q::totalTeachers($answers); $figs = Q::withDefaults($answers); /* V9: blank optional counts read 0 */ @endphp
+    @php
+        $totS = Q::totalStudents($answers); $totT = Q::totalTeachers($answers); $figs = Q::withDefaults($answers); /* V9: blank optional counts read 0 */
+        // V10: TSI_14 / TSI_15 totals, or the male / female split (TSI_10..13) for an older inspection
+        $skipFig = array_diff(array_merge(Q::TEACHER_BREAKDOWN_CODES, Q::LEGACY_BREAKDOWN_CODES), Q::shownBreakdownCodes($answers));
+    @endphp
     <div class="fig-grid">
         @foreach ($questions[$n] as $q)
+            @continue(in_array($q['code'], $skipFig, true))
             @php $v = $figs[$q['code']] ?? null; $has = V::isFilled($v); @endphp
             <div class="fig-tile {{ $has ? '' : 'is-empty' }}">
                 <span class="fig-label">{{ $q['label'] }}</span>
@@ -26,7 +31,7 @@
         @if ($bd = Q::teacherBreakdown($answers))
             @php $bdBad = $totT !== null && $bd['sum'] > $totT; @endphp
             <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>
-                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>Male {{ $bd['male'] }} · Female {{ $bd['female'] }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>{{ $bd['legacy'] ? 'Male '.$bd['male'].' · Female '.$bd['female'] : 'Trained + Untrained' }}{{ $bdBad ? ' · more than Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
         @endif
     </div>
 @elseif ($n !== 3 && ! empty($questions[$n]))
@@ -62,15 +67,16 @@
 @if ($n === 3)
     @if ($inspection->absentTeachers->isNotEmpty())
         <div class="rv-table-wrap">
-            <table class="rv-table">
+            {{-- Modification V10: each absent teacher on one line (name, type, reason, remarks) --}}
+            <table class="rv-table rv-absent">
                 <thead><tr><th>Sl.</th><th>Name of the teacher</th><th>Type</th><th>Reason for absence</th><th>Remarks</th></tr></thead>
                 <tbody>
                 @foreach ($inspection->absentTeachers as $i => $t)
                     <tr>
                         <td class="rv-sl">{{ $i + 1 }}</td>
                         <td class="rv-wide"><div class="rs-who"><span class="rs-avatar tone-danger">{{ collect(preg_split('/\s+/', trim($t->teacher_name)))->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') }}</span><span class="rv-name">{{ $t->teacher_name }}</span></div></td>
-                        <td data-label="Type"><span class="rs-chip type"><i class="bi bi-person-badge"></i>{{ $t->typeLabel() }}</span></td>
-                        <td data-label="Reason"><span class="rs-chip warn"><i class="bi bi-calendar-x"></i>{{ $t->reasonLabel() }}</span></td>
+                        <td data-label="Type" class="rv-nowrap"><span class="rs-chip type"><i class="bi bi-person-badge"></i>{{ $t->typeLabel() }}</span></td>
+                        <td data-label="Reason" class="rv-nowrap"><span class="rs-chip {{ $t->reason === 'UL' ? 'bad' : 'warn' }}"><i class="bi bi-calendar-x"></i>{{ $t->reasonLabel() }}</span></td>
                         <td data-label="Remarks" class="rv-wide">{!! $t->remarks ? e($t->remarks) : '<span class="rs-dash">—</span>' !!}</td>
                     </tr>
                 @endforeach

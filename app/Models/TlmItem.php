@@ -6,12 +6,17 @@ use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-/** FLN TLM master: items ticked on a classroom observation when TLM was used (step 4). */
+/** TLM master (FLN and, since Modification V10, ECCE): items ticked on a classroom observation when TLM was used (step 4). */
 class TlmItem extends Model
 {
     use HasEncryptedRouteKey;
 
-    protected $fillable = ['class', 'name', 'code', 'variety', 'remarks', 'sort', 'is_active'];
+    /** The TLM lists, in the order they are shown on step 4. */
+    public const LISTS = ['fln' => 'FLN TLM (2026-27)', 'ecce' => 'ECCE TLM (2025-26)'];
+
+    protected $fillable = ['list', 'class', 'section', 'name', 'code', 'variety', 'remarks', 'sort', 'is_active'];
+
+    protected $attributes = ['list' => 'fln'];
 
     protected $casts = ['is_active' => 'boolean', 'variety' => 'integer', 'sort' => 'integer'];
 
@@ -20,10 +25,10 @@ class TlmItem extends Model
         return $q->where('is_active', true);
     }
 
-    /** Active items offered for a class: that class's items plus the "All classes" ones. */
-    public function scopeForClass(Builder $q, ?string $class): Builder
+    /** Active items of one list (FLN by default) for a class: that class's items plus the "All classes" ones. */
+    public function scopeForClass(Builder $q, ?string $class, string $list = 'fln'): Builder
     {
-        return $q->active()->where(fn ($w) => $w->where('class', $class)->orWhereNull('class'))->orderBy('sort')->orderBy('name');
+        return $q->active()->where('list', $list)->where(fn ($w) => $w->where('class', $class)->orWhereNull('class'))->orderBy('sort')->orderBy('name');
     }
 
     public function classLabel(): string
@@ -31,14 +36,25 @@ class TlmItem extends Model
         return $this->class === null ? 'All classes' : (InspectionClassroomObservation::CLASSES[$this->class] ?? $this->class);
     }
 
-    /** Name with its code, e.g. "Karjyapatra (Literacy) · NIPUN AXOM G1L4". */
+    public function listLabel(): string
+    {
+        return self::LISTS[$this->list] ?? strtoupper((string) $this->list);
+    }
+
+    /** Short list name: "FLN" / "ECCE". */
+    public function listShort(): string
+    {
+        return strtoupper((string) $this->list);
+    }
+
+    /** Name with its code, e.g. "Karjyapatra (Literacy) · NIPUN AXOM G1L4"; ECCE items read "ECCE · Number Card". */
     public function fullLabel(): string
     {
-        return $this->name.($this->code ? ' · '.$this->code : '');
+        return ($this->list === 'ecce' ? 'ECCE · ' : '').$this->name.($this->code ? ' · '.$this->code : '');
     }
 
     public function toPickArray(): array
     {
-        return ['id' => $this->id, 'class' => $this->class, 'name' => $this->name, 'code' => $this->code];
+        return ['id' => $this->id, 'list' => $this->list, 'class' => $this->class, 'section' => $this->section, 'name' => $this->name, 'code' => $this->code];
     }
 }

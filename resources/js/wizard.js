@@ -338,7 +338,10 @@ function validateRequired(form) {
 
 /* ---------------- FLN TLM items (step 4, shown when Use of TLM = Yes) ---------------- */
 const tlmBlock = document.getElementById('tlm-items');
-/** Rebuilds the TLM ticks: every active item, grouped by class (Class I, Class II, …, All classes); keeps the ticks given or current. */
+/**
+ * Rebuilds the TLM ticks: every active item, in two lists (Modification V10): FLN grouped by class
+ * (Class I, Class II, …, All classes), then ECCE grouped by its group (TLM for students / schools). Keeps the ticks given or current.
+ */
 function renderTlm(keep) {
     const form = document.getElementById('classroom-form');
     if (!form || !tlmBlock) return;
@@ -348,15 +351,26 @@ function renderTlm(keep) {
     const all = SI.tlmItems || [];
     tlmBlock.classList.toggle('d-none', !yes || !all.length);
     const labels = SI.tlmClasses || {};
-    const order = [...Object.keys(labels), null];
+    const lists = SI.tlmLists || { fln: 'FLN TLM' };
     const chip = (t) => `<input type="checkbox" class="btn-check" name="tlm_items[]" id="tlm_i_${esc(t.id)}" value="${esc(t.id)}"${ticked.includes(String(t.id)) ? ' checked' : ''}>`
         + `<label for="tlm_i_${esc(t.id)}"><i class="bi bi-check-lg"></i><span>${esc(t.name)}${t.code ? `<small>${esc(t.code)}</small>` : ''}</span></label>`;
-    list.innerHTML = order.map((cls) => {
-        const items = all.filter((t) => t.class === cls);
+    const group = (title, items) => {
         if (!items.length) return '';
         const n = items.filter((t) => ticked.includes(String(t.id))).length;
-        return `<div class="tlm-group"><div class="tlm-group-head"><span class="tlm-class">${esc(cls === null ? 'All classes' : (labels[cls] || cls))}</span>`
+        return `<div class="tlm-group"><div class="tlm-group-head"><span class="tlm-class">${esc(title)}</span>`
             + `<span class="tlm-count" data-tlm-count>${n ? `${n} ticked` : `${items.length} items`}</span></div><div class="tlm-chips">${items.map(chip).join('')}</div></div>`;
+    };
+    list.innerHTML = Object.keys(lists).map((key) => {
+        const mine = all.filter((t) => (t.list || 'fln') === key);
+        if (!mine.length) return '';
+        let groups;
+        if (key === 'fln') {
+            groups = [...Object.keys(labels), null].map((cls) => group(cls === null ? 'All classes' : (labels[cls] || cls), mine.filter((t) => t.class === cls)));
+        } else {
+            const names = [...new Set(mine.map((t) => t.section || ''))];
+            groups = names.map((s) => group(s || 'Items', mine.filter((t) => (t.section || '') === s)));
+        }
+        return `<div class="tlm-list is-${esc(key)}"><div class="tlm-list-head"><i class="bi bi-box-seam"></i>${esc(lists[key])}</div>${groups.join('')}</div>`;
     }).join('');
 }
 // keep each group's "n ticked" count live
@@ -434,10 +448,10 @@ const sections = {
             return `<div class="rs-item rs-grid rs-teacher at-${esc(type)}" data-id="${esc(t.id)}">
             <span class="rs-sl">${i + 1}</span>
             <div class="rs-who"><span class="rs-avatar at-avatar">${esc(initials(t.teacher_name))}</span>
-                <div><span class="rs-title">${esc(t.teacher_name)}</span><span class="rs-sub d-md-none">${esc(t.type)}</span></div></div>
-            <div class="rs-cell d-none d-md-block" data-label="Type">${chip('<i class="bi bi-person-badge"></i>' + esc(t.type), 'type')}</div>
-            <div class="rs-cell" data-label="Reason">${chip(`<i class="bi ${ul ? 'bi-exclamation-octagon' : 'bi-calendar-x'}"></i>` + esc(t.reason), ul ? 'bad' : 'warn')}</div>
-            <div class="rs-cell rs-rem" data-label="Remarks">${t.remarks ? `<span class="rs-quote">${esc(t.remarks)}</span>` : '<span class="rs-dash">—</span>'}</div>
+                <div><span class="rs-title">${esc(t.teacher_name)}</span></div></div>
+            <div class="rs-cell rs-nowrap" data-label="Type">${chip('<i class="bi bi-person-badge"></i>' + esc(t.type), 'type')}</div>
+            <div class="rs-cell rs-nowrap" data-label="Reason">${chip(`<i class="bi ${ul ? 'bi-exclamation-octagon' : 'bi-calendar-x'}"></i>` + esc(t.reason), ul ? 'bad' : 'warn')}</div>
+            <div class="rs-cell rs-rem" data-label="Remarks">${t.remarks ? `<span class="rs-quote" title="${esc(t.remarks)}">${esc(t.remarks)}</span>` : '<span class="rs-dash">—</span>'}</div>
             ${rowActions(t)}</div>`;
         },
     },
@@ -888,19 +902,16 @@ if (autoTotals.length) {
             const bad = total !== null && present !== null && present > total;
             paint(t, { total, present, absent: null, bad, extra: bad ? `Teachers present (${fmtInt(present)}) is more than the total. Please check.` : '' });
         }
-        // Trained/untrained and male/female (TSI_10..13) must be less than or equal to Total teachers
+        // Modification V10: Total trained + Total untrained (TSI_14 + TSI_15) must be less than or equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');
         if (bd) {
-            const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
+            const [tr, un] = ['TSI_14', 'TSI_15'].map(val);
             const parts = TEACHER_CODES.map(val);
             const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
-            const all = [mt, mu, ft, fu].every((x) => x !== null);
-            const sum = (...xs) => (xs.every((x) => x !== null) ? xs.reduce((a, b) => a + b, 0) : null);
-            $('[data-at="trained"]', bd).textContent = fmtInt(sum(mt, ft));
-            $('[data-at="untrained"]', bd).textContent = fmtInt(sum(mu, fu));
-            $('[data-at="male"]', bd).textContent = fmtInt(sum(mt, mu));
-            $('[data-at="female"]', bd).textContent = fmtInt(sum(ft, fu));
-            const s = all ? mt + mu + ft + fu : null;
+            const all = tr !== null && un !== null;
+            $('[data-at="trained"]', bd).textContent = fmtInt(tr);
+            $('[data-at="untrained"]', bd).textContent = fmtInt(un);
+            const s = all ? tr + un : null;
             $('[data-at="sum"]', bd).textContent = fmtInt(s);
             const checked = all && total !== null;
             const bad = checked && s > total; // less than or equal to Total teachers is allowed

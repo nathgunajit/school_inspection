@@ -33,7 +33,7 @@ This document goes deeper into the form than `PROJECT_DOCUMENT.md` (section 4.4)
 | Step | Title in the app | What the officer records | Stored in | Required to submit |
 |---|---|---|---|---|
 | 1 | Condition of the School | Person met at the school, and 26 building and facility questions (Yes/No and choices) | `inspection_answers` (`BAS_PERSON_*`, `CND_01`–`CND_26`) | Yes. Every visible, enabled question |
-| 2 | Teacher's & Student's Information | 13 numbers: students present and absent, benches, teachers by type, teachers present, trained and untrained | `inspection_answers` (`TSI_01`–`TSI_13`) | Yes. All 13 |
+| 2 | Teacher's & Student's Information | 11 numbers: students present and absent, benches, teachers by type, teachers present, total trained and total untrained (V10) | `inspection_answers` (`TSI_01`–`TSI_09`, `TSI_14`, `TSI_15`; `TSI_10`–`TSI_13` for older inspections) | Yes. Optional counts read 0 |
 | 3 | Teachers Absentee Form | One row per absent teacher: name, type, reason for leave | `inspection_absent_teachers` | No. Leave it empty if all were present; a warning shows if the numbers don't match |
 | 4 | Class Room Performance | One row per class observed: teacher, class, subject, TLM used, participation, remarks | `inspection_classroom_observations` | Yes. At least 1 row |
 | 5 | Fund Received & Expenditure | Per financial year, in lakh: received and spent for ASG, MDM, Government and Other | `inspection_fund_positions` | No (optional) |
@@ -102,15 +102,20 @@ Every step page has the same frame:
 ### Step 2: Teacher's & Student's Information
 ![Step 2](../docs/screenshots/06-step2-strength.png)
 
-- 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
-- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. Since 20-11-2026 this also applies to `TSI_10`–`TSI_13` (male / female, trained / untrained).
+- 11 whole numbers (`TSI_01`–`TSI_09`, `TSI_14`, `TSI_15`), with − and + buttons. The server accepts only 0–100,000.
+- **Modification V10 (21-11-2026):** only **Total Number of Trained Teachers** (`TSI_14`) and **Total Number of Untrained Teachers** (`TSI_15`) are asked.
+  - The male / female split (`TSI_10`–`TSI_13`) is no longer asked: `'hidden' => true`, no default, not stored for new inspections. The codes are kept, so an inspection answered before V10 still shows its male / female numbers on the report and the PDF.
+  - Which set is used: `QuestionnaireDefinition::legacyTeacherBreakdown()` (TSI_10–13 answered and neither TSI_14 nor TSI_15). Once the officer enters a V10 total, the V10 codes are used.
+  - The rating metric "trained teachers" is TSI_14 / (TSI_14 + TSI_15); older inspections keep the old formula, which gives the same result.
+- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. This also applies to `TSI_14` / `TSI_15` (V10).
   - They have `'default' => 0`: the box shows 0 with the hint "Enter 0 if none".
   - A blank value counts as 0 in the totals (`QuestionnaireDefinition::withDefaults()`).
   - At submit, a blank value is stored as 0.
 - **Automatic totals (display only, not stored):**
   - total students = present + absent
   - **Total teachers** = regular + contractual + SSA + provincialised + newly accorded tutors. Since V9 the box sits **above** the teacher numbers and shows only the total (no Present / Absent).
-- **Blocking:** teachers present more than the total; trained/untrained (and male/female) more than the total.
+  - **Trained + Untrained** (V10): one line under `TSI_15` showing Trained, Untrained and their sum, with "Within / More than Total teachers".
+- **Blocking:** teachers present more than the total; Trained + Untrained more than the total (message on `TSI_14`; on `TSI_10` with male / female for an older draft).
 
 ### Step 3: Teachers Absentee Form
 ![Step 3](../docs/screenshots/07-step3-absentee.png)
@@ -128,6 +133,7 @@ Every step page has the same frame:
   - The server refuses one more row with a 422. A replay of a saved `row_uid` is still accepted.
   - If step 2 is lowered later, the extra rows block Submit.
 - **Warning (does not block):** step 2 shows 3 teachers absent but only 1 row was entered.
+- **One line per teacher (Modification V10):** the list, the review / report table and the PDF keep each absent teacher on a single line: name, **Type** and **Reason for absence** (chips that do not wrap), remarks (shortened, full text on hover), actions. On phones, Type and Reason now both show, side by side under the name.
 
 ### Step 4: Class Room Performance
 ![Step 4](../docs/screenshots/08-step4-classroom.png)
@@ -137,7 +143,7 @@ Every step page has the same frame:
   - **class** (I–XII)
   - **subject:** autocomplete from the subject master (`GET /subjects/suggest`); free text is also allowed
   - **TLM used** (Yes/No)
-  - **TLM items used** (FLN TLM list, shown when TLM = Yes)
+  - **TLM items used** (FLN and ECCE TLM lists, shown when TLM = Yes)
   - **participation** (Satisfactory / Not Satisfactory)
   - **remarks**
 - **At least one row is required** to submit.
@@ -160,7 +166,17 @@ Every step page has the same frame:
 >   - The report, the review and the PDF show "Yes: item · code, …".
 >   - An offline replay (same `row_uid`) stores the same ticks again without duplicating them.
 
+> **ECCE TLM list (Modification V10, 21-11-2026, `Documents/TLM -2025-26-ECCE (1).docx`):**
+> - The TLM picker shows **two lists**, each under its own heading: **FLN TLM (2026-27)** first (grouped by class, as above), then **ECCE TLM (2025-26)** (grouped by its group). Both lists are offered for every class.
+>   - TLM for students (2): Alphabet and Number Tracing Card, Number Dot Domino
+>   - TLM for schools (11): Alphabet Card, Number Card, Picture Story, Picture Reading Poster, Poem Poster, Sound Domino, Pre Number Concept Card, Sequential Thinking Card, Self Corrective Puzzle, Jig Saw Puzzle, User Manual
+> - The "at least one tick" rule counts ticks in both lists.
+> - `tlm_items.list` (`fln` / `ecce`) and `tlm_items.section` (the group) were added; the unique key is now (list, class, name), so the same name may be in both lists.
+> - ECCE items read "ECCE · Number Card" on the report, the review and the PDF, so the two lists are told apart.
+> - TLM Master: a list filter (All lists / FLN / ECCE), a List column, and List + Group in the add and edit forms.
+
 > **20-11-2026: totals and layout**
+> - *(Replaced by Modification V10: only Total trained / Total untrained are asked now. The text below describes inspections answered before 21-11-2026.)*
 > - **Trained / untrained and male / female:** a blank count is 0. The four totals are calculated automatically in a 2×2 box:
 >   - Trained = Male trained + Female trained
 >   - Untrained = Male untrained + Female untrained

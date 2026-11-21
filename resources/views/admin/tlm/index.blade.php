@@ -1,18 +1,27 @@
 @php
     use App\Http\Controllers\Admin\TlmItemController as TC;
     $tabs = ['' => 'All'] + collect($classes)->filter(fn ($l, $k) => isset($counts[$k]))->all() + [TC::ALL => 'All classes'];
+    $keepList = $list !== '' ? ['list' => $list] : [];
 @endphp
 <x-layouts.app title="TLM Master">
-    <ul class="nav nav-pills gap-2 mb-3 flex-nowrap overflow-auto pb-1">
+    {{-- Modification V10: two lists, FLN and ECCE --}}
+    <ul class="nav nav-pills gap-2 mb-2 flex-nowrap overflow-auto pb-1" aria-label="TLM list">
+        @foreach (['' => 'All lists'] + $lists as $k => $l)
+            @php $k = (string) $k; $n = $k === '' ? $listCounts->sum() : ($listCounts[$k] ?? 0); @endphp
+            <li class="nav-item"><a class="nav-link text-nowrap {{ $list === $k ? 'active' : 'bg-white border' }}" href="{{ route('admin.tlm.index', $k === '' ? [] : ['list' => $k]) }}">{{ $l }} <span class="badge {{ $list === $k ? 'bg-white text-primary' : 'text-bg-light' }} ms-1">{{ $n }}</span></a></li>
+        @endforeach
+    </ul>
+    <ul class="nav nav-pills gap-2 mb-3 flex-nowrap overflow-auto pb-1" aria-label="Class">
         @foreach ($tabs as $k => $l)
             @php $k = (string) $k; $n = $k === '' ? $total : ($counts[$k] ?? 0); @endphp
-            <li class="nav-item"><a class="nav-link text-nowrap {{ $class === $k ? 'active' : 'bg-white border' }}" href="{{ route('admin.tlm.index', $k === '' ? [] : ['class' => $k]) }}">{{ $l }} <span class="badge {{ $class === $k ? 'bg-white text-primary' : 'text-bg-light' }} ms-1">{{ $n }}</span></a></li>
+            <li class="nav-item"><a class="nav-link text-nowrap {{ $class === $k ? 'active' : 'bg-white border' }}" href="{{ route('admin.tlm.index', $keepList + ($k === '' ? [] : ['class' => $k])) }}">{{ $l }} <span class="badge {{ $class === $k ? 'bg-white text-primary' : 'text-bg-light' }} ms-1">{{ $n }}</span></a></li>
         @endforeach
     </ul>
 
     <div class="row g-4">
         <div class="col-lg-8">
             <form method="GET" class="filter-bar mb-3 row g-2">
+                @if ($list !== '')<input type="hidden" name="list" value="{{ $list }}">@endif
                 @if ($class !== '')<input type="hidden" name="class" value="{{ $class }}">@endif
                 <div class="col"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="Search TLM by name or code"></div>
                 <div class="col-auto"><button class="btn btn-primary btn-icon" aria-label="Search"><i class="bi bi-search"></i></button></div>
@@ -25,14 +34,16 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 tlm-table">
                             <thead class="table-light">
-                                <tr><th style="width:3rem">Sl.</th><th>Class</th><th>Name of item</th><th>Serial no / Code</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr>
+                                <tr><th style="width:3rem">Sl.</th><th>List</th><th>Class / group</th><th>Name of item</th><th>Serial no / Code</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr>
                             </thead>
                             <tbody>
                                 @foreach ($items as $item)
                                     <tr class="{{ $item->is_active ? '' : 'text-secondary' }}">
                                         <td class="text-secondary">{{ $items->firstItem() + $loop->index }}</td>
-                                        <td class="text-nowrap"><span class="badge text-bg-light">{{ $item->classLabel() }}</span></td>
-                                        <td class="fw-semibold">{{ $item->name }}@unless ($item->is_active) <span class="badge-soft badge-soft-secondary ms-1">Inactive</span>@endunless</td>
+                                        <td class="text-nowrap"><span class="badge tlm-list-badge is-{{ $item->list }}">{{ $item->listShort() }}</span></td>
+                                        <td class="text-nowrap"><span class="badge text-bg-light">{{ $item->classLabel() }}</span>@if ($item->section)<div class="text-xs text-secondary mt-1">{{ $item->section }}</div>@endif</td>
+                                        <td class="fw-semibold">{{ $item->name }}@unless ($item->is_active) <span class="badge-soft badge-soft-secondary ms-1">Inactive</span>@endunless
+                                            @if ($item->remarks)<div class="text-xs text-secondary fw-normal">{{ $item->remarks }}</div>@endif</td>
                                         <td class="font-monospace text-nowrap">{{ $item->code ?: 'NA' }}</td>
                                         <td class="text-end">
                                             <div class="dropdown">
@@ -40,11 +51,16 @@
                                                 <div class="dropdown-menu dropdown-menu-end p-3 shadow border-0 text-start" style="width:300px">
                                                     <form method="POST" action="{{ route('admin.tlm.update', $item) }}">
                                                         @csrf @method('PUT')
+                                                        <label class="form-label text-sm">List</label>
+                                                        <select name="list" class="form-select mb-2" required>
+                                                            @foreach ($lists as $k => $l)<option value="{{ $k }}" @selected($item->list === $k)>{{ $l }}</option>@endforeach
+                                                        </select>
                                                         <label class="form-label text-sm">Class</label>
                                                         <select name="class" class="form-select mb-2" required>
                                                             <option value="{{ TC::ALL }}" @selected($item->class === null)>All classes</option>
                                                             @foreach ($classes as $k => $l)<option value="{{ $k }}" @selected($item->class === (string) $k)>{{ $l }}</option>@endforeach
                                                         </select>
+                                                        <label class="form-label text-sm">Group</label><input name="section" value="{{ $item->section }}" class="form-control mb-2" maxlength="60" placeholder="e.g. TLM for schools">
                                                         <label class="form-label text-sm">Name</label><input name="name" value="{{ $item->name }}" class="form-control mb-2" maxlength="150" required>
                                                         <label class="form-label text-sm">Serial no / code</label><input name="code" value="{{ $item->code }}" class="form-control mb-2" maxlength="60">
                                                         <div class="row g-2 mb-2">
@@ -77,7 +93,12 @@
                 <div class="card-body">
                     <form method="POST" action="{{ route('admin.tlm.store') }}">
                         @csrf
-                        @php $pick = old('class', array_key_exists($class, $classes) ? $class : ''); @endphp
+                        @php $pick = old('class', array_key_exists($class, $classes) ? $class : ''); $pickList = old('list', $list !== '' ? $list : 'fln'); @endphp
+                        <label class="form-label">List</label>
+                        <select name="list" class="form-select mb-3 @error('list') is-invalid @enderror" required>
+                            @foreach ($lists as $k => $l)<option value="{{ $k }}" @selected($pickList === $k)>{{ $l }}</option>@endforeach
+                        </select>
+                        @error('list')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
                         <label class="form-label">Class</label>
                         <select name="class" class="form-select mb-3 @error('class') is-invalid @enderror" required>
                             <option value="">Select</option>
@@ -85,6 +106,8 @@
                             @foreach ($classes as $k => $l)<option value="{{ $k }}" @selected($pick === (string) $k)>{{ $l }}</option>@endforeach
                         </select>
                         @error('class')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
+                        <label class="form-label">Group <span class="opt">optional</span></label>
+                        <input name="section" value="{{ old('section') }}" maxlength="60" class="form-control mb-3" placeholder="e.g. TLM for schools (ECCE)">
                         <label class="form-label">Name of item</label>
                         <input name="name" value="{{ old('name') }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Karjyapatra (Literacy)" required>
                         @error('name')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
@@ -100,7 +123,7 @@
                     </form>
                 </div>
             </div>
-            <div class="alert alert-light border text-sm mt-3"><i class="bi bi-info-circle me-1"></i>Officers see these items on Step 4 (Classroom performance) when "Use of TLM by teacher" is Yes, for the class observed. Items are not deleted: make them inactive instead, so older reports keep them.</div>
+            <div class="alert alert-light border text-sm mt-3"><i class="bi bi-info-circle me-1"></i>Officers see the FLN and the ECCE lists on Step 4 (Classroom performance) when "Use of TLM by teacher" is Yes. FLN items are grouped by class, ECCE items by group. Items are not deleted: make them inactive instead, so older reports keep them.</div>
         </div>
     </div>
 </x-layouts.app>

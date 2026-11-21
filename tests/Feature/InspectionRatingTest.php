@@ -100,6 +100,12 @@ class InspectionRatingTest extends TestCase
         $this->assertEquals(0.5, $points['classroom_participation']);
         $this->assertEquals(1.0, $points['fund_utilisation']); // 2 of 2 lakh
 
+        // Modification V10: trained share from the totals TSI_14 / TSI_15 (the answers above are an older inspection)
+        $v10 = array_diff_key($answers, array_flip(['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'])) + ['TSI_14' => 3, 'TSI_15' => 1];
+        $this->assertEquals(0.75, collect(RatingCalculator::calculate($all, DefaultScheme::BANDS, $v10, $rows)['details'])->pluck('points', 'code')['trained_teachers']);
+        $none = array_diff_key($v10, ['TSI_14' => 1, 'TSI_15' => 1]) + ['TSI_14' => 0, 'TSI_15' => 0];
+        $this->assertNull(collect(RatingCalculator::calculate($all, DefaultScheme::BANDS, $none, $rows)['details'])->pluck('points', 'code')['trained_teachers']);
+
         // no absentees, no classrooms, nothing received, no students → N/A, not zero
         $empty = collect(RatingCalculator::calculate($all, DefaultScheme::BANDS, ['TSI_01' => 0, 'TSI_02' => 0], ['funds' => [['asg_received' => 0]]])['details'])->pluck('points', 'code');
         foreach (['student_attendance', 'teacher_attendance', 'absentee_authorised', 'classroom_tlm', 'fund_utilisation'] as $k) {

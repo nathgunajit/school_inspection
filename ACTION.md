@@ -2125,3 +2125,23 @@ Plan approved by the user. Decisions:
   - `php artisan test`: 187 passed
   - the real PDF renders
   - page images were checked for a 5-page inspection with absentee, classroom, TLM, fund and 4 photos
+
+## 2026-11-21 — Modification V10: ECCE TLM list, Step 2 trained / untrained totals, absent teachers on one line
+- Source: `Documents/Modification of the ApplicationV10.docx` (3 points) and `Documents/TLM -2025-26-ECCE (1).docx`.
+- **1. ECCE TLM next to FLN:**
+  - Migration `2026_11_21_000001_tlm_lists_ecce`: `tlm_items.list` (fln / ecce) and `tlm_items.section`. The unique key is now (list, class, name). It seeds 13 ECCE items (2 "TLM for students", 11 "TLM for schools", all classes).
+  - Step 4 shows two headed lists, FLN TLM (by class) then ECCE TLM (by group), both for every class (`renderTlm()`). At least one tick across both when TLM = Yes; replay-safe as before.
+  - ECCE items print as "ECCE · name" on the review, report and PDF (`TlmItem::fullLabel()`).
+  - TLM Master: list filter, List column, List + Group fields; the duplicate check is per list.
+- **2. Step 2 only total trained / untrained** (choice: replace the 4 inputs with 2):
+  - New codes `TSI_14` Total trained and `TSI_15` Total untrained (optional, default 0). `TSI_10`–`TSI_13` are hidden with no default (codes kept, never reused).
+  - `teacherBreakdown()` / `legacyTeacherBreakdown()` / `shownBreakdownCodes()`: older inspections keep the male / female split on the report and the PDF (4th box only for them).
+  - Validation message on `TSI_14` ("Trained + Untrained ... more than Total teachers"); live box shows Trained, Untrained and the sum.
+  - Rating metric `trained_teachers` = TSI_14 / (TSI_14 + TSI_15); older inspections keep the old formula (same result), so no new scheme version.
+- **3. Absent teachers on one line:** wizard row grid (Type and Reason size to their chip, no wrapping, Type now shown on phones too, remarks shortened with full text on hover), report table `.rv-absent` / `.rv-nowrap`, PDF `.dt.abs` (Name 30 %, Type 18 %, Reason 24 %, no wrap).
+- Files: `app/Models/TlmItem.php`, `app/Http/Controllers/Admin/TlmItemController.php`, `app/Http/Controllers/InspectionController.php`, `app/Questionnaire/QuestionnaireDefinition.php`, `app/Questionnaire/InspectionValidator.php`, `app/Rating/RatingCalculator.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `resources/views/admin/tlm/index.blade.php`, `resources/views/inspections/{step,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, the migration, tests (`ModificationV10Test` new; `TeacherTotalsTest`, `TlmItemsTest`, `ModificationV9Test`, `InspectionRatingTest`, `InspectionFlowTest` updated), docs (`CLAUDE.md`, `Product Details/*.md`, Requirements copies, rebuilt docx).
+- Verified:
+  - `php artisan test`: 193 passed, 1 failed. The failure is `LoginMathCaptchaTest` (looks for "Solve the sum"), caused by an uncommitted label change in `resources/views/partials/math-captcha.blade.php` that is not part of V10. That file was left out of this commit.
+  - `php artisan migrate` (local MySQL): 13 ECCE + 11 FLN items.
+  - `npm run build`: OK.
+  - Not checked visually in a browser.

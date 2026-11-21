@@ -62,7 +62,7 @@ class ModificationV9Test extends TestCase
             $v = match ($q['type']) {
                 'radio', 'select' => array_key_first($q['options']),
                 'multi' => [array_key_first($q['options'])],
-                'number' => in_array($code, ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'], true) ? 0 : 3,
+                'number' => in_array($code, ['TSI_14', 'TSI_15'], true) ? 0 : 3,
                 default => 'Observed',
             };
             $answers[$code] = $v;
@@ -106,8 +106,11 @@ class ModificationV9Test extends TestCase
 
         $this->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect(route('inspections.submitted', $i));
         $answers = $i->fresh()->answerMap();
-        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
+        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_14', 'TSI_15'] as $c) { // trained / untrained too (V10: TSI_14 / TSI_15)
             $this->assertSame(0, $answers[$c], $c);
+        }
+        foreach (['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // V10: male / female split no longer stored
+            $this->assertArrayNotHasKey($c, $answers);
         }
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);
     }

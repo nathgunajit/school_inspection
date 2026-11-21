@@ -96,6 +96,10 @@
     .dt.cls tr.main td { border-bottom: 0; }
     .dt.cls tr.sub td { padding-top: 0; font-size: 7.6pt; color: #475569; }
     .dt.cls tr.sub b { color: #15803d; }
+    /* V10: absent teachers on one line */
+    .dt.abs td { vertical-align: middle; }
+    .dt td.nw { white-space: nowrap; overflow: hidden; }
+    .dt.abs .pill { padding: .2mm 1.4mm; font-size: 7pt; }
     .pill { display: inline-block; padding: .2mm 1.8mm; border-radius: 2mm; font-size: 7.4pt; font-weight: bold; }
     .pill.ok { background: #e3f4e9; color: #166534; } .pill.bad { background: #fde8e7; color: #b42318; } .pill.warn { background: #fef1df; color: #9a4a00; }
     .small { font-size: 7.4pt; color: #475569; margin-top: .6mm; }
@@ -105,6 +109,7 @@
     /* Step 2 figure boxes */
     .figs td { width: 25%; padding: 0 1.2mm 0 0; vertical-align: top; }
     .figs td.last { padding-right: 0; }
+    .figs.three td { width: 33.33%; }
     .fig { border: .6px solid #dbe3ef; border-radius: 1.6mm; padding: 2mm 2.6mm; background: #f5f8fd; }
     .fig .big { font-size: 13pt; font-weight: bold; color: #0d47a1; margin-top: .4mm; }
     .fig .small { margin-top: .2mm; }
@@ -196,7 +201,10 @@
     @continue($n === count($steps))
     @php
         $sec++;
-        $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_') || $q['code'] === 'ABS_00')->filter(fn ($q) => V::visible($q, $answers))->values();
+        $qs = collect($questions[$n])->reject(fn ($q) => str_starts_with($q['code'], 'BAS_') || $q['code'] === 'ABS_00')
+            // V10: an older inspection still prints its male / female split (TSI_10..13, hidden now) instead of TSI_14 / TSI_15
+            ->filter(fn ($q) => $n === 2 && in_array($q['code'], array_merge(QD::TEACHER_BREAKDOWN_CODES, QD::LEGACY_BREAKDOWN_CODES), true)
+                ? in_array($q['code'], QD::shownBreakdownCodes($answers), true) : V::visible($q, $answers))->values();
         $count = match ($n) {
             3 => $inspection->absentTeachers->count().' absent', 4 => $inspection->classroomObservations->count().' observed',
             5 => $inspection->fundPositions->count().' year(s)', default => '',
@@ -213,11 +221,15 @@
     @if ($n === 2)
         {{-- figures first: four boxes with the automatic totals --}}
         @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $bd = QD::teacherBreakdown($answers); $fa = QD::withDefaults($answers); @endphp
-        <table class="figs"><tr>
+        <table class="figs {{ $bd && $bd['legacy'] ? '' : 'three' }}"><tr>
             <td><div class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></div></td>
             <td><div class="fig"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
-            <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted</div></div></td>
-            <td class="last"><div class="fig"><div class="lbl">Male / Female</div><div class="big">{{ $bd ? $bd['male'].' / '.$bd['female'] : '—' }}</div><div class="small">not more than Total teachers</div></div></td>
+            @if ($bd && $bd['legacy'])
+                <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd['trained'].' / '.$bd['untrained'] }}</div><div class="small">of {{ $bd['sum'] }} counted</div></div></td>
+                <td class="last"><div class="fig"><div class="lbl">Male / Female</div><div class="big">{{ $bd['male'].' / '.$bd['female'] }}</div><div class="small">not more than Total teachers</div></div></td>
+            @else
+                <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted · not more than Total teachers</div></div></td>
+            @endif
         </tr></table>
         @if ($qs->isNotEmpty())
             <table class="qa" style="margin-top:2.4mm">
@@ -244,10 +256,11 @@
     @if ($open && in_array($n, [3, 4], true) && ! $smallTable)</div>@php $open = false; @endphp @endif
     @if ($n === 3)
         @if ($inspection->absentTeachers->isNotEmpty())
-            <table class="dt"><thead><tr><th class="sl">Sl.</th><th style="width:28%">Name of the teacher</th><th style="width:20%">Type</th><th style="width:25%">Reason for absence</th><th style="width:20%">Remarks</th></tr></thead>
+            {{-- Modification V10: one line per absent teacher (type and reason do not wrap) --}}
+            <table class="dt abs"><thead><tr><th class="sl">Sl.</th><th style="width:30%">Name of the teacher</th><th style="width:18%">Type</th><th style="width:24%">Reason for absence</th><th>Remarks</th></tr></thead>
                 @foreach ($inspection->absentTeachers as $i => $t)
-                    <tr><td class="sl">{{ $i + 1 }}</td><td><b>{{ $t->teacher_name }}</b></td><td>{{ $t->typeLabel() }}</td>
-                        <td><span class="pill {{ $t->reason === 'UL' ? 'bad' : 'warn' }}">{{ $t->reasonLabel() }}</span></td><td>{{ $t->remarks ?: '—' }}</td></tr>
+                    <tr><td class="sl">{{ $i + 1 }}</td><td><b>{{ $t->teacher_name }}</b></td><td class="nw">{{ $t->typeLabel() }}</td>
+                        <td class="nw"><span class="pill {{ $t->reason === 'UL' ? 'bad' : 'warn' }}">{{ $t->reasonLabel() }}</span></td><td>{{ $t->remarks ?: '—' }}</td></tr>
                 @endforeach
             </table>
         @else <div class="note">{{ V::allTeachersPresent($answers) ? 'All teachers present (no absent teacher).' : 'No absent teachers recorded.' }}</div> @endif

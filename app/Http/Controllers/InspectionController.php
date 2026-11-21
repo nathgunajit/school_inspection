@@ -140,7 +140,7 @@ class InspectionController extends Controller
             'classroomRows' => $this->classroomRows($inspection),
             'fundRows' => $this->fundRows($inspection),
             'financialYears' => InspectionFundPosition::financialYears(),
-            'tlmItems' => TlmItem::active()->orderByRaw('class is null')->orderBy('sort')->orderBy('name')->get()->map->toPickArray()->all(),
+            'tlmItems' => TlmItem::active()->orderByRaw("list = 'ecce'")->orderByRaw('class is null')->orderBy('sort')->orderBy('name')->get()->map->toPickArray()->all(),
         ]);
     }
 

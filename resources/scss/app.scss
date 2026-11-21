@@ -2162,6 +2162,7 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
 .rs-cell { min-width: 0; font-size: .8rem; color: #334155; }
 .rs-rem { color: #475569; font-size: .76rem; overflow-wrap: anywhere; }
 .rs-dash { color: #cbd5e1; }
+.rs-nowrap .rs-chip, .rv-nowrap .rs-chip { white-space: nowrap; }
 .rs-chip { font-weight: 500; padding: .2rem .6rem; font-size: .7rem;
     &.type { background: rgba($primary, .08); color: #0d47a1; } }
 .rs-extra { grid-column: 1 / -1; display: flex; flex-direction: column; gap: .35rem; padding-top: .1rem;
@@ -2182,7 +2183,10 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     .rs-thead { display: grid; gap: .75rem; padding: .55rem .9rem; background: linear-gradient(180deg, #f7f9fc, #f1f5fa); border-bottom: 1px solid #e3e8f0;
         border-radius: .9rem .9rem 0 0; font-size: .66rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
     .rs-grid.rs-item { gap: .4rem .75rem; padding: .7rem .9rem; }
-    .rs-teacher { grid-template-columns: 30px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.3fr) 128px; }
+    // V10: one line per absent teacher; Type and Reason size to their chip, the name and remarks share the rest
+    .rs-teacher { grid-template-columns: 30px minmax(0, 1.4fr) max-content max-content minmax(0, 1fr) 96px;
+        .rs-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rs-rem .rs-quote { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
     .rs-class-row { grid-template-columns: 30px 44px minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1.1fr) 128px;
         .rs-extra { grid-column: 3 / -1; } }
     .rs-fund { grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 1fr)) 128px;
@@ -2214,22 +2218,22 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     &::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #1e9b4b; } }
 .tlm-count { font-size: .66rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: #ecf8f0; color: #15803d; }
 .tlm-chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+// Modification V10: FLN and ECCE lists, each under its own heading
+.tlm-list { display: flex; flex-direction: column; gap: .5rem;
+    & + .tlm-list { margin-top: .35rem; padding-top: .7rem; border-top: 1px dashed #dbe3ef; } }
+.tlm-list-head { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700; color: #0d47a1; i { color: $primary; } }
+.tlm-list.is-ecce {
+    .tlm-list-head { color: #9a4a00; i { color: $warning; } }
+    .tlm-group { border-color: #f6dfc2; }
+    .tlm-class { color: #9a4a00; &::before { background: $warning; } }
+    .tlm-count { background: #fff4e6; color: #9a4a00; } }
+.tlm-list-badge { font-weight: 700; letter-spacing: .04em;
+    &.is-fln { background: rgba($success, .12); color: #137a3a; }
+    &.is-ecce { background: rgba($warning, .15); color: #9a4a00; } }
 
-// Step 2: trained / untrained and male / female breakdown as a 2 x 2 grid
-.auto-total.at-breakdown { display: block; padding: .8rem .9rem; }
-.bd-head { display: flex; align-items: center; gap: .75rem; margin-bottom: .65rem; }
-.bd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
-.bd-cell { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 .5rem; padding: .55rem .7rem; border-radius: .7rem; background: #fff;
-    border: 1px solid #e3e8f0; box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-    b { grid-row: 1 / span 2; grid-column: 2; font-size: 1.45rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #0d47a1; line-height: 1; }
-    small { font-size: .64rem; color: #94a3b8; }
-    .bd-name { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; font-weight: 600; color: #1e293b; i { color: $primary; } }
-    &.bd-trained .bd-name i, &.bd-trained b { color: #137a3a; }
-    &.bd-untrained .bd-name i, &.bd-untrained b { color: #b45309; }
-    &.bd-female .bd-name i, &.bd-female b { color: #ad1457; } }
-.bd-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .3rem .75rem; margin-top: .6rem; font-size: .76rem; color: #475569;
-    .bd-sum b { font-size: 1rem; color: #0f172a; font-variant-numeric: tabular-nums; margin-left: .25rem; } }
-@include media-breakpoint-down(sm) { .bd-cell b { font-size: 1.2rem; } .bd-cell small { display: none; } }
+// Step 2 (Modification V10): Trained + Untrained against Total teachers, one line like the other totals
+.auto-total.at-breakdown .at-parts b { font-variant-numeric: tabular-nums; }
+.auto-total.at-breakdown [data-at-extra] i { margin-right: .2rem; }
 
 // Review / report: absent teachers and classroom performance tables (stack into cards on phones)
 .rv-table-wrap { border: 1px solid #e3e8f0; border-radius: .9rem; overflow: hidden; background: #fff; margin: .25rem 0 .75rem;
@@ -2245,7 +2249,10 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     .rv-sub { display: block; font-size: .72rem; color: #64748b; font-weight: 400; }
     .rs-classbadge { width: 34px; height: 34px; font-size: .72rem; border-radius: 10px; }
     .rs-tlm { margin-top: .35rem; }
-    .rs-tlm-chip { font-size: .66rem; } }
+    .rs-tlm-chip { font-size: .66rem; }
+    // V10: absent teachers on one line: type and reason keep their width, cells centred
+    .rv-nowrap { white-space: nowrap; width: 1%; }
+    &.rv-absent td { vertical-align: middle; } }
 @include media-breakpoint-down(md) {
     .rv-table-wrap { border: 0; background: transparent; box-shadow: none; overflow: visible; }
     .rv-table { thead { display: none; }
@@ -2256,6 +2263,7 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
         td[data-label]::before { content: attr(data-label); display: block; font-size: .6rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: .1rem; }
         .rv-sl { display: none; }
         .rv-wide { grid-column: 1 / -1; }
+        .rv-nowrap { width: auto; }
         .rv-badge { position: absolute; top: .7rem; right: .8rem; }
         .rv-badge + td { padding-right: 2.8rem; } }
 }
