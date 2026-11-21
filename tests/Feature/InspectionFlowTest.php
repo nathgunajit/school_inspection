@@ -60,7 +60,7 @@ class InspectionFlowTest extends TestCase
     private function completeAll(Inspection $i): void
     {
         // every number is 1, so Total teachers = 5; the trained/untrained breakdown must add up to it
-        $overrides = ['TSI_09' => 4, 'TSI_10' => 2];
+        $overrides = ['TSI_09' => 5, 'TSI_10' => 2]; // all 5 present, so step 3 needs no absent row
         $answers = [];
         foreach (Q::all() as $code => $q) {
             if (! InspectionValidator::visible($q, $answers)) {
@@ -77,7 +77,7 @@ class InspectionFlowTest extends TestCase
             $this->answer($i, $code, $v)->assertOk();
         }
         $this->classroom($i)->assertOk();
-        // step 3 is done through ABS_00 (all teachers present, answered above); step 5 needs one fund year
+        // step 3 needs nothing: Total 5 = Present 5 (step 2); step 5 needs one fund year
         $this->postJson(route('inspections.funds.store', $i), ['financial_year' => \App\Models\InspectionFundPosition::financialYears()[0], 'asg_received' => 1])->assertOk();
         foreach (array_keys(config('inspection.mandatory_photos')) as $cat) {
             $this->photo($i, $cat)->assertCreated();
@@ -270,12 +270,12 @@ class InspectionFlowTest extends TestCase
             ->assertOk()->assertJsonCount(1, 'teachers')->assertJsonPath('teachers.0.reason', 'Casual Leave (CL)');
         $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'S. Ali', 'teacher_type' => 'tutor', 'reason' => 'UL'])->assertJsonCount(2, 'teachers');
 
-        // Warning (non-blocking) when absentees fewer than implied absence
+        // Step 3 needs exactly Total - Present absent rows (blocking since 21-11-2026)
         foreach (['TSI_04' => 4, 'TSI_05' => 1, 'TSI_06' => 0, 'TSI_07' => 0, 'TSI_08' => 0, 'TSI_09' => 1] as $c => $v) {
             $this->answer($i, $c, $v);
         }
-        $warn = (new InspectionValidator($i->fresh()))->warnings();
-        $this->assertStringContainsString('4 teacher(s) appear absent; 2 entered', implode(' ', $warn[3] ?? []));
+        $miss = collect((new InspectionValidator($i->fresh()))->missing()[3] ?? [])->pluck('message')->implode(' ');
+        $this->assertStringContainsString('Add the details of all 4 absent teacher(s) (2 added)', $miss);
         // present > total is blocking (teacher totals rule)
         $this->answer($i, 'TSI_09', 9);
         $this->assertContains('TSI_09', $this->missingCodes($i, 2));

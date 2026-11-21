@@ -85,9 +85,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Absent teachers stay on one line (wizard `.rs-teacher`, report `.rv-absent` / `.rv-nowrap`, PDF `.dt.abs`); Type shows on phones too.
 - Modification V9, questionnaire:
   - `BAS_PERSON_*` are `'hidden' => true`: not rendered, not required (`InspectionValidator::visible()`). They are shown on the report only for older inspections.
-  - TSI_05–TSI_13 have `'default' => 0` (TSI_10–13 since 20-11-2026; `teacherBreakdown()` applies the defaults): not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
+  - TSI_05–TSI_08 and TSI_10–TSI_13 have `'default' => 0` (TSI_09 Present is required since 21-11-2026) (TSI_10–13 since 20-11-2026; `teacherBreakdown()` applies the defaults): not required, shown as 0, counted as 0 (`QuestionnaireDefinition::withDefaults()`), and stored as 0 at submit.
   - Step 2 shows only Total teachers, above TSI_04.
-  - Absent rows must be ≤ Total teachers − Present (`InspectionValidator::absentLimit()`). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
+  - Absent rows must be **equal to** Total teachers − Present (`InspectionValidator::absentLimit()`, since 21-11-2026; was ≤). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
   - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).
 - FLN TLM (`Documents/FLN TLM list_2026-27.docx`) and, since V10, ECCE TLM (`Documents/TLM -2025-26-ECCE (1).docx`), step 4: when `tlm_used = yes`, the officer ticks the TLM items used.
   - Every active item is offered, grouped by class in `renderTlm()` (`SI.tlmClasses`), whatever class is observed.
@@ -102,7 +102,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - `app/Questionnaire/QuestionnaireDefinition.php`: the **fixed** questionnaire, **Version 2** (from `Documents/Modification of the ApplicationV1.docx`). It has 7 steps:
   1. Condition (`CND_*` + `BAS_PERSON_*`)
   2. Teacher/Student numbers (`TSI_*`)
-  3. Absentee rows (`inspection_absent_teachers`), or `ABS_00` "All teachers present"; one of them is required (`InspectionValidator`)
+  3. Absentee rows (`inspection_absent_teachers`): exactly Total teachers − Present (`TSI_09`, required) rows since 21-11-2026; none when all are present (step 2 Next then skips to step 4). `ABS_00` is hidden (kept for old data)
   4. Classroom rows (`inspection_classroom_observations`)
   5. Fund by financial year in lakh (`inspection_fund_positions`); optional since V9
   6. Governance (`GOVR_*`) + 3 suggestions

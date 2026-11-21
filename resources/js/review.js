@@ -9,19 +9,33 @@ const acc = document.getElementById('reviewAcc');
 const toggle = document.querySelector('[data-review-toggle-all]');
 if (acc && toggle) {
     const panels = () => [...acc.querySelectorAll(':scope .collapse')];
+    const paintToggle = (allOpen) => {
+        toggle.innerHTML = allOpen ? '<i class="bi bi-arrows-collapse"></i><span>Collapse all</span>' : '<i class="bi bi-arrows-expand"></i><span>Expand all</span>';
+        toggle.setAttribute('aria-expanded', allOpen ? 'true' : 'false');
+        toggle.classList.toggle('is-open', allOpen);
+    };
+    // each step: open accent + "Show" / "Hide" text next to its round caret
+    const paintStep = (panel, open) => {
+        if (!panel.id?.startsWith('rs-')) return; // only the step panels
+        const step = panel.closest('.review-step');
+        step?.classList.toggle('is-open', open);
+        const t = step?.querySelector('.rc-text');
+        if (t) t.textContent = open ? t.dataset.hide : t.dataset.show;
+    };
     const label = () => {
         const all = panels();
         const open = all.filter((p) => p.classList.contains('show') || p.classList.contains('collapsing')).length;
-        toggle.textContent = open === all.length ? 'Collapse all' : 'Expand all';
-        toggle.setAttribute('aria-expanded', open === all.length ? 'true' : 'false');
+        paintToggle(open === all.length);
     };
     toggle.addEventListener('click', () => {
         const all = panels();
         const expand = all.some((p) => !p.classList.contains('show'));
         all.forEach((p) => Collapse.getOrCreateInstance(p, { toggle: false })[expand ? 'show' : 'hide']());
-        toggle.textContent = expand ? 'Collapse all' : 'Expand all';
+        paintToggle(expand);
     });
     // keep the label right when single steps are opened or closed by hand
+    acc.addEventListener('show.bs.collapse', (e) => paintStep(e.target, true));
+    acc.addEventListener('hide.bs.collapse', (e) => paintStep(e.target, false));
     acc.addEventListener('shown.bs.collapse', label);
     acc.addEventListener('hidden.bs.collapse', label);
     label();

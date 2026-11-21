@@ -105,7 +105,7 @@ Every step page has the same frame:
 - 13 whole numbers (`TSI_01`–`TSI_13`), with − and + buttons. The server accepts only 0–100,000.
 - **V10 Step 2 change rolled back (21-11-2026):** V10 briefly replaced the male / female counts with two totals (`TSI_14` Total trained, `TSI_15` Total untrained). That was rolled back the same day: the four counts `TSI_10`–`TSI_13` are asked again.
   - `TSI_14` / `TSI_15` are kept as hidden codes (no default, never reused). An inspection saved with only those totals still shows them on the report and the PDF (`QuestionnaireDefinition::totalsOnlyBreakdown()`), and its rating uses them.
-- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded and `TSI_09` Present are not required. Since 20-11-2026 this also applies to `TSI_10`–`TSI_13` (male / female, trained / untrained).
+- **Optional counts (Modification V9):** `TSI_05` Contractual, `TSI_06` SSA, `TSI_07` Provincialised, `TSI_08` Newly accorded are not required (`TSI_09` Present was optional too until 21-11-2026; it is now required because it decides step 3). Since 20-11-2026 this also applies to `TSI_10`–`TSI_13` (male / female, trained / untrained).
   - They have `'default' => 0`: the box shows 0 with the hint "Enter 0 if none".
   - A blank value counts as 0 in the totals (`QuestionnaireDefinition::withDefaults()`).
   - At submit, a blank value is stored as 0.
@@ -116,7 +116,9 @@ Every step page has the same frame:
 
 ### Step 3: Teachers Absentee Form
 ![Step 3](../docs/screenshots/07-step3-absentee.png)
-
+> **Driven by step 2 (21-11-2026):** Absent = Total teachers − Present (`TSI_09`, now required). When it is **0**, the step shows "All teachers present today: nothing to fill", is **Done** with no rows, and step 2's Next goes straight to step 4. When it is **N > 0**, exactly **N** absent-teacher rows are required (blocking); the header shows "added / N". Until both numbers are entered the step says "Enter the teacher numbers on step 2 first". The old switch `ABS_00` "All teachers present" is hidden (code kept for older drafts and reports).
+>
+> *Before 21-11-2026:* Done when at least one absent teacher was added or `ABS_00` was ticked.
 > **Completion (20-11-2026):** the step shows **Not started** until the officer acts, and becomes **Done** when at least one absent teacher is added **or** the switch **ABS_00 "All teachers present"** is ticked. Both together is an error ("remove the absent teachers, or untick"). While rows exist, the switch is locked; when it is ticked, the add form is hidden. Required before Submit.
 
 - Add one row per absent teacher:
@@ -125,7 +127,7 @@ Every step page has the same frame:
   - **reason:** CL, EL, Maternity Leave, CCL, Study Leave, Medical Leave, Un-authorised Leave
   - **remarks** (optional)
 - Rows can be edited and deleted. Every change returns the new list and the progress.
-- **Limit (Modification V9, blocking):** at most **Total teachers − Present** absent teachers (`InspectionValidator::absentLimit()`).
+- **Count (blocking):** exactly **Total teachers − Present** absent teachers (`InspectionValidator::absentLimit()`; "at most" from V9 until 21-11-2026).
   - The counter shows "added / allowed", and the Add button rests once the limit is reached.
   - The server refuses one more row with a 422. A replay of a saved `row_uid` is still accepted.
   - If step 2 is lowered later, the extra rows block Submit.

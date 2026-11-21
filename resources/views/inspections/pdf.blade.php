@@ -263,7 +263,7 @@
                         <td class="nw"><span class="pill {{ $t->reason === 'UL' ? 'bad' : 'warn' }}">{{ $t->reasonLabel() }}</span></td><td>{{ $t->remarks ?: '—' }}</td></tr>
                 @endforeach
             </table>
-        @else <div class="note">{{ V::allTeachersPresent($answers) ? 'All teachers present (no absent teacher).' : 'No absent teachers recorded.' }}</div> @endif
+        @else <div class="note">{{ V::allTeachersPresent($answers) || V::absentLimit($answers) === 0 ? 'All teachers present (no absent teacher).' : 'No absent teachers recorded.' }}</div> @endif
     @endif
     @if ($n === 4)
         @if ($inspection->classroomObservations->isNotEmpty())

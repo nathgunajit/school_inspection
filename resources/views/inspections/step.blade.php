@@ -13,7 +13,7 @@
     $intro = [
         1 => 'Check the school building and facilities.',
         2 => 'Enter today\'s numbers. Use − / + or type the figure. Leave 0 where there are none.',
-        3 => 'Add every teacher absent today, or tick “All teachers present”.',
+        3 => 'Add the details of each teacher absent today. The number comes from step 2 (Total teachers − Present).',
         4 => 'Observe at least one class and record how it was taught.',
         5 => 'Optional: choose a year, then enter amounts in lakh (e.g. .2 = 0.20).',
         6 => 'Record how the school is run, then add up to three suggestions.',
@@ -118,6 +118,15 @@
                                         <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
+                                @elseif ($q['code'] === 'TSI_09')
+                                    {{-- 21-11-2026: Total - Present decides step 3 (absent teacher details, or nothing to fill) --}}
+                                    <div class="col-12"><div class="auto-total at-absent" data-auto-total="absent" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-person-x"></i></span>
+                                        <span class="at-label">Teachers absent today<small>Total teachers − Present · calculated automatically</small></span>
+                                        <span class="at-parts"><span>Total <b data-at="ttotal">–</b></span><span>Present <b data-at="present">–</b></span></span>
+                                        <span class="at-value" data-at="total">–</span>
+                                        <span class="at-next" data-at-extra></span>
+                                    </div></div>
                                 @elseif ($q['code'] === 'TSI_13')
                                     {{-- Total trained / untrained only (no male / female). Trained + Untrained must be equal to Total teachers (blocking rule). --}}
                                     {{-- Calculated automatically; a blank count is 0. --}}
@@ -136,7 +145,7 @@
                                 @endif
                             @endforeach
                         </div>
-                    @elseif ($step !== 3) {{-- step 3 renders its only question (ABS_00) in the #all-present box --}}
+                    @elseif ($step !== 3) {{-- step 3 has no questions (ABS_00 hidden); it follows the step 2 numbers --}}
                         @foreach ($questions as $i => $q)
                             {!! $groupHead($q['code']) !!}
                             @include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])
@@ -145,25 +154,40 @@
 
                     {{-- ============ STEP 3: Teachers absentee (repeating) ============ --}}
                     @if ($step === 3)
-                        {{-- Done when an absent teacher is added, or "All teachers present" is ticked --}}
-                        <div class="all-present" id="all-present">
-                            @foreach ($questions as $q)
-                                @include('inspections.partials.question', ['q' => $q, 'n' => 1])
-                            @endforeach
-                            <div class="all-present-hint text-xs text-secondary d-none" data-all-present-locked><i class="bi bi-info-circle"></i> Remove the absent teachers below to tick this.</div>
-                        </div>
-                        <div class="rs-head">
+                        @php
+                            // Step 3 follows step 2 (21-11-2026): absent = Total teachers - Present; exactly that many rows
+                            $tTotal = \App\Questionnaire\QuestionnaireDefinition::totalTeachers($answers);
+                            $tPresent = $answers['TSI_09'] ?? null;
+                        @endphp
+                        @if ($absentLimit === null)
+                            <div class="absent-state is-wait" data-absent-state>
+                                <span class="as-icon"><i class="bi bi-hourglass-split"></i></span>
+                                <div class="as-text"><strong>Enter the teacher numbers on step 2 first</strong>
+                                    <span>Total teachers and Teachers present decide how many absent teachers to record here.</span></div>
+                                <a href="{{ route('inspections.step', [$inspection, 2]) }}" class="btn btn-soft-primary"><i class="bi bi-arrow-left"></i>Go to step 2</a>
+                            </div>
+                        @elseif ($absentLimit === 0)
+                            <div class="absent-state is-ok" data-absent-state>
+                                <span class="as-icon"><i class="bi bi-person-check"></i></span>
+                                <div class="as-text"><strong>All teachers present today</strong>
+                                    <span>Total {{ $tTotal }} · Present {{ $tPresent }} (step 2). Nothing to fill in this step.</span></div>
+                                <a href="{{ route('inspections.step', [$inspection, 4]) }}" class="btn btn-success"><span>Continue</span><i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        @else
+                            <div class="absent-state is-need" data-absent-state>
+                                <span class="as-icon"><i class="bi bi-person-x"></i></span>
+                                <div class="as-text"><strong>{{ $absentLimit }} teacher{{ $absentLimit === 1 ? '' : 's' }} absent today</strong>
+                                    <span>Total {{ $tTotal }} − Present {{ $tPresent }} (step 2). Add the details of each absent teacher.</span></div>
+                                <span class="as-pill" data-absent-progress>0 / {{ $absentLimit }}</span>
+                            </div>
+                        @endif
+                        <div class="rs-head {{ $absentLimit ? '' : 'd-none' }}" data-absent-head>
                             <div class="q-group"><span class="q-group-icon"><i class="bi bi-person-x"></i></span><span>Absent teachers</span></div>
                             <span class="rs-count" data-count="teachers">0</span>
                         </div>
-                        @if ($absentLimit !== null)
-                            {{-- Modification V9: no more absent teachers than Total teachers - Present (step 2) --}}
-                            <div class="absent-limit text-xs" data-absent-limit="{{ $absentLimit }}"><i class="bi bi-info-circle"></i>
-                                <span>Step 2: {{ $absentLimit }} teacher(s) absent (Total teachers − Present). Add up to {{ $absentLimit }}.</span></div>
-                        @endif
                         <div id="teacher-list" class="rs-list"></div>
                         <div class="absent-tally d-none" data-absent-tally aria-live="polite"></div>
-                        <form id="teacher-form" class="row-form" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
+                        <form id="teacher-form" class="row-form {{ $absentLimit ? '' : 'd-none' }}" data-url="{{ route('inspections.teachers.store', $inspection) }}" novalidate>
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-person-plus"></i></span>
                                 <span data-form-title data-add="Add an absent teacher" data-edit="Edit absent teacher">Add an absent teacher</span></div>
                             <div class="row g-2">
@@ -352,7 +376,8 @@
                     <span id="step-missing" class="{{ $left ? '' : 'is-done' }}">{{ $left ? $left.' left in this step' : 'Step complete' }}</span>
                 </div>
                 @if ($step < $lastStep)
-                    <a href="{{ route('inspections.step', [$inspection, $step + 1]) }}" class="btn btn-primary action-next" data-next>Next<i class="bi bi-arrow-right"></i></a>
+                    <a href="{{ route('inspections.step', [$inspection, $step + 1]) }}" class="btn btn-primary action-next" data-next
+                       @if ($step === 2) data-step3-href="{{ route('inspections.step', [$inspection, 3]) }}" data-step4-href="{{ route('inspections.step', [$inspection, 4]) }}" @endif>Next<i class="bi bi-arrow-right"></i></a>
                 @else
                     <a href="{{ route('inspections.review', $inspection) }}" class="btn btn-primary action-next" data-next><i class="bi bi-flag"></i>Review</a>
                 @endif

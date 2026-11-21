@@ -51,7 +51,7 @@ class ModificationV9Test extends TestCase
         ]);
     }
 
-    /** Everything required, with TSI_05..TSI_09 left blank and no fund year. */
+    /** Everything required, with TSI_05..TSI_08 left blank and no fund year. TSI_09 (Present) is required since 21-11-2026: 3 of 3 present. */
     private function completeWithoutOptional(Inspection $i): void
     {
         $answers = [];
@@ -96,7 +96,7 @@ class ModificationV9Test extends TestCase
         $html = $this->get(route('inspections.step', [$i, 2]))->assertOk()->getContent();
         $this->assertMatchesRegularExpression('/name="TSI_06" value="0"/', $html);
         $this->assertStringContainsString('Enter 0 if none', $html);
-        $this->assertDoesNotMatchRegularExpression('/data-auto-total="teachers".*?data-at="present"/s', explode('data-auto-total="breakdown"', $html)[0]);
+        $this->assertDoesNotMatchRegularExpression('/data-auto-total="teachers".*?data-at="present"/s', explode('data-auto-total="absent"', $html)[0]); // the Total teachers box shows the total only; Present / Absent follow under TSI_09
 
         $this->assertSame(4, Q::totalTeachers(['TSI_04' => 4]));
         $this->assertNull(Q::totalTeachers([]));
@@ -109,7 +109,8 @@ class ModificationV9Test extends TestCase
         $this->post(route('inspections.submit', $i), ['confirm' => 1])->assertRedirect(route('inspections.submitted', $i));
         $answers = $i->fresh()->answerMap();
         $this->assertSame(3, $answers['TSI_10']);
-        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_09', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
+        $this->assertSame(3, $answers['TSI_09']); // required, no default
+        foreach (['TSI_05', 'TSI_06', 'TSI_07', 'TSI_08', 'TSI_11', 'TSI_12', 'TSI_13'] as $c) { // trained / untrained too
             $this->assertSame(0, $answers[$c], $c);
         }
         $this->assertSame(InspectionStatus::Submitted, $i->fresh()->status);

@@ -2183,3 +2183,15 @@ Plan approved by the user. Decisions:
 - PDF: FLN / ECCE tags on the Use of TLM cell, and one tagged line per list under the record.
 - Files: `app/Models/InspectionClassroomObservation.php`, `resources/js/wizard.js`, `resources/scss/app.scss`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/views/inspections/pdf.blade.php`, `tests/Feature/TlmItemsTest.php`; docs `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, rebuilt docx.
 - Verified: `php artisan test` 194 passed; `npm run build` OK. Not checked visually in a browser.
+
+## 2026-11-21 — Step 3 driven by the Step 2 absent count; Review expand / collapse restyled
+- Request: Step 2 takes Total teachers and Teachers present; show the absent-teacher section only when someone is absent and require their details; otherwise step 3 needs nothing. Make the Review expand / collapse buttons more attractive.
+- Decisions (asked): exactly Total − Present absent rows are required (blocking); `TSI_09` Present is now required (no default).
+- `QuestionnaireDefinition`: `TSI_09` `$num0` → `$num`; `ABS_00` `'hidden' => true` (code kept, older drafts / reports still read it).
+- `InspectionValidator`: step 3 rule = "step 2 first" (unknown), "remove the rows" (0 absent but rows), "add all N (Y added)", or "only N absent"; the step 3 warning is gone; step 3 progress counts one item per absent teacher.
+- Step 2: new live "Teachers absent today" box under TSI_09 (Total, Present, Absent, next-step hint); Next jumps to step 4 when none is absent.
+- Step 3: state card (waiting for step 2 / all present + Continue / N absent with "added / N" pill); the ABS_00 box is removed; the form is hidden when 0.
+- Review / report / PDF: "All teachers present (Total T, Present P)" when 0 absent; "x of N absent teacher(s) recorded" above the table; step meta "All teachers present".
+- Review: Expand all / Collapse all is a pill button with icons (`.rv-toggle-all`); each step has a round Show / Hide toggle (`.review-caret`) and an open step gets a blue accent (`.review-step.is-open`, `review.js`).
+- Files: `app/Questionnaire/{QuestionnaireDefinition,InspectionValidator}.php`, `resources/views/inspections/{step,review,pdf}.blade.php`, `resources/views/inspections/partials/step-answers.blade.php`, `resources/js/{wizard,review}.js`, `resources/scss/app.scss`; tests `StepCompletionTest` (3 new), `InspectionFlowTest`, `ModificationV9Test`; docs `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, rebuilt docx.
+- Verified: `php artisan test` 195 passed; `npm run build` OK. Not checked visually in a browser.

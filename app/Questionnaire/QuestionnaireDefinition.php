@@ -100,7 +100,7 @@ class QuestionnaireDefinition
                 $num0('TSI_06', 'Number of SSA Teachers'),
                 $num0('TSI_07', 'Total Number of Provincialised Tutors'),
                 $num0('TSI_08', 'Total Number of Tutors Newly Accorded'),
-                $num0('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
+                $num('TSI_09', 'Number of Tutors/Teachers Present on the day of Inspection'),
                 $num0('TSI_10', 'Number of Male Trained Teachers'),
                 $num0('TSI_11', 'Number of Male Untrained Teachers'),
                 $num0('TSI_12', 'Number of Female Trained Teachers'),
@@ -110,10 +110,11 @@ class QuestionnaireDefinition
                 ['code' => 'TSI_15', 'label' => 'Total Number of Untrained Teachers', 'type' => 'number', 'hidden' => true],
             ],
 
-            // Step 3 is done when at least one absent teacher is added, or this is ticked (InspectionValidator)
+            // Step 3 follows step 2: absent = Total teachers - Present (TSI_09); that many absent rows are required, none when 0 (InspectionValidator).
+            // ABS_00 ("all teachers present" tick) is no longer asked since 21-11-2026; kept hidden so older drafts / reports stay readable.
             3 => [
                 ['code' => 'ABS_00', 'label' => 'No absent teacher today (all teachers present)', 'type' => 'multi',
-                    'options' => ['yes' => 'All teachers present']],
+                    'options' => ['yes' => 'All teachers present'], 'hidden' => true],
             ],
             4 => [],
             5 => [],

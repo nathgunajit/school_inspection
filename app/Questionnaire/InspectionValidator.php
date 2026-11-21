@@ -165,19 +165,17 @@ class InspectionValidator
             $add(2, $code, $msg);
         }
 
-        // Step 3: absent teachers added, or "all teachers present" ticked (not both)
-        $allPresent = self::allTeachersPresent($this->answers);
+        // Step 3 follows step 2 (21-11-2026): absent = Total teachers - Present. Exactly that many absent rows; none needed when 0.
         $absentRows = $this->inspection->absentTeachers->count();
-        if (! $allPresent && $absentRows === 0) {
-            $add(3, 'ABSENTEE', "Add the absent teachers, or tick 'All teachers present'");
-        } elseif ($allPresent && $absentRows > 0) {
-            $add(3, 'ABS_00', "Remove the absent teachers, or untick 'All teachers present'");
-        }
-
-        // Modification V9: no more absent teachers than Total teachers - Present (step 2)
-        $limit = self::absentLimit($this->answers);
-        if ($limit !== null && $absentRows > $limit) {
-            $add(3, 'ABSENTEE', "{$absentRows} absent teachers added, but only {$limit} can be absent (Total teachers - Present on step 2). Remove the extra rows or correct step 2.");
+        $expected = self::absentLimit($this->answers);
+        if ($expected === null) {
+            $add(3, 'ABSENTEE', 'Enter Total teachers and Teachers present on step 2 first');
+        } elseif ($expected === 0 && $absentRows > 0) {
+            $add(3, 'ABSENTEE', "All teachers are present (step 2): remove the {$absentRows} absent teacher row(s), or correct step 2.");
+        } elseif ($absentRows < $expected) {
+            $add(3, 'ABSENTEE', "Add the details of all {$expected} absent teacher(s) ({$absentRows} added)");
+        } elseif ($absentRows > $expected) {
+            $add(3, 'ABSENTEE', "{$absentRows} absent teachers added, but only {$expected} are absent (Total teachers - Present on step 2). Remove the extra rows or correct step 2.");
         }
 
         // Step 5: fund details are optional (Modification V9)
@@ -236,8 +234,8 @@ class InspectionValidator
     }
 
     /**
-     * Most absent teachers that can be added: Total teachers - Present (TSI_09, blank = 0).
-     * Null until Total teachers is known.
+     * Teachers absent today = Total teachers - Present (TSI_09, required since 21-11-2026).
+     * Step 3 needs exactly this many absent rows (none when 0). Null until both numbers are entered.
      */
     public static function absentLimit(array $answers): ?int
     {
@@ -245,7 +243,7 @@ class InspectionValidator
         if ($total === null) {
             return null;
         }
-        $present = QuestionnaireDefinition::withDefaults($answers)['TSI_09'];
+        $present = QuestionnaireDefinition::withDefaults($answers)['TSI_09'] ?? null;
 
         return is_numeric($present) ? max(0, $total - (int) $present) : null;
     }
@@ -253,18 +251,8 @@ class InspectionValidator
     /** Non-blocking hints (shown, but do not stop submission). */
     public function warnings(): array
     {
-        $w = [];
-        $total = QuestionnaireDefinition::totalTeachers($this->answers);
-        $present = $this->answers['TSI_09'] ?? null;
-        if ($total !== null && is_numeric($present)) {
-            $absent = $total - (int) $present;
-            $rows = $this->inspection->absentTeachers->count();
-            if ($absent > 0 && $rows < $absent) {
-                $w[3][] = "{$absent} teacher(s) appear absent; {$rows} entered in the absentee form.";
-            }
-        }
-
-        return $w;
+        // the step 3 "absent but not entered" hint became a blocking rule on 21-11-2026 (missing())
+        return [];
     }
 
     /** Completion percentage per step and overall, based on required items. */
@@ -283,8 +271,10 @@ class InspectionValidator
                     $req++;
                 }
             }
-            if (in_array($step, [3, 4], true)) {
-                $req++; // absentee (or all present), one classroom; fund years are optional (V9)
+            if ($step === 3) {
+                $req += max(1, (int) self::absentLimit($this->answers)); // one per absent teacher (step 2)
+            } elseif ($step === 4) {
+                $req++; // one classroom; fund years are optional (V9)
             }
             if ($step === $photoStep) {
                 $req += count(config('inspection.mandatory_photos'));
@@ -292,6 +282,9 @@ class InspectionValidator
             $miss = count($missing[$step] ?? []);
             $req = max($req, $miss);
             $done = $req - $miss;
+            if ($step === 3 && $miss && ($exp = self::absentLimit($this->answers)) > 0) {
+                $done = min($this->inspection->absentTeachers->count(), $exp - 1); // e.g. 2 of 3 absent teachers entered
+            }
             $steps[$step] = [
                 'required' => $req,
                 'done' => $done,

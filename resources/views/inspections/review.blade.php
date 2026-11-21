@@ -10,7 +10,7 @@
     $docs = $inspection->evidence->where('kind', 'document');
     $suggestions = $inspection->remarks->where('type', 'suggestion')->pluck('body')->filter()->values();
     $counts = [
-        3 => $inspection->absentTeachers->count().' absent teacher(s)',
+        3 => V::absentLimit($answers) === 0 && $inspection->absentTeachers->isEmpty() ? 'All teachers present' : $inspection->absentTeachers->count().' absent teacher(s)',
         4 => $inspection->classroomObservations->count().' classroom record(s)',
         5 => $inspection->fundPositions->count().' year(s) entered',
         7 => $photos->count().' photo(s)'.($docs->count() ? ' · '.$docs->count().' document(s)' : ''),
@@ -56,11 +56,11 @@
             {{-- Step by step summary with answers --}}
             <section class="review-card">
                 <div class="review-card-head"><i class="bi bi-list-check text-primary"></i>Your answers
-                    <button type="button" class="btn btn-link btn-sm ms-auto p-0 text-decoration-none" data-review-toggle-all>Expand all</button></div>
+                    <button type="button" class="rv-toggle-all ms-auto" data-review-toggle-all aria-expanded="false"><i class="bi bi-arrows-expand"></i><span>Expand all</span></button></div>
                 <div class="accordion review-acc" id="reviewAcc">
                     @foreach ($steps as $n => $s)
                         @php $st = $progress['steps'][$n]; $open = ! $st['complete'] && $loop->first; @endphp
-                        <div class="review-step {{ $st['complete'] ? 'is-complete' : '' }}">
+                        <div class="review-step {{ $st['complete'] ? 'is-complete' : '' }} {{ $open ? 'is-open' : '' }}">
                             <div class="review-step-head">
                                 <button class="review-step-btn {{ $open ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#rs-{{ $n }}" aria-expanded="{{ $open ? 'true' : 'false' }}">
                                     <span class="review-step-icon"><i class="bi {{ $st['complete'] ? 'bi-check-lg' : $s['icon'] }}"></i></span>
@@ -69,7 +69,7 @@
                                         <span class="d-block review-step-meta">{{ $counts[$n] ?? count(array_filter($questions[$n] ?? [], fn ($q) => V::isFilled($answers[$q['code']] ?? null))).' answered' }}</span>
                                     </span>
                                     <span class="review-chip {{ $st['complete'] ? 'ok' : 'warn' }}">{{ $st['complete'] ? 'Complete' : $st['pct'].'%' }}</span>
-                                    <i class="bi bi-chevron-down review-caret"></i>
+                                    <span class="review-caret"><span class="rc-text" data-show="Show" data-hide="Hide">{{ $open ? 'Hide' : 'Show' }}</span><i class="bi bi-chevron-down"></i></span>
                                 </button>
                                 <a href="{{ route('inspections.step', [$inspection, $n]) }}" class="review-edit" title="Edit step {{ $n }}" aria-label="Edit step {{ $n }}"><i class="bi bi-pencil"></i></a>
                             </div>

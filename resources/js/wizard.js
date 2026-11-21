@@ -218,7 +218,6 @@ function saveAnswer(block, value) {
     clearQuestionError(block);
     SI.answers[code] = value;
     refreshRules();
-    if (code === 'ABS_00') syncAllPresent();
     return queue(() => axios.post(SI.saveUrl, { code, value }), (errors, message) => {
         questionError(block, (errors.value || [])[0] || message || 'Please check this answer.');
         refreshRules();
@@ -463,7 +462,7 @@ const tlmGroupHtml = (g) => `<div class="tlm-grp is-${esc(g.list)}"><div class="
 const sections = {
     teachers: {
         list: '#teacher-list', form: '#teacher-form', key: 'teachers', done: 'Teacher added', updated: 'Teacher updated',
-        empty: '<i class="bi bi-person-x"></i><strong>No absent teachers added</strong><span>Add each absent teacher below, or tick "All teachers present" above.</span>',
+        empty: '<i class="bi bi-person-x"></i><strong>No absent teachers added</strong><span>Add each absent teacher below (the number comes from step 2).</span>',
         // table on wide screens (header below), card on phones; cells carry data-label for the phone layout
         head: ['Sl.', 'Teacher', 'Type', 'Reason for absence', 'Remarks', ''],
         row: (t, i) => {
@@ -564,32 +563,29 @@ function renderAbsentTally(rows) {
 }
 
 /**
- * Step 3: "All teachers present" (ABS_00) and the absentee rows exclude each other.
- * Ticked: the add form is hidden. Rows exist: the tick is locked until they are removed.
+ * Step 3 follows step 2 (21-11-2026): SI.absentLimit = Total teachers - Present.
+ * 0: nothing to fill (form hidden). N: exactly N absent rows; the add button rests once N are added (edit still works).
  */
 function syncAllPresent() {
-    const box = $('#all-present');
-    if (!box) return;
-    const ticked = [].concat(SI.answers.ABS_00 ?? []).includes('yes');
-    const rows = (SI.teachers || []).length + offline.ops.filter((o) => o.section === 'teachers').length;
-    const input = $('input[name="ABS_00[]"]', box);
-    if (input) input.disabled = rows > 0 && !ticked;
-    $('[data-all-present-locked]', box)?.classList.toggle('d-none', !(rows > 0 && !ticked));
-    $('#teacher-form')?.classList.toggle('d-none', ticked);
-    // Modification V9: the add button rests once the limit from step 2 is reached (edit still works)
     const form = $('#teacher-form');
-    const full = Number.isInteger(SI.absentLimit) && rows >= SI.absentLimit && !sections.teachers.editing;
-    if (form) {
-        const btn = $('.row-form-btn', form);
-        if (btn) btn.disabled = full;
-        form.classList.toggle('is-full', full);
+    if (!form) return;
+    const limit = Number.isInteger(SI.absentLimit) ? SI.absentLimit : null;
+    const rows = (SI.teachers || []).length + offline.ops.filter((o) => o.section === 'teachers').length;
+    const editing = !!sections.teachers.editing;
+    form.classList.toggle('d-none', !limit && !editing);
+    $('[data-absent-head]')?.classList.toggle('d-none', !limit && rows === 0);
+    const full = limit !== null && rows >= limit && !editing;
+    const btn = $('.row-form-btn', form);
+    if (btn) btn.disabled = full;
+    form.classList.toggle('is-full', full);
+    const pill = $('[data-absent-progress]');
+    if (pill && limit) {
+        pill.textContent = `${Math.min(rows, limit)} / ${limit} added`;
+        pill.classList.toggle('is-done', rows === limit);
+        $('[data-absent-state]')?.classList.toggle('is-done', rows === limit);
     }
     const list = $('#teacher-list');
-    if (list && ticked && rows === 0) {
-        list.innerHTML = '<div class="rs-empty is-ok"><i class="bi bi-check2-circle"></i><strong>All teachers present</strong><span>Untick above to add an absent teacher.</span></div>';
-    } else if (list && !ticked && rows === 0) {
-        list.innerHTML = `<div class="rs-empty">${sections.teachers.empty}</div>`;
-    }
+    if (list && rows === 0) list.innerHTML = limit ? `<div class="rs-empty">${sections.teachers.empty}</div>` : '';
 }
 
 /** Add / edit mode for the absentee and classroom forms. */
@@ -924,6 +920,29 @@ if (autoTotals.length) {
             const present = val('TSI_09');
             const bad = total !== null && present !== null && present > total;
             paint(t, { total, present, absent: null, bad, extra: bad ? `Teachers present (${fmtInt(present)}) is more than the total. Please check.` : '' });
+        }
+        // 21-11-2026: absent = Total - Present decides step 3; with none absent, Next skips step 3
+        const ab = $('[data-auto-total="absent"]');
+        if (ab) {
+            const parts = TEACHER_CODES.map(val);
+            const total = parts.includes(null) ? null : parts.reduce((x, y) => x + y, 0);
+            const el = document.querySelector('input[name="TSI_09"]');
+            const present = el && el.value !== '' ? parseInt(el.value, 10) : null; // required: no default
+            const known = total !== null && Number.isFinite(present);
+            const absent = known ? total - present : null;
+            const bad = known && absent < 0;
+            $('[data-at="ttotal"]', ab).textContent = fmtInt(total);
+            $('[data-at="present"]', ab).textContent = fmtInt(Number.isFinite(present) ? present : null);
+            $('[data-at="total"]', ab).textContent = known && !bad ? fmtInt(absent) : '–';
+            $('[data-at-extra]', ab).innerHTML = !known ? 'Enter the teacher numbers and Teachers present.'
+                : bad ? '<i class="bi bi-x-circle-fill"></i> Present is more than Total teachers. Please check.'
+                    : absent === 0 ? '<i class="bi bi-check-circle-fill"></i> All teachers present: step 3 is not needed.'
+                        : `<i class="bi bi-arrow-right-circle-fill"></i> Add the details of ${absent} absent teacher${absent === 1 ? '' : 's'} in step 3.`;
+            ab.classList.toggle('is-bad', bad);
+            ab.classList.toggle('is-ready', known && !bad && absent === 0);
+            ab.classList.toggle('is-need', known && !bad && absent > 0);
+            const next = $('[data-next][data-step4-href]');
+            if (next) next.href = known && absent === 0 ? next.dataset.step4Href : next.dataset.step3Href;
         }
         // Total trained / untrained (TSI_10..13) only; Trained + Untrained must be equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');

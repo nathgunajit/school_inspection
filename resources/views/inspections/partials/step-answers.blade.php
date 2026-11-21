@@ -66,6 +66,8 @@
 
 @if ($n === 3)
     @if ($inspection->absentTeachers->isNotEmpty())
+        @php $abs = V::absentLimit($answers); $absN = $inspection->absentTeachers->count(); @endphp
+        @if ($abs !== null)<div class="review-line text-secondary"><i class="bi bi-person-x text-danger"></i>{{ $absN }} of {{ $abs }} absent teacher(s) recorded (Total {{ Q::totalTeachers($answers) }} − Present {{ $answers['TSI_09'] ?? '—' }}).</div>@endif
         <div class="rv-table-wrap">
             {{-- Modification V10: each absent teacher on one line (name, type, reason, remarks) --}}
             <table class="rv-table rv-absent">
@@ -84,7 +86,10 @@
             </table>
         </div>
     @else
-        <div class="review-line text-secondary"><i class="bi bi-person-check text-success"></i>{{ V::allTeachersPresent($answers) ? "All teachers present (no absent teacher)." : "No absent teachers recorded." }}</div>
+        @php $abs = V::absentLimit($answers); @endphp
+        <div class="review-line text-secondary"><i class="bi bi-person-check text-success"></i>{{ $abs === 0 || V::allTeachersPresent($answers)
+            ? 'All teachers present (Total '.Q::totalTeachers($answers).', Present '.($answers['TSI_09'] ?? '—').'). No absent teacher to record.'
+            : 'No absent teachers recorded.' }}</div>
     @endif
 @elseif ($n === 4)
     @if ($inspection->classroomObservations->isNotEmpty())

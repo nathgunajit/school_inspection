@@ -876,12 +876,31 @@ $q-choice-col: 230px;   // all short answers line up in one column
     &:hover { border-color: rgba($primary, .3); background: rgba($primary, .03); }
     @include media-breakpoint-down(sm) { margin-left: 0; } }
 
-.review-step { border: 1px solid #f0f2f6; border-radius: .75rem; margin-bottom: .45rem; overflow: hidden; transition: border-color .15s;
-    &:hover { border-color: $border-color; } }
+.review-step { border: 1px solid #eef1f6; border-radius: .8rem; margin-bottom: .5rem; overflow: hidden; transition: border-color .15s, box-shadow .15s; position: relative;
+    &:hover { border-color: rgba($primary, .25); box-shadow: 0 2px 8px -4px rgba(15, 23, 42, .15); }
+    &.is-open { border-color: rgba($primary, .3); box-shadow: 0 4px 14px -8px rgba($primary, .45);
+        &::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: $primary; z-index: 1; }
+        .review-step-btn, .review-edit { background: rgba($primary, .04); } } }
 .review-step-head { display: flex; align-items: stretch; }
-.review-step-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: .65rem; padding: .6rem .75rem; border: 0; background: #fff; text-align: left;
-    .review-caret { color: #94a3b8; transition: transform .2s; font-size: .8rem; }
-    &:not(.collapsed) .review-caret { transform: rotate(180deg); } }
+.review-step-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: .65rem; padding: .6rem .75rem; border: 0; background: #fff; text-align: left; transition: background .15s;
+    &:hover { background: rgba($primary, .03); }
+    &:focus-visible { outline: 2px solid rgba($primary, .5); outline-offset: -2px; } }
+// round toggle with "Show" / "Hide" (text hidden on phones)
+.review-caret { display: inline-flex; align-items: center; gap: .35rem; flex-shrink: 0; height: 32px; padding: 0 .3rem 0 .65rem; border-radius: 999px;
+    background: #f1f5f9; color: #475569; font-size: .72rem; font-weight: 600; transition: background .2s, color .2s;
+    i { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #fff; font-size: .75rem; transition: transform .25s;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .1); }
+    @include media-breakpoint-down(sm) { padding: 0 .2rem; width: 32px; justify-content: center; .rc-text { display: none; } } }
+.review-step-btn:hover .review-caret { background: rgba($primary, .1); color: $primary; }
+.review-step-btn:not(.collapsed) .review-caret { background: $primary; color: #fff; i { transform: rotate(180deg); color: $primary; } }
+// Expand all / Collapse all
+.rv-toggle-all { display: inline-flex; align-items: center; gap: .4rem; height: 40px; padding: 0 1rem; border-radius: 999px; font-size: .8rem; font-weight: 600;
+    border: 1px solid rgba($primary, .3); background: rgba($primary, .07); color: $primary; transition: background .15s, color .15s, box-shadow .15s;
+    i { font-size: .95rem; }
+    &:hover { background: rgba($primary, .14); box-shadow: 0 2px 8px -4px rgba($primary, .5); }
+    &:focus-visible { outline: 2px solid rgba($primary, .5); outline-offset: 2px; }
+    &.is-open { background: $primary; color: #fff; border-color: $primary; }
+    @include media-breakpoint-down(md) { height: 44px; } }
 .review-step-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: rgba($warning, .12); color: #b45309; flex-shrink: 0; font-size: .85rem; }
 .review-step.is-complete .review-step-icon { background: rgba($success, .12); color: $success; }
 .review-step-title { font-size: .82rem; font-weight: 500; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1146,9 +1165,26 @@ nav[role="navigation"] p.small, .pagination + * { font-size: .74rem; }
 .rs-count { min-width: 26px; height: 22px; padding: 0 .5rem; border-radius: 999px; display: inline-grid; place-items: center; font-size: .7rem; font-weight: 600;
     background: #eef2f7; color: #64748b; margin-top: .6rem;
     &.has { background: $primary; color: #fff; } &.is-full { background: $success; } }
-// V9: how many absent teachers step 2 allows
-.absent-limit { display: flex; align-items: flex-start; gap: .4rem; margin: .1rem 0 .5rem; padding: .45rem .7rem; border-radius: .6rem;
-    background: rgba($primary, .05); color: #334155; i { color: $primary; margin-top: .05rem; } }
+// 21-11-2026: step 3 follows step 2 (absent = Total teachers - Present)
+.absent-state { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .3rem .85rem; margin: .5rem 0 .75rem;
+    padding: .85rem 1rem; border-radius: .9rem; border: 1px solid rgba($primary, .2); background: rgba($primary, .05);
+    .as-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.25rem; background: #fff; color: $primary;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .08); }
+    .as-text { min-width: 0; strong { display: block; font-size: .95rem; color: #0f172a; } span { display: block; font-size: .76rem; color: #475569; } }
+    .as-pill { padding: .3rem .75rem; border-radius: 999px; font-size: .78rem; font-weight: 600; background: #fff; color: #b45309; border: 1px solid rgba($warning, .45);
+        white-space: nowrap; font-variant-numeric: tabular-nums;
+        &.is-done { color: #fff; background: $success; border-color: $success; } }
+    &.is-need { border-color: rgba($warning, .45); background: linear-gradient(135deg, rgba($warning, .1), rgba($warning, .03)); .as-icon { color: #b45309; } }
+    &.is-need.is-done { border-color: rgba($success, .4); background: linear-gradient(135deg, rgba($success, .1), rgba($success, .03)); .as-icon { color: $success; } }
+    &.is-ok { border-color: rgba($success, .4); background: linear-gradient(135deg, rgba($success, .12), rgba($success, .03)); .as-icon { color: #fff; background: $success; } }
+    @include media-breakpoint-down(sm) { grid-template-columns: auto minmax(0, 1fr);
+        > .btn, > .as-pill { grid-column: 1 / -1; justify-self: stretch; text-align: center; justify-content: center; } } }
+// step 2: live "Teachers absent today" box under Teachers present
+.auto-total.at-absent { grid-template-areas: "icon label value" "icon parts value" "next next next";
+    .at-next { grid-area: next; font-size: .76rem; color: #475569; display: flex; gap: .35rem; align-items: center; padding-top: .35rem; margin-top: .2rem; border-top: 1px dashed rgba($primary, .2); }
+    &.is-ready .at-next { color: darken($success, 6%); font-weight: 600; }
+    &.is-need { border-color: rgba($warning, .45); background: linear-gradient(135deg, rgba($warning, .1), rgba($warning, .03));
+        .at-value, .at-icon { color: #b45309; } .at-next { color: #9a4a00; font-weight: 600; border-top-color: rgba($warning, .35); } } }
 .row-form.is-full .row-form-btn { opacity: .55; }
 .q-hint { display: block; font-size: .68rem; font-weight: 400; color: #64748b; margin-top: .1rem; }
 .auto-total.at-total-only { grid-template-areas: "icon label value" "icon parts value"; margin-bottom: .25rem; }
@@ -1936,9 +1972,6 @@ $rating-colors: (green: $success, blue: $primary, yellow: #d4a500, orange: $warn
     .rating-bar { height: .38rem; margin-top: .3rem; } }
 
 /* Step 3: "All teachers present" switch above the absentee list */
-.all-present { margin-bottom: .75rem; }
-.all-present .q-block { margin-bottom: .25rem; }
-.all-present-hint { padding-left: .25rem; }
 .rs-empty.is-ok { border-color: rgba(30, 155, 75, .45); background: rgba(30, 155, 75, .06); }
 .rs-empty.is-ok > i { color: #1e9b4b; }
 
