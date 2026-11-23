@@ -2414,3 +2414,7 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **PDF layout** (`App\Support\MasterPdf`, `admin/exports/master-pdf.blade.php`): A4 landscape, Government of Assam / SSA header with both logos, standard 45° watermark, records and filter chips, repeating heading row, Page X of Y. Rows are split into tables of 300: a single 4,607-row table ran DomPDF out of 2 GB memory.
 - Verified on MySQL (read-only script): all 4,607 clusters 133 s, 201 pages, 634 MB; NAGAON's 2,188 schools 68 s, 169 pages; text checked with `pdftotext`. Exports raise `memory_limit` to `IMPORT_MEMORY` and the time limit to 300 s.
 - Tests: new `MasterExportTest` (5); full suite 241 passed. Docs: CLAUDE.md, UI doc, `.env.example`, docx rebuilt.
+
+## 2026-11-23: Paper form, Class Room Performance on a single page of its own
+- `resources/views/inspections/blank-form.blade.php`: section 4 now prints 7 observation rows (`$classRows`, was 5) and section 5 Fund Received & Expenditure starts a new page, so section 4 fills exactly one page (before, Fund began under it on the same page). Rendered on MySQL: 7 rows keep the table and the Classes legend on page 6, 8 run onto page 7. The form has 9 pages.
+- Tests: `ModificationV11Test` checks the 7 rows and the page break before Fund. Docs: CLAUDE.md, INSPECTION_FORM_DOCUMENT.md, docx rebuilt.

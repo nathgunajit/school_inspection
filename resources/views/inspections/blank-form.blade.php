@@ -14,6 +14,9 @@
     $sec = 0;
     // 23-11-2026: the absentee table fills the rest of its page (section 4 always starts a new page), with one row spare,
     // so a longer school name cannot push a row over. Check again with a rendered PDF if steps 1–2 change.
+    // 23-11-2026: Class Room Performance (section 4) is one whole page of its own: it starts a page, its rows fill it,
+    // and section 5 starts the next page. Re-check with a rendered PDF if the row layout changes.
+    $classRows ??= 7; // 8 run onto a second page (rendered 23-11-2026); the page starts fresh, so nothing above it varies
     $absentRows ??= 12; // 13 fit (rendered 23-11-2026), section 3 runs from page 4 to the end of page 5
     $note = fn ($n) => QD::PAPER_INTROS[$n] ?? QD::STEP_INTROS[$n] ?? '';
 @endphp
@@ -163,8 +166,8 @@
 
 @foreach ($steps as $n => $meta)
     @php $sec++; $qs = $questions[$n] ?? []; @endphp
-    {{-- Class Room Performance always starts a page, so its table is never split --}}
-    <table class="h {{ $n === 4 ? 'newpage' : '' }}"><tr><td class="n">{{ $sec }}</td><td class="t">{{ $meta['title'] }}</td></tr></table>
+    {{-- Class Room Performance always starts a page and fills it; Fund starts the next one --}}
+    <table class="h {{ in_array($n, [4, 5], true) ? 'newpage' : '' }}"><tr><td class="n">{{ $sec }}</td><td class="t">{{ $meta['title'] }}</td></tr></table>
     @if ($note($n))<div class="note">{{ $note($n) }}</div>@endif
 
     @if ($n === 3)
@@ -185,7 +188,7 @@
             <thead><tr><th class="c" style="width:6%">Sl.</th><th style="width:21%">Name of the teacher</th><th class="c" style="width:8%">Class</th><th style="width:14%">Subject</th>
                 <th style="width:12%">Use of TLM</th><th style="width:20%">TLM items used</th><th style="width:19%">Participation</th></tr></thead>
             <tbody>
-            @for ($r = 1; $r <= 5; $r++)
+            @for ($r = 1; $r <= $classRows; $r++)
                 <tr><td class="sl" rowspan="2">{{ $r }}</td><td></td><td></td><td></td>
                     <td>@include('inspections.partials.blank-opts', ['opts' => ['Yes', 'No'], 'vertical' => true])</td>
                     <td><div class="wl">FLN:</div><div class="wl ecce">ECCE:</div></td>

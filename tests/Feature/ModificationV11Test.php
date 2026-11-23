@@ -80,6 +80,10 @@ class ModificationV11Test extends TestCase
         $this->assertStringContainsString('rotate(-45deg)', $html);
         $absent = substr($html, strpos($html, 'Teachers Absentee'), strpos($html, 'Class Room Performance') - strpos($html, 'Teachers Absentee'));
         $this->assertSame(12, substr_count($absent, '<td class="sl">'));
+        // Class Room Performance is one page of its own: 7 observation rows, and Fund starts the next page
+        $class = substr($html, strpos($html, 'Class Room Performance'), strpos($html, 'Fund Received') - strpos($html, 'Class Room Performance'));
+        $this->assertSame(7, substr_count($class, '<td class="sl" rowspan="2">'));
+        $this->assertMatchesRegularExpression('/<table class="h newpage"><tr><td class="n">\d+<\/td><td class="t">Fund Received/', $html);
     }
 
     public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
