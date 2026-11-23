@@ -2,7 +2,8 @@
 <x-layouts.app :title="$area ? 'Inspections in My Area' : 'My Inspections'">
     <x-slot:actions>
         @can('export_excel')
-            <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Export</a>
+            <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
         @endcan
     </x-slot:actions>
 
@@ -46,7 +47,10 @@
         </div>
     </form>
     @can('export_excel')
-        <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary w-100 mb-3 d-sm-none"><i class="bi bi-file-earmark-excel"></i>Export to Excel</a>
+        <div class="d-flex gap-2 mb-3 d-sm-none">
+            <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </div>
     @endcan
 
     <div class="card">

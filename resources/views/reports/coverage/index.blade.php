@@ -18,8 +18,18 @@
 <x-layouts.app title="Inspection Coverage Report">
     <x-slot:actions>
         @can('configure_coverage')<a href="{{ route('reports.coverage.settings') }}" class="btn btn-light d-none d-sm-inline-flex"><i class="bi bi-sliders"></i>Configure</a>@endcan
-        @can('export_excel')<a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Excel</a>@endcan
+        @can('export_excel')
+            <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('reports.coverage.export-pdf', $keep) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        @endcan
     </x-slot:actions>
+
+    @can('export_excel')
+        <div class="d-flex gap-2 mb-3 d-sm-none">
+            <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-sm btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('reports.coverage.export-pdf', $keep) }}" class="btn btn-sm btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </div>
+    @endcan
 
     {{-- ============ Period bar ============ --}}
     <section class="cov-period">

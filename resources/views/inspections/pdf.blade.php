@@ -169,8 +169,7 @@
         <div>
             <span class="sc-chip">{{ $s->management?->label ?? 'Management —' }}</span>
             <span class="sc-chip">{{ $s->category?->label ?? 'Category —' }}</span>
-            {{-- 23-11-2026: limited school data; school type and rural / urban are not printed, the medium is --}}
-            @if ($s->medium_label)<span class="sc-chip">Medium: {{ $s->medium_label }}</span>@endif
+            {{-- 23-11-2026: limited school data; school type, rural / urban and medium are not printed --}}
             <span class="sc-chip st">{{ $inspection->status->label() }}</span>
         </div>
     </div>

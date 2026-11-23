@@ -100,12 +100,12 @@ class SchoolController extends Controller
     {
         $query = $this->inspectedFilter($this->listQuery($request->user(), $request), $request);
         $count = (clone $query)->count();
-        $max = (int) config('inspection.master_pdf_max_rows', 3000);
+        $max = \App\Support\MasterPdf::maxRows();
         if ($count > $max) {
             return back()->with('warning', number_format($count).' schools match. A PDF holds at most '.number_format($max)
                 .': filter by district, block or cluster, or use Download Excel for the full list.');
         }
-        set_time_limit(300);
+        \App\Support\MasterPdf::prepare();
         $meta = $this->exportMeta($request, $count);
         $this->logMineExport($request, $meta, 'pdf');
 

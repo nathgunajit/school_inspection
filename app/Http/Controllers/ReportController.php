@@ -14,6 +14,7 @@ use App\Questionnaire\QuestionnaireDefinition as Q;
 use App\Services\AuditLogger;
 use App\Services\EvidenceStorage;
 use App\Services\JurisdictionService;
+use App\Support\MasterPdf;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -114,12 +115,7 @@ class ReportController extends Controller
         abort_unless($user->can('export_excel'), 403);
         abort_unless(in_array($mode, ['mine', 'area'], true), 404);
 
-        // Cluster users export only their own (PRD 3.2: "Own only")
-        $base = $mode === 'mine' || $user->level->value === 'cluster'
-            ? Inspection::where('officer_id', $user->id)
-            : $this->j->inspections($user)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
-
-        $rows = $this->filtered($base, $request, own: $mode === 'mine')
+        $rows = $this->exportQuery($request, $mode)
             ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos', 'rating'])
             ->orderBy('inspection_date')->limit(20000)->get();
 
@@ -157,12 +153,92 @@ class ReportController extends Controller
             $data = array_map(fn ($r) => array_values(array_diff_key($r, array_flip($drop))), $data);
         }
 
-        AuditLogger::log('inspections_exported', null, ['mode' => $mode, 'rows' => count($data), 'filters' => $request->query()]);
+        AuditLogger::log('inspections_exported', null, ['mode' => $mode, 'format' => 'excel', 'rows' => count($data), 'filters' => $request->query()]);
 
         return Excel::download(new ArrayExport($headings, $data), 'inspections-'.$mode.'-'.now()->format('Ymd-His').'.xlsx');
     }
 
+    /**
+     * 23-11-2026: Inspections / My Inspections as a PDF list, one row per inspection (the full answers stay in Excel).
+     * Same scope and filters as the Excel export, at most config('inspection.master_pdf_max_rows') rows.
+     */
+    public function exportPdf(Request $request, string $mode)
+    {
+        abort_unless(in_array($mode, ['mine', 'area'], true), 404);
+        $query = $this->exportQuery($request, $mode);
+        $count = (clone $query)->count();
+        $max = MasterPdf::maxRows();
+        if ($count > $max) {
+            return back()->with('warning', number_format($count).' inspections match. A PDF holds at most '.number_format($max)
+                .': narrow the period or filter by district, block or cluster, or use Export for the full list.');
+        }
+        MasterPdf::prepare();
+
+        $area = $mode === 'area';
+        $headings = ['Sl', 'Inspection ID', 'Date', 'UDISE Code', 'School', 'Cluster', 'Block'];
+        if ($area) {
+            $headings[] = 'Officer';
+        }
+        array_push($headings, 'Status', 'Absentees', 'Classrooms', 'Photos', 'Submitted at');
+
+        $rows = [];
+        $query->with(['school:id,udise_code,name', 'officer:id,name', 'block:id,name,code', 'cluster:id,name,code'])
+            ->withCount(['absentTeachers', 'classroomObservations', 'photos'])
+            ->orderBy('inspection_date')->orderBy('id')
+            ->chunk(500, function ($list) use (&$rows, $area) {
+                foreach ($list as $i) {
+                    $row = [count($rows) + 1, $i->inspection_no ?? '—', $i->inspection_date->format('d-m-Y'), $i->school?->udise_code, $i->school?->name,
+                        $i->cluster?->label, $i->block?->label];
+                    if ($area) {
+                        $row[] = $i->officer?->name;
+                    }
+                    array_push($row, $i->status->label(), $i->absent_teachers_count, $i->classroom_observations_count, $i->photos_count,
+                        $i->submitted_at?->format('d-m-Y H:i') ?? '—');
+                    $rows[] = $row;
+                }
+            });
+
+        AuditLogger::log('inspections_exported', null, ['mode' => $mode, 'format' => 'pdf', 'rows' => count($rows), 'filters' => $request->query()]);
+
+        return MasterPdf::download($mode === 'mine' ? 'My Inspections' : 'Inspections', $headings, $rows, $this->filterLabels($request, $mode),
+            'inspections-'.$mode.'-'.now()->format('Ymd-His').'.pdf');
+    }
+
     /* ---------------- helpers ---------------- */
+
+    /** The export base: own inspections, or the jurisdiction's submitted ones. Cluster users export only their own (PRD 3.2). */
+    private function exportQuery(Request $request, string $mode): Builder
+    {
+        $user = $request->user();
+        $base = $mode === 'mine' || $user->level->value === 'cluster'
+            ? Inspection::where('officer_id', $user->id)
+            : $this->j->inspections($user)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
+
+        return $this->filtered($base, $request, own: $mode === 'mine');
+    }
+
+    /** Readable filter chips for the PDF. */
+    private function filterLabels(Request $request, string $mode): array
+    {
+        $own = $mode === 'mine';
+        $period = null;
+        if (! $own || $request->filled('from') || $request->filled('to')) {
+            [$from, $to] = $this->period($request);
+            $period = 'Period: '.\Illuminate\Support\Carbon::parse($from)->format('d-m-Y').' to '.\Illuminate\Support\Carbon::parse($to)->format('d-m-Y');
+        }
+        $status = $request->status ? (InspectionStatus::tryFrom((string) $request->status)?->label() ?? ucfirst((string) $request->status)) : null;
+
+        return array_values(array_filter([
+            'Downloaded by: '.$request->user()->name,
+            $period,
+            $request->district_id ? 'District: '.(District::find((int) $request->district_id)?->label ?? '—') : null,
+            $request->block_id ? 'Block: '.(Block::find((int) $request->block_id)?->label ?? '—') : null,
+            $request->cluster_id ? 'Cluster: '.(Cluster::find((int) $request->cluster_id)?->label ?? '—') : null,
+            $request->officer_id ? 'Inspecting officer: '.(User::find((int) $request->officer_id)?->name ?? '—') : null,
+            $status ? 'Status: '.($request->status === 'draft' ? 'Draft / unlocked' : $status) : null,
+            $request->school ? 'School: '.$request->school : null,
+        ]));
+    }
 
     private function reportData(Inspection $inspection): array
     {

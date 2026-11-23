@@ -18,7 +18,7 @@ use Illuminate\Validation\Rule;
 class SchoolMasterController extends Controller
 {
     /** Modification V13 item 2: list filters (query string, numeric IDs), shared by the list and its Excel export. */
-    public const FILTERS = ['q', 'district_id', 'block_id', 'cluster_id', 'ac_id', 'pc_id', 'management_id', 'category_id', 'area_type', 'school_type', 'medium', 'status'];
+    public const FILTERS = ['q', 'district_id', 'block_id', 'cluster_id', 'ac_id', 'pc_id', 'management_id', 'category_id', 'area_type', 'school_type', 'status'];
 
     public function index(Request $request)
     {
@@ -78,7 +78,7 @@ class SchoolMasterController extends Controller
         $rows = $base->with(['district:id,code,name', 'block:id,code,name', 'cluster:id,code,name', 'category:id,label', 'management:id,label'])
             ->orderBy('name')->orderBy('id')->get()->values()
             ->map(fn (School $s, $i) => [$i + 1, $s->udise_code, $s->name, $s->cluster?->label, $s->block?->label, $s->district?->label,
-                $s->category?->label, $s->management?->label, $s->medium, ucfirst((string) $s->status)])->all();
+                $s->category?->label, $s->management?->label, ucfirst((string) $s->status)])->all();
 
         $id = fn (string $k) => (int) $request->query($k) ?: null;
         $filters = array_values(array_filter([
@@ -92,13 +92,12 @@ class SchoolMasterController extends Controller
             ($v = $id('category_id')) ? 'Category: '.MasterValue::find($v)?->label : null,
             ($v = $request->query('area_type')) ? 'Area: '.(School::AREA_TYPES[$v] ?? $v) : null,
             ($v = $request->query('school_type')) ? 'Type: '.(School::SCHOOL_TYPES[$v] ?? $v) : null,
-            ($v = $request->query('medium')) ? 'Medium: '.$v : null,
             ($v = $request->query('status')) ? 'Status: '.ucfirst((string) $v) : null,
         ]));
         AuditLogger::log('school_list_exported', null, ['format' => 'pdf', 'filters' => array_filter($request->only(self::FILTERS)), 'rows' => count($rows)]);
 
         return \App\Support\MasterPdf::download('School Master',
-            ['Sl', 'UDISE', 'School name', 'Cluster', 'Block', 'District', 'Category', 'Management', 'Medium', 'Status'],
+            ['Sl', 'UDISE', 'School name', 'Cluster', 'Block', 'District', 'Category', 'Management', 'Status'],
             $rows, $filters, 'school_master_'.now()->format('Y-m-d').'.pdf');
     }
 
@@ -152,8 +151,6 @@ class SchoolMasterController extends Controller
             ->when($id('category_id'), fn ($q, $v) => $q->where('category_id', $v))
             ->when($request->query('area_type'), fn ($q, $v) => $q->where('area_type', $v))
             ->when($request->query('school_type'), fn ($q, $v) => $q->where('school_type', $v))
-            // 23-11-2026: a school with "Assamese, Bodo" is found under both languages
-            ->when(in_array($request->query('medium'), School::MEDIUMS, true) ? $request->query('medium') : null, fn ($q, $v) => $q->where('medium', 'like', '%'.$v.'%'))
             ->when($request->query('status'), fn ($q, $v) => $q->where('status', $v));
     }
 

@@ -40,7 +40,6 @@
                         @if ($school->school_type_label || $school->area_type_label)
                             <dt>School type</dt><dd>{{ collect([$school->school_type_label, $school->area_type_label])->filter()->join(' · ') }}</dd>
                         @endif
-                        @if ($school->medium_label)<dt>Medium</dt><dd>{{ $school->medium_label }}</dd>@endif
                         @if ($school->streams_label)<dt>HS streams</dt><dd>{{ $school->streams_label }}</dd>@endif
                         @if ($school->ac)<dt>Assembly (AC)</dt><dd>{{ $school->ac->label }}</dd>@endif
                         @if ($school->pc)<dt>Lok Sabha (PC)</dt><dd>{{ $school->pc->label }}</dd>@endif

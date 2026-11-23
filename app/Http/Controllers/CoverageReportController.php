@@ -6,6 +6,7 @@ use App\Models\CoverageSetting;
 use App\Models\District;
 use App\Services\AuditLogger;
 use App\Services\CoverageReportService;
+use App\Support\MasterPdf;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -47,10 +48,33 @@ class CoverageReportController extends Controller
         $user = $request->user();
         $f = $this->report->filters($request, $user);
         $period = $this->report->period($f);
-        AuditLogger::log('coverage_report_exported', null, ['from' => $period->fromDate(), 'to' => $period->toDate(),
+        AuditLogger::log('coverage_report_exported', null, ['format' => 'excel', 'from' => $period->fromDate(), 'to' => $period->toDate(),
             'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id']]);
 
         return Excel::download($this->report->export($user, $f), 'coverage-report-'.$period->fromDate().'-to-'.$period->toDate().'.xlsx');
+    }
+
+    /** 23-11-2026: the report as on screen (summary + the level in view, or a cluster's schools) as a PDF. */
+    public function exportPdf(Request $request)
+    {
+        $user = $request->user();
+        $f = $this->report->filters($request, $user);
+        $count = $this->report->pdfRowCount($user, $f);
+        $max = MasterPdf::maxRows();
+        if ($count > $max) {
+            return back()->with('warning', number_format($count).' rows in this view. A PDF holds at most '.number_format($max)
+                .': choose a district or block, or use Excel for the full report.');
+        }
+        MasterPdf::prepare();
+        $period = $this->report->period($f);
+        AuditLogger::log('coverage_report_exported', null, ['format' => 'pdf', 'from' => $period->fromDate(), 'to' => $period->toDate(),
+            'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id']]);
+
+        $chips = ['Area: '.$this->report->areaTitle($f), 'Period: '.$period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')',
+            'Downloaded by: '.$user->name];
+
+        return MasterPdf::sections('Inspection Coverage Report', $this->report->pdfSections($user, $f), $chips,
+            'coverage-report-'.$period->fromDate().'-to-'.$period->toDate().'.pdf');
     }
 
     /* ======================= settings ======================= */

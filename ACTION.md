@@ -2425,3 +2425,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Both downloads are audited `my_schools_exported` with `format`. Download Excel / Download PDF buttons on the page (also on phones).
 - Files: `MySchoolsExport.php`, `SchoolController.php`, `routes/web.php`, `schools/mine.blade.php`, `config/inspection.php`, `.env.example`, `MySchoolsTest.php`, CLAUDE.md, UI doc.
 - Verified: a MySQL render for GOSSAINICHINA gives header rows 1–5, 11 schools, a protected sheet and 2 logos. Tests: 2 new in `MySchoolsTest`; full suite 243 passed. Docx rebuilt.
+
+## 2026-11-23: Excel logos and column sizes, School Medium removed from reports, PDF for Coverage / Inspections / My Inspections
+- **My Schools Excel** (`App\Exports\MySchoolsExport`): the logos are sized into their column box (Assam 56×56 in A1, SSA up to 140×48 in the last column; before, the SSA logo was about 155 px wide in a 131 px column and spilled out of the header), rows 1–3 are taller than the logos; column widths follow the content (min 10, max 55 for School and 34 for the rest, data cells wrap), A4 landscape one page wide, Page X of N footer. Medium column removed (10 columns, A–J).
+- **Medium removed** from the My Schools Excel / PDF, School Master PDF and list (column and filter), school page, map popup and inspection PDF. It stays in the School Master edit form, the import and the upload-format `SchoolListExport`.
+- **PDF downloads** through `App\Support\MasterPdf` (new `sections()`, `maxRows()`, `prepare()`; the view prints captioned tables):
+  - Inspections / My Inspections: `inspections.export-pdf` (`ReportController::exportPdf`, shared `exportQuery()` with the Excel export), one row per inspection with filter chips; audited `inspections_exported` with `format`.
+  - Coverage: `reports.coverage.export-pdf` (`CoverageReportController::exportPdf`, `CoverageReportService::pdfSections()`): Summary + the level in view with a Total row, or the cluster's schools; audited `coverage_report_exported` with `format`.
+  - All capped by `master_pdf_max_rows` with a warning; Excel + PDF buttons on desktop and phones.
+- Verified: a MySQL render for GOSSAINICHINA (read-only) gives widths A13 B25 … J22, logos 56×56 and 140×48, A4. Tests: new `ReportPdfTest` (3), `MySchoolsTest` checks widths, wrap and that the logos fit, `SchoolMediumTest` updated. Full suite 246 passed. Docs: CLAUDE.md, UI doc, docx rebuilt.

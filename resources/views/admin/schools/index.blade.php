@@ -48,11 +48,6 @@
             <select name="school_type" class="form-select" data-autosubmit aria-label="School type"><option value="">Type</option>
                 @foreach (\App\Models\School::SCHOOL_TYPES as $k => $l)<option value="{{ $k }}" @selected(request('school_type') === $k)>{{ $l }}</option>@endforeach</select>
         </div>
-        {{-- 23-11-2026: a school with "Assamese, Bodo" is found under both --}}
-        <div class="col-6 col-md-2">
-            <select name="medium" class="form-select" data-autosubmit aria-label="Medium"><option value="">Any medium</option>
-                @foreach (\App\Models\School::MEDIUMS as $m)<option value="{{ $m }}" @selected(request('medium') === $m)>{{ $m }}</option>@endforeach</select>
-        </div>
         <div class="col-12 col-md-2 d-flex gap-2">
             <button class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i>Search</button>
             @if ($filtered)<a href="{{ route('admin.schools.index') }}" class="btn btn-light" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>@endif
@@ -75,7 +70,7 @@
     <div class="card">
         <div class="table-responsive">
             <table class="table align-middle mb-0">
-                <thead><tr><th>UDISE</th><th>School</th><th class="d-none d-md-table-cell">Block / Cluster</th><th class="d-none d-lg-table-cell">Category / Management</th><th class="d-none d-xl-table-cell">Type · Area · Medium</th><th class="d-none d-xl-table-cell">AC / PC</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>UDISE</th><th>School</th><th class="d-none d-md-table-cell">Block / Cluster</th><th class="d-none d-lg-table-cell">Category / Management</th><th class="d-none d-xl-table-cell">Type · Area</th><th class="d-none d-xl-table-cell">AC / PC</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @forelse ($schools as $s)
                     <tr>
@@ -83,7 +78,7 @@
                         <td><div class="fw-semibold">{{ $s->name }}</div><div class="text-xs text-secondary">{{ $s->district?->label }}</div></td>
                         <td class="d-none d-md-table-cell text-sm">{{ $s->block?->label }}<div class="text-xs text-secondary">{{ $s->cluster?->label }}</div></td>
                         <td class="d-none d-lg-table-cell text-sm">{{ $s->category?->label }}<div class="text-xs text-secondary">{{ $s->management?->label }}</div></td>
-                        <td class="d-none d-xl-table-cell text-sm">{{ collect([$s->school_type_label, $s->area_type_label])->filter()->join(' · ') ?: '—' }}<div class="text-xs text-secondary">{{ $s->medium_label }}</div></td>
+                        <td class="d-none d-xl-table-cell text-sm">{{ collect([$s->school_type_label, $s->area_type_label])->filter()->join(' · ') ?: '—' }}</td>
                         <td class="d-none d-xl-table-cell text-sm">{{ $s->ac?->name ?? '—' }}<div class="text-xs text-secondary">{{ $s->pc?->name }}</div></td>
                         <td><span class="badge-soft badge-soft-{{ $s->status === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($s->status) }}</span></td>
                         <td class="text-end">

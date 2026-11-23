@@ -97,6 +97,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::prefix('reports/coverage')->name('reports.coverage')->group(function () {
             Route::get('/', [CoverageReportController::class, 'index'])->middleware('can:view_reports')->name('');
             Route::get('/export', [CoverageReportController::class, 'export'])->middleware(['can:view_reports', 'can:export_excel'])->name('.export');
+            Route::get('/export-pdf', [CoverageReportController::class, 'exportPdf'])->middleware(['can:view_reports', 'can:export_excel', 'throttle:6,1'])->name('.export-pdf');
             Route::get('/settings', [CoverageReportController::class, 'settings'])->middleware('can:configure_coverage')->name('.settings');
             Route::put('/settings', [CoverageReportController::class, 'updateSettings'])->middleware('can:configure_coverage')->name('.settings.update');
         });
@@ -108,6 +109,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/export', [RatingReportController::class, 'export'])->name('.export');
         });
         Route::get('/export/{mode}', [ReportController::class, 'export'])->middleware('can:export_excel')->name('inspections.export');
+        Route::get('/export-pdf/{mode}', [ReportController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('inspections.export-pdf');
 
         /* ---------------- Map View (New Module 1) ---------------- */
         Route::middleware('can:view_reports')->prefix('map')->name('map.')->group(function () {

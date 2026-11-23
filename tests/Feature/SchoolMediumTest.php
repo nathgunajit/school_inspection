@@ -30,7 +30,7 @@ class SchoolMediumTest extends TestCase
         $this->assertSame(['Assamese', 'Bodo'], (new School(['medium' => 'AssameseBodo']))->mediums());
     }
 
-    public function test_school_master_saves_two_mediums_and_filters_by_either(): void
+    public function test_school_master_saves_two_mediums_without_showing_them_in_lists(): void
     {
         $this->actingAs($this->admin());
         $s = School::orderBy('id')->firstOrFail();
@@ -47,21 +47,22 @@ class SchoolMediumTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/name="medium\[\]" value="Bengali" id="med_\d+"\s+checked/', $html);
         $this->assertStringContainsString('name="medium_other" value="Rabha"', $html);
 
-        foreach (['Bodo', 'Assamese'] as $m) {
-            $this->get(route('admin.schools.index', ['medium' => $m, 'q' => $s->udise_code]))->assertOk()->assertSee(e($s->name), false);
-        }
-        $this->get(route('admin.schools.index', ['medium' => 'Garo', 'q' => $s->udise_code]))->assertOk()->assertDontSee(e($s->name), false); // q stays in the search box, so check the name
+        // 23-11-2026: the medium is kept in the master but shown in no list, report or filter
+        $list = $this->get(route('admin.schools.index', ['q' => $s->udise_code]))->assertOk()->getContent();
+        $this->assertStringNotContainsString('name="medium"', $list);
+        $this->assertStringNotContainsString('Assamese, Bodo', $list);
+        $this->get(route('schools.show', $s))->assertOk()->assertDontSee('Assamese, Bodo');
 
         // no tick and no other text clears the medium
         $this->put(route('admin.schools.update', $s), $payload)->assertRedirect(route('admin.schools.index'));
         $this->assertNull($s->fresh()->medium);
     }
 
-    public function test_inspection_pdf_prints_the_medium_but_not_type_or_area(): void
+    public function test_inspection_pdf_prints_no_type_area_or_medium(): void
     {
         $view = file_get_contents(resource_path('views/inspections/pdf.blade.php'));
         $this->assertStringNotContainsString('school_type_label', $view);
         $this->assertStringNotContainsString('area_type_label', $view);
-        $this->assertStringContainsString('Medium: {{ $s->medium_label }}', $view);
+        $this->assertStringNotContainsString('medium_label', $view);
     }
 }

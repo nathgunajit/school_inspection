@@ -98,6 +98,25 @@ class MySchoolsTest extends TestCase
         $this->assertContains((string) $sheet->getCell('A7')->getValue(), School::where('cluster_id', $cluster->id)->pluck('udise_code')->map(fn ($c) => (string) $c)->all());
         $this->assertTrue($sheet->getProtection()->getSheet(), 'the sheet is protected');
         $this->assertTrue($book->getSecurity()->getLockStructure(), 'the workbook structure is locked');
+
+        // no Medium column; widths follow the content and long text wraps
+        $this->assertSame(\App\Exports\MySchoolsExport::HEADINGS, $sheet->rangeToArray('A6:J6')[0]);
+        $this->assertNotContains('Medium', $sheet->rangeToArray('A6:K6')[0]);
+        $longest = School::where('cluster_id', $cluster->id)->get()->max(fn ($s) => mb_strlen($s->name));
+        $this->assertGreaterThanOrEqual(min(55, $longest + 2), $sheet->getColumnDimension('B')->getWidth());
+        $this->assertTrue($sheet->getStyle('B7')->getAlignment()->getWrapText());
+        $this->assertSame(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4, $sheet->getPageSetup()->getPaperSize());
+
+        // each logo stays inside its column and inside rows 1–3
+        $drawings = $sheet->getDrawingCollection();
+        $this->assertCount(2, $drawings);
+        $headerPx = array_sum(array_map(fn ($r) => $sheet->getRowDimension($r)->getRowHeight(), [1, 2, 3])) * 96 / 72;
+        foreach ($drawings as $d) {
+            $col = preg_replace('/\d+/', '', $d->getCoordinates());
+            $colPx = \PhpOffice\PhpSpreadsheet\Shared\Drawing::cellDimensionToPixels($sheet->getColumnDimension($col)->getWidth(), $book->getDefaultStyle()->getFont());
+            $this->assertLessThanOrEqual($colPx, $d->getOffsetX() + $d->getWidth(), $d->getName().' fits its column');
+            $this->assertLessThanOrEqual($headerPx, $d->getOffsetY() + $d->getHeight(), $d->getName().' stays in the header rows');
+        }
     }
 
     public function test_pdf_download_is_audited_and_capped(): void

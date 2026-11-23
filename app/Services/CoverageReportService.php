@@ -422,18 +422,72 @@ class CoverageReportService
 
     public function export(User $user, array $f): SchoolTemplateExport
     {
+        $sheets = [[new ArrayExport(['Item', 'Value'], $this->summaryRows($user, $f)), 'Summary']];
+
+        foreach ($this->levels($user, $f) as $level) {
+            $sheets[] = [new ArrayExport(self::AREA_HEADS, $this->areaRows($user, $f, $level)), self::LEVELS[$level]];
+        }
+
+        $schoolRows = $this->schoolsForExport($user, $f);
+        $sheets[] = [new ArrayExport(['UDISE', 'School', 'Cluster', 'Block', 'District', 'Unverified visits'],
+            $schoolRows->where('verified', 0)->map(fn ($r) => [$r['udise'], $r['name'], $r['cluster'], $r['block'], $r['district'], $r['unverified']])->values()->all()), 'Schools not visited'];
+        $sheets[] = [new ArrayExport(['UDISE', 'School', 'Cluster', 'Block', 'District', 'Verified visits in period'],
+            $schoolRows->where('inspected', false)->map(fn ($r) => [$r['udise'], $r['name'], $r['cluster'], $r['block'], $r['district'], $r['verified']])->values()->all()), 'Due in cycle'];
+
+        return new SchoolTemplateExport($sheets);
+    }
+
+    /* ======================= PDF (23-11-2026) ======================= */
+
+    public const AREA_HEADS = ['Sl.', 'Area', 'Parent', 'Total schools', 'Unique schools visited (verified)', 'Visit coverage %', 'Visit band',
+        'Inspected in cycle', 'Inspection coverage %', 'Not visited', 'Due in cycle', 'Verified visits', 'Repeat visits', 'Unverified visits', 'Officers active', 'Last visit'];
+
+    /** The same columns with headings short enough for an A4 landscape page. */
+    public const AREA_HEADS_SHORT = ['Sl.', 'Area', 'Parent', 'Schools', 'Visited', 'Visit %', 'Band',
+        'Inspected', 'Insp. %', 'Not visited', 'Due', 'Visits', 'Repeat', 'Unverified', 'Officers', 'Last visit'];
+
+    /**
+     * What the screen shows, for App\Support\MasterPdf::sections(): the summary, then the area table of the
+     * level in view (sorted as on screen, with a Total row), or the school list when one cluster is selected.
+     *
+     * @return list<array{title: ?string, headings: list<string>, rows: list<array>}>
+     */
+    public function pdfSections(User $user, array $f): array
+    {
+        $sections = [['title' => 'Summary', 'headings' => ['Item', 'Value'], 'rows' => $this->summaryRows($user, $f)]];
+        if ($level = $this->level($user, $f)) {
+            $sections[] = ['title' => self::LEVELS[$level], 'headings' => self::AREA_HEADS_SHORT, 'rows' => $this->areaRows($user, $f, $level)];
+        } elseif ($f['cluster_id']) {
+            $rows = $this->schools($user, $f)->values()->map(fn ($r, $i) => [$i + 1, $r['school']->udise_code, $r['school']->name,
+                $r['verified'], $r['unverified'], $r['last'] ? Carbon::parse($r['last'])->format('d-m-Y') : '—', $r['last_officer'] ?? '—',
+                $r['inspected'] ? 'Yes' : 'No', $r['gps'] ? 'Yes' : 'No'])->all();
+            $sections[] = ['title' => 'Schools of '.$this->areaTitle($f), 'rows' => $rows,
+                'headings' => ['Sl.', 'UDISE', 'School', 'Verified visits', 'Unverified', 'Last visit', 'Last officer', 'Inspected in cycle', 'GPS']];
+        }
+
+        return $sections;
+    }
+
+    /** Rows the PDF would hold (checked against the PDF cap before rendering). */
+    public function pdfRowCount(User $user, array $f): int
+    {
+        if ($level = $this->level($user, $f)) {
+            return $this->areas($user, $f, $level)->count();
+        }
+
+        return $f['cluster_id'] ? (clone $this->schoolQuery($user, $f))->count() : 0;
+    }
+
+    /** Summary as Item / Value rows (Excel Summary sheet and PDF). */
+    private function summaryRows(User $user, array $f): array
+    {
         $period = $this->period($f);
         $cycle = $this->cycle($f);
         $setting = $this->setting($f);
         $s = $this->summary($user, $f);
         $pct = fn ($v) => $v === null ? '' : $v;
-        $heads = ['Sl.', 'Area', 'Parent', 'Total schools', 'Unique schools visited (verified)', 'Visit coverage %', 'Visit band',
-            'Inspected in cycle', 'Inspection coverage %', 'Not visited', 'Due in cycle', 'Verified visits', 'Repeat visits', 'Unverified visits', 'Officers active', 'Last visit'];
-        $line = fn ($r, $i) => [$i, $r['name'], $r['parent'] ?? '', $r['schools'], $r['visited'], $pct($r['visit_pct']), $r['band']['label'],
-            $r['inspected'], $pct($r['insp_pct']), $r['not_visited'], $r['due'], $r['visits'], $r['repeat'], $r['unverified'], $r['officers'],
-            $r['last'] ? Carbon::parse($r['last'])->format('d-m-Y') : ''];
 
-        $sheets = [[new ArrayExport(['Item', 'Value'], [
+        return [
             ['Area', $this->areaTitle($f)],
             ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')'],
             ['Configured period type', $setting->periodLabel().($setting->district_id ? ' (district setting)' : ' (state default)')],
@@ -449,22 +503,20 @@ class CoverageReportService
             ['Officers active', $s['officers']],
             ['Visit Coverage', 'At least one verified visit (location within the radius of the school) in the period.'],
             ['Inspection Coverage', 'A formal inspection submitted within the prescribed inspection cycle.'],
-        ]), 'Summary']];
+        ];
+    }
 
-        foreach ($this->levels($user, $f) as $level) {
-            $rows = $this->areas($user, $f, $level);
-            $data = $rows->values()->map(fn ($r, $i) => $line($r, $i + 1))->all();
-            $data[] = $line($this->finish(self::sum($this->data($user, $f)['clusters'])) + ['name' => 'Total', 'parent' => ''], '');
-            $sheets[] = [new ArrayExport($heads, $data), self::LEVELS[$level]];
-        }
+    /** One level's areas (sorted) with a Total row, in the AREA_HEADS order. */
+    private function areaRows(User $user, array $f, string $level): array
+    {
+        $pct = fn ($v) => $v === null ? '' : $v;
+        $line = fn ($r, $i) => [$i, $r['name'], $r['parent'] ?? '', $r['schools'], $r['visited'], $pct($r['visit_pct']), $r['band']['label'],
+            $r['inspected'], $pct($r['insp_pct']), $r['not_visited'], $r['due'], $r['visits'], $r['repeat'], $r['unverified'], $r['officers'],
+            $r['last'] ? Carbon::parse($r['last'])->format('d-m-Y') : ''];
+        $data = $this->areas($user, $f, $level)->values()->map(fn ($r, $i) => $line($r, $i + 1))->all();
+        $data[] = $line($this->finish(self::sum($this->data($user, $f)['clusters'])) + ['name' => 'Total', 'parent' => ''], '');
 
-        $schoolRows = $this->schoolsForExport($user, $f);
-        $sheets[] = [new ArrayExport(['UDISE', 'School', 'Cluster', 'Block', 'District', 'Unverified visits'],
-            $schoolRows->where('verified', 0)->map(fn ($r) => [$r['udise'], $r['name'], $r['cluster'], $r['block'], $r['district'], $r['unverified']])->values()->all()), 'Schools not visited'];
-        $sheets[] = [new ArrayExport(['UDISE', 'School', 'Cluster', 'Block', 'District', 'Verified visits in period'],
-            $schoolRows->where('inspected', false)->map(fn ($r) => [$r['udise'], $r['name'], $r['cluster'], $r['block'], $r['district'], $r['verified']])->values()->all()), 'Due in cycle'];
-
-        return new SchoolTemplateExport($sheets);
+        return $data;
     }
 
     /** Every assigned school in the filters with its visit / cycle facts (export only). */
