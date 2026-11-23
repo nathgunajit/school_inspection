@@ -9,30 +9,9 @@
     $catLabels = $photoCategories->pluck('label', 'code');
     $warnings = $progress['warnings'][$step] ?? [];
 
-    // Presentation only: short guidance per step and visual group headings (question codes are unchanged)
-    $intro = [
-        1 => 'Check the school building and facilities.',
-        2 => 'Enter today\'s numbers. Use − / + or type the figure. Leave 0 where there are none.',
-        3 => 'Add the details of each teacher absent today. The number comes from step 2 (Total teachers − Present).',
-        4 => 'Observe at least one class and record how it was taught.',
-        5 => 'Optional: choose a year, then enter amounts in lakh (e.g. .2 = 0.20).',
-        6 => 'Record how the school is run, then add up to three suggestions.',
-        7 => 'Take or upload the four required photographs.',
-    ];
-    $groups = [
-        'CND_01' => ['Building & basic facilities', 'bi-building'],
-        'CND_08' => ['Electricity & classrooms', 'bi-lightning-charge'],
-        'CND_17' => ['Digital learning & labs', 'bi-pc-display'],
-        'NET_01' => ['Network at the school', 'bi-wifi-off'], // V11
-        'TSI_01' => ['Students', 'bi-backpack'],
-        'TSI_04' => ['Teachers & tutors', 'bi-person-workspace'],
-        'TSI_10' => ['Trained / untrained teachers', 'bi-mortarboard'],
-        'GOVR_01' => ['Teaching & SMC', 'bi-people'],
-        'GOVR_05' => ['Assembly & entitlements', 'bi-book'],
-        'GOVR_10' => ['Cleanliness, MDM & health', 'bi-heart-pulse'],
-        'GOVR_18' => ['Safety & sports', 'bi-shield-check'],
-        'GOVR_20' => ['Records & administration', 'bi-folder2-open'],
-    ];
+    // Presentation only: short guidance per step and group headings, shared with the paper form (QuestionnaireDefinition)
+    $intro = \App\Questionnaire\QuestionnaireDefinition::STEP_INTROS;
+    $groups = \App\Questionnaire\QuestionnaireDefinition::GROUPS;
     $groupHead = fn ($code) => isset($groups[$code])
         ? '<div class="q-group"><span class="q-group-icon"><i class="bi '.$groups[$code][1].'"></i></span><span>'.e($groups[$code][0]).'</span></div>'
         : '';
@@ -118,7 +97,7 @@
                                 @if ($groupHead($q['code']))<div class="col-12">{!! $groupHead($q['code']) !!}</div>@endif
                                 @if ($q['code'] === 'TSI_04')
                                     {{-- Modification V9: only the total, above the teacher numbers it adds up --}}
-                                    <div class="col-12"><div class="auto-total at-total-only" data-auto-total="teachers" aria-live="polite">
+                                    <div class="col-12"><div class="auto-total at-total-only is-highlight" data-auto-total="teachers" aria-live="polite">
                                         <span class="at-icon"><i class="bi bi-calculator"></i></span>
                                         <span class="at-label">Total teachers<small>Regular + Contractual + SSA + Provincialised + Newly accorded tutors · calculated automatically</small></span>
                                         <span class="at-parts"><span data-at-extra></span></span>
@@ -134,29 +113,29 @@
                                         <span class="at-parts"><span>Present <b data-at="present">–</b></span><span>Absent <b data-at="absent">–</b></span><span data-at-extra></span></span>
                                         <span class="at-value" data-at="total">–</span>
                                     </div></div>
-                                @elseif ($q['code'] === 'TSI_09')
-                                    {{-- 21-11-2026: Total - Present decides step 3 (absent teacher details, or nothing to fill) --}}
-                                    <div class="col-12"><div class="auto-total at-absent" data-auto-total="absent" aria-live="polite">
-                                        <span class="at-icon"><i class="bi bi-person-x"></i></span>
-                                        <span class="at-label">Teachers absent today<small>Total teachers − Present · calculated automatically</small></span>
-                                        <span class="at-parts"><span>Total <b data-at="ttotal">–</b></span><span>Present <b data-at="present">–</b></span></span>
-                                        <span class="at-value" data-at="total">–</span>
-                                        <span class="at-next" data-at-extra></span>
-                                    </div></div>
                                 @elseif ($q['code'] === 'TSI_13')
-                                    {{-- Total trained / untrained only (no male / female). Trained + Untrained must be equal to Total teachers (blocking rule). --}}
-                                    {{-- Calculated automatically; a blank count is 0. --}}
+                                    {{-- 23-11-2026: totals of trained / untrained and male / female (Trained + Untrained must be equal to Total teachers, blocking rule). --}}
+                                    {{-- Calculated automatically; a blank count is 0. Cells come from QuestionnaireDefinition::CALC_BOXES, shared with the paper form. --}}
+                                    @php $bdBox = \App\Questionnaire\QuestionnaireDefinition::calcBoxes('after', 'TSI_13')[0]; $bdIcons = ['trained' => 'bi-patch-check', 'untrained' => 'bi-patch-question', 'male' => 'bi-gender-male', 'female' => 'bi-gender-female']; @endphp
                                     <div class="col-12"><div class="auto-total at-breakdown" data-auto-total="breakdown" aria-live="polite">
                                         <div class="bd-head">
                                             <span class="at-icon"><i class="bi bi-calculator"></i></span>
-                                            <span class="at-label">Total trained / untrained teachers<small>Calculated automatically · must be equal to Total teachers</small></span>
+                                            <span class="at-label">{{ $bdBox['label'] }}<small>Calculated automatically · {{ $bdBox['formula'] }}</small></span>
                                         </div>
                                         <div class="bd-grid">
-                                            @foreach ([['trained', 'Total trained', 'bi-patch-check', 'Male trained + Female trained'], ['untrained', 'Total untrained', 'bi-patch-question', 'Male untrained + Female untrained']] as [$k, $l, $ic, $f])
-                                                <div class="bd-cell bd-{{ $k }}"><span class="bd-name"><i class="bi {{ $ic }}"></i>{{ $l }}</span><b data-at="{{ $k }}">–</b><small>{{ $f }}</small></div>
+                                            @foreach ($bdBox['cells'] as $k => [$l, $f])
+                                                <div class="bd-cell bd-{{ $k }}"><span class="bd-name"><i class="bi {{ $bdIcons[$k] }}"></i>{{ $l }}</span><b data-at="{{ $k }}">–</b><small>{{ $f }}</small></div>
                                             @endforeach
                                         </div>
                                         <div class="bd-foot"><span class="bd-status" data-at-extra></span><span class="bd-sum">Teachers counted <b data-at="sum">–</b></span></div>
+                                    </div></div>
+                                    {{-- 23-11-2026: after the trained / untrained calculation, highlighted. Total - Present decides step 3 (absent teacher details, or nothing to fill) --}}
+                                    <div class="col-12"><div class="auto-total at-absent is-highlight" data-auto-total="absent" aria-live="polite">
+                                        <span class="at-icon"><i class="bi bi-person-x"></i></span>
+                                        <span class="at-label">Teachers absent today<small>Total teachers − Present · calculated automatically</small></span>
+                                        <span class="at-parts"><span>Total teachers <b data-at="ttotal">–</b></span><span>Present <b data-at="present">–</b></span></span>
+                                        <span class="at-value" data-at="total">–</span>
+                                        <span class="at-next" data-at-extra></span>
                                     </div></div>
                                 @endif
                             @endforeach

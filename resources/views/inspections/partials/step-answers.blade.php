@@ -29,9 +29,13 @@
         <div class="fig-total"><i class="bi bi-backpack"></i><span>Total students <small>Present + Absent</small></span><b>{{ $totS === null ? '—' : number_format($totS) }}</b></div>
         <div class="fig-total"><i class="bi bi-person-workspace"></i><span>Total teachers <small>Regular + Contractual + SSA + Tutors</small></span><b>{{ $totT === null ? '—' : number_format($totT) }}</b></div>
         @if ($bd = Q::teacherBreakdown($answers))
-            @php $bdBad = $totT !== null && $bd['sum'] !== $totT; /* must be equal to Total teachers; totals only, no male / female */ @endphp
+            @php $bdBad = $totT !== null && $bd['sum'] !== $totT; /* must be equal to Total teachers; 23-11-2026: male / female totals shown too */ @endphp
             <div class="fig-total {{ $bdBad ? 'is-bad' : '' }}"><i class="bi bi-mortarboard"></i>
-                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}<small>Trained + Untrained{{ $bdBad ? ' · not equal to Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+                <span>Trained {{ $bd['trained'] }} · Untrained {{ $bd['untrained'] }}@if ($bd['split']) · Male {{ $bd['male'] }} · Female {{ $bd['female'] }}@endif<small>Trained + Untrained{{ $bd['split'] ? ' = Male + Female' : '' }}{{ $bdBad ? ' · not equal to Total teachers' : '' }}</small></span><b>{{ $bd['sum'] }}</b></div>
+        @endif
+        @if (($absT = V::absentLimit($answers)) !== null)
+            <div class="fig-total is-highlight {{ $absT > 0 ? 'is-need' : '' }}"><i class="bi bi-person-x"></i>
+                <span>Teachers absent today<small>Total teachers − Present ({{ $totT }} − {{ $figs['TSI_09'] ?? '—' }})</small></span><b>{{ $absT }}</b></div>
         @endif
     </div>
 @elseif ($n !== 3 && ! empty($questions[$n]))

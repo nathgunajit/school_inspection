@@ -189,6 +189,68 @@ class QuestionnaireDefinition
         return is_array($value) ? implode(', ', $value) : (string) $value;
     }
 
+    /**
+     * Presentation only, shared by the wizard and the paper form (23-11-2026), so both follow the same questions.
+     * Short guidance per step.
+     */
+    public const STEP_INTROS = [
+        1 => 'Check the school building and facilities.',
+        2 => 'Enter today\'s numbers. Use − / + or type the figure. Leave 0 where there are none.',
+        3 => 'Add the details of each teacher absent today. The number comes from step 2 (Total teachers − Present).',
+        4 => 'Observe at least one class and record how it was taught.',
+        5 => 'Optional: choose a year, then enter amounts in lakh (e.g. .2 = 0.20).',
+        6 => 'Record how the school is run, then add up to three suggestions.',
+        7 => 'Take or upload the four required photographs.',
+    ];
+
+    /** Paper form wording where the app guidance does not fit paper (else STEP_INTROS is printed). */
+    public const PAPER_INTROS = [
+        2 => 'Write today\'s numbers in the boxes. Write 0 where there are none. The shaded boxes are totals: add them up and write the result.',
+        3 => 'Absent teachers = Total teachers − Teachers present (section 2). Write one row per absent teacher; tick the type and write the reason code.',
+        4 => 'Record at least one classroom. Tick the boxes; if TLM was used, write the FLN and / or ECCE TLM items.',
+        5 => 'Optional. Amounts in lakh (e.g. 1.25 = ₹1,25,000). One block per financial year.',
+        7 => 'Photos are taken in the app (camera or gallery). Tick each one once taken:',
+    ];
+
+    /** Group headings shown before a question code: code => [title, Bootstrap icon]. */
+    public const GROUPS = [
+        'CND_01' => ['Building & basic facilities', 'bi-building'],
+        'CND_08' => ['Electricity & classrooms', 'bi-lightning-charge'],
+        'CND_17' => ['Digital learning & labs', 'bi-pc-display'],
+        'NET_01' => ['Network at the school', 'bi-wifi-off'], // V11
+        'TSI_01' => ['Students', 'bi-backpack'],
+        'TSI_04' => ['Teachers & tutors', 'bi-person-workspace'],
+        'TSI_10' => ['Trained / untrained teachers', 'bi-mortarboard'],
+        'GOVR_01' => ['Teaching & SMC', 'bi-people'],
+        'GOVR_05' => ['Assembly & entitlements', 'bi-book'],
+        'GOVR_10' => ['Cleanliness, MDM & health', 'bi-heart-pulse'],
+        'GOVR_18' => ['Safety & sports', 'bi-shield-check'],
+        'GOVR_20' => ['Records & administration', 'bi-folder2-open'],
+    ];
+
+    /**
+     * Step 2 automatic totals (display only, nothing is stored), placed by question code:
+     * `before` a code or `after` it. The wizard shows them live; the paper form prints a box to calculate and write.
+     * Each item: key, label, formula, and `cells` (sub-totals written separately).
+     */
+    public const CALC_BOXES = [
+        ['after' => 'TSI_02', 'key' => 'students', 'label' => 'Total students', 'formula' => 'Present + Absent'],
+        ['before' => 'TSI_04', 'key' => 'teachers', 'label' => 'Total teachers', 'formula' => 'Regular + Contractual + SSA + Provincialised + Newly accorded tutors', 'highlight' => true],
+        ['after' => 'TSI_13', 'key' => 'breakdown', 'label' => 'Total trained / untrained teachers', 'formula' => 'must be equal to Total teachers', 'cells' => [
+            'trained' => ['Total trained', 'Male trained + Female trained'],
+            'untrained' => ['Total untrained', 'Male untrained + Female untrained'],
+            'male' => ['Total male', 'Male trained + Male untrained'],
+            'female' => ['Total female', 'Female trained + Female untrained'],
+        ]],
+        ['after' => 'TSI_13', 'key' => 'absent', 'label' => 'Teachers absent today', 'formula' => 'Total teachers − Present · details of each absent teacher in step / section 3', 'highlight' => true],
+    ];
+
+    /** CALC_BOXES placed `before` / `after` a question code. */
+    public static function calcBoxes(string $position, string $code): array
+    {
+        return array_values(array_filter(self::CALC_BOXES, fn ($b) => ($b[$position] ?? null) === $code));
+    }
+
     /** Step 2 codes that make up Total teachers (regular, contractual, SSA, provincialised, newly accorded). */
     public const TEACHER_TOTAL_CODES = ['TSI_04', 'TSI_05', 'TSI_06', 'TSI_07', 'TSI_08'];
 

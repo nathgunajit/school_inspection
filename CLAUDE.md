@@ -53,6 +53,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `DistrictBoundaryService` links a District Master row to its outline (`districts.boundary_name`, else by name) and locates points.
   - The map JSON carries `outline` (the URL for the district in view), drawn by `drawDistrictOutline()` in `map-common.js`.
   - `map:boundaries --check` / `--assign` link unmatched districts.
+  - 23-11-2026: zoomed out, grouped school markers show a school icon with the count (`clusterIcon()` in `map.js`, `.si-cluster`), coloured by the main status or the rating band; clustering stops at zoom 16.
   - V6 Module 8: `createDirections()` / `directionsPanelHtml()` / `bindDirectionsPanel()` in `map-common.js` provide My location, distance, the OSRM road route (`config('inspection.map.routing')`) and a Google Maps link.
     - Used in the `/map` school popups and on the school page (`resources/js/school-map.js`).
     - The officer's position leaves the browser only when they press "Show route".
@@ -80,10 +81,11 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
-- Step 2 teacher totals (blocking): TSI_10 + TSI_11 + TSI_12 + TSI_13 (Trained + Untrained) must be **equal to** Total teachers (TSI_04–08) since 21-11-2026, and TSI_09 must not exceed it. The live box, report and PDF show only Total trained / Total untrained (no male / female) (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`).
+- Step 2 teacher totals (blocking): TSI_10 + TSI_11 + TSI_12 + TSI_13 (Trained + Untrained) must be **equal to** Total teachers (TSI_04–08) since 21-11-2026, and TSI_09 must not exceed it. Since 23-11-2026 the live box, report and PDF show Total trained / untrained **and Total male / female** (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`). The highlighted **Teachers absent today** box (`.is-highlight`) sits right after that box (after TSI_13), and the Total teachers box is highlighted too; the report and PDF add an absent tile.
 - Modification V11 (`Documents/Modification of the ApplicationV11.docx`, 21-11-2026):
   1. The phone bottom nav and the wizard action bar hide while scrolling down (`body.bars-hidden`, end of `resources/js/app.js`). They come back on scroll up, a 700 ms pause, at the page bottom, or while a modal is open.
   2. Blank paper form: `schools.blank-form` (`SchoolController::blankForm()`, `inspections/blank-form.blade.php`, logos from `App\Support\PdfLogos`, audited `blank_form_downloaded`), linked from the school page and the step 1 info card.
+     - Since 23-11-2026 it is driven by `QuestionnaireDefinition`: `GROUPS` (group headings, shared with the wizard), `STEP_INTROS` / `PAPER_INTROS` (section notes), `CALC_BOXES` (shaded total boxes, partial `inspections/partials/blank-calc.blade.php`). Questions are numbered 2.1, 2.2…, conditions print as "Answer only if …". Change the questionnaire there, not in the view.
      - `NET_01` "Internet / network problem at the school" (step 1, optional, a remark is required on Yes).
      - The list is `reports.network` (`NetworkIssueController`, `can:view_reports`, jurisdiction-scoped, drafts included). The NET_01 value is filtered in PHP (JSON column).
   3. Teacher names: `inspections.teacher-names` returns names from the same school's other non-cancelled inspections (absent and classroom rows). It is used by the `[data-ac]` autocomplete on `t_name` / `c_name` (`data-ac-icon`, `data-ac-free="off"`; the JSON key is `items`, and subjects still use `subjects`).

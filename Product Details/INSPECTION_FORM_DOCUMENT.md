@@ -97,7 +97,7 @@ Every step page has the same frame:
 > - **Classroom performance from the last visit:** the classroom records of the previous inspection (with the TLM items ticked) are listed on step 4, ready to edit or remove.
 > - **All teachers present:** when Teachers present is changed to equal Total teachers, the absentee list is removed automatically (the officer sees a message; audited).
 > - **Report page:** the section bar wraps onto a second line, so every step (including Photographs) is visible.
-> - **No internet at the school?** The school page and the step 1 officer card link to a printable **blank inspection form** (PDF, `GET /schools/{school}/blank-form`). It has the school details pre-printed and every question with boxes, blank absentee / classroom / fund tables and signatures.
+> - **No internet at the school?** The school page and the step 1 officer card link to a printable **blank inspection form** (PDF, `GET /schools/{school}/blank-form`). It has the school details pre-printed and every question with boxes, blank absentee / classroom / fund tables and signatures. Since 23-11-2026 it follows the app: a "How to fill" strip, the same group headings, questions numbered per section (2.1, 2.2…), "Answer only if …" notes, remarks lines, and shaded boxes for the totals (students, teachers, trained / untrained / male / female, teachers absent). All of it comes from `QuestionnaireDefinition` (`GROUPS`, `PAPER_INTROS`, `CALC_BOXES`).
 > - **Bottom bars** (phone navigation and the Back / Next bar) slide away while scrolling down and come back on scroll up or after a short pause.
 
 ### Step 1: Condition of the School
@@ -125,7 +125,9 @@ Every step page has the same frame:
   - At submit, a blank value is stored as 0.
 - **Automatic totals (display only, not stored):**
   - total students = present + absent
-  - **Total teachers** = regular + contractual + SSA + provincialised + newly accorded tutors. Since V9 the box sits **above** the teacher numbers and shows only the total (no Present / Absent).
+  - **Total teachers** = regular + contractual + SSA + provincialised + newly accorded tutors. Since V9 the box sits **above** the teacher numbers and shows only the total (no Present / Absent). Highlighted since 23-11-2026.
+  - **Trained / untrained box** (after `TSI_13`): Total trained, Total untrained, **Total male** and **Total female** (23-11-2026), plus "Teachers counted" against Total teachers.
+  - **Teachers absent today** = Total teachers − Present: since 23-11-2026 shown **after** the trained / untrained box, highlighted. The review / report and the PDF show it as a tile too.
 - **Blocking:** teachers present more than the total; trained/untrained (and male/female) more than the total.
 
 ### Step 3: Teachers Absentee Form

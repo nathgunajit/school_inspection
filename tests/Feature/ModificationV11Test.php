@@ -49,6 +49,26 @@ class ModificationV11Test extends TestCase
         $this->get(route('schools.show', $school))->assertSee(route('schools.blank-form', $school), false);
     }
 
+    /** 23-11-2026: the paper form follows the questionnaire definition (groups, numbering, calculated boxes). */
+    public function test_blank_form_follows_the_questionnaire(): void
+    {
+        $school = \App\Models\School::with(['district', 'block', 'cluster'])->first();
+        $questions = array_map(fn ($qs) => array_values(array_filter($qs, fn ($q) => empty($q['hidden']))), \App\Questionnaire\QuestionnaireDefinition::questions());
+        $html = view('inspections.blank-form', ['school' => $school, 'steps' => \App\Questionnaire\QuestionnaireDefinition::steps(), 'questions' => $questions,
+            'logos' => ['assam' => null, 'ssa' => null], 'photoLabels' => ['Front view']])->render();
+
+        foreach (\App\Questionnaire\QuestionnaireDefinition::GROUPS as [$title]) {
+            $this->assertStringContainsString(e($title), $html);
+        }
+        foreach (['Total students', 'Total teachers', 'Total trained', 'Total untrained', 'Total male', 'Total female', 'Teachers absent today', 'How to fill', '2.1', 'Answer only if'] as $text) {
+            $this->assertStringContainsString($text, $html);
+        }
+        // the group heading comes before the Total teachers box, which comes before the first teacher question
+        $this->assertLessThan(strpos($html, 'Total teachers</div>'), strpos($html, 'Teachers &amp; tutors'));
+        $this->assertLessThan(strpos($html, 'Number of Regular Teachers'), strpos($html, 'Total teachers</div>'));
+        $this->assertLessThan(strpos($html, 'Teachers absent today'), strpos($html, 'Total female'));
+    }
+
     public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
     {
         $officer = $this->officer(UserLevel::Cluster);

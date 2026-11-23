@@ -15,7 +15,11 @@ if (el) {
     const start = JSON.parse(el.dataset.start);
     const map = createMap(el, cfg);
     const areaLayer = L.layerGroup().addTo(map);
-    const schoolLayer = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45 }).addTo(map);
+    // 23-11-2026: zoomed out, grouped schools show a school icon with the count (coloured by the main status / average rating)
+    const schoolLayer = L.markerClusterGroup({
+        showCoverageOnHover: false, maxClusterRadius: 45, disableClusteringAtZoom: 16,
+        iconCreateFunction: (cluster) => clusterIcon(cluster.getAllChildMarkers(), cluster.getChildCount()),
+    }).addTo(map);
     const directions = createDirections(map, cfg); // V6 Module 8: My location, distance and road route
     let boundaries = null;
     const geo = { state: null, districts: null };
@@ -39,6 +43,27 @@ if (el) {
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
     const ratingIcon = (r) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
         html: `<span class="si-pin rt-${esc(r?.color || 'none')}">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
+
+    function clusterIcon(children, count) {
+        let cls;
+        if (colourBy === 'rating') {
+            const rated = children.map((m) => m.options.siRating).filter(Boolean);
+            const avg = rated.length ? rated.reduce((a, r) => a + Number(r.score || 0), 0) / rated.length : null;
+            // the band of the school closest to the average score
+            const near = avg === null ? null : rated.reduce((b, r) => (Math.abs(r.score - avg) < Math.abs(b.score - avg) ? r : b));
+            cls = `rt-${near?.color || 'none'}`;
+        } else {
+            const n = {};
+            children.forEach((m) => { const s = m.options.siStatus || 'pending'; n[s] = (n[s] || 0) + 1; });
+            cls = `st-${Object.keys(n).sort((a, b) => n[b] - n[a])[0] || 'pending'}`;
+        }
+        const size = count < 10 ? 'sm' : count < 100 ? 'md' : 'lg';
+        const px = { sm: 38, md: 44, lg: 50 }[size];
+        return L.divIcon({
+            className: '', iconSize: [px, px], iconAnchor: [px / 2, px / 2],
+            html: `<span class="si-cluster si-cluster-${size} ${cls}" title="${count} schools"><i class="bi bi-building"></i><b>${count.toLocaleString('en-IN')}</b></span>`,
+        });
+    }
 
     async function getJson(url) {
         const r = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
@@ -246,7 +271,7 @@ if (el) {
         const pts = [];
         rows.forEach((s) => {
             if (s.lat === null || s.lng === null) return;
-            const m = L.marker([s.lat, s.lng], { icon: colourBy === 'rating' ? ratingIcon(s.rating) : schoolIcon(s.status), title: s.name }).bindPopup(schoolPopup(s));
+            const m = L.marker([s.lat, s.lng], { icon: colourBy === 'rating' ? ratingIcon(s.rating) : schoolIcon(s.status), title: s.name, siStatus: s.status, siRating: s.rating }).bindPopup(schoolPopup(s));
             schoolLayer.addLayer(m);
             markers.set(s.id, m);
             pts.push([s.lat, s.lng]);

@@ -12,7 +12,7 @@ use App\Questionnaire\QuestionnaireDefinition as Q;
 use Tests\TestCase;
 
 /**
- * Step 2: Trained + Untrained (TSI_10..13) must be equal to Total teachers (TSI_04..08); only the totals are shown (no male / female),
+ * Step 2: Trained + Untrained (TSI_10..13) must be equal to Total teachers (TSI_04..08); the totals of trained / untrained and male / female are shown,
  * and teachers present (TSI_09) cannot be more than Total teachers. Both are blocking.
  */
 class TeacherTotalsTest extends TestCase
@@ -119,7 +119,29 @@ class TeacherTotalsTest extends TestCase
     {
         $this->actingAs($this->officer)->get(route('inspections.step', [$this->inspection, 2]))->assertOk()
             ->assertSee('data-auto-total="breakdown"', false)->assertSee('Total trained / untrained teachers')->assertSee('Male trained + Female trained')->assertSee('must be equal to Total teachers')
-            ->assertDontSee('data-at="male"', false)->assertDontSee('data-at="female"', false)->assertSee('name="TSI_10" value="0"', false)
+            ->assertSee('data-at="male"', false)->assertSee('data-at="female"', false)->assertSee('Total male')->assertSee('Male trained + Male untrained')
+            ->assertSee('name="TSI_10" value="0"', false)
             ->assertDontSee('name="TSI_14"', false)->assertDontSee('name="TSI_15"', false); // V10 totals rolled back
+    }
+
+    /** 23-11-2026: Teachers absent today follows the trained / untrained totals, highlighted like Total teachers. */
+    public function test_absent_box_follows_the_breakdown_and_is_highlighted(): void
+    {
+        $html = $this->actingAs($this->officer)->get(route('inspections.step', [$this->inspection, 2]))->assertOk()->getContent();
+        $bd = strpos($html, 'data-auto-total="breakdown"');
+        $abs = strpos($html, 'data-auto-total="absent"');
+        $this->assertNotFalse($bd);
+        $this->assertGreaterThan($bd, $abs, 'the absent box comes after the trained / untrained box');
+        $this->assertGreaterThan(strpos($html, 'name="TSI_13"'), $abs);
+        $this->assertMatchesRegularExpression('/class="auto-total at-absent is-highlight" data-auto-total="absent"/', $html);
+        $this->assertMatchesRegularExpression('/class="auto-total at-total-only is-highlight" data-auto-total="teachers"/', $html);
+    }
+
+    public function test_review_shows_male_female_totals_and_absent_teachers(): void
+    {
+        $this->fill(self::TOTAL);
+        $this->fill(['TSI_09' => 8, 'TSI_10' => 3, 'TSI_11' => 1, 'TSI_12' => 4, 'TSI_13' => 2]);
+        $this->actingAs($this->officer)->get(route('inspections.review', $this->inspection))->assertOk()
+            ->assertSee('Trained 7 · Untrained 3 · Male 4 · Female 6')->assertSee('Teachers absent today')->assertSee('(10 − 8)');
     }
 }

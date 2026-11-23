@@ -952,7 +952,7 @@ if (autoTotals.length) {
             const next = $('[data-next][data-step4-href]');
             if (next) next.href = known && absent === 0 ? next.dataset.step4Href : next.dataset.step3Href;
         }
-        // Total trained / untrained (TSI_10..13) only; Trained + Untrained must be equal to Total teachers
+        // Totals of trained / untrained and male / female (TSI_10..13); Trained + Untrained must be equal to Total teachers
         const bd = $('[data-auto-total="breakdown"]');
         if (bd) {
             const [mt, mu, ft, fu] = ['TSI_10', 'TSI_11', 'TSI_12', 'TSI_13'].map(val);
@@ -962,6 +962,10 @@ if (autoTotals.length) {
             const sum = (...xs) => (xs.every((x) => x !== null) ? xs.reduce((a, b) => a + b, 0) : null);
             $('[data-at="trained"]', bd).textContent = fmtInt(sum(mt, ft));
             $('[data-at="untrained"]', bd).textContent = fmtInt(sum(mu, fu));
+            // 23-11-2026: male / female totals as well
+            const me = $('[data-at="male"]', bd), fe = $('[data-at="female"]', bd);
+            if (me) me.textContent = fmtInt(sum(mt, mu));
+            if (fe) fe.textContent = fmtInt(sum(ft, fu));
             const s = all ? mt + mu + ft + fu : null;
             $('[data-at="sum"]', bd).textContent = fmtInt(s);
             const checked = all && total !== null;

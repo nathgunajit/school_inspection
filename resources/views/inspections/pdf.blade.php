@@ -117,6 +117,8 @@
     .fig { border: .6px solid #dbe3ef; border-radius: 1.6mm; padding: 2mm 2.6mm; background: #f5f8fd; }
     .fig .big { font-size: 13pt; font-weight: bold; color: #0d47a1; margin-top: .4mm; }
     .fig .small { margin-top: .2mm; }
+    .fig.hi { border: 1.2px solid #1565c0; background: #e8f0fc; }
+    .fig.hi.warn { border-color: #f39223; background: #fff4e6; } .fig.hi.warn .big { color: #b45309; }
 
     /* Photos */
     .photos td { width: 50%; padding: 1.6mm; vertical-align: top; }
@@ -226,11 +228,13 @@
     @if ($n === 2)
         {{-- figures first: three boxes with the automatic totals --}}
         @php $totS = QD::totalStudents($answers); $totT = QD::totalTeachers($answers); $bd = QD::teacherBreakdown($answers); $fa = QD::withDefaults($answers); @endphp
-        {{-- three boxes: total trained / untrained only, no male / female --}}
-        <table class="figs three"><tr>
+        {{-- 23-11-2026: four boxes; trained / untrained with the male / female totals, then Teachers absent today (highlighted) --}}
+        @php $absT = V::absentLimit($answers); @endphp
+        <table class="figs"><tr>
             <td><div class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></div></td>
-            <td><div class="fig"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
-            <td class="last"><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">of {{ $bd['sum'] ?? '—' }} counted · equal to Total teachers</div></div></td>
+            <td><div class="fig hi"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
+            <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">@if ($bd && $bd['split'])Male {{ $bd['male'] }} · Female {{ $bd['female'] }}@else of {{ $bd['sum'] ?? '—' }} counted @endif</div></div></td>
+            <td class="last"><div class="fig hi {{ $absT ? 'warn' : '' }}"><div class="lbl">Teachers absent today</div><div class="big">{{ $absT ?? '—' }}</div><div class="small">Total teachers − Present</div></div></td>
         </tr></table>
         @if ($qs->isNotEmpty())
             <table class="qa" style="margin-top:2.4mm">
