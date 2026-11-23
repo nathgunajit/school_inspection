@@ -35,11 +35,7 @@
     .ref { display: inline-block; font-size: 7pt; color: #334155; background: #f1f5f9; border: .5px solid #d8dee8; border-radius: 1.4mm; padding: .3mm 1.8mm; margin-left: 1mm; }
     .ref b { color: #0d47a1; }
 
-    /* Watermark + footer (every page) */
-    .watermark { position: fixed; top: 92mm; left: -12mm; width: 206mm; text-align: center; transform: rotate(-35deg);
-        color: #1565c0; opacity: .045; font-weight: bold; line-height: 1.25; }
-    .watermark .w1 { font-size: 34pt; letter-spacing: 2pt; }
-    .watermark .w2 { font-size: 26pt; letter-spacing: 4pt; }
+    /* Footer (every page); the background watermark is partials/pdf-watermark */
     footer { position: fixed; bottom: -20mm; left: 0; right: 0; height: 16mm; font-size: 7.5pt; color: #475569; border-top: .6px solid #cbd5e1; padding-top: 1.6mm; }
     footer strong { color: #1f2937; }
     footer .conf { margin-top: 1.2mm; text-align: center; font-size: 7.5pt; font-weight: bold; color: #b91c1c; letter-spacing: 1.4pt; }
@@ -72,7 +68,7 @@
     .kv td.k { width: 21%; color: #64748b; }
     .kv td.v { width: 29%; font-weight: bold; color: #0f172a; }
     .qa td { padding: 1.8mm 2.4mm; border-bottom: .6px solid #e5e9f0; vertical-align: top; }
-    .qa tr.z td { background: #f8fafc; }
+    .qa tr.z td { background: rgba(15, 23, 42, .03); } /* see-through, so the background logo shows */
     .qa td.no { width: 6%; color: #94a3b8; }
     .qa td.v { width: 34%; font-weight: bold; color: #0f172a; }
     .rem { color: #64748b; font-size: 7.8pt; font-style: italic; margin-top: .6mm; }
@@ -111,14 +107,14 @@
     .fy span { font-weight: normal; color: #64748b; font-size: 7.6pt; }
 
     /* Step 2 figure boxes */
-    .figs td { width: 25%; padding: 0 1.2mm 0 0; vertical-align: top; }
-    .figs td.last { padding-right: 0; }
-    .figs.three td { width: 33.33%; }
-    .fig { border: .6px solid #dbe3ef; border-radius: 1.6mm; padding: 2mm 2.6mm; background: #f5f8fd; }
-    .fig .big { font-size: 13pt; font-weight: bold; color: #0d47a1; margin-top: .4mm; }
-    .fig .small { margin-top: .2mm; }
-    .fig.hi { border: 1.2px solid #1565c0; background: #e8f0fc; }
-    .fig.hi.warn { border-color: #f39223; background: #fff4e6; } .fig.hi.warn .big { color: #b45309; }
+    /* 23-11-2026: the four boxes are the cells themselves (equal size in one row), with fixed rows so the numbers line up */
+    .figs { table-layout: fixed; border-collapse: separate; border-spacing: 2.2mm 0; margin-left: -2.2mm; width: 186.4mm; } /* 182 mm content + the two outer gaps, so the box edges line up with the rows below */
+    .figs td.fig { width: 25%; height: 21mm; padding: 2mm 2.6mm; vertical-align: top; border: .8px solid #c9d6ea; border-radius: 1.6mm; background: #f5f8fd; }
+    .fig .lbl { height: 4mm; white-space: nowrap; overflow: hidden; }
+    .fig .big { height: 8.5mm; font-size: 14pt; font-weight: bold; color: #0d47a1; line-height: 8.5mm; margin: .4mm 0 0; }
+    .fig .small { height: 4mm; white-space: nowrap; overflow: hidden; margin-top: .2mm; }
+    .figs td.fig.hi { border: 1.4px solid #1565c0; background: #e8f0fc; }
+    .figs td.fig.hi.warn { border-color: #f39223; background: #fff4e6; } .fig.hi.warn .big { color: #b45309; }
 
     /* Photos */
     .photos td { width: 50%; padding: 1.6mm; vertical-align: top; }
@@ -155,8 +151,8 @@
     </div>
 </header>
 
-{{-- Watermark, repeated on every page --}}
-<div class="watermark"><div class="w1">SCHOOL INSPECTION REPORT</div><div class="w2">SSA, ASSAM</div></div>
+{{-- Background on every page (23-11-2026): faint SSA logo, title and SSA, ASSAM --}}
+@include('inspections.partials.pdf-watermark', ['logo' => $logos['ssa'] ?? null, 'title' => 'SCHOOL INSPECTION REPORT', 'top' => 82])
 
 {{-- Footer, repeated on every page; "Page X of Y" is stamped by ReportController::pdf() --}}
 <footer>
@@ -232,10 +228,10 @@
         {{-- 23-11-2026: four boxes; trained / untrained with the male / female totals, then Teachers absent today (highlighted) --}}
         @php $absT = V::absentLimit($answers); @endphp
         <table class="figs"><tr>
-            <td><div class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></div></td>
-            <td><div class="fig hi"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></div></td>
-            <td><div class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">@if ($bd && $bd['split'])Male {{ $bd['male'] }} · Female {{ $bd['female'] }}@else of {{ $bd['sum'] ?? '—' }} counted @endif</div></div></td>
-            <td class="last"><div class="fig hi {{ $absT ? 'warn' : '' }}"><div class="lbl">Teachers absent today</div><div class="big">{{ $absT ?? '—' }}</div><div class="small">Total teachers − Present</div></div></td>
+            <td class="fig"><div class="lbl">Total students</div><div class="big">{{ $totS ?? '—' }}</div><div class="small">Present {{ $fa['TSI_01'] ?? '—' }} · Absent {{ $fa['TSI_02'] ?? '—' }}</div></td>
+            <td class="fig hi"><div class="lbl">Total teachers</div><div class="big">{{ $totT ?? '—' }}</div><div class="small">Present {{ $fa['TSI_09'] ?? '—' }}</div></td>
+            <td class="fig"><div class="lbl">Trained / Untrained</div><div class="big">{{ $bd ? $bd['trained'].' / '.$bd['untrained'] : '—' }}</div><div class="small">@if ($bd && $bd['split'])Male {{ $bd['male'] }} · Female {{ $bd['female'] }}@else of {{ $bd['sum'] ?? '—' }} counted @endif</div></td>
+            <td class="fig hi {{ $absT ? 'warn' : '' }}"><div class="lbl">Absent today</div><div class="big">{{ $absT ?? '—' }}</div><div class="small">Total teachers − Present</div></td>
         </tr></table>
         @if ($qs->isNotEmpty())
             <table class="qa" style="margin-top:2.4mm">

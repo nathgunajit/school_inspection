@@ -126,6 +126,8 @@
 </style>
 </head>
 <body>
+{{-- Background on every page (23-11-2026): faint SSA logo, title and SSA, ASSAM --}}
+@include('inspections.partials.pdf-watermark', ['logo' => $logos['ssa'] ?? null, 'title' => 'SCHOOL INSPECTION FORM', 'top' => 92])
 <header>
     <table><tr>
         <td class="lg">@if ($logos['assam'])<img src="{{ $logos['assam'] }}" alt="">@endif</td>

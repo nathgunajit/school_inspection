@@ -2380,3 +2380,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Import (`MasterImportService`) normalises UDISE `Med_Final_25`. School Master form: tick boxes per language plus "Other medium" (`SchoolMasterController::validated()`). School Master list: Medium filter (`medium like %X%`, also used by the Excel export).
 - Tests: new `SchoolMediumTest`; `SchoolUdiseImportTest` now expects "Assamese, Bodo". Docs: `CLAUDE.md`, Database doc, docx rebuilt.
 - Verified: `php artisan test`, all passing. The School Master form not opened in a browser.
+
+## 2026-11-23: PDF background (SSA logo) and equal step 2 boxes in the report
+- New partial `inspections/partials/pdf-watermark.blade.php`: faint SSA logo (opacity .07) with the title and "SSA, ASSAM", position fixed and centred, so it repeats on every page behind the content. Used by the paper form ("SCHOOL INSPECTION FORM", `blank-form.blade.php`) and the inspection report ("SCHOOL INSPECTION REPORT", `pdf.blade.php`, replacing the rotated text watermark).
+- Report: the alternate row shading is see-through (rgba) so the logo shows; Teacher's & Student's Information boxes are now the table cells (equal width and height, fixed label / number / note rows so the numbers line up; "Absent today" label fits one line), edges aligned with the rows below.
+- Verified: both PDFs rendered with DomPDF (report from inspection 2 on MySQL, read-only; paper form) and checked as page images; `ModificationV11Test` checks the background; `php artisan test`, all passing.

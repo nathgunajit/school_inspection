@@ -72,6 +72,10 @@ class ModificationV11Test extends TestCase
         $this->assertStringContainsString('<td class="nbx"></td>', $html);
         $this->assertStringNotContainsString('class="bx"', $html);
         $this->assertStringNotContainsString('class="num"', $html);
+        // standard background: faint SSA logo, title and SSA, ASSAM on every page
+        $this->assertStringContainsString('class="pdf-wm"', $html);
+        $this->assertStringContainsString('SCHOOL INSPECTION FORM</div>', $html);
+        $this->assertStringContainsString('SSA, ASSAM', $html);
     }
 
     public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
