@@ -116,16 +116,32 @@ class ScheduleService
         if ($lat !== null && $lng !== null) {
             return [$lat, $lng];
         }
+
+        return $this->startInfo($officer)['point'];
+    }
+
+    /**
+     * 23-11-2026 (V14): the default start point and where it comes from. The office location of the officer's
+     * cluster, block or district (Location Master latitude / longitude) when it is set; an office without a location
+     * is skipped (never shown); otherwise the centre of the officer's schools with GPS; otherwise none.
+     *
+     * @return array{point: ?array{0: float, 1: float}, source: ?string, label: ?string}
+     */
+    public function startInfo(User $officer): array
+    {
         $jur = $this->j->current($officer);
-        foreach ([[Cluster::class, $jur?->cluster_id], [Block::class, $jur?->block_id], [District::class, $jur?->district_id]] as [$model, $id]) {
+        $names = ['cluster' => 'Cluster', 'block' => 'Block office', 'district' => 'District office'];
+        foreach (['cluster' => [Cluster::class, $jur?->cluster_id], 'block' => [Block::class, $jur?->block_id], 'district' => [District::class, $jur?->district_id]] as $source => [$model, $id]) {
             if ($id && ($a = $model::find($id)) && $a->latitude !== null && $a->longitude !== null) {
-                return [$a->latitude, $a->longitude];
+                return ['point' => [(float) $a->latitude, (float) $a->longitude], 'source' => $source, 'label' => $names[$source].' · '.$a->label];
             }
         }
         $avg = $this->j->schools($officer)->whereNotNull('latitude')->whereNotNull('longitude')
             ->selectRaw('avg(latitude) as lat, avg(longitude) as lng')->toBase()->first();
 
-        return $avg && $avg->lat !== null ? [(float) $avg->lat, (float) $avg->lng] : null;
+        return $avg && $avg->lat !== null
+            ? ['point' => [(float) $avg->lat, (float) $avg->lng], 'source' => 'schools', 'label' => 'centre of the schools (office location not set)']
+            : ['point' => null, 'source' => null, 'label' => null];
     }
 
     /* ======================= Saving ======================= */

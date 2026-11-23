@@ -32,7 +32,7 @@
     <form method="GET" class="filter-bar mb-3" id="my-schools-filter" data-filter data-filter-region data-loader-text="Loading schools…">
         <div class="row g-2 align-items-end">
             <div class="col-12 col-md"><label class="form-label text-xs mb-1" for="ms-q">School</label>
-                <input id="ms-q" name="q" value="{{ $q }}" class="form-control" placeholder="Name or UDISE Code" maxlength="100" type="search"></div>
+                <input id="ms-q" name="q" value="{{ $q }}" class="form-control" placeholder="Name or UDISE Code" maxlength="100" type="search" data-school-suggest="{{ route('schools.suggest') }}"></div>
             @if ($districts->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="ms-d">District</label>
                     <select id="ms-d" name="district_id" class="form-select" data-autosubmit data-clears="block_id,cluster_id"><option value="">All districts</option>

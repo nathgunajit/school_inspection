@@ -57,6 +57,7 @@
                 <div class="plan-empty text-muted text-sm p-3" id="planEmpty"><i class="bi bi-hand-index me-1"></i>Drag schools here from the list below, or tap a school on the map and choose “Add to plan”.</div>
                 <div class="card-body border-top py-2">
                     <div class="d-flex flex-wrap gap-3 text-sm mb-2" id="planTotals"></div>
+                    <div class="text-xs text-muted mb-2" id="planStart"></div>
                     <div class="d-flex flex-wrap gap-2 {{ $readonly ? 'd-none' : '' }}">
                         <button type="button" class="btn btn-light btn-sm" id="btnOptimise"><i class="bi bi-magic"></i>Optimise route</button>
                         <button type="button" class="btn btn-light btn-sm" id="btnMyLocation"><i class="bi bi-crosshair"></i>Start from my location</button>

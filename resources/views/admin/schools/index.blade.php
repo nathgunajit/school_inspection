@@ -7,7 +7,7 @@
 
     {{-- Modification V13 item 2: filters by location, AC / PC, management, category and area --}}
     <form method="GET" id="sm-form" class="filter-bar mb-3 row g-2" data-filter data-filter-region data-loader-text="Loading schools…">
-        <div class="col-12 col-md-4"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="UDISE code or school name" aria-label="Search"></div>
+        <div class="col-12 col-md-4"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="UDISE code or school name" aria-label="Search" maxlength="100" data-school-suggest="{{ route('schools.suggest', ['all' => 1]) }}"></div>
         <div class="col-6 col-md-2">
             <select name="district_id" class="form-select" data-autosubmit aria-label="District"><option value="">All districts</option>
                 @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->label }}</option>@endforeach</select>

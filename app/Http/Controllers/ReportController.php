@@ -113,9 +113,9 @@ class ReportController extends Controller
     {
         $user = $request->user();
         abort_unless($user->can('export_excel'), 403);
-        abort_unless(in_array($mode, ['mine', 'area'], true), 404);
+        abort_unless($mode === 'area', 404); // 23-11-2026 (V14): My Inspections has no Excel download, only the PDF
 
-        $rows = $this->exportQuery($request, $mode)
+        $rows =$this->exportQuery($request, $mode)
             ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos', 'rating'])
             ->orderBy('inspection_date')->limit(20000)->get();
 

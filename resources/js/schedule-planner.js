@@ -8,7 +8,7 @@
 import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import Sortable from 'sortablejs';
-import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline } from './map-common';
+import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline, directionsUrl } from './map-common';
 
 const root = document.getElementById('planner');
 if (root) {
@@ -20,6 +20,9 @@ if (root) {
     const layer = L.layerGroup().addTo(map);
     const routeLine = L.polyline([], { color: '#1565c0', weight: 3, opacity: 0.8, dashArray: '6 6' }).addTo(map);
     let start = cfg.start; // [lat, lng] or null
+    // 23-11-2026 (V14): where the route starts (office, centre of the schools when no office location is set, or my location)
+    let startLabel = cfg.startLabel || null;
+    const startText = () => `Route starts at: ${startLabel || "the start point"}`;
     let startMarker = null;
     const $ = (id) => document.getElementById(id);
     const schools = new Map(); // id → school
@@ -118,7 +121,9 @@ if (root) {
             ? `<span><i class="bi bi-geo-alt"></i> ${plan.length} school(s)</span><span><i class="bi bi-signpost"></i> ~${last.km.toFixed(1)} km</span>
                <span><i class="bi bi-clock"></i> ~${Math.floor(last.minutes / 60)} h ${last.minutes % 60} min</span><span><i class="bi bi-flag"></i> back by ~${addMin(last.eta, cfg.visit)}</span>`
             : '';
-        renderMap();
+        const sl = $('planStart');
+        if (sl) sl.innerHTML = start ? `<i class="bi bi-flag-fill"></i> ${esc(startText())}` : '<i class="bi bi-flag"></i> The route starts at the first school (no start point is set).';
+        renderMap(L2);
         renderAvailable();
     }
 
@@ -135,31 +140,64 @@ if (root) {
         return 'available';
     }
 
-    function popup(s) {
+    /* 23-11-2026 (V14): the popup uses the Map View card (coloured head, padded body, actions); the plain
+       version lost its padding and close button when the Map View popups were restyled. */
+    const POP = {
+        planned: { icon: 'bi-signpost-split', text: 'On this plan' },
+        available: { icon: 'bi-building', text: 'Can be planned' },
+        inspected: { icon: 'bi-check2-circle', text: 'Inspected this month' },
+        pending: { icon: 'bi-slash-circle', text: 'Not available' },
+    };
+    function popup(s, leg) {
         const st = statusOf(s);
-        const btn = readonly ? ''
-            : st === 'planned' ? `<button type="button" class="btn btn-light btn-sm w-100 mt-2" data-pop-remove="${s.id}">Remove from plan</button>`
-                : s.blocked ? `<div class="text-danger text-xs mt-1">${esc(s.blocked)}</div>`
-                    : `<button type="button" class="btn btn-primary btn-sm w-100 mt-2" data-pop-add="${s.id}">Add to plan</button>`;
-        return `<div class="map-pop"><div class="fw-semibold">${esc(s.name)}</div><div class="text-xs text-muted">UDISE ${esc(s.udise)}${s.cluster ? ' · ' + esc(s.cluster) : ''}</div>
-            <div class="text-xs">${s.last ? 'Last inspected ' + esc(s.last) : 'Never inspected'}</div>${btn}</div>`;
+        const p = pt(s);
+        let status = POP[st].text;
+        if (st === 'planned' && leg) status += ` · stop ${plan.indexOf(s.id) + 1} · arrive ${leg.eta}`;
+        // distance from the start (or the last stop) for a school not yet on the plan; the leg for a planned one
+        const from = start || (plan.length ? pt(schools.get(plan[plan.length - 1])) : null);
+        const km = st === 'planned' ? leg?.d ?? null : from && p ? roadKm(from, p) : null;
+        const kmRow = km !== null
+            ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>~${km.toFixed(1)} km by road from ${st === 'planned' ? 'the previous stop' : start ? 'the start' : 'the last stop'} <span class="text-muted">(approx.)</span></span></div>`
+            : '';
+        const actions = [
+            readonly ? ''
+                : st === 'planned' ? `<button type="button" class="btn btn-light btn-sm" data-pop-remove="${s.id}"><i class="bi bi-x-lg"></i>Remove</button>`
+                    : s.blocked ? ''
+                        : `<button type="button" class="btn btn-primary btn-sm" data-pop-add="${s.id}"><i class="bi bi-plus-lg"></i>Add to plan</button>`,
+            p ? `<a class="btn btn-soft-primary btn-sm" href="${directionsUrl(p, start)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-sign-turn-right"></i>Directions</a>` : '',
+        ].filter(Boolean).join('');
+        return `<div class="map-pop map-pop-plan is-${st}">
+            <div class="mp-head"><div class="mp-icon"><i class="bi ${POP[st].icon}"></i></div>
+                <div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">UDISE ${esc(s.udise)}${s.cluster ? ' · ' + esc(s.cluster) : ''}</div></div></div>
+            <div class="mp-body">
+                <div class="mp-chips"><span class="mp-status st-${st}"><span class="dot"></span>${esc(status)}</span></div>
+                ${s.blocked ? `<div class="mp-row text-danger"><i class="bi bi-exclamation-circle"></i><span>${esc(s.blocked)}</span></div>` : ''}
+                ${kmRow}
+                <div class="mp-last ${s.last ? '' : 'mp-last-none'}">${s.last
+                    ? `<div class="mp-last-label">Last inspected</div><div class="mp-row"><i class="bi bi-calendar3"></i><span>${esc(s.last)}</span></div>`
+                    : '<i class="bi bi-info-circle"></i>Never inspected'}</div>
+                ${actions ? `<div class="mp-actions">${actions}</div>` : ''}
+            </div></div>`;
     }
 
-    function renderMap() {
+    function renderMap(L2 = legs()) {
         layer.clearLayers();
         const pts = [];
+        const legOf = new Map(L2.map((g) => [g.id, g]));
         schools.forEach((s) => {
             const p = pt(s);
             if (!p) return;
             const st = statusOf(s);
             const n = st === 'planned' ? plan.indexOf(s.id) + 1 : '';
-            L.marker(p, { icon: schoolIcon(st, n), title: s.name, zIndexOffset: st === 'planned' ? 1000 : 0 }).bindPopup(popup(s)).addTo(layer);
+            // the popup is built when it opens, so it always shows the current plan
+            L.marker(p, { icon: schoolIcon(st, n), title: s.name, zIndexOffset: st === 'planned' ? 1000 : 0 })
+                .bindPopup(() => popup(s, legOf.get(s.id)), { maxWidth: 300, autoPanPadding: [16, 16] }).addTo(layer);
             pts.push(p);
         });
         routeLine.setLatLngs([start, ...plan.map((id) => pt(schools.get(id)))].filter(Boolean));
         if (start && !startMarker) {
-            startMarker = L.circleMarker(start, { radius: 7, color: '#fff', weight: 2, fillColor: '#0f172a', fillOpacity: 1 }).bindTooltip('Start').addTo(map);
-        } else if (start) startMarker.setLatLng(start);
+            startMarker = L.circleMarker(start, { radius: 7, color: '#fff', weight: 2, fillColor: '#0f172a', fillOpacity: 1 }).bindTooltip(startText()).addTo(map);
+        } else if (start) startMarker.setLatLng(start).setTooltipContent(startText());
         if (!fitted && pts.length) { fitTo(map, pts, cfg, 14); fitted = true; }
     }
 
@@ -228,7 +266,7 @@ if (root) {
     $('btnMyLocation').addEventListener('click', () => {
         if (!navigator.geolocation) { window.toast?.('Location is not available on this device.', 'warning'); return; }
         navigator.geolocation.getCurrentPosition(
-            (p) => { start = [p.coords.latitude, p.coords.longitude]; renderPlan(); window.toast?.('The route now starts from your location.', 'info'); },
+            (p) => { start = [p.coords.latitude, p.coords.longitude]; startLabel = 'your location'; renderPlan(); window.toast?.('The route now starts from your location.', 'info'); },
             () => window.toast?.('Could not read your location.', 'warning'),
             { enableHighAccuracy: true, timeout: 10000 },
         );

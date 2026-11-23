@@ -63,15 +63,18 @@
                                     @foreach ($bands as $b)<div><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }} ({{ $b['min'] }} %+)</div>@endforeach
                                     <div><span class="dot rt-none"></span>Not rated yet</div>
                                 </div>
-                                {{-- 23-11-2026: District / Block offices (Location Master office location), with distances in the school popups --}}
-                                <div class="d-flex align-items-center justify-content-between gap-2 mt-2 mb-1">
-                                    <span class="fw-semibold text-xs text-uppercase text-muted">Offices</span>
-                                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="fOffices" checked>
-                                        <label class="form-check-label text-xs" for="fOffices">Show</label></div>
+                                {{-- 23-11-2026: District / Block offices (Location Master office location), with distances in the school popups.
+                                     V14: shown only when the view has an office with a location; an office without one is never displayed. --}}
+                                <div class="d-none" data-office-panel>
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mt-2 mb-1">
+                                        <span class="fw-semibold text-xs text-uppercase text-muted">Offices</span>
+                                        <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="fOffices" checked>
+                                            <label class="form-check-label text-xs" for="fOffices">Show</label></div>
+                                    </div>
+                                    <div><span class="office-dot office-district">D</span>District office</div>
+                                    <div><span class="office-dot office-block">B</span>Block office</div>
+                                    <div class="text-xs text-muted" id="officeNote"></div>
                                 </div>
-                                <div><span class="office-dot office-district">D</span>District office</div>
-                                <div><span class="office-dot office-block">B</span>Block office</div>
-                                <div class="text-xs text-muted" id="officeNote"></div>
                                 <div class="fw-semibold text-xs text-uppercase text-muted mt-2 mb-1">Area coverage</div>
                                 <div><span class="dot cov-high"></span>75 % or more</div>
                                 <div><span class="dot cov-mid"></span>40 – 74 %</div>

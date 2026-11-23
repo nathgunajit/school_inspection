@@ -65,7 +65,7 @@ class ScheduleController extends Controller
         $blocks = in_array($officer->level->value, ['state_admin', 'state', 'district'], true)
             ? Block::query()->when($jur?->district_id, fn ($q, $d) => $q->where('district_id', $d))->orderBy('name')->get(['id', 'code', 'name'])
             : collect();
-        $start = $this->schedules->startPoint($officer);
+        $startInfo = $this->schedules->startInfo($officer); // V14: office location, else the centre of the schools
         $superior = $this->schedules->isSuperior($user, $officer);
 
         return view('schedules.plan', [
@@ -78,7 +78,8 @@ class ScheduleController extends Controller
                 'attribution' => config('inspection.map.attribution'),
                 'center' => config('inspection.map.center'),
                 'zoom' => config('inspection.map.zoom'),
-                'start' => $start,
+                'start' => $startInfo['point'],
+                'startLabel' => $startInfo['label'],
                 'roadFactor' => (float) config('inspection.schedule.road_factor'),
                 'speed' => (float) config('inspection.schedule.avg_speed_kmh'),
                 'visit' => (int) config('inspection.schedule.visit_minutes'),

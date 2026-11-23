@@ -57,6 +57,35 @@ class SchoolController extends Controller
     }
 
     /**
+     * 23-11-2026 (V14): auto-suggestions for the school search boxes (resources/js/school-suggest.js), by name
+     * or UDISE prefix, always inside the user's jurisdiction. Active schools only, except `all=1` for master managers.
+     */
+    public function suggest(Request $request)
+    {
+        $user = $request->user();
+        $q = trim(mb_substr((string) $request->q, 0, 100));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['items' => []]);
+        }
+        $all = $request->boolean('all') && $user->can('manage_masters');
+
+        $items = $this->j->schools($user)
+            ->when(! $all, fn ($w) => $w->where('status', 'active'))
+            ->when(ctype_digit($q), fn ($w) => $w->where('udise_code', 'like', $q.'%'), fn ($w) => $w->where('name', 'like', '%'.$q.'%'))
+            ->with(['cluster:id,name,code', 'block:id,name,code'])
+            ->orderBy('name')->limit(10)
+            ->get(['id', 'udise_code', 'name', 'status', 'cluster_id', 'block_id'])
+            ->map(fn (School $s) => [
+                'udise' => $s->udise_code,
+                'name' => $s->name,
+                'area' => trim(($s->cluster?->label ?? '').' · '.($s->block?->label ?? ''), ' ·'),
+                'status' => $s->status,
+            ]);
+
+        return response()->json(['items' => $items]);
+    }
+
+    /**
      * 23-11-2026: My Schools, every school in the officer's own jurisdiction (cluster, block, district or the whole
      * state, through JurisdictionService), listed without a search, with inspection progress and an Excel download.
      */

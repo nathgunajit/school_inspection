@@ -267,8 +267,10 @@ if (el) {
         officeLayer.clearLayers();
         const on = $('fOffices')?.checked !== false;
         document.querySelector('[data-office-key]')?.classList.toggle('d-none', !(on && offices.length));
+        // V14: offices without a location are never listed, and the panel hides when the view has none
+        document.querySelector('[data-office-panel]')?.classList.toggle('d-none', !offices.length);
         const note = $('officeNote');
-        if (note) note.textContent = offices.length ? `${offices.length} office(s) in this view` : 'No office location is set for this area (Location Master → Office latitude / longitude).';
+        if (note) note.textContent = offices.length ? `${offices.length} office(s) in this view` : '';
         if (!on) return;
         offices.forEach((o) => {
             L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
@@ -284,13 +286,14 @@ if (el) {
         const row = (type, id) => {
             const o = officeOf(type, id);
             const name = type === 'district' ? 'District office' : 'Block office';
-            if (!o) return `<div class="mp-row text-muted"><i class="bi bi-building"></i><span>${name}: location not set</span></div>`;
+            if (!o) return ''; // V14: an office without a location is not shown
             const km = haversineKm([o.lat, o.lng], [s.lat, s.lng]);
             return `<div class="mp-row"><i class="bi bi-building-fill office-ink-${type}"></i><span class="min-w-0">${name} · ${esc(o.name)}</span>
                 <b class="ms-auto text-nowrap">${fmtKm(km)}</b>
                 <a class="mp-office-go" href="${directionsUrl([s.lat, s.lng], [o.lat, o.lng])}" target="_blank" rel="noopener noreferrer" title="Route from the ${name.toLowerCase()} (Google Maps)" aria-label="Route from the ${name.toLowerCase()}"><i class="bi bi-sign-turn-right"></i></a></div>`;
         };
-        return `<div class="mp-last mp-offices"><div class="mp-last-label">Distance from offices <span class="text-muted">(approx.)</span></div>${row('block', s.block_id)}${row('district', s.district_id)}</div>`;
+        const rows = row('block', s.block_id) + row('district', s.district_id);
+        return rows ? `<div class="mp-last mp-offices"><div class="mp-last-label">Distance from offices <span class="text-muted">(approx.)</span></div>${rows}</div>` : '';
     }
 
     function schoolPopup(s) {

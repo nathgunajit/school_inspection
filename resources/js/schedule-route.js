@@ -1,7 +1,7 @@
 /* Route map of one schedule (New Module 2), and GPS capture for "Start inspection" from the plan. */
 import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
-import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline } from './map-common';
+import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline, directionsUrl } from './map-common';
 
 const el = document.getElementById('routeMap');
 if (el) {
@@ -16,10 +16,17 @@ if (el) {
         pts.push(start);
     }
     const status = { planned: 'planned', inspected: 'inspected', skipped: 'available' };
+    const words = { planned: 'Planned', inspected: 'Inspected', skipped: 'Skipped' };
     stops.forEach((s) => {
         if (s.lat === null || s.lng === null) return;
-        L.marker([s.lat, s.lng], { icon: schoolIcon(status[s.status] || 'planned', s.n), title: s.name })
-            .bindPopup(`<div class="map-pop"><b>${s.n}. ${esc(s.name)}</b><div class="text-xs text-muted">${esc(s.status)}</div></div>`).addTo(map);
+        const st = status[s.status] || 'planned';
+        // 23-11-2026 (V14): the Map View popup card (head, padded body, Google Maps link)
+        L.marker([s.lat, s.lng], { icon: schoolIcon(st, s.n), title: s.name })
+            .bindPopup(`<div class="map-pop map-pop-plan is-${st}">
+                <div class="mp-head"><div class="mp-icon"><b>${esc(s.n)}</b></div><div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">Stop ${esc(s.n)}</div></div></div>
+                <div class="mp-body"><div class="mp-chips"><span class="mp-status st-${st}"><span class="dot"></span>${esc(words[s.status] || s.status)}</span></div>
+                    <div class="mp-actions"><a class="btn btn-soft-primary btn-sm" href="${directionsUrl([s.lat, s.lng])}" target="_blank" rel="noopener noreferrer"><i class="bi bi-sign-turn-right"></i>Directions</a></div></div></div>`,
+            { maxWidth: 300, autoPanPadding: [16, 16] }).addTo(map);
         pts.push([s.lat, s.lng]);
     });
     if (pts.length > 1) L.polyline(pts, { color: '#1565c0', weight: 3, opacity: 0.8, dashArray: '6 6' }).addTo(map);

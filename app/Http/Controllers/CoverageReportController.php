@@ -36,6 +36,7 @@ class CoverageReportController extends Controller
             'summary' => $this->report->summary($user, $f),
             'levels' => $this->report->levels($user, $f),
             'level' => $level,
+            'viewLabel' => $this->report->viewLabel($user, $f),
             'rows' => $level ? $this->report->areas($user, $f, $level) : collect(),
             'schools' => $f['cluster_id'] ? $this->report->schools($user, $f) : collect(),
             'areaTitle' => $this->report->areaTitle($f),
@@ -49,9 +50,17 @@ class CoverageReportController extends Controller
         $f = $this->report->filters($request, $user);
         $period = $this->report->period($f);
         AuditLogger::log('coverage_report_exported', null, ['format' => 'excel', 'from' => $period->fromDate(), 'to' => $period->toDate(),
-            'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id']]);
+            'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id'], 'level' => $this->report->level($user, $f)]);
 
-        return Excel::download($this->report->export($user, $f), 'coverage-report-'.$period->fromDate().'-to-'.$period->toDate().'.xlsx');
+        return Excel::download($this->report->export($user, $f), $this->fileName($user, $f, 'xlsx'));
+    }
+
+    /** e.g. coverage-block-wise-2026-11-01-to-2026-11-30.xlsx (the view that was downloaded). */
+    private function fileName($user, array $f, string $ext): string
+    {
+        $period = $this->report->period($f);
+
+        return 'coverage-'.\Illuminate\Support\Str::slug($this->report->viewLabel($user, $f)).'-'.$period->fromDate().'-to-'.$period->toDate().'.'.$ext;
     }
 
     /** 23-11-2026: the report as on screen (summary + the level in view, or a cluster's schools) as a PDF. */
@@ -68,13 +77,12 @@ class CoverageReportController extends Controller
         MasterPdf::prepare();
         $period = $this->report->period($f);
         AuditLogger::log('coverage_report_exported', null, ['format' => 'pdf', 'from' => $period->fromDate(), 'to' => $period->toDate(),
-            'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id']]);
+            'district_id' => $f['district_id'], 'block_id' => $f['block_id'], 'cluster_id' => $f['cluster_id'], 'level' => $this->report->level($user, $f)]);
 
-        $chips = ['Area: '.$this->report->areaTitle($f), 'Period: '.$period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')',
-            'Downloaded by: '.$user->name];
+        $chips = ['Area: '.$this->report->areaTitle($f), 'View: '.$this->report->viewLabel($user, $f),
+            'Period: '.$period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')', 'Downloaded by: '.$user->name];
 
-        return MasterPdf::sections('Inspection Coverage Report', $this->report->pdfSections($user, $f), $chips,
-            'coverage-report-'.$period->fromDate().'-to-'.$period->toDate().'.pdf');
+        return MasterPdf::sections('Inspection Coverage Report', $this->report->pdfSections($user, $f), $chips, $this->fileName($user, $f, 'pdf'));
     }
 
     /* ======================= settings ======================= */

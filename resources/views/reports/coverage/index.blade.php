@@ -18,17 +18,18 @@
 <x-layouts.app title="Inspection Coverage Report">
     <x-slot:actions>
         @can('configure_coverage')<a href="{{ route('reports.coverage.settings') }}" class="btn btn-light d-none d-sm-inline-flex"><i class="bi bi-sliders"></i>Configure</a>@endcan
+        {{-- 23-11-2026 (V14): both downloads hold the view on screen (the selected tab, or the cluster's schools) --}}
         @can('export_excel')<span id="cov-actions" class="d-contents" data-filter-region>
-            <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
-            <a href="{{ route('reports.coverage.export-pdf', $keep) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+            <a href="{{ route('reports.coverage.export', $keep + ['level' => $level]) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="Download the {{ $viewLabel }} report as Excel"><i class="bi bi-file-earmark-excel"></i>Excel · {{ $viewLabel }}</a>
+            <a href="{{ route('reports.coverage.export-pdf', $keep + ['level' => $level]) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader title="Download the {{ $viewLabel }} report as PDF"><i class="bi bi-file-earmark-pdf"></i>PDF · {{ $viewLabel }}</a>
         </span>@endcan
     </x-slot:actions>
 
     <div id="cov-top" data-filter-region>
     @can('export_excel')
         <div class="d-flex gap-2 mb-3 d-sm-none">
-            <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-sm btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
-            <a href="{{ route('reports.coverage.export-pdf', $keep) }}" class="btn btn-sm btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+            <a href="{{ route('reports.coverage.export', $keep + ['level' => $level]) }}" class="btn btn-sm btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel · {{ $viewLabel }}</a>
+            <a href="{{ route('reports.coverage.export-pdf', $keep + ['level' => $level]) }}" class="btn btn-sm btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF · {{ $viewLabel }}</a>
         </div>
     @endcan
 

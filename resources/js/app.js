@@ -8,6 +8,7 @@ import './rating-settings';
 import './imports';
 import './network-status';
 import './filter-partial';
+import './school-suggest'; // V14: school name / UDISE suggestions
 
 window.bootstrap = bootstrap;
 window.axios = axios;

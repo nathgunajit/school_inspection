@@ -51,6 +51,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
         Route::post('/profile/mobile', [ProfileController::class, 'requestMobileChange'])->name('profile.mobile');
         Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.photo');
+        // V14: school name / UDISE auto-suggestions for every school search box (jurisdiction-scoped)
+        Route::get('/school-suggest', [SchoolController::class, 'suggest'])->middleware('throttle:120,1')->name('schools.suggest');
 
         // Schools & inspections
         Route::middleware('can:conduct_inspections')->group(function () {

@@ -420,12 +420,18 @@ class CoverageReportService
 
     /* ======================= Excel ======================= */
 
+    /**
+     * 23-11-2026 (V14): the Excel holds the view on screen, like the PDF: Summary, the selected level (the active
+     * tab) or the selected cluster's schools, then the not-visited and due lists of that area.
+     */
     public function export(User $user, array $f): SchoolTemplateExport
     {
         $sheets = [[new ArrayExport(['Item', 'Value'], $this->summaryRows($user, $f)), 'Summary']];
 
-        foreach ($this->levels($user, $f) as $level) {
+        if ($level = $this->level($user, $f)) {
             $sheets[] = [new ArrayExport(self::AREA_HEADS, $this->areaRows($user, $f, $level)), self::LEVELS[$level]];
+        } elseif ($f['cluster_id']) {
+            $sheets[] = [new ArrayExport(self::CLUSTER_SCHOOL_HEADS, $this->clusterSchoolRows($user, $f)), 'Schools of the cluster'];
         }
 
         $schoolRows = $this->schoolsForExport($user, $f);
@@ -458,14 +464,28 @@ class CoverageReportService
         if ($level = $this->level($user, $f)) {
             $sections[] = ['title' => self::LEVELS[$level], 'headings' => self::AREA_HEADS_SHORT, 'rows' => $this->areaRows($user, $f, $level)];
         } elseif ($f['cluster_id']) {
-            $rows = $this->schools($user, $f)->values()->map(fn ($r, $i) => [$i + 1, $r['school']->udise_code, $r['school']->name,
-                $r['verified'], $r['unverified'], $r['last'] ? Carbon::parse($r['last'])->format('d-m-Y') : '—', $r['last_officer'] ?? '—',
-                $r['inspected'] ? 'Yes' : 'No', $r['gps'] ? 'Yes' : 'No'])->all();
-            $sections[] = ['title' => 'Schools of '.$this->areaTitle($f), 'rows' => $rows,
-                'headings' => ['Sl.', 'UDISE', 'School', 'Verified visits', 'Unverified', 'Last visit', 'Last officer', 'Inspected in cycle', 'GPS']];
+            $sections[] = ['title' => 'Schools of '.$this->areaTitle($f), 'rows' => $this->clusterSchoolRows($user, $f), 'headings' => self::CLUSTER_SCHOOL_HEADS];
         }
 
         return $sections;
+    }
+
+    public const CLUSTER_SCHOOL_HEADS = ['Sl.', 'UDISE', 'School', 'Verified visits', 'Unverified', 'Last visit', 'Last officer', 'Inspected in cycle', 'GPS'];
+
+    /** The selected cluster's schools (not visited first), in the CLUSTER_SCHOOL_HEADS order. */
+    private function clusterSchoolRows(User $user, array $f): array
+    {
+        return $this->schools($user, $f)->values()->map(fn ($r, $i) => [$i + 1, $r['school']->udise_code, $r['school']->name,
+            $r['verified'], $r['unverified'], $r['last'] ? Carbon::parse($r['last'])->format('d-m-Y') : '—', $r['last_officer'] ?? '—',
+            $r['inspected'] ? 'Yes' : 'No', $r['gps'] ? 'Yes' : 'No'])->all();
+    }
+
+    /** What the downloads hold, for button labels and file names: "Block-wise", or "Schools" for one cluster. */
+    public function viewLabel(User $user, array $f): string
+    {
+        $level = $this->level($user, $f);
+
+        return $level ? self::LEVELS[$level] : 'Schools';
     }
 
     /** Rows the PDF would hold (checked against the PDF cap before rendering). */

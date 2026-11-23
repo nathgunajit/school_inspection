@@ -3,7 +3,8 @@
     <x-slot:actions>
         @can('export_excel')
             <span id="flt-actions" class="d-contents" data-filter-region>
-            <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            {{-- 23-11-2026 (V14): My Inspections has no Excel download, only the PDF --}}
+            @if ($area)<a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>@endif
             <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
             </span>
         @endcan
@@ -37,7 +38,7 @@
             @if ($area && $officers->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Officer</label><select name="officer_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($officers as $o)<option value="{{ $o->id }}" @selected(request('officer_id') == $o->id)>{{ $o->name }}</option>@endforeach</select></div>
             @endif
-            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">School</label><input name="school" value="{{ request('school') }}" class="form-control form-control-sm" placeholder="UDISE / name"></div>
+            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">School</label><input name="school" value="{{ request('school') }}" class="form-control form-control-sm" placeholder="UDISE / name" data-school-suggest="{{ route('schools.suggest') }}"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Status</label>
                 <select name="status" class="form-select form-select-sm" data-autosubmit><option value="">All</option>
                     @foreach (($area ? ['submitted' => 'Submitted', 'unlocked' => 'Unlocked'] : ['draft' => 'Draft / Unlocked', 'submitted' => 'Submitted', 'cancelled' => 'Cancelled']) as $k => $l)
@@ -48,7 +49,7 @@
     <div id="flt-results" data-filter-region data-filter-results>
     @can('export_excel')
         <div class="d-flex gap-2 mb-3 d-sm-none">
-            <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            @if ($area)<a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>@endif
             <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
         </div>
     @endcan

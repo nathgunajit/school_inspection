@@ -129,6 +129,9 @@
 - **Avatars:** `<x-user-avatar>` (private photo or initials).
 - **Pagination:** Bootstrap 5, 25 rows.
 - **Filter bars (23-11-2026):** `<x-filter-buttons>` gives every filter the same Apply / Reset size (40 px, 44 px on phones). Report and list filters load inside the results section only (`filter-partial.js`): a spinner covers the results box, the URL updates and Back works.
+- **School search suggestions (V14, 23-11-2026):** the school boxes on Inspections, My Inspections, My Schools and School Master suggest schools by name or UDISE Code as you type (`school-suggest.js`, `schools.suggest`, only schools in your jurisdiction); picking one filters the list.
+- **Downloads (V14):** My Inspections offers PDF only. The Coverage Report Excel / PDF hold the selected view (the District-, Block- or Cluster-wise tab, or a cluster's schools), named on the buttons.
+- **Plan Inspections map (V14):** school popups use the Map View card (status, stop and arrival time, distance, last inspected, Add / Remove, Directions); the route start is shown ("Route starts at: Block office …", or the centre of the schools when no office location is set). Offices without a location are not shown on the Map View.
 
 **Responsive behaviour:** mobile-first; sidebar → drawer; bottom nav; the camera is full screen on phones; maps are full height.
 
