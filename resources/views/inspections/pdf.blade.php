@@ -177,9 +177,9 @@
     </div>
     <table class="sc-grid"><tr>
         <td class="c1"><div class="lbl">UDISE Code</div><div class="val mono">{{ $s->udise_code }}</div></td>
-        <td class="c2"><div class="lbl">District</div><div class="val">{{ $s->district?->name ?? '—' }}</div></td>
-        <td class="c3"><div class="lbl">Block</div><div class="val">{{ $s->block?->name ?? '—' }}</div></td>
-        <td class="c4"><div class="lbl">Cluster</div><div class="val">{{ $s->cluster?->name ?? '—' }}</div></td>
+        <td class="c2"><div class="lbl">District</div><div class="val">{{ $s->district?->label ?? '—' }}</div></td>
+        <td class="c3"><div class="lbl">Block</div><div class="val">{{ $s->block?->label ?? '—' }}</div></td>
+        <td class="c4"><div class="lbl">Cluster</div><div class="val">{{ $s->cluster?->label ?? '—' }}</div></td>
     </tr></table>
 </div>
 

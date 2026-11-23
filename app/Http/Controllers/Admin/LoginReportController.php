@@ -26,7 +26,7 @@ class LoginReportController extends Controller
             'summary' => $this->monitor->summary($f),
             'logs' => $this->monitor->query($f)->paginate(config('inspection.per_page'))->withQueryString(),
             'levels' => array_filter(UserLevel::cases(), fn ($l) => $l !== UserLevel::StateAdmin),
-            'districts' => District::orderBy('name')->get(['id', 'name']),
+            'districts' => District::orderBy('name')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -42,7 +42,7 @@ class LoginReportController extends Controller
             'rows' => $rows,
             'minutes' => $this->monitor->dailyMinutes($rows->pluck('id')->all(), $f['date']),
             'levels' => UserLevel::registrable(),
-            'districts' => District::orderBy('name')->get(['id', 'name']),
+            'districts' => District::orderBy('name')->get(['id', 'code', 'name']),
         ]);
     }
 

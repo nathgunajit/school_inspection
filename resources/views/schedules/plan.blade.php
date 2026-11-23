@@ -13,7 +13,7 @@
             @if ($blocks->isNotEmpty())
                 <div class="col-12 col-md-3"><label class="form-label text-xs mb-1" for="pBlock">Block</label>
                     <select id="pBlock" class="form-select"><option value="">Choose a block…</option>
-                        @foreach ($blocks as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach
+                        @foreach ($blocks as $b)<option value="{{ $b->id }}">{{ $b->label }}</option>@endforeach
                     </select></div>
             @endif
             <div class="col-12 col-md text-md-end">

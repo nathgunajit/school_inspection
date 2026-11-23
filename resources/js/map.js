@@ -142,7 +142,7 @@ if (el) {
         const cov = Math.max(0, Math.min(100, Number(r.coverage) || 0));
         return `<div class="map-pop map-pop-area">
             <div class="mp-head"><div class="mp-icon"><i class="bi bi-diagram-3"></i></div>
-                <div class="min-w-0"><div class="mp-title">${esc(r.name)}</div><div class="mp-sub">${levelName[level]} · code ${esc(r.code)}</div></div></div>
+                <div class="min-w-0"><div class="mp-title">${esc(r.label ?? r.name)}</div><div class="mp-sub">${levelName[level]} · code ${esc(r.code)}</div></div></div>
             <div class="mp-body">
                 <div class="mp-tiles">
                     <div class="mp-tile st-inspected"><b>${fmt(r.inspected)}</b><span>Inspected</span></div>
@@ -198,7 +198,7 @@ if (el) {
             if (r.lat === null || r.lng === null) return;
             const radius = 10 + 18 * Math.sqrt(r.schools / max);
             const m = L.circleMarker([r.lat, r.lng], { radius, ...coverageColors(r.coverage), weight: 2, fillOpacity: 0.6 })
-                .bindTooltip(`${esc(r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
+                .bindTooltip(`${esc(r.label ?? r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
                 .bindPopup(areaPopup(r, level));
             m.addTo(areaLayer);
             markers.set(r.id, m);
@@ -273,7 +273,7 @@ if (el) {
             head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
                 <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
             body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
-                <td><a href="#" data-drill="${r.id}">${esc(r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
+                <td><a href="#" data-drill="${r.id}">${esc(r.label ?? r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
                 <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
                 <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
                 ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
@@ -285,7 +285,7 @@ if (el) {
 
     /* ---- the District / Block / Cluster selects follow the current drill-down ---- */
     function fill(select, rows, value, placeholder) {
-        select.innerHTML = `<option value="">${placeholder}</option>` + rows.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+        select.innerHTML = `<option value="">${placeholder}</option>` + rows.map((r) => `<option value="${r.id}">${esc(r.label ?? r.name)}</option>`).join('');
         select.value = value ?? '';
         select.disabled = rows.length === 0;
     }

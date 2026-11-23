@@ -39,7 +39,7 @@
                     @foreach ($levels as $l)<option value="{{ $l->value }}" @selected($filters['level'] === $l->value)>{{ $l->label() }}</option>@endforeach</select></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="d-district">District</label>
                 <select id="d-district" name="district_id" class="form-select" data-autosubmit><option value="">All districts</option>
-                    @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                    @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="d-state">Current status</label>
                 <select id="d-state" name="state" class="form-select" data-autosubmit><option value="">All</option>
                     @foreach (LM::DAILY_STATES as $k => [$label])<option value="{{ $k }}" @selected($filters['state'] === $k)>{{ $label }}</option>@endforeach</select></div>

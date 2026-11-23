@@ -315,6 +315,8 @@ Indexes: `clusters_block_id_foreign` (block_id); **unique** `clusters_code_uniqu
 
 #### `districts`
 
+IDs of `districts`, `blocks` and `clusters` follow the Location Master code order (1801 → 1). `php artisan locations:renumber --force` restores that order and moves every referencing column (schools, user_jurisdictions, inspections, import_batches, coverage_settings, blocks, clusters) and the id keys in `import_batches.summary`.
+
 | Field | Data type | Length | PK | FK | Nullable | Default |
 |---|---|---|---|---|---|---|
 | `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |

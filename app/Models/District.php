@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class District extends Model
 {
+    use Concerns\HasCodeLabel;
+
     protected $fillable = ['state_id', 'code', 'name', 'latitude', 'longitude', 'boundary_name', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean', 'latitude' => 'float', 'longitude' => 'float'];

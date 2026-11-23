@@ -48,7 +48,7 @@ class NetworkIssueController extends Controller
             'remarks' => $remarks,
             'total' => $query->clone()->count(),
             'schools' => $query->clone()->distinct('school_id')->count('school_id'),
-            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'name']) : collect(), // others see their own area only
+            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(), // others see their own area only
             'f' => $f,
         ]);
     }

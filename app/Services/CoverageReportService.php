@@ -248,7 +248,7 @@ class CoverageReportService
             ->when($f['cluster_id'], fn ($q, $v) => $q->where('clusters.id', $v))
             ->get(['clusters.id', 'clusters.name', 'clusters.code', 'clusters.block_id', 'blocks.district_id'])
             ->keyBy('id')
-            ->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'code' => $c->code, 'block_id' => (int) $c->block_id, 'district_id' => (int) $c->district_id,
+            ->map(fn ($c) => ['id' => $c->id, 'name' => $c->label, 'code' => $c->code, 'block_id' => (int) $c->block_id, 'district_id' => (int) $c->district_id,
                 'schools' => 0, 'visited' => 0, 'visits' => 0, 'unverified' => 0, 'inspected' => 0, 'officers' => [], 'last' => null]);
         foreach ($totals as $t) {
             if ($clusters->has($t->cluster_id)) {
@@ -339,18 +339,18 @@ class CoverageReportService
     {
         $clusters = $this->data($user, $f)['clusters'];
         if ($level === 'cluster') {
-            $blocks = Block::with('district:id,name')->whereIn('id', $clusters->pluck('block_id')->unique())->get(['id', 'name', 'district_id'])->keyBy('id');
+            $blocks = Block::with('district:id,code,name')->whereIn('id', $clusters->pluck('block_id')->unique())->get(['id', 'code', 'name', 'district_id'])->keyBy('id');
             $rows = $clusters->map(fn ($c) => $this->finish($c + ['level' => 'cluster',
-                'parent' => trim(($blocks[$c['block_id']]->name ?? '').' · '.($blocks[$c['block_id']]?->district?->name ?? ''), ' ·')]));
+                'parent' => trim(($blocks[$c['block_id']]->label ?? '').' · '.($blocks[$c['block_id']]?->district?->label ?? ''), ' ·')]));
         } else {
             $col = $level.'_id';
             $model = $level === 'district' ? District::class : Block::class;
             $masters = $model::query()->whereIn('id', $clusters->pluck($col)->unique())
-                ->when($level === 'block', fn ($q) => $q->with('district:id,name'))->get()->keyBy('id');
+                ->when($level === 'block', fn ($q) => $q->with('district:id,code,name'))->get()->keyBy('id');
             $rows = $clusters->groupBy($col)->map(fn ($g, $id) => $this->finish(self::sum($g) + [
-                'id' => (int) $id, 'name' => $masters[$id]->name ?? '—', 'code' => $masters[$id]->code ?? '', 'level' => $level,
+                'id' => (int) $id, 'name' => $masters[$id]->label ?? '—', 'code' => $masters[$id]->code ?? '', 'level' => $level,
                 'block_id' => $level === 'block' ? (int) $id : null, 'district_id' => $level === 'district' ? (int) $id : ($masters[$id]->district_id ?? null),
-                'parent' => $level === 'block' ? ($masters[$id]?->district?->name ?? '') : '',
+                'parent' => $level === 'block' ? ($masters[$id]?->district?->label ?? '') : '',
             ]));
         }
 
@@ -398,10 +398,10 @@ class CoverageReportService
     public function options(User $user, array $f): array
     {
         return [
-            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'name']) : collect(),
+            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(),
             'blocks' => $f['district_id'] && in_array($user->level->value, ['state_admin', 'state', 'district'], true)
-                ? Block::where('district_id', $f['district_id'])->orderBy('name')->get(['id', 'name']) : collect(),
-            'clusters' => $f['block_id'] && $user->level->value !== 'cluster' ? Cluster::where('block_id', $f['block_id'])->orderBy('name')->get(['id', 'name']) : collect(),
+                ? Block::where('district_id', $f['district_id'])->orderBy('name')->get(['id', 'code', 'name']) : collect(),
+            'clusters' => $f['block_id'] && $user->level->value !== 'cluster' ? Cluster::where('block_id', $f['block_id'])->orderBy('name')->get(['id', 'code', 'name']) : collect(),
             'categories' => MasterValue::where('type', 'category')->orderBy('sort')->get(['id', 'label']),
         ];
     }
@@ -476,12 +476,12 @@ class CoverageReportService
             ->join('clusters', 'clusters.id', '=', 'schools.cluster_id')
             ->join('blocks', 'blocks.id', '=', 'schools.block_id')
             ->join('districts', 'districts.id', '=', 'schools.district_id')
-            ->select('schools.id', 'schools.udise_code', 'schools.name', 'clusters.name as cluster', 'blocks.name as block', 'districts.name as district')
+            ->select('schools.id', 'schools.udise_code', 'schools.name', 'clusters.name as cluster', 'blocks.name as block', 'districts.name as district', 'clusters.code as cluster_code', 'blocks.code as block_code', 'districts.code as district_code')
             ->orderBy('districts.name')->orderBy('blocks.name')->orderBy('clusters.name')->orderBy('schools.name')
             ->chunk(2000, function ($rows) use (&$out, $data) {
                 foreach ($rows as $r) {
                     $v = $data['schools'][$r->id] ?? null;
-                    $out->push(['udise' => $r->udise_code, 'name' => $r->name, 'cluster' => $r->cluster, 'block' => $r->block, 'district' => $r->district,
+                    $out->push(['udise' => $r->udise_code, 'name' => $r->name, 'cluster' => Cluster::labelFor($r->cluster, $r->cluster_code), 'block' => Block::labelFor($r->block, $r->block_code), 'district' => District::labelFor($r->district, $r->district_code),
                         'verified' => $v['verified'] ?? 0, 'unverified' => $v['unverified'] ?? 0, 'inspected' => isset($data['cycle'][$r->id])]);
                 }
             });

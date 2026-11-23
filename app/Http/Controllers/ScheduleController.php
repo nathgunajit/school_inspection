@@ -63,7 +63,7 @@ class ScheduleController extends Controller
             ->with('items.school')->first();
         $jur = $this->j->current($officer);
         $blocks = in_array($officer->level->value, ['state_admin', 'state', 'district'], true)
-            ? Block::query()->when($jur?->district_id, fn ($q, $d) => $q->where('district_id', $d))->orderBy('name')->get(['id', 'name'])
+            ? Block::query()->when($jur?->district_id, fn ($q, $d) => $q->where('district_id', $d))->orderBy('name')->get(['id', 'code', 'name'])
             : collect();
         $start = $this->schedules->startPoint($officer);
         $superior = $this->schedules->isSuperior($user, $officer);

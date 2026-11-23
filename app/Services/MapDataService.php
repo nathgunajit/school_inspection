@@ -94,13 +94,13 @@ class MapDataService
         $parentType = $this->parentType($level);
         $chain = $this->chain($parentType, $parent);
         if ($chain['district_id']) {
-            $crumbs[] = ['level' => 'block', 'parent' => $chain['district_id'], 'name' => District::whereKey($chain['district_id'])->value('name')];
+            $crumbs[] = ['level' => 'block', 'parent' => $chain['district_id'], 'name' => District::find($chain['district_id'])?->label];
         }
         if ($chain['block_id']) {
-            $crumbs[] = ['level' => 'cluster', 'parent' => $chain['block_id'], 'name' => Block::whereKey($chain['block_id'])->value('name')];
+            $crumbs[] = ['level' => 'cluster', 'parent' => $chain['block_id'], 'name' => Block::find($chain['block_id'])?->label];
         }
         if ($chain['cluster_id']) {
-            $crumbs[] = ['level' => 'school', 'parent' => $chain['cluster_id'], 'name' => Cluster::whereKey($chain['cluster_id'])->value('name')];
+            $crumbs[] = ['level' => 'school', 'parent' => $chain['cluster_id'], 'name' => Cluster::find($chain['cluster_id'])?->label];
         }
 
         return $crumbs;
@@ -159,7 +159,8 @@ class MapDataService
                 return [
                     'id' => $a->id,
                     'code' => $a->code,
-                    'name' => $a->name,
+                    'name' => $a->name, // matched to boundary names in map.js
+                    'label' => $a->label,
                     'lat' => $a->latitude ?? ($r?->lat !== null ? round((float) $r->lat, 6) : null),
                     'lng' => $a->longitude ?? ($r?->lng !== null ? round((float) $r->lng, 6) : null),
                     'schools' => $total,
@@ -217,7 +218,7 @@ class MapDataService
                 ->selectRaw("schools.id, schools.udise_code, schools.name, schools.address, schools.latitude, schools.longitude, schools.school_type, schools.area_type, schools.medium,
                     schools.district_id, schools.block_id, schools.cluster_id,
                     case when $insp then 'inspected' when $prog then 'in_progress' else 'pending' end as map_status", array_merge($ib, $pb))
-                ->with(['cluster:id,name', 'block:id,name', 'district:id,name'])
+                ->with(['cluster:id,code,name', 'block:id,code,name', 'district:id,code,name'])
                 ->orderBy('schools.name')
                 ->limit($search ? 50 : 2000);
 
@@ -239,7 +240,7 @@ class MapDataService
                 'lat' => $s->latitude,
                 'lng' => $s->longitude,
                 'status' => $s->map_status,
-                'area' => collect([$s->cluster?->name, $s->block?->name, $s->district?->name])->filter()->implode(' · '),
+                'area' => collect([$s->cluster?->label, $s->block?->label, $s->district?->label])->filter()->implode(' · '),
                 'cluster_id' => $s->cluster_id,
                 'last' => ($l = $last->get($s->id)) ? [
                     'id' => $l->id, 'key' => $l->getRouteKey(), 'no' => $l->inspection_no, 'date' => $l->inspection_date?->format('d-m-Y'), 'officer' => $l->officer?->name,

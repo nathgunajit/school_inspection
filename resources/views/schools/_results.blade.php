@@ -36,7 +36,7 @@
                     <span class="d-block school-name">{!! $hl($s->name) !!}</span>
                     <span class="school-sub">
                         <span class="udise">{!! ctype_digit($q) ? $hl($s->udise_code) : e($s->udise_code) !!}</span>
-                        <span><i class="bi bi-geo-alt"></i> {{ $s->cluster?->name }}{{ $s->block ? ', '.$s->block->name : '' }}</span>
+                        <span><i class="bi bi-geo-alt"></i> {{ $s->cluster?->label }}{{ $s->block ? ', '.$s->block->label : '' }}</span>
                     </span>
                     <span class="school-tags">
                         @if ($s->category)<span class="school-tag">{{ $s->category->label }}</span>@endif

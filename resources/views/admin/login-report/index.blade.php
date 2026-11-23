@@ -26,7 +26,7 @@
                     @foreach ($levels as $l)<option value="{{ $l->value }}" @selected($filters['level'] === $l->value)>{{ $l->label() }}</option>@endforeach</select></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-district">District</label>
                 <select id="f-district" name="district_id" class="form-select" data-autosubmit><option value="">All districts</option>
-                    @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                    @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-status">Result</label>
                 <select id="f-status" name="status" class="form-select" data-autosubmit><option value="">All</option>
                     @foreach (UserLoginLog::STATUSES + ['online' => 'Online now'] as $k => $label)<option value="{{ $k }}" @selected($filters['status'] === $k)>{{ $label }}</option>@endforeach</select></div>

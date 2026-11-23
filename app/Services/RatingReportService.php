@@ -167,7 +167,7 @@ class RatingReportService
             ->groupBy($col)->get()->keyBy('area_id');
         $bandRows = (clone $this->base($user, $f))->toBase()->selectRaw("$col as area_id, ir.band, count(*) as n")->groupBy($col, 'ir.band')->get()->groupBy('area_id');
         $model = ['district' => District::class, 'block' => Block::class, 'cluster' => Cluster::class][$level];
-        $names = $model::whereIn('id', $rows->keys())->pluck('name', 'id');
+        $names = $model::whereIn('id', $rows->keys())->get(['id', 'code', 'name'])->mapWithKeys(fn ($m) => [$m->id => $m->label]);
         $bands = $this->bands();
 
         return $rows->map(fn ($r) => [
@@ -248,10 +248,10 @@ class RatingReportService
         $blockId = $f['block_id'] ?: $jur?->block_id;
 
         return [
-            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'name']) : collect(),
+            'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(),
             'blocks' => $districtId && in_array($user->level->value, ['state_admin', 'state', 'district'], true)
-                ? Block::where('district_id', $districtId)->orderBy('name')->get(['id', 'name']) : collect(),
-            'clusters' => $blockId && $user->level->value !== 'cluster' ? Cluster::where('block_id', $blockId)->orderBy('name')->get(['id', 'name']) : collect(),
+                ? Block::where('district_id', $districtId)->orderBy('name')->get(['id', 'code', 'name']) : collect(),
+            'clusters' => $blockId && $user->level->value !== 'cluster' ? Cluster::where('block_id', $blockId)->orderBy('name')->get(['id', 'code', 'name']) : collect(),
             'categories' => \App\Models\MasterValue::where('type', 'category')->orderBy('sort')->get(['id', 'label']),
             'versions' => RatingScheme::orderByDesc('version')->pluck('version'),
             'bandList' => $this->bands(),

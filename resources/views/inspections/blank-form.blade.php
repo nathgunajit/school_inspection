@@ -87,9 +87,9 @@
 <table class="sc">
     <tr><td colspan="2"><div class="lbl">School</div><div class="val">{{ $school->name }}</div></td>
         <td><div class="lbl">UDISE code</div><div class="val">{{ $school->udise_code }}</div></td>
-        <td><div class="lbl">Cluster</div><div class="val">{{ $school->cluster?->name ?? '—' }}</div></td></tr>
-    <tr><td><div class="lbl">District</div><div class="val">{{ $school->district?->name ?? '—' }}</div></td>
-        <td><div class="lbl">Block</div><div class="val">{{ $school->block?->name ?? '—' }}</div></td>
+        <td><div class="lbl">Cluster</div><div class="val">{{ $school->cluster?->label ?? '—' }}</div></td></tr>
+    <tr><td><div class="lbl">District</div><div class="val">{{ $school->district?->label ?? '—' }}</div></td>
+        <td><div class="lbl">Block</div><div class="val">{{ $school->block?->label ?? '—' }}</div></td>
         <td><div class="lbl">Date of inspection</div><div class="line"></div></td>
         <td><div class="lbl">Time</div><div class="line"></div></td></tr>
     <tr><td colspan="2"><div class="lbl">Inspecting officer</div><div class="line"></div></td>

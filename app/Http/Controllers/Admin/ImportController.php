@@ -27,7 +27,7 @@ class ImportController extends Controller
     public function index(Request $request, SchoolCountReport $report)
     {
         return view('admin.imports.index', [
-            'batches' => ImportBatch::with('uploader', 'district:id,name')->latest()->paginate(config('inspection.per_page')),
+            'batches' => ImportBatch::with('uploader', 'district:id,code,name')->latest()->paginate(config('inspection.per_page')),
             'districts' => District::orderBy('name')->get(['id', 'code', 'name']),
             'report' => $report->districts(),
             'preview' => session('import_preview'),

@@ -68,7 +68,7 @@ class CoverageReportController extends Controller
             'district' => $own ? District::find($own) : null,
             'own' => $own ? CoverageSetting::where('district_id', $own)->first() : null,
             'overrides' => $user->isStateAdmin() ? CoverageSetting::with(['district', 'updater'])->whereNotNull('district_id')->get()->sortBy('district.name') : collect(),
-            'districts' => $user->isStateAdmin() ? District::orderBy('name')->get(['id', 'name']) : collect(),
+            'districts' => $user->isStateAdmin() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(),
         ]);
     }
 

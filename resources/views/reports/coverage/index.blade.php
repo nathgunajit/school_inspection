@@ -41,7 +41,7 @@
                 <button type="button" class="{{ $period->type === 'custom' ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#cov-custom" aria-expanded="{{ $period->type === 'custom' ? 'true' : 'false' }}">Custom</button>
             </div>
             <div class="cov-setting">
-                <span><i class="bi bi-gear"></i>Configured: <b>{{ $setting->periodLabel() }}</b> · {{ $setting->district_id ? 'set for '.$setting->district?->name : 'state default' }}</span>
+                <span><i class="bi bi-gear"></i>Configured: <b>{{ $setting->periodLabel() }}</b> · {{ $setting->district_id ? 'set for '.$setting->district?->label : 'state default' }}</span>
                 <span><i class="bi bi-arrow-repeat"></i>Inspection cycle: <b>{{ $setting->cycleLabel() }}</b> ({{ $cycle->from->format('d M') }} – {{ $cycle->to->format('d M Y') }})</span>
             </div>
         </div>
@@ -63,17 +63,17 @@
             @if ($districts->isNotEmpty())
                 <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-d">District</label>
                     <select id="cv-d" name="district_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.block_id && (this.form.block_id.value=''); this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All districts</option>
-                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             @endif
             @if ($blocks->isNotEmpty())
                 <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-b">Block</label>
                     <select id="cv-b" name="block_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All blocks</option>
-                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->name }}</option>@endforeach</select></div>
+                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->label }}</option>@endforeach</select></div>
             @endif
             @if ($clusters->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="cv-c">Cluster</label>
                     <select id="cv-c" name="cluster_id" class="form-select form-select-sm" data-autosubmit><option value="">All clusters</option>
-                        @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected($filters['cluster_id'] === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+                        @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected($filters['cluster_id'] === $c->id)>{{ $c->label }}</option>@endforeach</select></div>
             @endif
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="cv-cat">School category</label>
                 <select id="cv-cat" name="category_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>

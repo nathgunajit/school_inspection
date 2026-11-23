@@ -21,17 +21,17 @@
             @if ($districts->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-d">District</label>
                     <select id="r-d" name="district_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.block_id && (this.form.block_id.value=''); this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
-                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             @endif
             @if ($blocks->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-b">Block</label>
                     <select id="r-b" name="block_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All</option>
-                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->name }}</option>@endforeach</select></div>
+                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->label }}</option>@endforeach</select></div>
             @endif
             @if ($clusters->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-c">Cluster</label>
                     <select id="r-c" name="cluster_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>
-                        @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected($filters['cluster_id'] === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+                        @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected($filters['cluster_id'] === $c->id)>{{ $c->label }}</option>@endforeach</select></div>
             @endif
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-band">Rating band</label>
                 <select id="r-band" name="band" class="form-select form-select-sm" data-autosubmit><option value="">All bands</option>
@@ -161,7 +161,7 @@
                             @foreach ($list as $r)
                                 <a href="{{ route('inspections.show', $r['inspection']) }}" class="list-item text-decoration-none">
                                     <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">{{ $r['school']->name }}</div>
-                                        <div class="text-xs text-secondary text-truncate">{{ $r['school']->udise_code }} · {{ $r['inspection']->cluster?->name }} · {{ $r['inspection']->inspection_date->format('d M Y') }}</div></div>
+                                        <div class="text-xs text-secondary text-truncate">{{ $r['school']->udise_code }} · {{ $r['inspection']->cluster?->label }} · {{ $r['inspection']->inspection_date->format('d M Y') }}</div></div>
                                     <span class="rating-pill rating-{{ $r['color'] }}">{{ $fmt($r['score']) }}% · {{ $r['band'] }}</span>
                                 </a>
                             @endforeach
@@ -188,7 +188,7 @@
                     @foreach ($rows as $r)
                         <tr>
                             <td><div class="fw-semibold">{{ $r['school']->name }}</div><div class="text-xs text-secondary">{{ $r['school']->udise_code }}@if ($r['school']->category) · {{ $r['school']->category->label }}@endif</div></td>
-                            <td class="text-sm">{{ $r['inspection']->cluster?->name }}<div class="text-xs text-secondary">{{ $r['inspection']->block?->name }} · {{ $r['inspection']->district?->name }}</div></td>
+                            <td class="text-sm">{{ $r['inspection']->cluster?->label }}<div class="text-xs text-secondary">{{ $r['inspection']->block?->label }} · {{ $r['inspection']->district?->label }}</div></td>
                             <td class="text-sm text-nowrap">{{ $r['inspection']->inspection_date->format('d M Y') }}<div class="text-xs text-secondary">{{ $r['inspection']->officer?->name }}</div></td>
                             <td><span class="rating-pill rating-{{ $r['color'] }}">{{ $fmt($r['score']) }}% · {{ $r['band'] }}</span></td>
                             <td class="text-sm">@if ($r['previous'])<span class="rating-pill rating-{{ $r['previous']['color'] }}">{{ $fmt($r['previous']['score']) }}%</span><div class="text-xs text-secondary">{{ \Illuminate\Support\Carbon::parse($r['previous']['date'])->format('d M Y') }}</div>@else<span class="text-secondary text-xs">First rating</span>@endif</td>
@@ -203,7 +203,7 @@
                 @foreach ($rows as $r)
                     <a href="{{ route('inspections.show', $r['inspection']) }}" class="list-item text-decoration-none">
                         <div class="flex-grow-1 min-w-0"><div class="fw-semibold text-truncate">{{ $r['school']->name }}</div>
-                            <div class="text-xs text-secondary text-truncate">{{ $r['inspection']->inspection_date->format('d M Y') }} · {{ $r['inspection']->cluster?->name }}
+                            <div class="text-xs text-secondary text-truncate">{{ $r['inspection']->inspection_date->format('d M Y') }} · {{ $r['inspection']->cluster?->label }}
                                 @if ($r['change'] !== null) · <span class="{{ $r['change'] >= 0 ? 'text-success' : 'text-danger' }}">{{ $r['change'] >= 0 ? '+' : '−' }}{{ $fmt(abs($r['change'])) }} pts</span>@endif</div></div>
                         <span class="rating-pill rating-{{ $r['color'] }}">{{ $fmt($r['score']) }}%</span>
                     </a>

@@ -23,13 +23,13 @@
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">From</label><input type="date" name="from" value="{{ request('from', $area ? ($period[0] ?? '') : '') }}" class="form-control form-control-sm"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">To</label><input type="date" name="to" value="{{ request('to', $area ? ($period[1] ?? '') : '') }}" class="form-control form-control-sm"></div>
             @if ($districts->isNotEmpty())
-                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">District</label><select name="district_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">District</label><select name="district_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             @endif
             @if ($blocks->isNotEmpty())
-                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Block</label><select name="block_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->name }}</option>@endforeach</select></div>
+                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Block</label><select name="block_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->label }}</option>@endforeach</select></div>
             @endif
             @if ($clusters->isNotEmpty())
-                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Cluster</label><select name="cluster_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Cluster</label><select name="cluster_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->label }}</option>@endforeach</select></div>
             @endif
             @if ($area && $officers->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Officer</label><select name="officer_id" class="form-select form-select-sm" data-autosubmit><option value="">All</option>@foreach ($officers as $o)<option value="{{ $o->id }}" @selected(request('officer_id') == $o->id)>{{ $o->name }}</option>@endforeach</select></div>

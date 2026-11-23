@@ -139,7 +139,7 @@ class MapViewTest extends TestCase
         $block = Block::orderBy('id')->first();
         $block->update(['latitude' => 26.5, 'longitude' => 92.1]);
         $res = $this->actingAs($this->admin())->getJson(route('map.areas', ['level' => 'block', 'parent' => $block->district_id]))->assertOk();
-        $this->assertSame(['Assam', $block->district->name], array_column($res->json('breadcrumb'), 'name'));
+        $this->assertSame(['Assam', $block->district->label], array_column($res->json('breadcrumb'), 'name'));
         $row = collect($res->json('rows'))->firstWhere('id', $block->id);
         $this->assertEquals(26.5, $row['lat']);
         $this->assertEquals(92.1, $row['lng']);

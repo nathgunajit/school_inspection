@@ -60,3 +60,14 @@ Artisan::command('cache:purge', function () {
 
 Schedule::command('audit:purge')->monthlyOn(1, '02:00');
 Schedule::command('cache:purge')->monthlyOn(1, '02:15');
+
+/* Location IDs 1…n in Location Master code order (district 1801 → 1); every link moves with them. */
+Artisan::command('locations:renumber {--force : Do not ask for confirmation}', function () {
+    if (! $this->option('force') && ! $this->confirm('Renumber districts, blocks and clusters 1…n in code order and update every school, officer and inspection that points to them?')) {
+        return 1;
+    }
+    $r = app(\App\Services\LocationRenumber::class)->run();
+    $this->info("Renumbered {$r['districts']} district(s), {$r['blocks']} block(s) and {$r['clusters']} cluster(s) (0 = already in order).");
+
+    return 0;
+})->purpose('Renumber location IDs from 1 in code order');

@@ -57,7 +57,7 @@ class RatingReportController extends Controller implements HasMiddleware
         $sections = collect($this->report->summary($request->user(), $f)['sections']);
 
         $data = $rows->map(fn (Inspection $i) => [
-            $i->inspection_no, $i->inspection_date->format('d-m-Y'), $i->district?->name, $i->block?->name, $i->cluster?->name,
+            $i->inspection_no, $i->inspection_date->format('d-m-Y'), $i->district?->label, $i->block?->label, $i->cluster?->label,
             $i->school->udise_code, $i->school->name, $i->school->category?->label, $i->officer?->name,
             (float) $i->rating->score_percent, $i->rating->band, $i->rating->scheme?->version,
             ...$sections->map(fn ($s) => $i->rating->sections[$s['key']]['percent'] ?? null)->all(),

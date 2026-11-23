@@ -83,7 +83,7 @@ class ScheduleService
         $q = $this->j->schools($officer)->where('schools.status', 'active')
             ->when($blockId, fn ($w) => $w->where('schools.block_id', $blockId))
             ->when($search, fn ($w) => $w->where(fn ($s) => $s->where('udise_code', 'like', $search.'%')->orWhere('name', 'like', '%'.$search.'%')))
-            ->with('cluster:id,name')
+            ->with('cluster:id,code,name')
             ->orderBy('name')->limit(1500);
         $schools = $q->get(['id', 'udise_code', 'name', 'latitude', 'longitude', 'cluster_id', 'block_id']);
         $ids = $schools->pluck('id');
@@ -99,7 +99,7 @@ class ScheduleService
             'id' => $s->id,
             'udise' => $s->udise_code,
             'name' => $s->name,
-            'cluster' => $s->cluster?->name,
+            'cluster' => $s->cluster?->label,
             'lat' => $s->latitude,
             'lng' => $s->longitude,
             'last' => isset($lastDone[$s->id]) ? Carbon::parse($lastDone[$s->id])->format('d-m-Y') : null,

@@ -23,7 +23,7 @@
                 <div class="col-6 col-md-2">
                     <select name="district_id" class="form-select" data-autosubmit aria-label="District" onchange="this.form.block_id && (this.form.block_id.value='')">
                         <option value="">All districts</option>
-                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(($filters['district_id'] ?? '') == $d->id)>{{ $d->name }}</option>@endforeach
+                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(($filters['district_id'] ?? '') == $d->id)>{{ $d->label }}</option>@endforeach
                     </select>
                 </div>
             @endif
@@ -31,7 +31,7 @@
                 <div class="col-6 col-md-2">
                     <select name="block_id" class="form-select" data-autosubmit aria-label="Block">
                         <option value="">All blocks</option>
-                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(($filters['block_id'] ?? '') == $b->id)>{{ $b->name }}</option>@endforeach
+                        @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(($filters['block_id'] ?? '') == $b->id)>{{ $b->label }}</option>@endforeach
                     </select>
                 </div>
             @endif

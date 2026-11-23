@@ -18,7 +18,7 @@ class UserJurisdiction extends Model
 
     public function label(): string
     {
-        return collect([$this->cluster?->name, $this->block?->name, $this->district?->name, $this->state?->name])
+        return collect([$this->cluster?->label, $this->block?->label, $this->district?->label, $this->state?->name])
             ->filter()->implode(' · ');
     }
 }

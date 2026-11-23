@@ -92,6 +92,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
      - `FRESH` (TSI_01, TSI_02, TSI_09, NET_01), absentees, suggestions and photos are never copied. Since V12, `ZERO` (TSI_09) is stored as 0, and classroom rows (with their TLM ticks, new `row_uid` null) are copied for editing.
      - It sets `inspections.prefilled_from_id` (wizard banner `.prefill-note` on `BANNER_STEPS` 1, 2, 4, 5, 6) and audits `inspection_prefilled`.
      - Tests that rate exact answers clear the copied ones first.
+- Location IDs and codes (23-11-2026):
+  - `php artisan locations:renumber --force` (`App\Services\LocationRenumber`) renumbers districts, blocks and clusters 1…n in **code order** (district 1801 KOKRAJHAR = 1). It moves every column in `LocationRenumber::REFS` and the id keys in `import_batches.summary`, resets AUTO_INCREMENT, flushes the cache and audits `locations_renumbered`. Run on MySQL 23-11-2026: districts 1–35, blocks 1–147, clusters 1–4607, with school / officer code links unchanged (checksum).
+  - **Show location names with their code**: use `->label` (`App\Models\Concerns\HasCodeLabel`, "KOKRAJHAR (1801)", or `District::labelFor($name, $code)` for query rows), never a bare `->name` on a District, Block or Cluster in a view, export or JSON for display. Keep `->name` for form values, typed confirmations and boundary matching (map rows carry both `name` and `label`). Selects of these models must load `code`.
 - Modification V13 (`Documents/Modification of the ApplicationV13.docx`, 23-11-2026):
   1. **Demo users**: see `users:reset-demo` above (`App\Services\DemoUserReset`). The MySQL users were reset on 23-11-2026, keeping only the State Admin.
   2. **School Master list** (`Admin\SchoolMasterController::index`, `FILTERS`):

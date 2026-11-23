@@ -250,7 +250,7 @@
                     <label class="form-label" for="rm-district">District</label>
                     <select id="rm-district" name="district_id" class="form-select" required>
                         <option value="">Select district</option>
-                        @foreach ($report as $d)<option value="{{ $d->id }}" @selected(old('district_id') == $d->id)>{{ $d->name }} ({{ number_format($d->schools) }} schools)</option>@endforeach
+                        @foreach ($report as $d)<option value="{{ $d->id }}" @selected(old('district_id') == $d->id)>{{ $d->name }} ({{ $d->code }}) · {{ number_format($d->schools) }} schools</option>@endforeach
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -272,7 +272,7 @@
                         <span class="stat-icon tone-{{ $b->type === 'school' ? 'primary' : 'accent' }}" style="width:40px;height:40px;border-radius:10px;display:grid;place-items:center"><i class="bi bi-{{ $b->type === 'school' ? 'building' : 'geo-alt' }}"></i></span>
                         <div class="flex-grow-1 min-w-0">
                             <div class="fw-semibold text-truncate">{{ $b->file_name }}</div>
-                            <div class="text-xs text-secondary">{{ ucfirst($b->type) }} master @if ($b->district)· <span class="imp-chip"><i class="bi bi-geo"></i>{{ $b->district->name }}</span>@elseif ($b->summary['all_districts'] ?? false)· <span class="imp-chip"><i class="bi bi-map"></i>All districts</span>@endif · {{ $b->created_at->format('d M Y, h:i A') }} · {{ $b->uploader?->name }}</div>
+                            <div class="text-xs text-secondary">{{ ucfirst($b->type) }} master @if ($b->district)· <span class="imp-chip"><i class="bi bi-geo"></i>{{ $b->district->label }}</span>@elseif ($b->summary['all_districts'] ?? false)· <span class="imp-chip"><i class="bi bi-map"></i>All districts</span>@endif · {{ $b->created_at->format('d M Y, h:i A') }} · {{ $b->uploader?->name }}</div>
                             <div class="d-flex gap-2 mt-1 text-xs flex-wrap">
                                 <span class="badge-soft badge-soft-success">{{ $b->added }} added</span>
                                 <span class="badge-soft badge-soft-info">{{ $b->updated }} updated</span>

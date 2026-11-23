@@ -136,7 +136,7 @@ class ReportController extends Controller
             $a = $i->answerMap();
             $row = [
                 $i->inspection_no ?? '—', $i->status->label(), 'v'.$i->questionnaire_version, $i->inspection_date->format('d-m-Y'), $i->submitted_at?->format('d-m-Y H:i'),
-                $i->district?->name, $i->block?->name, $i->cluster?->name, $i->school->udise_code, $i->school->name, $i->school->category?->label,
+                $i->district?->label, $i->block?->label, $i->cluster?->label, $i->school->udise_code, $i->school->name, $i->school->category?->label,
                 $i->officer->name, $i->officer->designation_label, trim($i->person_met_name.' ('.$i->person_met_designation.')', ' ()'),
                 $i->absentTeachers->count(), $i->absentTeachers->where('reason', 'UL')->count(), $i->classroomObservations->count(),
                 $i->fundPositions->pluck('financial_year')->implode(', '),

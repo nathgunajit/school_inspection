@@ -103,8 +103,8 @@
                             <div><span>Location</span>
                                 @if ($inspection->start_lat)
                                     <strong>{{ number_format($inspection->start_lat, 5) }}, {{ number_format($inspection->start_lng, 5) }}</strong>
-                                    <small>@if (($d = $inspection->distanceFromSchool($inspection->start_lat, $inspection->start_lng)) !== null){{ $d < 1000 ? $d.' m' : round($d / 1000, 1).' km' }} from school @else {{ $inspection->school->block?->name }} @endif</small>
-                                @else <strong class="text-warning">Not captured</strong><small>{{ $inspection->school->block?->name }}</small> @endif
+                                    <small>@if (($d = $inspection->distanceFromSchool($inspection->start_lat, $inspection->start_lng)) !== null){{ $d < 1000 ? $d.' m' : round($d / 1000, 1).' km' }} from school @else {{ $inspection->school->block?->label }} @endif</small>
+                                @else <strong class="text-warning">Not captured</strong><small>{{ $inspection->school->block?->label }}</small> @endif
                             </div>
                         </div>
                         {{-- Modification V11 item 2 --}}

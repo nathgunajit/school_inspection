@@ -32,9 +32,9 @@
                 </div>
                 <div class="card-body">
                     <dl class="kv mb-0">
-                        <dt>District</dt><dd>{{ $school->district?->name }}</dd>
-                        <dt>Block</dt><dd>{{ $school->block?->name }}</dd>
-                        <dt>Cluster</dt><dd>{{ $school->cluster?->name }}</dd>
+                        <dt>District</dt><dd>{{ $school->district?->label }}</dd>
+                        <dt>Block</dt><dd>{{ $school->block?->label }}</dd>
+                        <dt>Cluster</dt><dd>{{ $school->cluster?->label }}</dd>
                         <dt>Management</dt><dd>{{ $school->management?->label ?? '—' }}</dd>
                         <dt>Category</dt><dd>{{ $school->category?->label ?? '—' }}</dd>
                         @if ($school->school_type_label || $school->area_type_label)

@@ -31,15 +31,15 @@
                     <div class="find-filters">
                         @if ($districts->isNotEmpty())
                             <select name="district_id" class="form-select" data-find-filter aria-label="District"><option value="">All districts</option>
-                                @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->name }}</option>@endforeach</select>
+                                @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->label }}</option>@endforeach</select>
                         @endif
                         @if ($blocks->isNotEmpty())
                             <select name="block_id" class="form-select" data-find-filter aria-label="Block"><option value="">All blocks</option>
-                                @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->name }}</option>@endforeach</select>
+                                @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->label }}</option>@endforeach</select>
                         @endif
                         @if ($clusters->isNotEmpty())
                             <select name="cluster_id" class="form-select" data-find-filter aria-label="Cluster"><option value="">All clusters</option>
-                                @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->name }}</option>@endforeach</select>
+                                @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->label }}</option>@endforeach</select>
                         @endif
                     </div>
                 @endif

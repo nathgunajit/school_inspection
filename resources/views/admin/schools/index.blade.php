@@ -9,15 +9,15 @@
         <div class="col-12 col-md-4"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="UDISE code or school name" aria-label="Search"></div>
         <div class="col-6 col-md-2">
             <select name="district_id" class="form-select" data-autosubmit aria-label="District"><option value="">All districts</option>
-                @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->name }}</option>@endforeach</select>
+                @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->label }}</option>@endforeach</select>
         </div>
         <div class="col-6 col-md-2">
             <select name="block_id" class="form-select" data-autosubmit aria-label="Block" @disabled($blocks->isEmpty())><option value="">All blocks</option>
-                @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->name }}</option>@endforeach</select>
+                @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(request('block_id') == $b->id)>{{ $b->label }}</option>@endforeach</select>
         </div>
         <div class="col-6 col-md-2">
             <select name="cluster_id" class="form-select" data-autosubmit aria-label="Cluster" @disabled($clusters->isEmpty())><option value="">All clusters</option>
-                @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->name }}</option>@endforeach</select>
+                @foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(request('cluster_id') == $c->id)>{{ $c->label }}</option>@endforeach</select>
         </div>
         <div class="col-6 col-md-2">
             <select name="status" class="form-select" data-autosubmit aria-label="Status"><option value="">Any status</option>
@@ -73,8 +73,8 @@
                 @forelse ($schools as $s)
                     <tr>
                         <td class="font-monospace text-sm">{{ $s->udise_code }}</td>
-                        <td><div class="fw-semibold">{{ $s->name }}</div><div class="text-xs text-secondary">{{ $s->district?->name }}</div></td>
-                        <td class="d-none d-md-table-cell text-sm">{{ $s->block?->name }}<div class="text-xs text-secondary">{{ $s->cluster?->name }}</div></td>
+                        <td><div class="fw-semibold">{{ $s->name }}</div><div class="text-xs text-secondary">{{ $s->district?->label }}</div></td>
+                        <td class="d-none d-md-table-cell text-sm">{{ $s->block?->label }}<div class="text-xs text-secondary">{{ $s->cluster?->label }}</div></td>
                         <td class="d-none d-lg-table-cell text-sm">{{ $s->category?->label }}<div class="text-xs text-secondary">{{ $s->management?->label }}</div></td>
                         <td class="d-none d-xl-table-cell text-sm">{{ collect([$s->school_type_label, $s->area_type_label])->filter()->join(' · ') ?: '—' }}<div class="text-xs text-secondary">{{ $s->medium_label }}</div></td>
                         <td class="d-none d-xl-table-cell text-sm">{{ $s->ac?->name ?? '—' }}<div class="text-xs text-secondary">{{ $s->pc?->name }}</div></td>

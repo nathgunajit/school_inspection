@@ -37,7 +37,7 @@
             <span class="rp-hero-eyebrow">School Inspection Report</span>
         </div>
         <h2 class="rp-school">{{ $s->name }}</h2>
-        <div class="rp-place"><span class="rp-udise"><i class="bi bi-upc-scan"></i>UDISE <b class="font-monospace">{{ $s->udise_code }}</b></span><span><i class="bi bi-geo-alt"></i>{{ collect([$s->cluster?->name, $s->block?->name, $s->district?->name])->filter()->implode(', ') }}</span></div>
+        <div class="rp-place"><span class="rp-udise"><i class="bi bi-upc-scan"></i>UDISE <b class="font-monospace">{{ $s->udise_code }}</b></span><span><i class="bi bi-geo-alt"></i>{{ collect([$s->cluster?->label, $s->block?->label, $s->district?->label])->filter()->implode(', ') }}</span></div>
         <div class="rp-tags">
             @if ($s->category)<span>{{ $s->category->label }}</span>@endif
             @if ($s->management)<span>{{ $s->management->label }}</span>@endif

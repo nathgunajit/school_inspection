@@ -28,7 +28,7 @@
                             <span class="badge text-bg-light font-monospace">{{ $item->code }}</span>
                             <div class="flex-grow-1 min-w-0">
                                 <div class="fw-semibold text-truncate">{{ $item->name }}</div>
-                                @if ($fk)<div class="text-xs text-secondary">{{ $item->{str_replace('_id', '', $fk)}?->name }}</div>@endif
+                                @if ($fk)<div class="text-xs text-secondary">{{ $item->{str_replace('_id', '', $fk)}?->label }}</div>@endif
                             </div>
                             @if ($geo)
                                 @if ($item->latitude !== null)

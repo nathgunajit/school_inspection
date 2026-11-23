@@ -12,7 +12,7 @@
             @if ($districts->isNotEmpty())
                 <div class="col-12 col-md-4"><label class="form-label text-sm" for="nf_d">District</label>
                     <select id="nf_d" name="district_id" class="form-select"><option value="">All districts</option>
-                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected((int) ($f['district_id'] ?? 0) === $d->id)>{{ $d->name }}</option>@endforeach</select></div>
+                        @foreach ($districts as $d)<option value="{{ $d->id }}" @selected((int) ($f['district_id'] ?? 0) === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             @endif
             <div class="col-6 col-md-3"><label class="form-label text-sm" for="nf_from">From</label><input id="nf_from" type="date" name="from" value="{{ $f['from'] ?? '' }}" class="form-control"></div>
             <div class="col-6 col-md-3"><label class="form-label text-sm" for="nf_to">To</label><input id="nf_to" type="date" name="to" value="{{ $f['to'] ?? '' }}" class="form-control"></div>
@@ -32,7 +32,7 @@
                     <tr>
                         <td class="text-sm text-nowrap">{{ $i->inspection_date->format('d M Y') }}</td>
                         <td><div class="fw-semibold">{{ $i->school->name }}</div><div class="text-xs text-secondary font-monospace">UDISE {{ $i->school->udise_code }}</div></td>
-                        <td class="text-sm">{{ $i->block?->name }}<div class="text-xs text-secondary">{{ $i->district?->name }}</div></td>
+                        <td class="text-sm">{{ $i->block?->label }}<div class="text-xs text-secondary">{{ $i->district?->label }}</div></td>
                         <td class="text-sm">{{ $i->officer->name }}</td>
                         <td class="text-sm" style="min-width: 220px">{!! filled($remarks[$i->id] ?? null) ? e($remarks[$i->id]) : '<span class="text-secondary">No remark</span>' !!}</td>
                         <td class="text-end text-nowrap">

@@ -10,7 +10,7 @@
         if ($isState) {
             $forms[] = $form($state, 'state', null, true, 'State default', 'Applies to every district that has no setting of its own.');
         } elseif ($district) {
-            $forms[] = $form($own ?? $state, 'district', $district->id, false, $district->name,
+            $forms[] = $form($own ?? $state, 'district', $district->id, false, $district->label,
                 $own ? 'This district has its own coverage period.' : 'This district follows the state default. Save to set its own.');
         }
     @endphp
@@ -69,7 +69,7 @@
                         <input type="hidden" name="scope" value="district">
                         <div class="row g-2">
                             <div class="col-md-4"><label class="form-label text-sm">District</label>
-                                <select name="district_id" class="form-select" required><option value="">Select</option>@foreach ($districts as $d)<option value="{{ $d->id }}">{{ $d->name }}</option>@endforeach</select></div>
+                                <select name="district_id" class="form-select" required><option value="">Select</option>@foreach ($districts as $d)<option value="{{ $d->id }}">{{ $d->label }}</option>@endforeach</select></div>
                             <div class="col-md-4"><label class="form-label text-sm">Coverage period</label>
                                 <select name="period_type" class="form-select" data-cov-type>@foreach (CS::PERIODS as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                             <div class="col-md-4"><label class="form-label text-sm">Inspection cycle</label>
@@ -91,10 +91,10 @@
                         @forelse ($overrides as $o)
                             <div class="list-item">
                                 <div class="flex-grow-1 min-w-0">
-                                    <div class="fw-semibold">{{ $o->district?->name }}</div>
+                                    <div class="fw-semibold">{{ $o->district?->label }}</div>
                                     <div class="text-xs text-secondary">{{ $o->periodLabel() }}@if ($o->period_type === 'custom') ({{ $o->custom_from?->format('d M Y') }} – {{ $o->custom_to?->format('d M Y') }})@endif · cycle {{ strtolower($o->cycleLabel()) }}@if ($o->updater) · by {{ $o->updater->name }}@endif</div>
                                 </div>
-                                <form method="POST" action="{{ route('reports.coverage.settings.update') }}" data-confirm="Use the state default for {{ $o->district?->name }}?">@csrf @method('PUT')
+                                <form method="POST" action="{{ route('reports.coverage.settings.update') }}" data-confirm="Use the state default for {{ $o->district?->label }}?">@csrf @method('PUT')
                                     <input type="hidden" name="scope" value="district"><input type="hidden" name="district_id" value="{{ $o->district_id }}"><input type="hidden" name="reset" value="1">
                                     <button class="btn btn-sm btn-light"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
                                 </form>
