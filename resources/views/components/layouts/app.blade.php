@@ -22,7 +22,8 @@
     $u = auth()->user();
     $nav = [
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
-        ['Find School', 'schools.index', 'bi-search', 'schools.*', 'conduct_inspections'],
+        ['Find School', 'schools.index', 'bi-search', ['schools.index', 'schools.show', 'schools.blank-form'], 'conduct_inspections'],
+        ['My Schools', 'schools.mine', 'bi-buildings', 'schools.mine*', 'conduct_inspections'], // 23-11-2026: own jurisdiction list
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
         ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
         ['Coverage Report', 'reports.coverage', 'bi-pie-chart', 'reports.coverage*', 'view_reports'],
@@ -31,7 +32,7 @@
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
     ];
     // Rating Report: State Administrator only (20-11-2026)
-    array_splice($nav, 4, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
+    array_splice($nav, 5, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
 @endphp
 

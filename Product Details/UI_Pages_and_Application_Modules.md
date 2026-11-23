@@ -23,6 +23,7 @@
 | Profile | `/profile` | `ProfileController@show` (+ `updatePhoto`, `requestMobileChange`) | `profile` | any | Details, postings history, photo change, mobile change request |
 | Change password | `/password/change` | `Auth\PasswordController@edit` / `@update` | `auth/change-password` | any | Forced on first login |
 | Find School | `/schools` | `SchoolController@index` | `schools/index` (+ `schools/_results` for AJAX) | `conduct_inspections` | Search by UDISE/name in the jurisdiction; status and rating badges |
+| My Schools | `/my-schools` | `SchoolController@mine` (+ `mineExport`, Excel) | `schools/mine` | `conduct_inspections` (Excel: `export_excel`) | 23-11-2026: every school in the officer's own cluster / block / district / state, not inspected first; tiles, filters, Excel download |
 | School page | `/schools/{key}` | `SchoolController@show` | `schools/show` | `conduct_inspections` | Master data, map with directions, history, latest rating, Start inspection |
 | Inspection step | `/inspections/{key}/step/{1-7}` | `InspectionController@step` | `inspections/step` (+ partials `stepper`, `question`, `camera`, `photo-viewer`, `fund-summary`) | officer of the draft | Wizard step with autosave, rows, photos, offline indicator |
 | Review | `/inspections/{key}/review` | `InspectionController@review` | `inspections/review` | officer | Missing items by step, answers, confirm and Submit |
@@ -136,7 +137,7 @@
 |---|---|---|
 | Authentication | Login, Register, Forgot/Reset, Change password | Implemented |
 | Dashboard | Dashboard | Implemented (personal, no charts) |
-| Schools | Find School, School page | Implemented |
+| Schools | Find School, My Schools (own jurisdiction list, 23-11-2026), School page | Implemented |
 | Inspection | Steps 1–7, Review, Submitted, Report, PDF | Implemented |
 | Reports | My Inspections, Inspections in Area, Excel | Implemented |
 | Rating (New Module 3) | Rating card, Rating Report, Rating Settings | Implemented |

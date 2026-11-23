@@ -3,14 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Enums\InspectionStatus;
+use App\Exports\MySchoolsExport;
 use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
 use App\Models\School;
+use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\InspectionStartGuard;
 use App\Services\DistrictBoundaryService;
 use App\Services\JurisdictionService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 /** School search within the officer's jurisdiction (PRD 7.4). */
 class SchoolController extends Controller
@@ -24,7 +29,7 @@ class SchoolController extends Controller
         $searched = $q !== '' || $request->filled('district_id') || $request->filled('block_id') || $request->filled('cluster_id');
 
         $schools = $searched
-            ? $this->j->schools($user)
+            ? $this->listQuery($user, $request)
                 ->with(['block', 'cluster', 'category', 'latestRatedInspection.rating']) // V6 Module 9: current rating
                 // badges in the result list: my inspection today, last submitted inspection
                 ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
@@ -32,17 +37,6 @@ class SchoolController extends Controller
                 // Modification V3: another officer's open draft / completed by another officer this month
                 ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
                 ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherThisMonth($user)])
-                ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])], 'inspection_date')
-                ->withCount(['inspections as visits' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])])
-                ->when($q !== '', fn ($w) => ctype_digit($q)
-                    ? $w->where('udise_code', 'like', $q.'%')
-                    : $w->where('name', 'like', '%'.$q.'%'))
-                ->when($request->district_id, fn ($w, $v) => $w->where('district_id', $v))
-                ->when($request->block_id, fn ($w, $v) => $w->where('block_id', $v))
-                ->when($request->cluster_id, fn ($w, $v) => $w->where('cluster_id', $v))
-                // 23-11-2026: schools to visit first: never inspected, then the least visited (on a tie the one visited longest ago);
-                // closed schools stay last
-                ->orderByRaw("status = 'active' desc")->orderBy('visits')->orderBy('last_inspected_on')->orderBy('name')
                 ->paginate(config('inspection.per_page'))->withQueryString()
             : null;
 
@@ -59,11 +53,90 @@ class SchoolController extends Controller
             return redirect()->route('schools.show', $schools->first());
         }
 
+        return view('schools.index', ['schools' => $schools, 'q' => $q] + $this->filterOptions($user, $request));
+    }
+
+    /**
+     * 23-11-2026: My Schools, every school in the officer's own jurisdiction (cluster, block, district or the whole
+     * state, through JurisdictionService), listed without a search, with inspection progress and an Excel download.
+     */
+    public function mine(Request $request)
+    {
+        $user = $request->user();
+        $done = [InspectionStatus::Submitted, InspectionStatus::Unlocked];
+
+        $schools = $this->inspectedFilter($this->listQuery($user, $request), $request)
+            ->with(['block:id,name,code', 'cluster:id,name,code', 'category:id,label', 'management:id,label'])
+            ->paginate(config('inspection.per_page'))->withQueryString();
+
+        // the tiles count the whole jurisdiction (the filters only narrow the list)
+        $all = $this->j->schools($user);
+        $total = (clone $all)->count();
+        $inspected = (clone $all)->whereHas('inspections', fn ($w) => $w->whereIn('status', $done))->count();
+        $stats = [
+            'total' => $total,
+            'inspected' => $inspected,
+            'not_inspected' => $total - $inspected,
+            'this_month' => (clone $all)->whereHas('inspections', fn ($w) => $w->whereIn('status', $done)
+                ->where('inspection_date', '>=', now()->startOfMonth()->toDateString()))->count(),
+        ];
+
+        return view('schools.mine', ['schools' => $schools, 'q' => trim((string) $request->q), 'stats' => $stats,
+            'scope' => $this->scopeLabel($user)] + $this->filterOptions($user, $request));
+    }
+
+    /** My Schools as Excel: the same scope, filters and order as the page. */
+    public function mineExport(Request $request)
+    {
+        $query = $this->inspectedFilter($this->listQuery($request->user(), $request), $request);
+        AuditLogger::log('my_schools_exported', null, [
+            'rows' => (clone $query)->count(),
+            'filters' => array_filter($request->only(['q', 'district_id', 'block_id', 'cluster_id', 'inspected'])),
+        ]);
+
+        return Excel::download(new MySchoolsExport($query), 'my-schools-'.now()->format('Y-m-d').'.xlsx');
+    }
+
+    /**
+     * The officer's schools with visit counts, the search / location filters and the visit order
+     * (23-11-2026: never inspected first, then the least visited, then the one visited longest ago; closed schools last).
+     * Location filters only narrow the jurisdiction scope, so an ID outside it returns nothing (domain rule 1).
+     */
+    private function listQuery(User $user, Request $request): Builder
+    {
+        $q = trim((string) $request->q);
+        $done = [InspectionStatus::Submitted, InspectionStatus::Unlocked];
+
+        return $this->j->schools($user)
+            ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', $done)], 'inspection_date')
+            ->withCount(['inspections as visits' => fn ($w) => $w->whereIn('status', $done)])
+            ->when($q !== '', fn ($w) => ctype_digit($q)
+                ? $w->where('udise_code', 'like', $q.'%')
+                : $w->where('name', 'like', '%'.$q.'%'))
+            ->when($request->district_id, fn ($w, $v) => $w->where('district_id', $v))
+            ->when($request->block_id, fn ($w, $v) => $w->where('block_id', $v))
+            ->when($request->cluster_id, fn ($w, $v) => $w->where('cluster_id', $v))
+            ->orderByRaw("status = 'active' desc")->orderBy('visits')->orderBy('last_inspected_on')->orderBy('name');
+    }
+
+    /** My Schools filter: inspected = yes (at least one submitted / unlocked inspection) or no (none yet). */
+    private function inspectedFilter(Builder $query, Request $request): Builder
+    {
+        $done = fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
+
+        return match ($request->inspected) {
+            'yes' => $query->whereHas('inspections', $done),
+            'no' => $query->whereDoesntHave('inspections', $done),
+            default => $query,
+        };
+    }
+
+    /** District / block / cluster select options for the officer's level (Find School and My Schools). */
+    private function filterOptions(User $user, Request $request): array
+    {
         $jur = $this->j->current($user);
 
-        return view('schools.index', [
-            'schools' => $schools,
-            'q' => $q,
+        return [
             'districts' => $user->level->isStateWide() ? District::where('is_active', true)->orderBy('name')->get() : collect(),
             'blocks' => match (true) {
                 $user->level->isStateWide() && $request->district_id => Block::where('district_id', $request->district_id)->orderBy('name')->get(),
@@ -75,7 +148,23 @@ class SchoolController extends Controller
                 $user->level->value === 'block' => Cluster::where('block_id', $jur?->block_id)->orderBy('name')->get(),
                 default => collect(),
             },
-        ]);
+        ];
+    }
+
+    /** "Cluster · NAME (code)", "Block · …", "District · …" or "Whole state". */
+    private function scopeLabel(User $user): string
+    {
+        if ($user->level->isStateWide()) {
+            return 'Whole state';
+        }
+        $j = $this->j->current($user);
+
+        return match ($user->level->value) {
+            'district' => 'District · '.($j?->district?->label ?? '—'),
+            'block' => 'Block · '.($j?->block?->label ?? '—'),
+            'cluster' => 'Cluster · '.($j?->cluster?->label ?? '—'),
+            default => $user->level->label(),
+        };
     }
 
     public function show(Request $request, School $school)

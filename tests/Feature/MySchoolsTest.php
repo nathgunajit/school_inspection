@@ -1,0 +1,89 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\InspectionStatus;
+use App\Enums\UserLevel;
+use App\Models\AuditLog;
+use App\Models\Cluster;
+use App\Models\School;
+use Maatwebsite\Excel\Facades\Excel;
+use Tests\TestCase;
+
+/** 23-11-2026: My Schools lists every school in the officer's own jurisdiction, without a search. */
+class MySchoolsTest extends TestCase
+{
+    private function names(string $html): array
+    {
+        return School::pluck('name')->filter(fn ($n) => str_contains($html, e($n)))->values()->all();
+    }
+
+    public function test_each_level_sees_only_its_own_schools(): void
+    {
+        $cluster = Cluster::orderBy('id')->firstOrFail();
+        $other = $this->otherCluster($cluster);
+        $expect = [
+            'cluster' => School::where('cluster_id', $cluster->id),
+            'block' => School::where('block_id', $cluster->block_id),
+            'district' => School::where('district_id', $cluster->block->district_id),
+            'state' => School::query(),
+        ];
+
+        foreach ([UserLevel::Cluster, UserLevel::Block, UserLevel::District, UserLevel::State] as $level) {
+            $officer = $this->officer($level, $cluster);
+            $res = $this->actingAs($officer)->get(route('schools.mine'))->assertOk();
+            $html = $res->getContent();
+            $mine = (clone $expect[$level->value])->pluck('name')->all();
+            $this->assertNotEmpty($mine);
+            foreach ($mine as $n) {
+                $this->assertStringContainsString(e($n), $html, "$level->value sees $n");
+            }
+            $res->assertViewHas('stats', fn ($s) => $s['total'] === count($mine) && $s['not_inspected'] === count($mine));
+            if ($level !== UserLevel::State) {
+                $this->assertStringNotContainsString(e($this->schoolIn($other)->name), $html, "$level->value does not see another district");
+            }
+        }
+        $this->get(route('schools.mine'))->assertSee('Whole state');
+    }
+
+    public function test_inspected_filter_and_scope_cannot_be_widened(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $done = $this->schoolIn($cluster);
+        $i = $this->startInspection($officer, $done);
+        $i->forceFill(['status' => InspectionStatus::Submitted, 'submitted_at' => now(), 'inspection_no' => 'T/'.$i->id])->save();
+        $todo = School::where('cluster_id', $cluster->id)->whereKeyNot($done->id)->firstOrFail();
+
+        $this->actingAs($officer)->get(route('schools.mine'))->assertOk()
+            ->assertViewHas('stats', fn ($s) => $s['inspected'] === 1 && $s['this_month'] === 1)
+            ->assertSee('1 time');
+        $this->get(route('schools.mine', ['inspected' => 'yes']))->assertSee(e($done->name), false)->assertDontSee(e($todo->name), false);
+        $this->get(route('schools.mine', ['inspected' => 'no']))->assertSee(e($todo->name), false)->assertDontSee(e($done->name), false);
+
+        // a cluster outside the jurisdiction only narrows the scope: nothing is listed
+        $other = $this->otherCluster($cluster);
+        $this->get(route('schools.mine', ['cluster_id' => $other->id]))->assertOk()
+            ->assertDontSee(e($this->schoolIn($other)->name), false)->assertSee('No schools match');
+    }
+
+    public function test_excel_download_is_scoped_and_audited(): void
+    {
+        Excel::fake();
+        $officer = $this->officer(UserLevel::Cluster);
+        $this->actingAs($officer)->get(route('schools.mine.export', ['inspected' => 'no']))->assertOk();
+        Excel::assertDownloaded('my-schools-'.now()->format('Y-m-d').'.xlsx', function (\App\Exports\MySchoolsExport $e) use ($officer) {
+            $rows = $e->query()->get();
+
+            return $rows->isNotEmpty() && $rows->every(fn ($s) => $s->cluster_id === $officer->currentJurisdiction->cluster_id);
+        });
+        $this->assertTrue(AuditLog::where('action', 'my_schools_exported')->exists());
+    }
+
+    public function test_sidebar_links_my_schools(): void
+    {
+        $html = $this->actingAs($this->officer(UserLevel::Block))->get(route('schools.mine'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/href="[^"]*my-schools" class="nav-link active"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*\/schools" class="nav-link active"/', $html, 'Find School is not lit on My Schools');
+    }
+}

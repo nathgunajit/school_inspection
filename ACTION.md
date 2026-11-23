@@ -2392,3 +2392,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Name popup** (`app.js`, `.si-nav-tip`): one body-level tooltip placed beside the hovered or focused rail icon (the sidebar clips overflow); blue gradient with an arrow, slide-in, green dot on the current page, orange count for Pending Approvals. The native `title` is removed while in the rail, so only one tooltip shows.
 - Tests: new `SidebarDefaultTest`. Docs: CLAUDE.md, UI doc, docx rebuilt.
 - Verified: `npm run build`, `php artisan test` 232 passed. Not checked in a browser.
+
+## 2026-11-23: My Schools, each officer's own school list (Cluster, Block, District, State)
+- **Page** `schools.mine` (`/my-schools`, `SchoolController::mine`, `resources/views/schools/mine.blade.php`), sidebar link after Find School (Find School now lights only on its own pages). Lists every school in the officer's jurisdiction through `JurisdictionService::schools()` without a search, in the Find School order (not inspected first, then fewest visits, then oldest visit; closed last).
+  - Tiles: My schools, Inspected, Not inspected yet (links set the filter), Inspected this month. Scope chip ("Cluster · NAME (code)" … "Whole state").
+  - Filters: name / UDISE, district / block / cluster per level, inspected yes / no. Location IDs only narrow the scope (an outside cluster lists nothing).
+  - Excel `schools.mine.export` (`App\Exports\MySchoolsExport`, chunked; `export_excel`, throttle 6/min, audited `my_schools_exported`).
+- `SchoolController` refactor: shared `listQuery()`, `filterOptions()`; Find School unchanged. Find School hero has a "See all my schools" link.
+- Tests: new `MySchoolsTest` (4). Full suite 236 passed. MySQL (read-only timing as the State Admin, 44,197 schools): 0.76 s for the full list, 0.14 s for a search.
+- Docs: CLAUDE.md, UI doc, docx rebuilt. Not opened in a browser.

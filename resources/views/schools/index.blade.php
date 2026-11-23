@@ -6,7 +6,7 @@
                     <span class="find-hero-icon"><i class="bi bi-building-check"></i></span>
                     <div class="min-w-0">
                         <h2 class="find-hero-title">Find a school</h2>
-                        <p class="find-hero-sub">Search by school name or UDISE Code. Results update as you type.</p>
+                        <p class="find-hero-sub">Search by school name or UDISE Code. Results update as you type. <a href="{{ route('schools.mine') }}" class="find-hero-link">See all my schools <i class="bi bi-arrow-right"></i></a></p>
                     </div>
                 </div>
                 <div class="find-box">

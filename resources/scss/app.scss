@@ -1120,6 +1120,8 @@ nav[role="navigation"] p.small, .pagination + * { font-size: .74rem; }
     background: linear-gradient(135deg, $primary, $success); }
 .find-hero-title { font-size: 1rem; font-weight: 600; margin: 0; color: #1e293b; }
 .find-hero-sub { font-size: .74rem; color: #64748b; margin: 0; }
+.find-hero-link { font-weight: 600; white-space: nowrap; text-decoration: none; } // 23-11-2026: to My Schools
+.my-scope { font-size: .78rem; padding: .3rem .7rem; i { margin-right: .3rem; } }
 .find-box { padding: .6rem 1.15rem 1rem; }
 .find-input { position: relative; display: flex; align-items: center;
     > .bi-search { position: absolute; left: 1rem; color: $primary; font-size: 1rem; pointer-events: none; }
