@@ -12,6 +12,9 @@
     use App\Models\InspectionFundPosition as FP;
     use App\Questionnaire\QuestionnaireDefinition as QD;
     $sec = 0;
+    // 23-11-2026: the absentee table fills the rest of its page (section 4 always starts a new page), with one row spare,
+    // so a longer school name cannot push a row over. Check again with a rendered PDF if steps 1–2 change.
+    $absentRows ??= 12; // 13 fit (rendered 23-11-2026), section 3 runs from page 4 to the end of page 5
     $note = fn ($n) => QD::PAPER_INTROS[$n] ?? QD::STEP_INTROS[$n] ?? '';
 @endphp
 <!DOCTYPE html>
@@ -168,7 +171,7 @@
         <table class="dt">
             <thead><tr><th class="c" style="width:7%">Sl.</th><th style="width:31%">Name of the teacher</th><th style="width:20%">Type</th><th style="width:14%">Reason (code)</th><th style="width:28%">Remarks</th></tr></thead>
             <tbody>
-            @for ($r = 1; $r <= 6; $r++)
+            @for ($r = 1; $r <= $absentRows; $r++)
                 <tr><td class="sl">{{ $r }}</td><td></td>
                     <td>@include('inspections.partials.blank-opts', ['opts' => array_map(fn ($l) => str_replace(' Teacher', '', $l), AT::TYPES), 'vertical' => true])</td>
                     <td></td><td></td></tr>

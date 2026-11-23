@@ -76,6 +76,10 @@ class ModificationV11Test extends TestCase
         $this->assertStringContainsString('class="pdf-wm"', $html);
         $this->assertStringContainsString('SCHOOL INSPECTION FORM</div>', $html);
         $this->assertStringContainsString('SSA, ASSAM', $html);
+        // 23-11-2026: the background is turned 45°, and the absentee table fills its page (12 rows, before section 4)
+        $this->assertStringContainsString('rotate(-45deg)', $html);
+        $absent = substr($html, strpos($html, 'Teachers Absentee'), strpos($html, 'Class Room Performance') - strpos($html, 'Teachers Absentee'));
+        $this->assertSame(12, substr_count($absent, '<td class="sl">'));
     }
 
     public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void

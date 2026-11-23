@@ -2401,3 +2401,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `SchoolController` refactor: shared `listQuery()`, `filterOptions()`; Find School unchanged. Find School hero has a "See all my schools" link.
 - Tests: new `MySchoolsTest` (4). Full suite 236 passed. MySQL (read-only timing as the State Admin, 44,197 schools): 0.76 s for the full list, 0.14 s for a search.
 - Docs: CLAUDE.md, UI doc, docx rebuilt. Not opened in a browser.
+
+## 2026-11-23: Paper form absentee table fills its page; 45° background on every PDF
+- **Blank paper form** (`resources/views/inspections/blank-form.blade.php`): section 3 Teachers Absentee Form now prints 12 empty rows (`$absentRows`) instead of 6. The table starts on page 4 and ran onto page 5 with three rows, leaving the rest of page 5 empty before section 4's page break. Rendered on MySQL with the longest school name: 13 rows fit with the legend still on page 5 and 14 push a new page, so 12 keeps one spare row. The PDF still has 10 pages.
+- **Background** (`inspections/partials/pdf-watermark.blade.php`, used by the paper form and the inspection report, the only two PDFs): the SSA logo, title and "SSA, ASSAM" block is turned 45° (`transform: rotate(-45deg)`, bottom-left to top-right) about its centre, so it stays centred. Checked with `pdftotext`: the watermark text is now diagonal (dropped by `-nodiag`).
+- Tests: `ModificationV11Test` checks the rotation and the 12 rows. Full suite 236 passed.
+- Docs: CLAUDE.md, INSPECTION_FORM_DOCUMENT.md, docx rebuilt. The rendered pages were not viewed as images (no PDF rasteriser here).
