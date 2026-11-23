@@ -2385,3 +2385,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - New partial `inspections/partials/pdf-watermark.blade.php`: faint SSA logo (opacity .07) with the title and "SSA, ASSAM", position fixed and centred, so it repeats on every page behind the content. Used by the paper form ("SCHOOL INSPECTION FORM", `blank-form.blade.php`) and the inspection report ("SCHOOL INSPECTION REPORT", `pdf.blade.php`, replacing the rotated text watermark).
 - Report: the alternate row shading is see-through (rgba) so the logo shows; Teacher's & Student's Information boxes are now the table cells (equal width and height, fixed label / number / note rows so the numbers line up; "Absent today" label fits one line), edges aligned with the rows below.
 - Verified: both PDFs rendered with DomPDF (report from inspection 2 on MySQL, read-only; paper form) and checked as page images; `ModificationV11Test` checks the background; `php artisan test`, all passing.
+
+## 2026-11-23: Sidebar collapsed by default, highlighted Expand button, styled name popup
+- **Default** (`components/layouts/app.blade.php` inline script): the desktop sidebar opens as the icon rail unless `localStorage['si-sidebar'] === 'full'` (the user pressed Expand). Phones unchanged.
+- **Expand button** (`app.scss`, `html.sidebar-mini .sidebar-toggle`): white 36 px button with the blue chevron, a soft pulse ring (`@keyframes si-pulse`, off on hover and for reduced motion) and a green ring on hover. Its label / `aria-expanded` follow the state (Expand menu / Collapse menu).
+- **Name popup** (`app.js`, `.si-nav-tip`): one body-level tooltip placed beside the hovered or focused rail icon (the sidebar clips overflow); blue gradient with an arrow, slide-in, green dot on the current page, orange count for Pending Approvals. The native `title` is removed while in the rail, so only one tooltip shows.
+- Tests: new `SidebarDefaultTest`. Docs: CLAUDE.md, UI doc, docx rebuilt.
+- Verified: `npm run build`, `php artisan test` 232 passed. Not checked in a browser.

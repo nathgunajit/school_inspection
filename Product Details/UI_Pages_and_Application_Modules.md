@@ -92,7 +92,7 @@
   - A green "New inspection" button.
   - Sections Inspection / Users / Masters, filtered by permission.
   - The note "Government of Assam".
-  - It collapses to an icon rail with tooltips; the state is kept in `localStorage` (`si-sidebar`). On phones it is an off-canvas drawer.
+  - Since 23-11-2026 it opens as an icon rail by default (the highlighted white Expand button opens it, and `localStorage` `si-sidebar = full` keeps it open). Hovering a rail icon shows a styled name popup (`.si-nav-tip`, with the badge count where there is one). On phones it is an off-canvas drawer.
 - **Top bar:** menu button (mobile), a back button where a page sets one, the page title, a pending approvals bell with count, and the account dropdown. The dropdown shows the avatar, designation, level, jurisdiction, My Profile, Change Password and Sign out.
 - **Bottom navigation (phones):** Home · My Visits · "+" (new inspection) · Area · Profile.
 - **Footer:** there is no global footer; the sidebar note acts as one.

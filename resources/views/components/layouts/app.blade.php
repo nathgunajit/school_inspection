@@ -12,7 +12,7 @@
     <meta name="session-expired-url" content="{{ route('login', ['expired' => 1]) }}">
     <title>{{ $title ?? 'Dashboard' }} · {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
-    <script>try { if (localStorage.getItem('si-sidebar') === 'mini') document.documentElement.classList.add('sidebar-mini'); } catch (e) {}</script>
+    <script>try { if (localStorage.getItem('si-sidebar') !== 'full') document.documentElement.classList.add('sidebar-mini'); } catch (e) { document.documentElement.classList.add('sidebar-mini'); }</script>
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
@@ -39,7 +39,7 @@
     <div class="brand">
         <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha, Assam"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha"></a>
         <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha, Assam</small></a>
-        <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini title="Collapse / expand menu" aria-label="Collapse or expand menu"><i class="bi bi-chevron-double-left"></i></button>
+        <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini data-mini-tip title="Collapse menu" aria-label="Collapse menu" aria-expanded="true"><i class="bi bi-chevron-double-left"></i></button>
     </div>
     @can('conduct_inspections')
         <div class="sidebar-cta">

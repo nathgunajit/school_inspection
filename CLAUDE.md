@@ -232,7 +232,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - Validate with Form Requests and authorize with policies/gates; keep controllers thin and put logic in services.
 - Mobile-first UI: touch targets ≥ 44px, one wizard step per screen on mobile, bottom nav on phones. Reuse the components in `resources/views/components`.
 - Field size standard: every input, select, number stepper and button is **14 px text and 40 px tall** on desktop / tablet. Phones (md and down) use 16 px and 44 px (iOS zoom guard and touch targets). This comes from `$field-fs`, `$num-fs` and `$input-btn-padding-y` in `app.scss`, so don't add per-page font sizes for fields.
-- Theme: Samagra Shiksha palette (blue `#1565c0`, green `#1e9b4b`, orange `#f39223`), base font 0.875rem. Logos are in `public/logo/` (`ASSAM GOVT LOGO.png`, `SSA LOGO.png`). The sidebar collapses to an icon rail; its state is stored in `localStorage` (`si-sidebar`).
+- Theme: Samagra Shiksha palette (blue `#1565c0`, green `#1e9b4b`, orange `#f39223`), base font 0.875rem. Logos are in `public/logo/` (`ASSAM GOVT LOGO.png`, `SSA LOGO.png`). The sidebar opens as an icon rail **by default** (23-11-2026; `localStorage` `si-sidebar = full` keeps it open after the user presses the highlighted Expand button). Rail icons show a styled name popup (`.si-nav-tip`, placed by `app.js`, because `.app-sidebar` clips overflow), not the browser title.
 - Production: see the checklist at the bottom of `.env.example`. With `APP_ENV=production`, URLs are forced to HTTPS.
 - Lists paginate at 25 rows.
 
