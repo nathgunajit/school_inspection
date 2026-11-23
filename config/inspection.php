@@ -116,6 +116,8 @@ return [
     'per_page' => 25,
     // 23-11-2026: most schools in one School Master PDF (DomPDF); larger lists need a filter or the Excel export
     'master_pdf_max_rows' => (int) env('MASTER_PDF_MAX_ROWS', 3000),
+    // 23-11-2026: password of the protected My Schools Excel sheet (empty = a random one per file, so it stays read-only)
+    'excel_password' => env('EXCEL_PROTECT_PASSWORD'),
 
     // V12 item 6: largest Excel upload (School / Location Master), in KB. A state-wide School Master file is large.
     'import_max_kb' => (int) env('IMPORT_MAX_KB', 51200),

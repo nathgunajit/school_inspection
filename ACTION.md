@@ -2418,3 +2418,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 ## 2026-11-23: Paper form, Class Room Performance on a single page of its own
 - `resources/views/inspections/blank-form.blade.php`: section 4 now prints 7 observation rows (`$classRows`, was 5) and section 5 Fund Received & Expenditure starts a new page, so section 4 fills exactly one page (before, Fund began under it on the same page). Rendered on MySQL: 7 rows keep the table and the Classes legend on page 6, 8 run onto page 7. The form has 9 pages.
 - Tests: `ModificationV11Test` checks the 7 rows and the page break before Fund. Docs: CLAUDE.md, INSPECTION_FORM_DOCUMENT.md, docx rebuilt.
+
+## 2026-11-23: My Schools, PDF download and a read-only Excel with the official header
+- **Excel** (`App\Exports\MySchoolsExport`): rows 1–5 carry the header (GOVERNMENT OF ASSAM, Samagra Shiksha Abhiyan Assam, MY SCHOOLS, area · officer · records · generated time, filters), with the Assam and SSA logos; headings in row 6 (blue), data from row 7, frozen heading, auto filter, borders, landscape print. The sheet is protected and the workbook structure locked (password `EXCEL_PROTECT_PASSWORD`, else random per file), so the file cannot be edited; selecting and filtering still work.
+- **PDF** (`SchoolController::minePdf`, route `schools.mine.export-pdf`, `export_excel`, throttle 6/min): the same scope, filters and order as the page, through `App\Support\MasterPdf` (official header, 45° background, Page X of Y), with Area / Officer / filter chips. At most `master_pdf_max_rows` (3000) schools, else a warning to filter or use Excel.
+- Both downloads are audited `my_schools_exported` with `format`. Download Excel / Download PDF buttons on the page (also on phones).
+- Files: `MySchoolsExport.php`, `SchoolController.php`, `routes/web.php`, `schools/mine.blade.php`, `config/inspection.php`, `.env.example`, `MySchoolsTest.php`, CLAUDE.md, UI doc.
+- Verified: a MySQL render for GOSSAINICHINA gives header rows 1–5, 11 schools, a protected sheet and 2 logos. Tests: 2 new in `MySchoolsTest`; full suite 243 passed. Docx rebuilt.

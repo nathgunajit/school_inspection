@@ -80,6 +80,40 @@ class MySchoolsTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'my_schools_exported')->exists());
     }
 
+    public function test_excel_has_the_official_header_and_is_read_only(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $res = $this->actingAs($officer)->get(route('schools.mine.export', ['inspected' => 'no']))->assertOk();
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($res->getFile()->getPathname());
+        $sheet = $book->getActiveSheet();
+
+        $this->assertSame('GOVERNMENT OF ASSAM', $sheet->getCell('A1')->getValue());
+        $this->assertSame('MY SCHOOLS', $sheet->getCell('A3')->getValue());
+        $this->assertStringContainsString('Cluster · '.$cluster->label, $sheet->getCell('A4')->getValue());
+        $this->assertStringContainsString($officer->name, $sheet->getCell('A4')->getValue());
+        $this->assertStringContainsString('Inspected: No', $sheet->getCell('A5')->getValue());
+        $this->assertSame('UDISE Code', $sheet->getCell('A6')->getValue());
+        $this->assertSame(School::where('cluster_id', $cluster->id)->count(), $sheet->getHighestRow() - 6);
+        $this->assertContains((string) $sheet->getCell('A7')->getValue(), School::where('cluster_id', $cluster->id)->pluck('udise_code')->map(fn ($c) => (string) $c)->all());
+        $this->assertTrue($sheet->getProtection()->getSheet(), 'the sheet is protected');
+        $this->assertTrue($book->getSecurity()->getLockStructure(), 'the workbook structure is locked');
+    }
+
+    public function test_pdf_download_is_audited_and_capped(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $this->actingAs($officer)->get(route('schools.mine'))->assertSee(route('schools.mine.export-pdf'), false);
+        $res = $this->get(route('schools.mine.export-pdf'))->assertOk();
+        $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $res->getContent());
+        $this->assertTrue(AuditLog::where('action', 'my_schools_exported')->get()->contains(fn ($a) => ($a->meta['format'] ?? null) === 'pdf'));
+
+        config(['inspection.master_pdf_max_rows' => 1]);
+        $this->from(route('schools.mine'))->get(route('schools.mine.export-pdf'))
+            ->assertRedirect(route('schools.mine'))->assertSessionHas('warning');
+    }
+
     public function test_sidebar_links_my_schools(): void
     {
         $html = $this->actingAs($this->officer(UserLevel::Block))->get(route('schools.mine'))->assertOk()->getContent();

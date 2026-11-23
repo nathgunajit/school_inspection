@@ -6,13 +6,20 @@
 <x-layouts.app title="My Schools">
     <x-slot:actions>
         @can('export_excel')
-            <a href="{{ route('schools.mine.export', request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Download Excel</a>
+            <a href="{{ route('schools.mine.export', request()->except('page')) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Download Excel</a>
+            <a href="{{ route('schools.mine.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>Download PDF</a>
         @endcan
     </x-slot:actions>
 
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
         <span class="badge-soft badge-soft-primary my-scope"><i class="bi bi-geo-alt"></i>{{ $scope }}</span>
         <span class="text-xs text-secondary">Schools you are responsible for. Not inspected schools are listed first.</span>
+        @can('export_excel')
+            <div class="d-flex gap-2 w-100 d-sm-none">
+                <a href="{{ route('schools.mine.export', request()->except('page')) }}" class="btn btn-sm btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+                <a href="{{ route('schools.mine.export-pdf', request()->except('page')) }}" class="btn btn-sm btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+            </div>
+        @endcan
     </div>
 
     <div class="row g-2 g-md-3 mb-3">

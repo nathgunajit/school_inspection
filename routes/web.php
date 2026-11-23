@@ -57,6 +57,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/schools', [SchoolController::class, 'index'])->name('schools.index');
             Route::get('/my-schools', [SchoolController::class, 'mine'])->name('schools.mine'); // 23-11-2026: own jurisdiction list
             Route::get('/my-schools/export', [SchoolController::class, 'mineExport'])->middleware(['can:export_excel', 'throttle:6,1'])->name('schools.mine.export');
+            Route::get('/my-schools/export-pdf', [SchoolController::class, 'minePdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('schools.mine.export-pdf');
             Route::get('/schools/{school}', [SchoolController::class, 'show'])->name('schools.show');
             Route::get('/schools/{school}/blank-form', [SchoolController::class, 'blankForm'])->middleware('throttle:30,1')->name('schools.blank-form'); // V11
             Route::post('/schools/{school}/inspections', [InspectionController::class, 'start'])->name('inspections.start');

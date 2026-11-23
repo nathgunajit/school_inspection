@@ -85,16 +85,64 @@ class SchoolController extends Controller
             'scope' => $this->scopeLabel($user)] + $this->filterOptions($user, $request));
     }
 
-    /** My Schools as Excel: the same scope, filters and order as the page. */
+    /** My Schools as Excel: the same scope, filters and order as the page; official header, protected sheet. */
     public function mineExport(Request $request)
     {
         $query = $this->inspectedFilter($this->listQuery($request->user(), $request), $request);
+        $meta = $this->exportMeta($request, (clone $query)->count());
+        $this->logMineExport($request, $meta, 'excel');
+
+        return Excel::download(new MySchoolsExport($query, $meta), 'my-schools-'.now()->format('Y-m-d').'.xlsx');
+    }
+
+    /** My Schools as PDF (official header, background, page numbers); capped like the master PDFs. */
+    public function minePdf(Request $request)
+    {
+        $query = $this->inspectedFilter($this->listQuery($request->user(), $request), $request);
+        $count = (clone $query)->count();
+        $max = (int) config('inspection.master_pdf_max_rows', 3000);
+        if ($count > $max) {
+            return back()->with('warning', number_format($count).' schools match. A PDF holds at most '.number_format($max)
+                .': filter by district, block or cluster, or use Download Excel for the full list.');
+        }
+        set_time_limit(300);
+        $meta = $this->exportMeta($request, $count);
+        $this->logMineExport($request, $meta, 'pdf');
+
+        $rows = [];
+        $query->with(MySchoolsExport::RELATIONS)->chunk(500, function ($schools) use (&$rows) {
+            foreach ($schools as $s) {
+                $rows[] = array_merge([count($rows) + 1], MySchoolsExport::row($s));
+            }
+        });
+
+        return \App\Support\MasterPdf::download('My Schools', array_merge(['Sl'], MySchoolsExport::HEADINGS), $rows,
+            array_merge(['Area: '.$meta['scope'], 'Officer: '.$meta['officer']], $meta['filters']), 'my-schools-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /** Area, officer and readable filter labels for the downloads. */
+    private function exportMeta(Request $request, int $rows): array
+    {
+        $user = $request->user();
+        $q = trim((string) $request->q);
+        $filters = array_values(array_filter([
+            $q !== '' ? 'Search: '.$q : null,
+            $request->district_id ? 'District: '.(District::find((int) $request->district_id)?->label ?? '—') : null,
+            $request->block_id ? 'Block: '.(Block::find((int) $request->block_id)?->label ?? '—') : null,
+            $request->cluster_id ? 'Cluster: '.(Cluster::find((int) $request->cluster_id)?->label ?? '—') : null,
+            match ($request->inspected) { 'yes' => 'Inspected: Yes', 'no' => 'Inspected: No (not inspected yet)', default => null },
+        ]));
+
+        return ['scope' => $this->scopeLabel($user), 'officer' => $user->name, 'filters' => $filters, 'rows' => $rows];
+    }
+
+    private function logMineExport(Request $request, array $meta, string $format): void
+    {
         AuditLogger::log('my_schools_exported', null, [
-            'rows' => (clone $query)->count(),
+            'format' => $format,
+            'rows' => $meta['rows'],
             'filters' => array_filter($request->only(['q', 'district_id', 'block_id', 'cluster_id', 'inspected'])),
         ]);
-
-        return Excel::download(new MySchoolsExport($query), 'my-schools-'.now()->format('Y-m-d').'.xlsx');
     }
 
     /**
