@@ -52,7 +52,7 @@ class HousekeepingService
     }
 
     /**
-     * Clear the application cache and remove stale cache files: expired rows of the database cache table,
+     * Clear the application cache (Cache::flush also empties the file store) and remove stale files: the database cache table,
      * compiled views, and registration uploads kept for abandoned forms.
      *
      * @return array{expired_rows: int, register_files: int}
@@ -71,7 +71,6 @@ class HousekeepingService
         if (! app()->runningUnitTests()) {
             Artisan::call('view:clear');
         }
-        File::cleanDirectory(storage_path('framework/cache/data'));
         $register = app(RegisterUploadStash::class)->purge(24);
 
         AuditLogger::log('cache_cleared', null, ['expired_rows' => $expired, 'register_files' => $register]);
