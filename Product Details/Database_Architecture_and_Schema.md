@@ -81,7 +81,7 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 26 | `rating_criteria` | Criteria of a scheme: section, code, kind (answer/metric), weight, points JSON | `id` | rating_schemes |
 | 27 | `inspection_schedules` | Day plan of one officer: status, reviewer, start point, distance and time | `id` | users, inspection_schedule_items |
 | 28 | `inspection_schedule_items` | Schools of a plan in visit order, with travel estimate and status; links to the inspection done | `id` | inspection_schedules, schools, inspections |
-| 29 | `audit_logs` | Append-only audit trail: action, subject, user, IP, meta JSON | `id` | users |
+| 29 | `audit_logs` | Append-only audit trail: action, subject, user, IP, meta JSON. Since V13, entries older than `AUDIT_RETENTION_DAYS` (30) are archived to Excel and then deleted, monthly (`audit:purge`) | `id` | users |
 | 30 | `user_login_logs` | Login monitoring: successes and refusals, device, browser, IP, last seen, logout | `id` | users |
 | 31 | `password_reset_tokens` | Laravel email reset tokens | `email` | — |
 | 32 | `sessions` | Database session store (`SESSION_DRIVER=database`) | `id` | users (no FK) |
@@ -203,7 +203,7 @@ erDiagram
 | **Approval and rejection** | Registrations: `registration_requests` with `status`, `approver_id`, `reason`, `decided_at`. Mobile changes: `mobile_change_requests` with `decided_by`. Schedules: `inspection_schedules.status`, `reviewed_by`, `review_note`. There is **no approval of inspection reports** (Phase 2). | | Implemented (registrations, mobile, schedules) / Not implemented (report review) |
 | **Ratings** | On submit, `RatingService::rate()` scores the inspection with the active scheme and stores `inspection_ratings` (derived; never edited by hand). Saving the settings creates a new scheme version. `ratings:recalculate` rebuilds the ratings. | `app/Rating/RatingCalculator.php`, `RatingService` | Implemented |
 | **Dashboard statistics** | Computed live with COUNT queries. The dashboard is personal (today, month, total, drafts). The area figures are on the Map View (`MapDataService`, cached for 60 s) and the Rating Report (`RatingReportService`). There are no summary tables. | `DashboardController`, `MapDataService`, `RatingReportService` | Implemented (no materialised statistics) |
-| **Audit** | `AuditLogger::log()` only inserts. No code updates or deletes `audit_logs`. | `app/Services/AuditLogger.php` | Implemented |
+| **Audit** | `AuditLogger::log()` only inserts, and the `AuditLog` model refuses updates and deletes. The only deletion is the V13 retention purge (`HousekeepingService::purgeAudit()`, `audit:purge`), which writes an Excel archive to `private:audit-archive/` first. | `app/Services/AuditLogger.php`, `app/Services/HousekeepingService.php` | Implemented |
 | **Data retention** | `config('inspection.retention_years') = 5` is declared, but no job uses it. | `config/inspection.php` | **Not implemented** |
 | **OTP** | The `otp_verifications` table and the `OtpSender` interface with `LogOtpSender` exist; no screen uses them. | `app/Services/Otp/` | Not implemented (Phase 2) |
 
@@ -895,6 +895,7 @@ Indexes: **unique** `states_code_unique` (code).
 |---|---|---|---|---|---|---|
 | `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
 | `name` | varchar(120) | 120 |  |  | No |  |
+| `gender` | enum('male','female','other') |  |  |  | Yes |  |
 | `designation_id` | bigint(20) unsigned |  |  | master_values.id (restrict) | Yes |  |
 | `designation_other` | varchar(120) | 120 |  |  | Yes |  |
 | `employee_id` | varchar(40) | 40 |  |  | Yes |  |

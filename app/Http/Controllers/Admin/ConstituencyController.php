@@ -115,4 +115,20 @@ class ConstituencyController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:60', Rule::unique('parliamentary_constituencies', 'name')->ignore($pc?->id)],
         ], ['code.regex' => 'PC code is "PC" followed by digits, e.g. PC1801.']);
     }
+
+    /** Modification V13 item 3: delete an AC no school uses. */
+    public function destroyAc(AssemblyConstituency $ac)
+    {
+        $reason = app(\App\Services\MasterDeleteGuard::class)->delete($ac, 'ac_deleted', $ac->label);
+
+        return $reason ? back()->with('error', $reason) : back()->with('success', 'Deleted '.$ac->label.'.');
+    }
+
+    /** Modification V13 item 3: delete a PC with no AC and no school. */
+    public function destroyPc(ParliamentaryConstituency $pc)
+    {
+        $reason = app(\App\Services\MasterDeleteGuard::class)->delete($pc, 'pc_deleted', $pc->label);
+
+        return $reason ? back()->with('error', $reason) : back()->with('success', 'Deleted '.$pc->label.'.');
+    }
 }

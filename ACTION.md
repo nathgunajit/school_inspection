@@ -2305,3 +2305,36 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - tests: `SchoolUdiseImportTest` (8 tests), `DistrictSchoolImportTest`, `MasterImportAndAuditTest`
   - docs: `CLAUDE.md`, `Product Details/{Database_Architecture_and_Schema,UI_Pages_and_Application_Modules}.md`, rebuilt docx
 - Verified: `php artisan test` 211 passed. Not opened in a browser.
+
+## 2026-11-23: Modification V13 (`Documents/Modification of the ApplicationV13.docx`)
+1. **Demo users**: the new `DemoUserSeeder` places 4 officers per level (State, District, Block, Cluster), plus one Pending and one Rejected, on the current Location Master (the first 2 districts, 2 blocks each, the first cluster of each block), with genders set.
+   - `php artisan users:reset-demo --force` (`App\Services\DemoUserReset`, refused in production) deletes every user except the State Admin, with their inspections and evidence files, schedules, jurisdictions and requests. It is audited `demo_users_reset`.
+   - `DemoLocationSchoolSeeder` no longer overwrites a real Location Master.
+   - Run on local MySQL: 25 users removed (their jurisdictions pointed at deleted demo districts), 18 demo officers created on KOKRAJHAR / DHUBRI; State Admin id 1 kept.
+2. **School Master list**:
+   - Filters: district, block, cluster, AC, PC, management, category, rural / urban, type and status.
+   - Shows the total and matching counts, plus columns for type · area · medium and AC / PC.
+   - Excel export of the filtered list in the upload column order (`App\Exports\SchoolListExport`). A full-state export checked on MySQL: 44,197 rows, about 150 s, about 640 MB.
+   - The existing name / AC / district indexes cover the list (EXPLAIN checked), so no migration was needed.
+3. **Remove master data**:
+   - `App\Services\MasterDeleteGuard` adds Delete to the Location (district / block / cluster), AC / PC, School and TLM menus. A record is deleted only when unused; otherwise it is refused with the reason. Audited `*_deleted`.
+   - Remove schools of a district (typed confirmation; schools with inspections or schedules are kept), audited `schools_removed`.
+4. **Audit log and cache clean-up** (`App\Services\HousekeepingService`):
+   - `audit:purge` writes entries older than `AUDIT_RETENTION_DAYS` (30) to `private:audit-archive/*.xlsx`, then deletes them, and logs `audit_purged`.
+   - `cache:purge` clears the cache and stale cache files, and logs `cache_cleared`.
+   - Both are scheduled monthly (the 1st, 02:00 / 02:15). The Audit Log page has a Clean up card with archive downloads.
+   - CLAUDE.md rule 7 is reworded for this single exception.
+5. **Import timeout**: `ImportController::longRunning()` sets `IMPORT_TIMEOUT` (default 0 = no limit), `IMPORT_MEMORY` (2048M), `ignore_user_abort` and longer MySQL session timeouts. The loader text says 'keep this page open', and production php.ini / Apache values are in `.env.example`.
+6. **Rating map view**: the State Admin always sees ratings on `/map`. The Rating Report has a Map view button (`/map?colour=rating` preselects Colour by Rating).
+7. **Default photo by gender**:
+   - Migration `2026_11_24_000001_add_gender_to_users`: `users.gender`, required at registration and editable by the admin.
+   - `<x-user-avatar>` shows `public/img/avatar-male.svg` / `avatar-female.svg` when no photo is uploaded.
+- Files:
+  - `app/Services/{DemoUserReset,MasterDeleteGuard,HousekeepingService}.php`, `app/Exports/{SchoolListExport,AuditArchiveExport}.php`
+  - controllers `Admin/{SchoolMaster,Location,Constituency,TlmItem,AuditLog,Import,User}Controller`, `Auth/RegisterController`, `MapController`, `Requests/RegisterRequest`, `Models/User`
+  - `routes/{web,console}.php`, `config/inspection.php`, `.env.example`
+  - views `admin/{schools/index,locations/index,constituencies/index,tlm/index,imports/index,audit,users/show}`, `auth/register`, `components/user-avatar`, `map/index`, `reports/ratings/index`; `resources/js/map.js`
+  - seeders `DemoUserSeeder`, `DemoLocationSchoolSeeder`; `public/img/avatar-{male,female}.svg`
+  - tests: new `ModificationV13Test` (11 tests); `ModificationV9Test` (map rule); registration payloads now send `gender`
+  - docs: `CLAUDE.md`, `Product Details/{Database_Architecture_and_Schema,UI_Pages_and_Application_Modules}.md`, `Requirements/` copy of V13, rebuilt docx
+- Verified: `php artisan test` 222 passed (11 new). Pages not opened in a browser.

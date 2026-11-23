@@ -52,6 +52,8 @@
                         <form method="POST" action="{{ route('admin.users.update', $user) }}" class="row g-3">
                             @csrf @method('PUT')
                             <div class="col-md-6"><label class="form-label">Full name</label><input name="name" value="{{ old('name', $user->name) }}" class="form-control @error('name') is-invalid @enderror" required></div>
+                            <div class="col-md-6"><label class="form-label">Gender</label>
+                                <select name="gender" class="form-select" aria-label="Gender"><option value="">Not given</option>@foreach (\App\Models\User::GENDERS as $k => $l)<option value="{{ $k }}" @selected(old('gender', $user->gender) === $k)>{{ $l }}</option>@endforeach</select></div>
                             <div class="col-md-6"><label class="form-label">Designation</label>
                                 <select name="designation_id" class="form-select" data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">@foreach ($designations as $d)<option value="{{ $d->id }}" @selected(old('designation_id', $user->designation_id) == $d->id)>{{ $d->label }}</option>@endforeach</select>
                                 <div id="designation-other-wrap" class="mt-2 {{ old('designation_id', $user->designation_id) == $otherDesignationId ? '' : 'd-none' }}">

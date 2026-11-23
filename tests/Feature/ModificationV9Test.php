@@ -150,8 +150,11 @@ class ModificationV9Test extends TestCase
         $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('Content-Type', 'application/pdf');
 
         $admin = $this->admin();
-        $this->actingAs($admin)->get(route('map.index'))->assertOk()->assertDontSee('colourRating', false);
-        $this->actingAs($admin)->get(route('map.schools', ['cluster' => $i->cluster_id]))->assertOk()->assertJsonMissingPath('rows.0.rating');
+        // map: hidden from officers; Modification V13 item 6 shows the rating map to the State Admin even with the switch off
+        $district = $this->officer(UserLevel::District);
+        $this->actingAs($district)->get(route('map.index'))->assertOk()->assertDontSee('colourRating', false);
+        $this->actingAs($district)->get(route('map.schools', ['cluster' => $i->cluster_id]))->assertOk()->assertJsonMissingPath('rows.0.rating');
+        $this->actingAs($admin)->get(route('map.index'))->assertOk()->assertSee('colourRating', false);
         // Rating Report: State Administrator only (shown to them even with the switch off); officers get 403
         $this->actingAs($admin)->get(route('reports.ratings'))->assertOk();
         $this->actingAs($i->officer)->get(route('reports.ratings'))->assertForbidden();

@@ -58,6 +58,7 @@ class RegisterRequest extends FormRequest
 
         $rules = [
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
+            'gender' => ['required', Rule::in(array_keys(\App\Models\User::GENDERS))], // Modification V13
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
             // Modification V7: "Other" designation is typed in
             'designation_other' => [Rule::requiredIf(fn () => $this->isOtherDesignation()), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
@@ -91,6 +92,7 @@ class RegisterRequest extends FormRequest
             'employee_id.unique' => 'This Employee ID is already registered.',
             'id_proof.max' => 'Identity proof must be '.FileSize::human(config('inspection.id_proof.max_kb')).' or smaller.',
             'photo.required' => 'Please upload your photograph.',
+            'gender.required' => 'Please select your gender.',
             'photo.max' => 'Photograph must be '.FileSize::human(config('inspection.employee_photo.max_kb')).' or smaller.',
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
             'captcha.captcha' => 'The CAPTCHA code is incorrect.',

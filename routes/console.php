@@ -29,3 +29,34 @@ Artisan::command('register:purge-tmp {--hours=24 : Remove kept files older than 
 })->purpose('Delete registration uploads kept for abandoned forms');
 
 Schedule::command('register:purge-tmp')->dailyAt('01:00');
+
+/* Modification V13 item 1: keep only the State Administrator and create 3–4 demo officers per level. */
+Artisan::command('users:reset-demo {--force : Do not ask for confirmation}', function () {
+    if (app()->isProduction()) {
+        $this->error('Refused: demo users cannot be reset in production.');
+
+        return 1;
+    }
+    if (! $this->option('force') && ! $this->confirm('Delete every user except the State Administrator (with their inspections and schedules) and create demo officers?')) {
+        return 1;
+    }
+    $r = app(\App\Services\DemoUserReset::class)->run();
+    $this->info("Removed {$r['removed']} user(s) and {$r['inspections']} inspection(s); {$r['created']} demo officer(s) created (password ".\Database\Seeders\DemoUserSeeder::PASSWORD.').');
+
+    return 0;
+})->purpose('Remove all users except the State Administrator and seed demo officers');
+
+/* Modification V13 item 4: audit entries older than the retention period go to an Excel archive, then are deleted. */
+Artisan::command('audit:purge {--days= : Keep this many days (default AUDIT_RETENTION_DAYS)}', function () {
+    $days = $this->option('days') !== null ? (int) $this->option('days') : null;
+    $r = app(\App\Services\HousekeepingService::class)->purgeAudit($days);
+    $this->info("Removed {$r['count']} audit entr".($r['count'] === 1 ? 'y' : 'ies')." older than {$r['cutoff']}".($r['file'] ? " (archive: {$r['file']})" : '').'.');
+})->purpose('Archive and delete audit log entries older than the retention period');
+
+Artisan::command('cache:purge', function () {
+    $r = app(\App\Services\HousekeepingService::class)->clearCache();
+    $this->info("Cache cleared ({$r['expired_rows']} expired cache row(s), {$r['register_files']} kept registration file(s) removed).");
+})->purpose('Clear the application cache and stale cache files');
+
+Schedule::command('audit:purge')->monthlyOn(1, '02:00');
+Schedule::command('cache:purge')->monthlyOn(1, '02:15');

@@ -16,7 +16,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name', 'designation_id', 'designation_other', 'employee_id', 'mobile', 'email', 'password', 'level', 'status',
+        'name', 'gender', 'designation_id', 'designation_other', 'employee_id', 'mobile', 'email', 'password', 'level', 'status',
         'id_proof_path', 'id_proof_original_name', 'photo_path', 'failed_login_attempts', 'locked_until',
         'must_change_password', 'last_login_at',
     ];
@@ -38,6 +38,15 @@ class User extends Authenticatable
     /* ---------- Relations ---------- */
 
     public function designation() { return $this->belongsTo(MasterValue::class, 'designation_id'); }
+
+    /** Modification V13 item 7: gender, used for the default photo when none is uploaded. */
+    public const GENDERS = ['male' => 'Male', 'female' => 'Female', 'other' => 'Other'];
+
+    /** Public placeholder image for a user without an uploaded photo (null = show initials). */
+    public function defaultPhotoUrl(): ?string
+    {
+        return in_array($this->gender, ['male', 'female'], true) ? asset('img/avatar-'.$this->gender.'.svg') : null;
+    }
 
     /** Master value code of the "Other" designation (Modification V7). */
     public const OTHER_DESIGNATION = 'other';

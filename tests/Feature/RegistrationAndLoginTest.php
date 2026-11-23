@@ -22,6 +22,7 @@ class RegistrationAndLoginTest extends TestCase
         $cluster = Cluster::orderBy('id')->first();
 
         return array_merge([
+            'gender' => 'female',
             'name' => 'Asha Devi',
             'designation_id' => MasterValue::idFor('designation', 'cluster_resource_coordinator'),
             'employee_id' => 'EMP-1001',

@@ -10,6 +10,8 @@
 <x-layouts.app title="Rating Report">
     <x-slot:actions>
         @can('export_excel')<a href="{{ route('reports.ratings.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Excel</a>@endcan
+        {{-- Modification V13 item 6: the same ratings on the map, school pins coloured by rating band --}}
+        <a href="{{ route('map.index', ['colour' => 'rating']) }}" class="btn btn-soft-success" data-rating-map><i class="bi bi-geo-alt"></i>Map view</a>
     </x-slot:actions>
 
     <form method="GET" class="filter-bar filter-sm mb-3" data-loader="heavy" data-loader-text="Loading rating report…">

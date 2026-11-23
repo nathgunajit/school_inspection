@@ -17,15 +17,96 @@ use Illuminate\Validation\Rule;
 /** School Master screens (PRD 7.2). */
 class SchoolMasterController extends Controller
 {
+    /** Modification V13 item 2: list filters (query string, numeric IDs), shared by the list and its Excel export. */
+    public const FILTERS = ['q', 'district_id', 'block_id', 'cluster_id', 'ac_id', 'pc_id', 'management_id', 'category_id', 'area_type', 'school_type', 'status'];
+
     public function index(Request $request)
     {
-        $schools = School::with(['district', 'block', 'cluster', 'category'])
-            ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('udise_code', 'like', "$s%")->orWhere('name', 'like', "%$s%")))
-            ->when($request->district_id, fn ($q, $v) => $q->where('district_id', $v))
-            ->when($request->status, fn ($q, $v) => $q->where('status', $v))
-            ->orderBy('name')->paginate(config('inspection.per_page'))->withQueryString();
+        $base = $this->filtered($request);
+        $schools = (clone $base)->with(['district:id,name', 'block:id,name', 'cluster:id,name', 'category:id,label', 'management:id,label', 'ac:id,code,name', 'pc:id,code,name'])
+            ->orderBy('name')->orderBy('id')->paginate(config('inspection.per_page'))->withQueryString();
 
-        return view('admin.schools.index', ['schools' => $schools, 'districts' => District::orderBy('name')->get()]);
+        $districtId = (int) $request->district_id;
+        $blockId = (int) $request->block_id;
+
+        return view('admin.schools.index', [
+            'schools' => $schools,
+            'total' => School::count(),
+            'filtered' => collect(self::FILTERS)->contains(fn ($k) => filled($request->query($k))),
+            'districts' => District::orderBy('name')->get(['id', 'name']),
+            'blocks' => $districtId ? Block::where('district_id', $districtId)->orderBy('name')->get(['id', 'name']) : collect(),
+            'clusters' => $blockId ? Cluster::where('block_id', $blockId)->orderBy('name')->get(['id', 'name']) : collect(),
+            'acs' => AssemblyConstituency::orderBy('code')->get(['id', 'code', 'name']),
+            'pcs' => ParliamentaryConstituency::orderBy('code')->get(['id', 'code', 'name']),
+            'managements' => MasterValue::ofType('management')->get(),
+            'categories' => MasterValue::ofType('category')->get(),
+        ]);
+    }
+
+    /** Modification V13 item 2: the filtered list as Excel, in the upload column order (edit and upload again). */
+    public function export(Request $request)
+    {
+        // a state-wide list (44,000 rows) takes about 2–3 minutes and ~650 MB
+        set_time_limit((int) config('inspection.import_timeout', 0));
+        if ($mem = config('inspection.import_memory')) {
+            @ini_set('memory_limit', (string) $mem);
+        }
+        AuditLogger::log('school_list_exported', null, ['filters' => array_filter($request->only(self::FILTERS))]);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SchoolListExport($this->filtered($request)), 'school_master_'.now()->format('Y-m-d').'.xlsx');
+    }
+
+    /** Modification V13 item 3: delete a school with no inspection and no schedule. */
+    public function destroy(School $school)
+    {
+        $reason = app(\App\Services\MasterDeleteGuard::class)->delete($school, 'school_deleted', $school->name);
+
+        return $reason ? back()->with('error', $reason) : back()->with('success', 'Deleted '.$school->name.' ('.$school->udise_code.').');
+    }
+
+    /**
+     * Modification V13 item 3: remove the schools of one district that have no inspection and no schedule.
+     * The district name must be typed to confirm. Schools in use are kept and counted.
+     */
+    public function removeDistrict(Request $request)
+    {
+        $data = $request->validate(['district_id' => ['required', 'exists:districts,id'], 'confirm_name' => ['required', 'string']]);
+        $district = District::findOrFail($data['district_id']);
+        if (mb_strtoupper(trim($data['confirm_name'])) !== mb_strtoupper($district->name)) {
+            return redirect()->route('admin.imports.index', ['tab' => 'report'])->withErrors(['confirm_name' => 'Type the district name exactly to confirm: '.$district->name.'.'], 'remove')->withInput();
+        }
+        set_time_limit(0);
+
+        $used = fn ($q) => $q->whereExists(fn ($e) => $e->selectRaw('1')->from('inspections')->whereColumn('inspections.school_id', 'schools.id'))
+            ->orWhereExists(fn ($e) => $e->selectRaw('1')->from('inspection_schedule_items')->whereColumn('inspection_schedule_items.school_id', 'schools.id'));
+        $total = School::withTrashed()->where('district_id', $district->id)->count();
+        $removed = 0;
+        School::withTrashed()->where('district_id', $district->id)->whereNot($used)->select('id')->chunkById(1000, function ($rows) use (&$removed) {
+            $removed += School::withTrashed()->whereIn('id', $rows->pluck('id'))->forceDelete();
+        });
+        $kept = $total - $removed;
+        AuditLogger::log('schools_removed', $district, ['district' => $district->name, 'removed' => $removed, 'kept' => $kept]);
+
+        return redirect()->route('admin.imports.index', ['tab' => 'report'])->with('success', number_format($removed).' school(s) of '.$district->name.' removed.'.($kept ? ' '.number_format($kept).' kept: they have inspections or schedules.' : ''));
+    }
+
+    /** The list query with the filters applied (numeric IDs from the query string). */
+    private function filtered(Request $request)
+    {
+        $id = fn (string $k) => (int) $request->query($k) ?: null;
+
+        return School::query()
+            ->when(trim((string) $request->query('q')), fn ($q, $s) => $q->where(fn ($w) => $w->where('udise_code', 'like', "$s%")->orWhere('name', 'like', "%$s%")))
+            ->when($id('district_id'), fn ($q, $v) => $q->where('district_id', $v))
+            ->when($id('block_id'), fn ($q, $v) => $q->where('block_id', $v))
+            ->when($id('cluster_id'), fn ($q, $v) => $q->where('cluster_id', $v))
+            ->when($id('ac_id'), fn ($q, $v) => $q->where('ac_id', $v))
+            ->when($id('pc_id'), fn ($q, $v) => $q->where('pc_id', $v))
+            ->when($id('management_id'), fn ($q, $v) => $q->where('management_id', $v))
+            ->when($id('category_id'), fn ($q, $v) => $q->where('category_id', $v))
+            ->when($request->query('area_type'), fn ($q, $v) => $q->where('area_type', $v))
+            ->when($request->query('school_type'), fn ($q, $v) => $q->where('school_type', $v))
+            ->when($request->query('status'), fn ($q, $v) => $q->where('status', $v));
     }
 
     public function create()

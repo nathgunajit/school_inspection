@@ -114,7 +114,7 @@
                     </div>
                 @endif
                 <div class="d-flex flex-wrap gap-2">
-                    <form method="POST" action="{{ route('admin.imports.confirm') }}" data-loader="heavy" data-loader-text="Saving records, please wait…">@csrf
+                    <form method="POST" action="{{ route('admin.imports.confirm') }}" data-loader="heavy" data-loader-text="Saving records. A state-wide file takes 2–3 minutes; keep this page open…">@csrf
                         <button class="btn btn-success" @disabled($preview['added'] + $preview['updated'] === 0)><i class="bi bi-check2-circle"></i>Confirm and save {{ $preview['added'] + $preview['updated'] }} {{ \Illuminate\Support\Str::plural($isLoc ? 'change' : 'school', $preview['added'] + $preview['updated']) }}</button>
                     </form>
                     <form method="POST" action="{{ route('admin.imports.cancel') }}">@csrf
@@ -126,7 +126,7 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form" data-loader="heavy" data-loader-text="Checking the file…"
+                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form" data-loader="heavy" data-loader-text="Checking the file. A state-wide file takes 2–3 minutes; keep this page open…"
                       data-preview-url="{{ route('admin.imports.preview') }}" data-store-url="{{ route('admin.imports.store') }}">
                     @csrf
                     {{-- Step 1 --}}
@@ -238,6 +238,28 @@
                 </table>
             </div>
             <div class="text-xs text-secondary mt-2"><i class="bi bi-hand-index me-1"></i>Tap a district to see its blocks.</div>
+        </div>
+
+        {{-- Modification V13 item 3: remove a district's School Master data (schools with inspections or schedules are kept) --}}
+        <div class="imp-card mt-3 border-danger-subtle" id="remove-schools">
+            <h2 class="imp-title text-danger"><i class="bi bi-trash"></i>Remove schools of a district</h2>
+            <p class="text-sm text-secondary mb-3">Deletes the district's schools so a corrected file can be uploaded. Schools with an inspection or a schedule are kept. This cannot be undone.</p>
+            <form method="POST" action="{{ route('admin.schools.remove-district') }}" class="row g-2 align-items-end" data-confirm="Remove the schools of this district? This cannot be undone.">
+                @csrf
+                <div class="col-md-5">
+                    <label class="form-label" for="rm-district">District</label>
+                    <select id="rm-district" name="district_id" class="form-select" required>
+                        <option value="">Select district</option>
+                        @foreach ($report as $d)<option value="{{ $d->id }}" @selected(old('district_id') == $d->id)>{{ $d->name }} ({{ number_format($d->schools) }} schools)</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="rm-confirm">Type the district name to confirm</label>
+                    <input id="rm-confirm" name="confirm_name" value="{{ old('confirm_name') }}" class="form-control @error('confirm_name', 'remove') is-invalid @enderror" required autocomplete="off">
+                    @error('confirm_name', 'remove')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-3 d-grid"><button class="btn btn-danger" data-loading-text="Removing…"><i class="bi bi-trash"></i>Remove schools</button></div>
+            </form>
         </div>
     </div>
 

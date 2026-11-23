@@ -16,7 +16,11 @@ class MapController extends Controller
         $user = $request->user();
         $geo = fn (string $k) => ($p = config("inspection.map.geojson.$k")) && is_file(public_path($p)) ? asset($p) : null;
 
+        $showRating = $this->showRatings($user);
+
         return view('map.index', [
+            'showRating' => $showRating,
+            'colour' => $showRating && $request->query('colour') === 'rating' ? 'rating' : 'status', // V13: Rating Report "Map view"
             'start' => $this->map->startView($user),
             'officers' => $this->map->officers($user, 'district', null),
             'bands' => app(\App\Services\RatingService::class)->activeScheme()->bands, // V6 Module 9: legend
@@ -34,7 +38,7 @@ class MapController extends Controller
                 ],
                 'canOpenSchool' => $user->can('conduct_inspections'),
                 'routing' => config('inspection.map.routing'), // V6 Module 8
-                'showRating' => (bool) config('inspection.rating.display'), // Modification V9
+                'showRating' => $showRating, // Modification V9; V13: always for the State Admin
             ],
         ]);
     }
@@ -62,7 +66,7 @@ class MapController extends Controller
             'parent' => $parent,
             'breadcrumb' => $this->map->breadcrumb($level, $parent),
             'outline' => $this->map->outlineUrl($level, $parent),
-            'rows' => $this->withoutRatings($rows),
+            'rows' => $this->withoutRatings($rows, $user),
             'totals' => $this->map->totals($rows, count($this->map->officers($user, $level, $parent))),
         ]);
     }
@@ -91,15 +95,23 @@ class MapController extends Controller
             'parent' => $cluster,
             'breadcrumb' => $cluster !== null ? $this->map->breadcrumb('school', $cluster) : [],
             'outline' => $cluster !== null ? $this->map->outlineUrl('school', $cluster) : null,
-            'rows' => $this->withoutRatings($rows),
+            'rows' => $this->withoutRatings($rows, $user),
             'totals' => $this->map->schoolTotals($rows, $cluster !== null ? count($this->map->officers($user, 'school', $cluster)) : 0),
         ]);
     }
 
-    /** Modification V9: ratings are left out of the map unless config('inspection.rating.display'). */
-    private function withoutRatings(array $rows): array
+    /**
+     * Modification V9: ratings are left out of the map unless config('inspection.rating.display').
+     * Modification V13 item 6: the State Admin always sees them (rating map view), as on the Rating Report.
+     */
+    private function showRatings($user): bool
     {
-        return config('inspection.rating.display') ? $rows : array_map(fn ($r) => array_diff_key($r, ['rating' => true]), $rows);
+        return (bool) config('inspection.rating.display') || $user->isStateAdmin();
+    }
+
+    private function withoutRatings(array $rows, $user): array
+    {
+        return $this->showRatings($user) ? $rows : array_map(fn ($r) => array_diff_key($r, ['rating' => true]), $rows);
     }
 
     /** Period and officer filters, validated. The officer must be inside the user's jurisdiction. */

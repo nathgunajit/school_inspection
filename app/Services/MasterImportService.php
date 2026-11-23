@@ -241,7 +241,7 @@ class MasterImportService
 
     private function readRows(string $type, UploadedFile|string $file, ?District $district, bool $all = false): Collection
     {
-        set_time_limit(0); // a state-wide School Master (~44,000 rows) takes over a minute to read
+        set_time_limit((int) config('inspection.import_timeout', 0)); // a state-wide School Master (~44,000 rows) takes over a minute to read
         $alias = fn ($h) => $type === 'school' ? (self::SCHOOL_ALIASES[$h] ?? $h) : $h;
         $headings = array_map($alias, (new HeadingRowImport)->toArray($file)[0][0] ?? []);
         $expected = $type === 'location' ? self::LOCATION_COLUMNS
@@ -425,7 +425,7 @@ class MasterImportService
             $summary['blocks'][$k][$what]++;
         };
 
-        set_time_limit(0);
+        set_time_limit((int) config('inspection.import_timeout', 0));
         $this->masterCache = []; // a preview's new master values are rolled back
         $this->loadConstituencies();
         $now = now();

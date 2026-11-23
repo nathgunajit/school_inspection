@@ -29,19 +29,21 @@ php artisan inspections:expire-drafts   # cancels drafts older than config('insp
 ```
 Default State Admin login: mobile `9999999999` / `Admin@12345` (from `.env` ADMIN_*; password change is forced on first login).
 
-Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all; re-run safely with `php artisan db:seed --class=DemoUserSeeder`). Active demo officers are listed on the login page (tap to fill) unless `APP_ENV=production` or `DEMO_LOGINS=false`:
+Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all). Since V13 they are placed on the **current Location Master**: the first two districts by code, the first two blocks of each and the first cluster of each block. On the real Assam master that means KOKRAJHAR / DHUBRI.
+- `php artisan users:reset-demo --force` (refused in production) deletes **every user except the State Administrator**, with their inspections (and evidence files), schedules, jurisdictions and requests, and then seeds these accounts. It is audited `demo_users_reset`.
+- `php artisan db:seed --class=DemoUserSeeder` re-runs safely.
+- Active demo officers are listed on the login page (tap to fill) unless `APP_ENV=production` or `DEMO_LOGINS=false`.
+- `DemoLocationSchoolSeeder` (North / South District) skips itself when more than two districts exist.
 
 | Mobile | Name | Level / jurisdiction | Notes |
 |---|---|---|---|
-| 9000000001 | Ananya Sharma | State | can approve District registrations |
-| 9000000011 | Rakesh Baruah | District · North District (1801) | approve + manage users |
-| 9000000012 | Meera Kalita | District · South District (1802) | |
-| 9000000021 | Sanjay Das | Block · Riverside (180101) | can approve Cluster registrations |
-| 9000000022–24 | Priya Gogoi, Imran Hussain, Deepa Bora | Block · Hillview, Lakeside, Greenfield | |
-| 9000000031–38 | Arjun Saikia … Pooja Medhi | Cluster · one per cluster (18010101 … 18020202) | inspectors |
-| 9000000041–43 | Amit Phukan, Rina Bhuyan, Suresh Kakoti | Cluster / Block / District | **Pending** approval |
-| 9000000044 | Gita Barman | Cluster | Rejected (can re-apply) |
-| 9000000045 | Hemant Dutta | Cluster | Inactive |
+| 9000000001–04 | Ananya Sharma (F), Bikash Kalita, Chandana Bora (F), Dipankar Saikia | State | 01 can approve District registrations |
+| 9000000011–12 | Rakesh Baruah, Meera Kalita (F) | District · KOKRAJHAR (1801) | 11 approve + manage users |
+| 9000000013–14 | Nabajit Deka, Rupali Das (F) | District · DHUBRI (1802) | 13 approve + manage users |
+| 9000000021–24 | Sanjay Das, Priya Gogoi (F), Imran Hussain, Deepa Bora (F) | Block · DOTMA, GOSSAIGAON, GOLAKGANJ, AGOMONI | can approve Cluster registrations |
+| 9000000031–34 | Arjun Saikia, Kavita Deka (F), Rohit Nath, Sunita Rabha (F) | Cluster · GOSSAINICHINA, BHAWRAGURI, BALAJAN, AGOMONI | inspectors |
+| 9000000041 | Amit Phukan | Cluster · GOSSAINICHINA | **Pending** approval (the cluster is held, so approval names the officer) |
+| 9000000044 | Gita Barman (F) | Cluster | Rejected (can re-apply) |
 
 ## Layout
 - `app/Enums/`: UserLevel, UserStatus, InspectionStatus, EvidenceStatus
@@ -90,6 +92,32 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
      - `FRESH` (TSI_01, TSI_02, TSI_09, NET_01), absentees, suggestions and photos are never copied. Since V12, `ZERO` (TSI_09) is stored as 0, and classroom rows (with their TLM ticks, new `row_uid` null) are copied for editing.
      - It sets `inspections.prefilled_from_id` (wizard banner `.prefill-note` on `BANNER_STEPS` 1, 2, 4, 5, 6) and audits `inspection_prefilled`.
      - Tests that rate exact answers clear the copied ones first.
+- Modification V13 (`Documents/Modification of the ApplicationV13.docx`, 23-11-2026):
+  1. **Demo users**: see `users:reset-demo` above (`App\Services\DemoUserReset`). The MySQL users were reset on 23-11-2026, keeping only the State Admin.
+  2. **School Master list** (`Admin\SchoolMasterController::index`, `FILTERS`):
+     - Filters: district → block → cluster (server-filled selects), AC, PC, management, category, rural / urban, school type and status.
+     - Shows the total and matching counts, plus columns for type · area · medium and AC / PC.
+     - `admin.schools.export` downloads the filtered list as Excel in the upload order (`App\Exports\SchoolListExport`, read in chunks). The whole state takes about 150 s and 650 MB.
+  3. **Remove master data**:
+     - A Delete item in the three-dot menus of Location (not states), AC / PC, School and TLM masters (`*.destroy` routes, `manage_masters`).
+     - `App\Services\MasterDeleteGuard` refuses while anything is linked ('used by 120 schools and 2 officers', with Make inactive suggested), and audits `location_deleted` / `ac_deleted` / `pc_deleted` / `school_deleted` / `tlm_item_deleted` with code and name.
+     - Schools are force-deleted, so their UDISE codes can be uploaded again.
+     - The Excel Upload District report tab has **Remove schools of a district** (`admin.schools.remove-district`). The district name must be typed to confirm. It deletes only schools with no inspection or schedule, and is audited `schools_removed`.
+  4. **Audit log and cache clean-up** (`App\Services\HousekeepingService`):
+     - `audit:purge [--days=]` (Excel archive, then delete, see rule 7) and `cache:purge` (cache flush, `cache` table rows, compiled views, kept registration files; audited `cache_cleared`).
+     - Both are scheduled on the 1st of each month (02:00 / 02:15). The scheduler must run (`schedule:run`, `.env.example`).
+     - The Audit Log page has a Clean up card (State Admin): Archive and delete older than N days, Clear cache, and archive downloads (`admin.audit.archive`).
+     - `AUDIT_RETENTION_DAYS` defaults to 30.
+  5. **Import timeout**: `ImportController::longRunning()` at the start of store / preview / confirm sets:
+     - `set_time_limit(IMPORT_TIMEOUT)` (default 0 = no limit) and `memory_limit` = `IMPORT_MEMORY` (2048M)
+     - `ignore_user_abort`
+     - longer MySQL session timeouts
+
+     The loaders say 'keep this page open'. Apache / php.ini values for production are in `.env.example`.
+  6. **Rating map view**: the State Admin always sees ratings on `/map` (`MapController::showRatings()`), even with `RATING_DISPLAY=false`, like the Rating Report. The Rating Report has a **Map view** button (`/map?colour=rating` preselects Colour by Rating).
+  7. **Default photo by gender**:
+     - `users.gender` (male / female / other): required at registration, editable on the admin user page.
+     - `<x-user-avatar>` shows `public/img/avatar-male.svg` / `avatar-female.svg` when no photo is uploaded (`User::defaultPhotoUrl()`), else the initials.
 - Modification V12 (`Documents/Modification of the ApplicationV12.docx`, 21-11-2026):
   - Next visit: Teachers present starts at 0, the absentee form is blank, and last visit's classroom rows are listed for editing (`InspectionPrefill`, above).
   - All present: when a step 2 save makes Present exactly equal to Total teachers, `saveAnswer` deletes the absentee rows (audited `absent_teachers_cleared`, JSON `absent_removed`, wizard toast). Present above Total removes nothing.
@@ -169,7 +197,10 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
    - Cancelled inspections never block.
    - Blocked attempts are audited (`inspection_start_blocked`).
 6. **Evidence lives on the `private` disk** under random names. It is served only through a controller that checks permission. Photos come from the in-app camera **or the phone gallery** (Modification V1). Both go through the same browser pipeline: resize to ≤1600 px, JPEG, stamp strip, SHA-256. Gallery photos are stored with `source = gallery` and labelled "From gallery" in the report and PDF. An upload with the same `evidence_uid` is idempotent.
-7. **The audit log is append-only.** Use `AuditLogger::log()`; never update or delete rows.
+7. **The audit log is append-only.** Use `AuditLogger::log()`; never update or delete rows (the `AuditLog` model refuses both).
+   - The single exception (Modification V13) is `HousekeepingService::purgeAudit()`, run by `audit:purge` or by the State Admin.
+   - It first writes the entries older than `audit_retention_days` to an Excel archive (`private:audit-archive/`), then deletes them, and logs `audit_purged`.
+   - A schedule's history (`InspectionSchedule::history()`) loses entries older than the cutoff; the archive keeps them.
 8. **Server time** is the source of truth for inspection date and time.
 9. **Employee photo** (`users.photo_path`, required at registration, JPG/PNG ≤ 1 MB) and the identity proof live on the `private` disk. The photo is served only via `admin.users.photo` (self, approver or user manager in jurisdiction); render it with `<x-user-avatar :user="..." />`.
 10. **Schedules** (New Module 2): one plan per officer per day and a school on at most one plan per day (DB unique keys). Only the officer or a higher officer covering them may change a plan; every step is audited.

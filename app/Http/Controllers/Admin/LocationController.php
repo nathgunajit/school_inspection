@@ -15,7 +15,7 @@ use App\Support\UrlId;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Location Master screens (PRD 7.1). Locations are never deleted, only made inactive. */
+/** Location Master screens (PRD 7.1). A location is made inactive; an unused one may be deleted (Modification V13). */
 class LocationController extends Controller
 {
     private const TYPES = [
@@ -104,5 +104,16 @@ class LocationController extends Controller
         }
 
         return $rules;
+    }
+
+    /** Modification V13 item 3: delete a district / block / cluster that nothing uses. */
+    public function destroy(string $type, string $id)
+    {
+        abort_unless(isset(self::TYPES[$type]) && $type !== 'states', 404);
+        [$model] = self::TYPES[$type];
+        $rec = $model::findOrFail(UrlId::decode($model, $id) ?? abort(404));
+        $reason = app(\App\Services\MasterDeleteGuard::class)->delete($rec, 'location_deleted', $rec->name);
+
+        return $reason ? back()->with('error', $reason) : back()->with('success', 'Deleted '.$rec->name.'.');
     }
 }

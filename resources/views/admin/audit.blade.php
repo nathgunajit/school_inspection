@@ -1,4 +1,34 @@
 <x-layouts.app title="Audit Log">
+    {{-- Modification V13 item 4: audit and cache clean-up (also runs automatically on the 1st of every month) --}}
+    <div class="card mb-3" id="cleanup">
+        <div class="card-header d-flex flex-wrap align-items-center gap-2"><i class="bi bi-recycle text-primary"></i>Clean up
+            <span class="text-xs text-secondary ms-auto">Runs automatically on the 1st of each month: entries older than {{ config('inspection.audit_retention_days') }} days and the cache.</span></div>
+        <div class="card-body row g-3 align-items-end">
+            <form method="POST" action="{{ route('admin.audit.purge') }}" class="col-lg-6 row g-2 align-items-end" data-confirm="Delete the audit entries older than this many days? A copy is saved as an Excel file first.">
+                @csrf
+                <div class="col-sm-7">
+                    <label class="form-label" for="purge-days">Delete audit entries older than (days)</label>
+                    <input id="purge-days" type="number" name="days" min="0" max="3650" value="{{ old('days', config('inspection.audit_retention_days')) }}" class="form-control @error('days') is-invalid @enderror" required>
+                    @error('days')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">{{ number_format($oldCount) }} entr{{ $oldCount === 1 ? 'y is' : 'ies are' }} older than {{ config('inspection.audit_retention_days') }} days.</div>
+                </div>
+                <div class="col-sm-5 d-grid mb-sm-4"><button class="btn btn-soft-danger" data-loading-text="Cleaning…"><i class="bi bi-trash"></i>Archive and delete</button></div>
+            </form>
+            <form method="POST" action="{{ route('admin.audit.cache') }}" class="col-lg-3 d-grid mb-lg-4" data-confirm="Clear the application cache now?">
+                @csrf
+                <button class="btn btn-soft-primary" data-loading-text="Clearing…"><i class="bi bi-lightning-charge"></i>Clear cache</button>
+            </form>
+            <div class="col-lg-3 mb-lg-4">
+                <div class="text-xs text-secondary mb-1">Archives (Excel copies of deleted entries)</div>
+                @forelse (array_slice($archives, 0, 5) as $a)
+                    <div class="text-sm text-truncate"><a href="{{ route('admin.audit.archive', $a['name']) }}" data-no-loader><i class="bi bi-file-earmark-excel me-1"></i>{{ $a['time']->format('d M Y, h:i A') }}</a> <span class="text-xs text-secondary">{{ \App\Support\FileSize::human((int) ceil($a['size'] / 1024)) }}</span></div>
+                @empty
+                    <div class="text-sm text-secondary">None yet</div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
     <form method="GET" class="filter-bar mb-3 row g-2">
         <div class="col-12 col-md-3"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="User name or mobile"></div>
         <div class="col-6 col-md-2"><select name="action" class="form-select" data-autosubmit aria-label="Action"><option value="">All actions</option>

@@ -18,6 +18,13 @@ class DemoLocationSchoolSeeder extends Seeder
 {
     public function run(): void
     {
+        // Modification V13: never overwrite a real Location Master (the demo has only two districts)
+        if (District::count() > 2) {
+            $this->command?->warn('DemoLocationSchoolSeeder skipped: a Location Master is already loaded.');
+
+            return;
+        }
+
         $state = State::updateOrCreate(['code' => '18'], ['name' => 'Demo State']);
 
         $districts = [

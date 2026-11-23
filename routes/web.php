@@ -153,6 +153,10 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/mobile-requests', [Admin\MobileRequestController::class, 'index'])->name('mobile-requests.index');
                 Route::post('/mobile-requests/{mobileRequest}', [Admin\MobileRequestController::class, 'decide'])->name('mobile-requests.decide');
                 Route::get('/audit', [Admin\AuditLogController::class, 'index'])->name('audit.index');
+                // Modification V13 item 4: audit / cache clean-up
+                Route::post('/audit/purge', [Admin\AuditLogController::class, 'purge'])->middleware('throttle:5,1')->name('audit.purge');
+                Route::post('/audit/cache', [Admin\AuditLogController::class, 'clearCache'])->middleware('throttle:5,1')->name('audit.cache');
+                Route::get('/audit/archive/{file}', [Admin\AuditLogController::class, 'archive'])->name('audit.archive');
                 // V6 Module 6: login user monitoring
                 Route::get('/login-report', [Admin\LoginReportController::class, 'index'])->name('login-report.index');
                 Route::get('/login-report/export', [Admin\LoginReportController::class, 'export'])->name('login-report.export');
@@ -166,20 +170,28 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/locations/{type?}', [Admin\LocationController::class, 'index'])->name('locations.index');
                 Route::post('/locations/{type}', [Admin\LocationController::class, 'store'])->name('locations.store');
                 Route::put('/locations/{type}/{id}', [Admin\LocationController::class, 'update'])->name('locations.update');
+                Route::delete('/locations/{type}/{id}', [Admin\LocationController::class, 'destroy'])->name('locations.destroy'); // V13
                 Route::get('/schools', [Admin\SchoolMasterController::class, 'index'])->name('schools.index');
                 Route::get('/schools/create', [Admin\SchoolMasterController::class, 'create'])->name('schools.create');
                 Route::post('/schools', [Admin\SchoolMasterController::class, 'store'])->name('schools.store');
                 Route::get('/schools/{school}/edit', [Admin\SchoolMasterController::class, 'edit'])->name('schools.edit');
                 Route::put('/schools/{school}', [Admin\SchoolMasterController::class, 'update'])->name('schools.update');
+                // Modification V13: list export, delete an unused school, remove a district's unused schools
+                Route::get('/schools-export', [Admin\SchoolMasterController::class, 'export'])->name('schools.export');
+                Route::delete('/schools/{school}', [Admin\SchoolMasterController::class, 'destroy'])->name('schools.destroy');
+                Route::post('/schools-remove-district', [Admin\SchoolMasterController::class, 'removeDistrict'])->name('schools.remove-district');
                 // AC / PC Master (Assembly and Parliamentary constituencies)
                 Route::get('/constituencies', [Admin\ConstituencyController::class, 'index'])->name('constituencies.index');
                 Route::post('/constituencies/{type}', [Admin\ConstituencyController::class, 'store'])->whereIn('type', ['ac', 'pc'])->name('constituencies.store');
                 Route::put('/constituencies/ac/{ac}', [Admin\ConstituencyController::class, 'updateAc'])->name('constituencies.ac.update');
                 Route::put('/constituencies/pc/{pc}', [Admin\ConstituencyController::class, 'updatePc'])->name('constituencies.pc.update');
+                Route::delete('/constituencies/ac/{ac}', [Admin\ConstituencyController::class, 'destroyAc'])->name('constituencies.ac.destroy'); // V13
+                Route::delete('/constituencies/pc/{pc}', [Admin\ConstituencyController::class, 'destroyPc'])->name('constituencies.pc.destroy');
                 // FLN TLM master (classroom observation, step 4)
                 Route::get('/tlm-items', [Admin\TlmItemController::class, 'index'])->name('tlm.index');
                 Route::post('/tlm-items', [Admin\TlmItemController::class, 'store'])->name('tlm.store');
                 Route::put('/tlm-items/{tlmItem}', [Admin\TlmItemController::class, 'update'])->name('tlm.update');
+                Route::delete('/tlm-items/{tlmItem}', [Admin\TlmItemController::class, 'destroy'])->name('tlm.destroy'); // V13
                 // Rating Settings (New Module 3)
                 Route::get('/rating', [Admin\RatingController::class, 'index'])->name('rating.index');
                 Route::post('/rating', [Admin\RatingController::class, 'update'])->name('rating.update');

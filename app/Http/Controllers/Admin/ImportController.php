@@ -56,6 +56,7 @@ class ImportController extends Controller
     /** Location Master (and older clients): import straight away. */
     public function store(Request $request, MasterImportService $service)
     {
+        $this->longRunning(); // Modification V13 item 5
         $data = $request->validate([
             'type' => ['required', 'in:location,school'],
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
@@ -71,6 +72,7 @@ class ImportController extends Controller
     /** Step 3: check the file (School Master for one district, or Location Master); nothing is saved yet. */
     public function preview(Request $request, MasterImportService $service)
     {
+        $this->longRunning(); // Modification V13 item 5
         $data = $request->validate([
             'type' => ['nullable', 'in:location,school'],
             'district_id' => ['required_unless:type,location', 'nullable', function ($attr, $v, $fail) {
@@ -104,6 +106,7 @@ class ImportController extends Controller
     /** Save the file that was checked in preview(). */
     public function confirm(Request $request, MasterImportService $service)
     {
+        $this->longRunning(); // Modification V13 item 5
         $p = $request->session()->get(self::PENDING);
         if (! $p || ! Storage::disk('private')->exists($p['path'])) {
             $request->session()->forget(self::PENDING);
@@ -159,6 +162,23 @@ class ImportController extends Controller
     {
         if ($p = $request->session()->pull(self::PENDING)) {
             Storage::disk('private')->delete($p['path']);
+        }
+    }
+
+    /**
+     * Modification V13 item 5: a state-wide School Master (44,000 rows) runs for minutes. Lift the PHP time and
+     * memory limits for this request, keep going if the browser is closed (no half-saved file), and give MySQL
+     * longer session timeouts.
+     */
+    private function longRunning(): void
+    {
+        set_time_limit((int) config('inspection.import_timeout', 0));
+        if ($mem = config('inspection.import_memory')) {
+            @ini_set('memory_limit', (string) $mem);
+        }
+        ignore_user_abort(true);
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET SESSION wait_timeout = 28800, net_read_timeout = 600, net_write_timeout = 600');
         }
     }
 }

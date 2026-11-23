@@ -19,6 +19,7 @@ class OneOfficerPerClusterTest extends TestCase
     private function payload(Cluster $cluster, array $over = []): array
     {
         return array_merge([
+            'gender' => 'female',
             'name' => 'Asha Devi',
             'designation_id' => MasterValue::idFor('designation', 'cluster_resource_coordinator'),
             'photo' => UploadedFile::fake()->image('photo.jpg', 300, 400),

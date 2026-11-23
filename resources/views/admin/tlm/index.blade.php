@@ -58,6 +58,13 @@
                                                             <button class="dropdown-item {{ $item->is_active ? 'text-danger' : 'text-success' }}"><i class="bi {{ $item->is_active ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>{{ $item->is_active ? 'Make inactive' : 'Make active' }}</button>
                                                         </form>
                                                     </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ route('admin.tlm.destroy', $item) }}" data-confirm="Delete {{ $item->name }}? This cannot be undone. It works only if nothing uses it.">
+                                            @csrf @method('DELETE')
+                                            <button class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button>
+                                        </form>
+                                    </li>
                                                 </ul>
                                             </div>
                                         </td>

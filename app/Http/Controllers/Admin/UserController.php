@@ -76,6 +76,7 @@ class UserController extends Controller
         $this->authorizeAdmin($request->user(), $user);
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
+            'gender' => ['nullable', Rule::in(array_keys(User::GENDERS))], // Modification V13
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')],
             'designation_other' => [Rule::requiredIf(fn () => (int) $request->input('designation_id') === MasterValue::idFor('designation', User::OTHER_DESIGNATION)), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($user->id)],

@@ -33,7 +33,7 @@ if (el) {
     const nextLevel = { district: 'block', block: 'cluster', cluster: 'school' };
     const levelName = { district: 'District', block: 'Block', cluster: 'Cluster', school: 'School' };
     // V6 Module 9: school ratings
-    let colourBy = 'status';
+    let colourBy = document.querySelector('input[name="colourBy"]:checked')?.value || 'status'; // V13: ?colour=rating from the Rating Report
     const showRating = cfg.showRating !== false; // Modification V9: ratings hidden unless RATING_DISPLAY=true
     const pct = (v) => `${Number(v).toFixed(1).replace(/\.0$/, '')}%`;
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');

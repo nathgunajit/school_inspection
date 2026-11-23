@@ -44,6 +44,14 @@
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label" for="gender">Gender <span class="req">*</span></label>
+                            <select id="gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
+                                <option value="">Select gender</option>
+                                @foreach (\App\Models\User::GENDERS as $k => $l)<option value="{{ $k }}" @selected(old('gender') === $k)>{{ $l }}</option>@endforeach
+                            </select>
+                            @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
                             <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">
                                 <option value="">Select designation</option>

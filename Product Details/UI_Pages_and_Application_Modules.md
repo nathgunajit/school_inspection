@@ -32,7 +32,7 @@
 | My Inspections | `/my-inspections` | `ReportController@mine` | `inspections/index` (`mode=mine`) | `conduct_inspections` | Own inspections, filters, Excel |
 | Inspections in Area | `/inspections` | `ReportController@area` | `inspections/index` (`mode=area`) | `view_reports` | Area list: district/block/cluster/officer/status/school/date filters, Excel |
 | Excel export | `/export/{mine\|area}` | `ReportController@export` | — | `export_excel` | One column per question code |
-| Rating Report | `/reports/ratings` | `RatingReportController@index` (+ `export`, `pdf`) | `reports/ratings/index`, `reports/ratings/pdf` | `view_reports` | Summary, bands, sections, areas, schools latest vs previous |
+| Rating Report | `/reports/ratings` | `RatingReportController@index` (+ `export`, `pdf`) | `reports/ratings/index`, `reports/ratings/pdf` | `view_reports` | Summary, bands, sections, areas, schools latest vs previous; V13 **Map view** button (`/map?colour=rating`, ratings always shown to the State Admin) |
 | Map View | `/map` | `MapController@index` (+ JSON `areas/{level}`, `schools`) | `map/index` | `view_reports` | Drill-down map, colour by status/rating, district outline, directions |
 | Schedules calendar | `/schedules` | `ScheduleController@index` | `schedules/index` | `view_reports` | Plans by day for the officers in the area |
 | Plan a day | `/schedules/plan` | `ScheduleController@plan` (+ JSON `plan/schools`, `POST /schedules`) | `schedules/plan` | `view_reports` | Choose officer, date, schools; drag to order; route estimate; save / submit / publish |
@@ -47,14 +47,14 @@
 | User List | `/admin/users` | `Admin\UserController@index` | `admin/users/index` | `manage_users` | Filters by name, level, status, district, block |
 | User detail | `/admin/users/{key}` | `@show` (+ `update`, `status`, `transfer`, `reset-password`, `permissions`) | `admin/users/show` | `manage_users` (transfer/reset/grants: State Admin) | Edit, activate/deactivate, transfer, reset password, grants |
 | Mobile Changes | `/admin/mobile-requests` | `Admin\MobileRequestController@index` / `decide` | `admin/mobile-requests` | `state_admin` | Approve or reject mobile changes |
-| Location Master | `/admin/locations/{type?}` | `Admin\LocationController` | `admin/locations/index` | `manage_masters` | Districts, blocks, clusters: add and edit, codes, coordinates |
-| AC / PC Master | `/admin/constituencies` (`?tab=pc`) | `Admin\ConstituencyController` | `admin/constituencies/index` | `manage_masters` | Assembly (AC) and Parliamentary (PC) constituencies with their codes: list, search, add, Edit modal, make inactive |
-| School Master | `/admin/schools`, `/create`, `/{key}/edit` | `Admin\SchoolMasterController` | `admin/schools/index`, `admin/schools/form` | `manage_masters` | List and form |
-| Excel Upload | `/admin/imports` | `Admin\ImportController` | `admin/imports/index` | `manage_masters` | Templates (Schools sheet: school, location, details, lat / lng last; plus Clusters, AC list, PC list, Value lists), upload (All districts by default), batch history, error file |
+| Location Master | `/admin/locations/{type?}` | `Admin\LocationController` | `admin/locations/index` | `manage_masters` | Districts, blocks, clusters: add and edit, codes, coordinates; Delete when unused (V13) |
+| AC / PC Master | `/admin/constituencies` (`?tab=pc`) | `Admin\ConstituencyController` | `admin/constituencies/index` | `manage_masters` | Assembly (AC) and Parliamentary (PC) constituencies with their codes: list, search, add, Edit modal, make inactive, Delete when unused (V13) |
+| School Master | `/admin/schools`, `/create`, `/{key}/edit` (+ `schools-export`, `destroy`, `schools-remove-district`) | `Admin\SchoolMasterController` | `admin/schools/index`, `admin/schools/form` | `manage_masters` | V13: list with district / block / cluster, AC, PC, management, category, area and type filters and a count; Excel export of the filtered list in the upload order; Delete when the school has no inspection or schedule; form |
+| Excel Upload | `/admin/imports` | `Admin\ImportController` | `admin/imports/index` | `manage_masters` | Templates (Schools sheet: school, location, details, lat / lng last; plus Clusters, AC list, PC list, Value lists), upload (All districts by default), batch history, error file; District report with **Remove schools of a district** (typed confirmation, V13) |
 | Rating Settings | `/admin/rating` | `Admin\RatingController` | `admin/rating/index` | `manage_masters` | Weights, points, bands; save as a new version; recalculate |
 | Login Monitoring | `/admin/login-report` | `Admin\LoginReportController` | `admin/login-report/index`, `row`, `user`, `tabs` | `state_admin` | Logins, refusals, devices, top refused mobiles; per-user history; Excel |
 | Daily login report (V8) | `/admin/login-report/daily` (+ `/export`) | `Admin\LoginReportController@daily` / `@dailyExport` | `admin/login-report/daily` | `state_admin` | One row per active officer for a date: first sign-in, last activity, sign-ins, time online, refused attempts and the **current status** (Online now / Signed out / Timed out / Not signed in / Never signed in); Excel |
-| Audit Log | `/admin/audit` | `Admin\AuditLogController@index` | `admin/audit` | `state_admin` | Filterable read-only audit trail |
+| Audit Log | `/admin/audit` (+ `purge`, `cache`, `archive/{file}`) | `Admin\AuditLogController` | `admin/audit` | `state_admin` | Filterable audit trail. V13 Clean up card: archive to Excel and delete entries older than N days, Clear cache, archive downloads (also automatic on the 1st of each month) |
 
 ### 1.4 Non-page endpoints used by the UI (JSON / files)
 - `/locations/{type}`: cascading dropdowns, public, throttled.

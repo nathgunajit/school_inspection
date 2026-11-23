@@ -17,7 +17,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Demo officers at every level, plus pending / rejected / inactive accounts.
+ * Demo officers: 4 per level (State, District, Block, Cluster) plus one pending and one rejected account (Modification V13).
  * All demo accounts use the password Demo@1234. Never run in production.
  */
 class DemoUserSeeder extends Seeder
@@ -33,43 +33,54 @@ class DemoUserSeeder extends Seeder
         }
 
         $state = State::where('code', '18')->firstOrFail();
-        $d = fn ($code) => District::where('code', $code)->firstOrFail();
-        $b = fn ($code) => Block::where('code', $code)->firstOrFail();
-        $c = fn ($code) => Cluster::where('code', $code)->firstOrFail();
         $desig = fn ($code) => MasterValue::idFor('designation', $code);
 
-        $users = [
-            // mobile, name, level, designation, location, status, extra permissions
-            ['9000000001', 'Ananya Sharma',   UserLevel::State,    'joint_director',               null,                    UserStatus::Active, [Permission::APPROVE_REGISTRATIONS]],
-            ['9000000011', 'Rakesh Baruah',   UserLevel::District, 'district_education_officer',   $d('1801'),              UserStatus::Active, [Permission::APPROVE_REGISTRATIONS, Permission::MANAGE_USERS]],
-            ['9000000012', 'Meera Kalita',    UserLevel::District, 'inspector_of_schools',         $d('1802'),              UserStatus::Active, []],
-            ['9000000021', 'Sanjay Das',      UserLevel::Block,    'block_education_officer',      $b('180101'),            UserStatus::Active, [Permission::APPROVE_REGISTRATIONS]],
-            ['9000000022', 'Priya Gogoi',     UserLevel::Block,    'block_education_officer',      $b('180102'),            UserStatus::Active, []],
-            ['9000000023', 'Imran Hussain',   UserLevel::Block,    'block_mission_coordinator',    $b('180201'),            UserStatus::Active, []],
-            ['9000000024', 'Deepa Bora',      UserLevel::Block,    'block_resource_person',        $b('180202'),            UserStatus::Active, []],
-            ['9000000031', 'Arjun Saikia',    UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010101'),          UserStatus::Active, []],
-            ['9000000032', 'Kavita Deka',     UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010102'),          UserStatus::Active, []],
-            ['9000000033', 'Rohit Nath',      UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010201'),          UserStatus::Active, []],
-            ['9000000034', 'Sunita Rabha',    UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010202'),          UserStatus::Active, []],
-            ['9000000035', 'Vikram Choudhury', UserLevel::Cluster, 'cluster_resource_coordinator', $c('18020101'),          UserStatus::Active, []],
-            ['9000000036', 'Nisha Hazarika',  UserLevel::Cluster,  'cluster_resource_coordinator', $c('18020102'),          UserStatus::Active, []],
-            ['9000000037', 'Manoj Talukdar',  UserLevel::Cluster,  'cluster_resource_coordinator', $c('18020201'),          UserStatus::Active, []],
-            ['9000000038', 'Pooja Medhi',     UserLevel::Cluster,  'cluster_resource_coordinator', $c('18020202'),          UserStatus::Active, []],
-            // Approval queue and other statuses
-            ['9000000041', 'Amit Phukan',     UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010101'),          UserStatus::Pending, []],
-            ['9000000042', 'Rina Bhuyan',     UserLevel::Block,    'block_resource_person',        $b('180102'),            UserStatus::Pending, []],
-            ['9000000043', 'Suresh Kakoti',   UserLevel::District, 'district_project_coordinator', $d('1802'),              UserStatus::Pending, []],
-            ['9000000044', 'Gita Barman',     UserLevel::Cluster,  'cluster_resource_coordinator', $c('18020101'),          UserStatus::Rejected, []],
-            ['9000000045', 'Hemant Dutta',    UserLevel::Cluster,  'cluster_resource_coordinator', $c('18010202'),          UserStatus::Inactive, []],
-        ];
+        // Modification V13: demo officers sit on the current Location Master (the first two districts
+        // by code, the first two blocks of each and the first cluster of each block), never fixed IDs.
+        $districts = District::where('is_active', true)->whereHas('blocks.clusters')->orderBy('code')->take(2)->get();
+        if ($districts->count() < 2) {
+            $this->command?->warn('DemoUserSeeder needs at least two districts with blocks and clusters.');
 
+            return;
+        }
+        $blocks = $districts->flatMap(fn ($d) => Block::where('district_id', $d->id)->where('is_active', true)->whereHas('clusters')->orderBy('code')->take(2)->get())->values();
+        $clusters = $blocks->map(fn ($b) => Cluster::where('block_id', $b->id)->where('is_active', true)->orderBy('code')->first())->values();
+        [$d1, $d2] = [$districts[0], $districts[1]];
+        $b = fn (int $i) => $blocks[$i % $blocks->count()];
+        $c = fn (int $i) => $clusters[$i % $clusters->count()];
+        $A = Permission::APPROVE_REGISTRATIONS;
+        $M = Permission::MANAGE_USERS;
+
+        $users = [
+            // mobile, name, gender, level, designation, location, status, extra permissions
+            ['9000000001', 'Ananya Sharma',    'female', UserLevel::State,    'joint_director',               null,  UserStatus::Active, [$A]],
+            ['9000000002', 'Bikash Kalita',    'male',   UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
+            ['9000000003', 'Chandana Bora',    'female', UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
+            ['9000000004', 'Dipankar Saikia',  'male',   UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
+            ['9000000011', 'Rakesh Baruah',    'male',   UserLevel::District, 'district_education_officer',   $d1,   UserStatus::Active, [$A, $M]],
+            ['9000000012', 'Meera Kalita',     'female', UserLevel::District, 'inspector_of_schools',         $d1,   UserStatus::Active, []],
+            ['9000000013', 'Nabajit Deka',     'male',   UserLevel::District, 'district_education_officer',   $d2,   UserStatus::Active, [$A, $M]],
+            ['9000000014', 'Rupali Das',       'female', UserLevel::District, 'district_project_coordinator', $d2,   UserStatus::Active, []],
+            ['9000000021', 'Sanjay Das',       'male',   UserLevel::Block,    'block_education_officer',      $b(0), UserStatus::Active, [$A]],
+            ['9000000022', 'Priya Gogoi',      'female', UserLevel::Block,    'block_education_officer',      $b(1), UserStatus::Active, [$A]],
+            ['9000000023', 'Imran Hussain',    'male',   UserLevel::Block,    'block_mission_coordinator',    $b(2), UserStatus::Active, [$A]],
+            ['9000000024', 'Deepa Bora',       'female', UserLevel::Block,    'block_resource_person',        $b(3), UserStatus::Active, [$A]],
+            ['9000000031', 'Arjun Saikia',     'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(0), UserStatus::Active, []],
+            ['9000000032', 'Kavita Deka',      'female', UserLevel::Cluster,  'cluster_resource_coordinator', $c(1), UserStatus::Active, []],
+            ['9000000033', 'Rohit Nath',       'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(2), UserStatus::Active, []],
+            ['9000000034', 'Sunita Rabha',     'female', UserLevel::Cluster,  'cluster_resource_coordinator', $c(3), UserStatus::Active, []],
+            // Approval queue
+            ['9000000041', 'Amit Phukan',      'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(0), UserStatus::Pending, []],
+            ['9000000044', 'Gita Barman',      'female', UserLevel::Cluster,  'cluster_resource_coordinator', $c(1), UserStatus::Rejected, []],
+        ];
         $idProof = $this->idProofFile();
         $n = 0;
 
-        foreach ($users as [$mobile, $name, $level, $designation, $loc, $status, $perms]) {
+        foreach ($users as [$mobile, $name, $gender, $level, $designation, $loc, $status, $perms]) {
             $n++;
             $user = User::updateOrCreate(['mobile' => $mobile], [
                 'name' => $name,
+                'gender' => $gender,
                 'designation_id' => $desig($designation),
                 'employee_id' => 'DEMO'.str_pad((string) $n, 4, '0', STR_PAD_LEFT),
                 'email' => null,

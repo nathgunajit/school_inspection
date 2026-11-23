@@ -47,6 +47,14 @@
                                                         <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#ac-edit-{{ $a->id }}"><i class="bi bi-pencil-square text-primary"></i>Edit</button></li>
                                                         <li><form method="POST" action="{{ route('admin.constituencies.ac.update', $a) }}">@csrf @method('PUT')<input type="hidden" name="toggle" value="1">
                                                             <button class="dropdown-item {{ $a->is_active ? 'text-danger' : 'text-success' }}"><i class="bi {{ $a->is_active ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>{{ $a->is_active ? 'Make inactive' : 'Make active' }}</button></form></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ route('admin.constituencies.ac.destroy', $a) }}" data-confirm="Delete {{ $a->name }}? This cannot be undone. It works only if nothing uses it.">
+                                            @csrf @method('DELETE')
+                                            <button class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button>
+                                        </form>
+                                    </li>
+
                                                     </ul>
                                                 </div>
                                             </td>
@@ -100,6 +108,14 @@
                                                     <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#pc-edit-{{ $p->id }}"><i class="bi bi-pencil-square text-primary"></i>Edit</button></li>
                                                     <li><form method="POST" action="{{ route('admin.constituencies.pc.update', $p) }}">@csrf @method('PUT')<input type="hidden" name="toggle" value="1">
                                                         <button class="dropdown-item {{ $p->is_active ? 'text-danger' : 'text-success' }}"><i class="bi {{ $p->is_active ? 'bi-slash-circle' : 'bi-check-circle' }}"></i>{{ $p->is_active ? 'Make inactive' : 'Make active' }}</button></form></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ route('admin.constituencies.pc.destroy', $p) }}" data-confirm="Delete {{ $p->name }}? This cannot be undone. It works only if nothing uses it.">
+                                            @csrf @method('DELETE')
+                                            <button class="dropdown-item text-danger"><i class="bi bi-trash"></i>Delete</button>
+                                        </form>
+                                    </li>
+
                                                 </ul>
                                             </div>
                                         </td>

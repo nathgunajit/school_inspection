@@ -103,4 +103,12 @@ class TlmItemController extends Controller
 
         return $data;
     }
+
+    /** Modification V13 item 3: delete an item that no classroom observation has ticked. */
+    public function destroy(TlmItem $tlmItem)
+    {
+        $reason = app(\App\Services\MasterDeleteGuard::class)->delete($tlmItem, 'tlm_item_deleted', $tlmItem->name);
+
+        return $reason ? back()->with('error', $reason) : back()->with('success', 'Deleted '.$tlmItem->name.'.');
+    }
 }

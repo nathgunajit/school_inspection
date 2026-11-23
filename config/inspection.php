@@ -117,5 +117,10 @@ return [
 
     // V12 item 6: largest Excel upload (School / Location Master), in KB. A state-wide School Master file is large.
     'import_max_kb' => (int) env('IMPORT_MAX_KB', 51200),
+    // Modification V13 item 5: an upload request may run this long (seconds, 0 = no limit) with this much memory
+    'import_timeout' => (int) env('IMPORT_TIMEOUT', 0),
+    'import_memory' => env('IMPORT_MEMORY', '2048M'),
+    // Modification V13 item 4: audit entries older than this are archived to Excel and deleted (monthly, or by the State Admin)
+    'audit_retention_days' => (int) env('AUDIT_RETENTION_DAYS', 30),
     'retention_years' => 5,
 ];

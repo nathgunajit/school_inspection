@@ -45,21 +45,21 @@
                                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                                     <span class="fw-semibold text-xs text-uppercase text-muted">School markers</span>
                                     {{-- V6 Module 9: colour the school pins by inspection status or by rating band --}}
-                                    @if (config('inspection.rating.display')) {{-- Modification V9: hidden unless RATING_DISPLAY=true --}}
+                                    @if ($showRating) {{-- Modification V9: hidden unless RATING_DISPLAY=true; V13: always shown to the State Admin --}}
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Colour schools by">
-                                        <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" checked>
+                                        <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" @checked($colour === 'status')>
                                         <label class="btn btn-outline-primary" for="colourStatus">Status</label>
-                                        <input type="radio" class="btn-check" name="colourBy" id="colourRating" value="rating">
+                                        <input type="radio" class="btn-check" name="colourBy" id="colourRating" value="rating" @checked($colour === 'rating')>
                                         <label class="btn btn-outline-primary" for="colourRating">Rating</label>
                                     </div>
                                     @endif
                                 </div>
-                                <div data-legend="status">
+                                <div data-legend="status" class="{{ $colour === 'rating' ? 'd-none' : '' }}">
                                     <div><span class="dot st-inspected"></span>Inspected in the period</div>
                                     <div><span class="dot st-in_progress"></span>Inspection in progress</div>
                                     <div><span class="dot st-pending"></span>Not yet inspected</div>
                                 </div>
-                                <div data-legend="rating" class="d-none">
+                                <div data-legend="rating" class="{{ $colour === 'rating' ? '' : 'd-none' }}">
                                     @foreach ($bands as $b)<div><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }} ({{ $b['min'] }} %+)</div>@endforeach
                                     <div><span class="dot rt-none"></span>Not rated yet</div>
                                 </div>
@@ -83,12 +83,12 @@
                     </div>
                     {{-- Modification V8 item 2: colour key on top of the map, with the live counts of the current level --}}
                     <div class="map-keybar" aria-label="Map colour key">
-                        <div class="map-keybar-items" data-legend="status">
+                        <div class="map-keybar-items {{ $colour === 'rating' ? 'd-none' : '' }}" data-legend="status">
                             <span class="key st-inspected"><span class="dot st-inspected"></span>Inspected <b data-key="inspected">—</b></span>
                             <span class="key st-in_progress"><span class="dot st-in_progress"></span>In progress <b data-key="in_progress">—</b></span>
                             <span class="key st-pending"><span class="dot st-pending"></span>Not inspected <b data-key="pending">—</b></span>
                         </div>
-                        <div class="map-keybar-items d-none" data-legend="rating">
+                        <div class="map-keybar-items {{ $colour === 'rating' ? '' : 'd-none' }}" data-legend="rating">
                             @foreach ($bands as $b)<span class="key"><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }}</span>@endforeach
                             <span class="key"><span class="dot rt-none"></span>Not rated</span>
                         </div>
