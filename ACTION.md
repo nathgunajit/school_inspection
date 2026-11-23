@@ -2353,3 +2353,11 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Tests: `TeacherTotalsTest` (male / female cells, absent box order and highlight, review totals), `ModificationV11Test::test_blank_form_follows_the_questionnaire`; `InspectionFlowTest` and `ModificationV10Test` updated for the male / female totals and the absent tile.
 - Docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, docx rebuilt.
 - Verified: `php artisan test`, all passing; `npm run build`; the paper form rendered with DomPDF (8 pages) and checked as HTML in headless Chrome. The map and wizard not opened in a browser.
+
+## 2026-11-23: Paper inspection form PDF: aligned boxes, print-readable text
+- **Problem** (seen in the DomPDF output): tick boxes sat above their labels (inline-block spans with negative vertical-align), three-option answers ran off the page, each question was its own table so columns drifted, and much text was 6.4–7.2 pt light grey on pale fills, which fades on office / mono printers.
+- **Fix** (`inspections/blank-form.blade.php`, new partials `inspections/partials/blank-opts.blade.php`, `blank-question.blade.php`; `blank-calc.blade.php` now outputs rows):
+  - Tick box + label and number boxes are table cells. Options sit side by side only when short (Yes / No), otherwise one per line.
+  - One table per section with fixed columns (widths on a first spacer row; DomPDF ignores `<colgroup>`). Totals are rows of the same table, so their number box lines up with the question boxes. A group heading is kept on the page of its first question (nested block).
+  - Print-safe: body 9.5 pt, nothing under 8 pt, dark text (#111827 / #1f2937), darker borders and lines, solid dark-blue group headings, shaded and bordered total rows; override rules stop outer cell styles from leaking into nested boxes.
+- Verified: rendered with DomPDF (9 pages) and every page looked at as an image (throwaway pdf-to-img in the session scratchpad, not in the project). `ModificationV11Test` checks the cell layout. `php artisan test`, all passing.

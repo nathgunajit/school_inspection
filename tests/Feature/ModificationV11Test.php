@@ -67,6 +67,11 @@ class ModificationV11Test extends TestCase
         $this->assertLessThan(strpos($html, 'Total teachers</div>'), strpos($html, 'Teachers &amp; tutors'));
         $this->assertLessThan(strpos($html, 'Number of Regular Teachers'), strpos($html, 'Total teachers</div>'));
         $this->assertLessThan(strpos($html, 'Teachers absent today'), strpos($html, 'Total female'));
+        // print layout: boxes are table cells next to their label (DomPDF alignment), no inline box spans
+        $this->assertStringContainsString('<td class="bxc"></td><td class="ol">Yes</td>', $html);
+        $this->assertStringContainsString('<td class="nbx"></td>', $html);
+        $this->assertStringNotContainsString('class="bx"', $html);
+        $this->assertStringNotContainsString('class="num"', $html);
     }
 
     public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
