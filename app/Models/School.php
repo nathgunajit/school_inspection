@@ -14,7 +14,7 @@ class School extends Model
     protected $fillable = [
         'udise_code', 'name', 'state_id', 'district_id', 'block_id', 'cluster_id',
         'management_id', 'category_id', 'address', 'latitude', 'longitude', 'status',
-        'school_type', 'area_type', 'medium', 'assembly_constituency', 'lok_sabha', 'streams', 'pincode',
+        'school_type', 'area_type', 'medium', 'ac_id', 'pc_id', 'streams', 'pincode',
     ];
 
     protected $casts = ['latitude' => 'float', 'longitude' => 'float', 'streams' => 'array'];
@@ -65,6 +65,8 @@ class School extends Model
     public function cluster() { return $this->belongsTo(Cluster::class); }
     public function management() { return $this->belongsTo(MasterValue::class, 'management_id'); }
     public function category() { return $this->belongsTo(MasterValue::class, 'category_id'); }
+    public function ac() { return $this->belongsTo(AssemblyConstituency::class, 'ac_id'); }
+    public function pc() { return $this->belongsTo(ParliamentaryConstituency::class, 'pc_id'); }
     public function inspections() { return $this->hasMany(Inspection::class); }
 
     /**

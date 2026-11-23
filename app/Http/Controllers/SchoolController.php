@@ -79,7 +79,7 @@ class SchoolController extends Controller
     {
         $user = $request->user();
         abort_unless($this->j->coversSchool($user, $school), 404);
-        $school->load(['state', 'district', 'block', 'cluster', 'management', 'category', 'latestRatedInspection.rating']);
+        $school->load(['state', 'district', 'block', 'cluster', 'management', 'category', 'ac', 'pc', 'latestRatedInspection.rating']);
 
         $today = $school->inspections()->where('officer_id', $user->id)->where('inspection_date', today()->toDateString())->first();
         // own draft (any date), own submission today, or blocked by another officer (Modification V3)

@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Exports\ArrayExport;
+use App\Models\AssemblyConstituency;
 use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
 use App\Models\ImportBatch;
 use App\Models\MasterValue;
+use App\Models\ParliamentaryConstituency;
 use App\Models\School;
 use App\Models\State;
 use App\Models\User;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\HeadingRowImport;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 /**
  * Excel upload of Location and School Master (PRD 7.3).
@@ -29,23 +32,39 @@ class MasterImportService
     /** Optional columns (district and block only); older files without them still import. */
     public const LOCATION_OPTIONAL = ['latitude', 'longitude'];
 
-    /** Optional UDISE+ 2025-26 columns (all may be left empty; a column missing from the file leaves the stored value as it is). */
-    public const SCHOOL_UDISE_COLUMNS = ['school_type', 'area_type', 'medium', 'assembly_constituency', 'lok_sabha', 'pincode',
+    /**
+     * The School Master columns, in template order: school, then location, then details, with the
+     * coordinates last. Files are read by heading name, so an uploaded file may use any order.
+     */
+    public const SCHOOL_GROUPS = [
+        'School' => ['udise_code', 'school_name'],
+        'Location' => ['district_code', 'block_code', 'cluster_code'],
+        'Details' => ['category', 'management', 'school_type', 'area_type', 'medium', 'ac', 'pc',
+            'arts_stream', 'commerce_stream', 'science_stream', 'vocational_stream', 'other_stream', 'address', 'pincode', 'status'],
+        'Coordinates' => ['latitude', 'longitude'],
+    ];
+
+    public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code',
+        'category', 'management', 'school_type', 'area_type', 'medium', 'ac', 'pc',
+        'arts_stream', 'commerce_stream', 'science_stream', 'vocational_stream', 'other_stream', 'address', 'pincode', 'status',
+        'latitude', 'longitude'];
+
+    /** Optional UDISE+ columns: a column missing from the file leaves the stored value as it is. */
+    public const SCHOOL_UDISE_COLUMNS = ['school_type', 'area_type', 'medium', 'ac', 'pc', 'pincode',
         'arts_stream', 'commerce_stream', 'science_stream', 'vocational_stream', 'other_stream'];
 
-    public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status', ...self::SCHOOL_UDISE_COLUMNS];
-
-    /** District-wise upload: block and district come from the cluster, so these columns are enough. */
+    /** Block and district come from the cluster, so these columns are enough. */
     public const SCHOOL_REQUIRED = ['udise_code', 'school_name', 'cluster_code'];
-
-    public const SCHOOL_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status', ...self::SCHOOL_UDISE_COLUMNS];
 
     /** V12 item 6: heading names used by UDISE+ exports, read as the template columns. */
     public const SCHOOL_ALIASES = ['udise_sch_code' => 'udise_code', 'udise' => 'udise_code', 'udise_code_11' => 'udise_code', 'clcode' => 'cluster_code', 'cluster' => 'cluster_code',
         'crc_code' => 'cluster_code', 'sch_name' => 'school_name', 'name_of_school' => 'school_name', 'dist_code' => 'district_code', 'distcd' => 'district_code', 'blk_code' => 'block_code', 'blkcd' => 'block_code',
         // UDISE+ 2025-26 School Master export (Documents/SchoolMaster_UDISE 202526.xlsx)
         'cluster_lcode' => 'cluster_code', 'school_location' => 'area_type', 'med_final_25' => 'medium', 'medium_of_instruction' => 'medium',
-        'assembly_name' => 'assembly_constituency', 'ls' => 'lok_sabha', 'lok_sabha_name' => 'lok_sabha', 'other_streams' => 'other_stream', 'pin_code' => 'pincode'];
+        'other_streams' => 'other_stream', 'pin_code' => 'pincode',
+        // AC / PC master: the template says ac / pc; UDISE+ says Assembly_Name / LS
+        'assembly_name' => 'ac', 'assembly_constituency' => 'ac', 'ac_code' => 'ac', 'ac_name' => 'ac',
+        'ls' => 'pc', 'lok_sabha' => 'pc', 'lok_sabha_name' => 'pc', 'pc_code' => 'pc', 'pc_name' => 'pc'];
 
     /** UDISE+ category number (the "N - " prefix) to the Category master code. */
     public const UDISE_CATEGORY = [1 => 'primary', 2 => 'primary_upper', 3 => 'pr_to_hsec', 4 => 'upper_primary', 5 => 'upr_to_hsec',
@@ -54,31 +73,29 @@ class MasterImportService
     /** UDISE+ management number to the Management master code. */
     public const UDISE_MANAGEMENT = [1 => 'dept_education', 10 => 'kgbv', 17 => 'self_based'];
 
-    /** Example values for SCHOOL_UDISE_COLUMNS in the templates (the UDISE+ wording is accepted as it is). */
-    private const UDISE_EXAMPLE = ['3 - Co-ed', '1-Rural', 'Assamese', 'DOTMA (ST)-AC18002', 'KOKRAJHAR (ST)', '783346', 'NA', 'NA', 'NA', 'NA', 'NA'];
+    /** Header colour per column group (School, Location, Details, Coordinates). */
+    private const GROUP_COLOURS = ['School' => '1565C0', 'Location' => '1E9B4B', 'Details' => '6D4C9F', 'Coordinates' => 'F39223'];
 
     /** @var array<string, int|null> master id per type|value, filled during one import */
     private array $masterCache = [];
 
-    /** V12 item 6: template for all districts at once: the Schools sheet plus every cluster with its block and district. */
+    /** @var array AC / PC lookups for one import (see loadConstituencies()) */
+    private array $const = [];
+
+    /** V12 item 6: template for all districts at once. */
     public static function allDistrictsTemplate(): \App\Exports\SchoolTemplateExport
     {
         $clusters = Cluster::query()->join('blocks', 'blocks.id', '=', 'clusters.block_id')->join('districts', 'districts.id', '=', 'blocks.district_id')
             ->orderBy('districts.name')->orderBy('blocks.name')->orderBy('clusters.name')
             ->get(['clusters.code', 'clusters.name', 'blocks.code as block_code', 'blocks.name as block_name', 'districts.code as district_code', 'districts.name as district_name']);
-        $first = $clusters->first();
 
-        return new \App\Exports\SchoolTemplateExport(
-            new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
-                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '', '', 'active', ...self::UDISE_EXAMPLE,
-            ]]),
+        return self::schoolWorkbook($clusters->first(), 'Village, Block, District',
             new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name', 'district_code', 'district_name'],
                 $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name, $c->district_code, $c->district_name])->all()),
-            'Clusters (all districts)',
-        );
+            'Clusters (all districts)');
     }
 
-    /** Template for one district: a Schools sheet without district/block columns, plus a sheet listing its clusters. */
+    /** Template for one district: its clusters are listed on the second sheet. */
     public static function districtTemplate(District $district): \App\Exports\SchoolTemplateExport
     {
         $clusters = Cluster::query()->join('blocks', 'blocks.id', '=', 'clusters.block_id')
@@ -86,14 +103,83 @@ class MasterImportService
             ->orderBy('blocks.name')->orderBy('clusters.name')
             ->get(['clusters.code', 'clusters.name', 'blocks.code as block_code', 'blocks.name as block_name']);
         $first = $clusters->first();
+        if ($first) {
+            $first->district_code = $district->code;
+        }
 
-        return new \App\Exports\SchoolTemplateExport(
-            new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
-                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, '.$district->name, '', '', 'active', ...self::UDISE_EXAMPLE,
-            ]]),
+        return self::schoolWorkbook($first, 'Village, Block, '.$district->name,
             new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name'], $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name])->all()),
-            'Clusters of '.$district->name,
-        );
+            'Clusters of '.$district->name);
+    }
+
+    /**
+     * The school workbook: Schools (one example row, headers coloured by group), the cluster list,
+     * the AC list, the PC list and the accepted values.
+     */
+    private static function schoolWorkbook(?object $cluster, string $address, ArrayExport $clusters, string $clustersTitle): \App\Exports\SchoolTemplateExport
+    {
+        $ac = AssemblyConstituency::active()->with('pc:id,code,name')->orderBy('code')->first();
+        $example = [
+            ($cluster?->code ?? '0000000000').'1', 'Govt. Primary School No. 1',
+            $cluster?->district_code ?? '', $cluster?->block_code ?? '', $cluster?->code ?? '',
+            '1 - Primary', '1 - Department of Education', '3 - Co-ed', '1-Rural', 'Assamese', $ac?->code ?? '', $ac?->pc?->code ?? '',
+            'NA', 'NA', 'NA', 'NA', 'NA', $address, '783346', 'active',
+            '26.5017670', '90.1231000',
+        ];
+        $fills = [];
+        $col = 1;
+        foreach (self::SCHOOL_GROUPS as $group => $cols) {
+            $from = Coordinate::stringFromColumnIndex($col);
+            $col += count($cols);
+            $fills[$from.'1:'.Coordinate::stringFromColumnIndex($col - 1).'1'] = self::GROUP_COLOURS[$group];
+        }
+
+        return new \App\Exports\SchoolTemplateExport([
+            [new ArrayExport(self::SCHOOL_COLUMNS, [$example], $fills), 'Schools'],
+            [$clusters, $clustersTitle],
+            [self::acList(), 'AC list'],
+            [self::pcList(), 'PC list'],
+            [self::valueLists(), 'Value lists'],
+        ]);
+    }
+
+    /** AC master for the template: code, name, its PC and the districts its schools are in. */
+    public static function acList(): ArrayExport
+    {
+        $districts = DB::table('schools')->join('districts', 'districts.id', '=', 'schools.district_id')->whereNotNull('schools.ac_id')
+            ->select('schools.ac_id', 'districts.name')->distinct()->orderBy('districts.name')->get()->groupBy('ac_id');
+
+        return new ArrayExport(['ac', 'ac_name', 'pc', 'pc_name', 'districts'], AssemblyConstituency::active()->with('pc:id,code,name')->orderBy('code')->get()
+            ->map(fn ($a) => [$a->code, $a->name, $a->pc?->code, $a->pc?->name, ($districts[$a->id] ?? collect())->pluck('name')->join(', ')])->all());
+    }
+
+    public static function pcList(): ArrayExport
+    {
+        return new ArrayExport(['pc', 'pc_name', 'ac_count'], ParliamentaryConstituency::active()->withCount(['acs' => fn ($q) => $q->where('is_active', true)])->orderBy('code')->get()
+            ->map(fn ($p) => [$p->code, $p->name, $p->acs_count])->all());
+    }
+
+    /** The accepted values of the coded columns, one list per column. */
+    public static function valueLists(): ArrayExport
+    {
+        $label = fn (string $type, array $map) => array_map(fn ($n, $code) => $n.' - '.(MasterValue::where('type', $type)->where('code', $code)->value('label') ?? $code), array_keys($map), $map);
+        $lists = [
+            'category' => $label('category', self::UDISE_CATEGORY),
+            'management' => $label('management', self::UDISE_MANAGEMENT),
+            'school_type' => ['1 - Boys', '2 - Girls', '3 - Co-ed'],
+            'area_type' => ['1-Rural', '2-Urban'],
+            'ac' => ['AC code from the AC list, e.g. AC18002'],
+            'pc' => ['PC code from the PC list, e.g. PC1801'],
+            '*_stream' => ['1 - Yes', '2 - No', 'NA (no Higher Secondary)'],
+            'pincode' => ['6 digits'],
+            'status' => ['active', 'closed'],
+        ];
+        $rows = [];
+        for ($i = 0, $n = max(array_map('count', $lists)); $i < $n; $i++) {
+            $rows[] = array_map(fn ($l) => $l[$i] ?? '', array_values($lists));
+        }
+
+        return new ArrayExport(array_keys($lists), $rows);
     }
 
     /** Every existing location with its current code and name: edit the names, keep the codes, upload again. */
@@ -118,7 +204,8 @@ class MasterImportService
         return new ArrayExport([...self::LOCATION_COLUMNS, ...self::LOCATION_OPTIONAL], $rows);
     }
 
-    public static function template(string $type): ArrayExport
+    /** Location template, or the School workbook (same as the All-districts one). */
+    public static function template(string $type): ArrayExport|\App\Exports\SchoolTemplateExport
     {
         return $type === 'location'
             ? new ArrayExport([...self::LOCATION_COLUMNS, ...self::LOCATION_OPTIONAL], [
@@ -127,10 +214,9 @@ class MasterImportService
                 ['block', '180101', 'Riverside Block', '1801', 'active', '26.1800000', '91.7500000'],
                 ['cluster', '18010101', 'Riverside Cluster 1', '180101', 'active', '', ''],
             ])
-            : new ArrayExport(self::SCHOOL_COLUMNS, [
-                ['18010101001', 'Govt. Primary School No. 1', '1801', '180101', '18010101', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '26.1130000', '91.7110000', 'active', ...self::UDISE_EXAMPLE],
-            ]);
+            : self::allDistrictsTemplate();
     }
+
 
     /**
      * Check a file without saving anything: same rules as import(), rolled back.
@@ -341,6 +427,7 @@ class MasterImportService
 
         set_time_limit(0);
         $this->masterCache = []; // a preview's new master values are rolled back
+        $this->loadConstituencies();
         $now = now();
         $existing = DB::table('schools')->pluck('id', 'udise_code')->all(); // soft-deleted rows included
         $inserts = [];
@@ -422,6 +509,9 @@ class MasterImportService
         $flush();
 
         uasort($summary['districts'], fn ($x, $y) => strcmp($x['name'], $y['name']));
+        if ($this->const['new'] ?? []) {
+            $summary['new_constituencies'] = $this->const['new'];
+        }
 
         return compact('added', 'updated', 'errors', 'summary');
     }
@@ -452,6 +542,82 @@ class MasterImportService
         return $this->masterCache[$key] = $mv->id;
     }
 
+    private static function constName(mixed $v): string
+    {
+        return mb_strtoupper(trim(preg_replace('/\s+/u', ' ', (string) $v)));
+    }
+
+    /** AC / PC lookups by code and by name, loaded once per import. */
+    private function loadConstituencies(): void
+    {
+        $acs = AssemblyConstituency::all(['id', 'code', 'name', 'pc_id']);
+        $pcs = ParliamentaryConstituency::all(['id', 'code', 'name']);
+        $this->const = [
+            'ac' => $acs->mapWithKeys(fn ($a) => [strtoupper($a->code) => [$a->id, $a->pc_id]])->all(),
+            'acName' => $acs->mapWithKeys(fn ($a) => [self::constName($a->name) => [$a->id, $a->pc_id]])->all(),
+            'pc' => $pcs->mapWithKeys(fn ($p) => [strtoupper($p->code) => $p->id])->all(),
+            'pcName' => $pcs->mapWithKeys(fn ($p) => [self::constName($p->name) => $p->id])->all(),
+            'new' => [],
+        ];
+    }
+
+    /**
+     * [ac_id, pc_id] for one row. `ac` may be "DOTMA (ST)-AC18002", "AC18002", "18002" or the AC name; `pc` the PC code
+     * or name. A known AC decides the PC (the master wins over the file). An unknown AC with a code is added under the
+     * file's PC, and an unknown PC name is added with the next free code. Nothing here rejects a row.
+     */
+    private function constituency(mixed $ac, mixed $pc): array
+    {
+        $blank = fn ($v) => ($t = trim((string) $v)) === '' || strtoupper($t) === 'NA';
+
+        $pcId = null;
+        if (! $blank($pc)) {
+            $p = trim((string) $pc);
+            if (preg_match('/^PC\d+$/i', $p)) {
+                $pcId = $this->const['pc'][strtoupper($p)] ?? null;
+            } else {
+                $pcId = $this->const['pcName'][self::constName($p)] ?? null;
+                if (! $pcId) {
+                    $next = 'PC'.(collect(array_keys($this->const['pc']))->map(fn ($c) => (int) substr($c, 2))->max() + 1);
+                    $pcId = ParliamentaryConstituency::create(['code' => $next, 'name' => mb_substr(preg_replace('/\s+/u', ' ', $p), 0, 60)])->id;
+                    $this->const['pc'][$next] = $this->const['pcName'][self::constName($p)] = $pcId;
+                    $this->const['new'][] = 'PC '.$next.' '.$p;
+                }
+            }
+        }
+        if ($blank($ac)) {
+            return [null, $pcId];
+        }
+
+        $a = trim(preg_replace('/\s+/u', ' ', (string) $ac));
+        $name = $code = null;
+        if (preg_match('/^(.*?)\s*-\s*(AC\d+)$/i', $a, $m)) {
+            [$name, $code] = [trim($m[1]), strtoupper($m[2])];
+        } elseif (preg_match('/^AC\d+$/i', $a)) {
+            $code = strtoupper($a);
+        } elseif (preg_match('/^\d+$/', $a)) {
+            $code = 'AC'.$a;
+        } else {
+            $name = $a;
+        }
+
+        $hit = ($code ? $this->const['ac'][$code] ?? null : null) ?? ($name ? $this->const['acName'][self::constName($name)] ?? null : null);
+        if ($hit) {
+            return $hit;
+        }
+        if (! $code || ! $pcId) {
+            return [null, $pcId]; // cannot add an AC without its code and PC
+        }
+        $id = AssemblyConstituency::create(['code' => $code, 'name' => mb_substr($name ?: $code, 0, 60), 'pc_id' => $pcId])->id;
+        $this->const['ac'][$code] = [$id, $pcId];
+        if ($name) {
+            $this->const['acName'][self::constName($name)] = [$id, $pcId];
+        }
+        $this->const['new'][] = 'AC '.$code.' '.($name ?: '');
+
+        return [$id, $pcId];
+    }
+
     /** "3 - Co-ed" → [3, 'Co-ed']; "1-Rural" → [1, 'Rural']; "Co-ed" → [null, 'Co-ed']. */
     public static function udiseNumbered(mixed $value): array
     {
@@ -476,10 +642,15 @@ class MasterImportService
         if ($has('area_type')) {
             $out['area_type'] = self::pick($r['area_type'], [1 => 'rural', 2 => 'urban'], ['rural' => 'rural', 'urban' => 'urban']);
         }
-        foreach (['medium' => 60, 'assembly_constituency' => 60, 'lok_sabha' => 40] as $c => $len) {
-            if ($has($c)) {
-                $out[$c] = $text($c, $len);
+        if ($has('medium')) {
+            $out['medium'] = $text('medium', 60);
+        }
+        if ($has('ac') || $has('pc')) {
+            [$acId, $pcId] = $this->constituency($r['ac'] ?? null, $r['pc'] ?? null);
+            if ($has('ac')) {
+                $out['ac_id'] = $acId;
             }
+            $out['pc_id'] = $pcId;
         }
         if ($has('pincode')) {
             $pin = preg_replace('/\D/', '', (string) ($r['pincode'] ?? ''));

@@ -56,6 +56,8 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 5 | `schools` | School Master: 11-digit UDISE code, location, management, category, lat/lng, status | `id` | states, districts, blocks, clusters, master_values, inspections, inspection_schedule_items |
 | 6 | `master_values` | Generic lookup lists by `type`: designation, management, category, photo_category, fund_category, subject | `id` | users, schools, inspection_evidence, inspection_fund_positions |
 | 7 | `import_batches` | Each Excel upload of locations or schools, with counts and an error file | `id` | users |
+| 7a | `parliamentary_constituencies` | PC master (Lok Sabha), code `PC1801` and name | `id` | assembly_constituencies, schools |
+| 7b | `assembly_constituencies` | AC master, code `AC18002`, name and its PC | `id` | parliamentary_constituencies, schools |
 | 8 | `users` | Officers and the State Admin: mobile login, level, status, lockout, photo and ID proof paths | `id` | almost every table |
 | 9 | `user_jurisdictions` | Postings: the area of a user with `start_date`/`end_date` (a transfer ends one row and opens another) | `id` | users, states, districts, blocks, clusters |
 | 10 | `roles` | One role per level (`state_admin`, `state`, `district`, `block`, `cluster`) | `id` | role_permissions |
@@ -812,8 +814,8 @@ Indexes: `role_permissions_permission_id_foreign` (permission_id).
 | `school_type` | varchar(10) | 10 |  |  | Yes |  |
 | `area_type` | varchar(10) | 10 |  |  | Yes |  |
 | `medium` | varchar(60) | 60 |  |  | Yes |  |
-| `assembly_constituency` | varchar(60) | 60 |  |  | Yes |  |
-| `lok_sabha` | varchar(40) | 40 |  |  | Yes |  |
+| `ac_id` | bigint(20) unsigned |  |  | assembly_constituencies.id (restrict) | Yes |  |
+| `pc_id` | bigint(20) unsigned |  |  | parliamentary_constituencies.id (restrict) | Yes |  |
 | `streams` | json |  |  |  | Yes |  |
 | `address` | text |  |  |  | Yes |  |
 | `pincode` | char(6) | 6 |  |  | Yes |  |
@@ -828,13 +830,38 @@ UDISE+ 2025-26 fields (migration `2026_11_23_000001`, all optional), filled from
 - `school_type`: `boys` / `girls` / `co_ed` (UDISE `School_Type`)
 - `area_type`: `rural` / `urban` (`School_Location`)
 - `medium`: as in `Med_Final_25`, e.g. `AssameseBodo`, shown as "Assamese, Bodo"
-- `assembly_constituency` (`Assembly_Name`) and `lok_sabha` (`LS`)
+- `ac_id` / `pc_id`: links to the AC / PC Master, read from the template's `ac` / `pc` columns, or from the UDISE `Assembly_Name` / `LS` (migration `2026_11_23_000002` replaced the earlier free-text columns). `pc_id` follows the AC.
 - `streams`: JSON such as `{"arts":true,"commerce":false,…}` from the five `*_Stream` columns; null when all are "NA" (no Higher Secondary)
 - `pincode`: 6 digits, else null
 
 Category and Management are matched by their UDISE number (`"1 - Primary"`) to `master_values` codes (`MasterImportService::UDISE_CATEGORY` / `UDISE_MANAGEMENT`).
 
 Indexes: `schools_area_type_index` (area_type); `schools_block_status_name_idx` (block_id, status, name); `schools_category_id_foreign` (category_id); `schools_cluster_status_name_idx` (cluster_id, status, name); `schools_district_status_name_idx` (district_id, status, name); `schools_management_id_foreign` (management_id); `schools_name_index` (name); `schools_state_id_foreign` (state_id); **unique** `schools_udise_code_unique` (udise_code).
+
+#### `parliamentary_constituencies` (PC master)
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `code` | varchar(10) | 10 |  |  | No |  |
+| `name` | varchar(60) | 60 |  |  | No |  |
+| `is_active` | tinyint(1) |  |  |  | No | 1 |
+| `created_at` / `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `code`, **unique** `name`. 14 rows seeded (PC1801 KOKRAJHAR (ST) … PC1814 JORHAT, ECI order).
+
+#### `assembly_constituencies` (AC master)
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `code` | varchar(10) | 10 |  |  | No |  |
+| `name` | varchar(60) | 60 |  |  | No |  |
+| `pc_id` | bigint(20) unsigned |  |  | parliamentary_constituencies.id (restrict) | No |  |
+| `is_active` | tinyint(1) |  |  |  | No | 1 |
+| `created_at` / `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `code`, `name`, `pc_id`. 126 rows seeded from the UDISE+ 2025-26 School Master (`AC18001` … `AC18126`).
 
 #### `sessions`
 

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AssemblyConstituency;
+use App\Models\ParliamentaryConstituency;
 use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
@@ -61,6 +63,8 @@ class SchoolMasterController extends Controller
             'clusters' => $school->block_id ? Cluster::where('block_id', $school->block_id)->orderBy('name')->get() : collect(),
             'managements' => MasterValue::ofType('management')->get(),
             'categories' => MasterValue::ofType('category')->get(),
+            // AC select grouped by PC; an inactive AC the school already has stays selectable
+            'pcs' => ParliamentaryConstituency::orderBy('code')->with(['acs' => fn ($q) => $q->where(fn ($w) => $w->where('is_active', true)->orWhere('id', $school->ac_id))->orderBy('code')])->get(),
         ];
     }
 
@@ -82,8 +86,7 @@ class SchoolMasterController extends Controller
             'school_type' => ['nullable', Rule::in(array_keys(School::SCHOOL_TYPES))],
             'area_type' => ['nullable', Rule::in(array_keys(School::AREA_TYPES))],
             'medium' => ['nullable', 'string', 'max:60'],
-            'assembly_constituency' => ['nullable', 'string', 'max:60'],
-            'lok_sabha' => ['nullable', 'string', 'max:40'],
+            'ac_id' => ['nullable', Rule::exists('assembly_constituencies', 'id')],
             'pincode' => ['nullable', 'digits:6'],
             'has_hs' => ['nullable', 'boolean'],
             'streams' => ['nullable', 'array'],
@@ -92,6 +95,8 @@ class SchoolMasterController extends Controller
             'pincode.digits' => 'Pincode must be 6 digits.']);
 
         $data['state_id'] = District::find($data['district_id'])->state_id;
+        // the PC always follows the chosen AC (AC / PC master)
+        $data['pc_id'] = ($data['ac_id'] ?? null) ? AssemblyConstituency::whereKey($data['ac_id'])->value('pc_id') : null;
         // Streams apply to Higher Secondary schools only: unticked "Has Higher Secondary" clears them.
         $picked = $data['streams'] ?? [];
         $data['streams'] = $request->boolean('has_hs')

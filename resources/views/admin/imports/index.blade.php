@@ -1,7 +1,8 @@
 <x-layouts.app title="Excel Upload">
     @php
         $type = old('type', 'school');
-        $districtId = old('district_id', $pending['district_id'] ?? request('district'));
+        // School Master: All districts is the default choice
+        $districtId = old('district_id', $pending['district_id'] ?? request('district', \App\Http\Controllers\Admin\ImportController::ALL));
         $tab = $preview ? 'upload' : request('tab', 'upload');
         $tot = fn ($k) => $report->sum($k);
         $ALL = \App\Http\Controllers\Admin\ImportController::ALL;
@@ -60,6 +61,13 @@
                         @foreach ($preview['summary']['added_items'] as $a)
                             <span class="imp-chip text-capitalize">{{ $a['type'] }} {{ $a['code'] }} · {{ $a['name'] }}</span>
                         @endforeach
+                    </div>
+                @endif
+                @if (! empty($preview['summary']['new_constituencies']))
+                    {{-- AC / PC Master: constituencies in the file that are not in the master yet --}}
+                    <div class="fw-semibold text-sm mb-1"><i class="bi bi-bank text-primary me-1"></i>New in the AC / PC Master ({{ count($preview['summary']['new_constituencies']) }})</div>
+                    <div class="d-flex flex-wrap gap-1 mb-3">
+                        @foreach (array_slice($preview['summary']['new_constituencies'], 0, 30) as $c)<span class="imp-chip">{{ $c }}</span>@endforeach
                     </div>
                 @endif
                 @if ($isLoc && ($preview['summary']['unchanged'] ?? 0))
@@ -189,6 +197,8 @@
                         <li>No duplicate UDISE codes in the file</li>
                         <li>The cluster code exists and is in the chosen district (with All districts, the cluster decides the district)</li>
                         <li>School name and cluster code are filled</li>
+                        <li>Column order of the template: school (UDISE, name), then location (district, block, cluster), then details, with latitude / longitude last. Any order is read by heading name</li>
+                        <li><b>ac</b> / <b>pc</b> are matched to the AC / PC Master by code (or name); a new one is added and listed here</li>
                         <li>Existing UDISE codes are updated, new ones are added; schools missing from the file are <b>not</b> removed</li>
                     </ul>
                 </div>
@@ -245,6 +255,9 @@
                                 <span class="badge-soft badge-soft-success">{{ $b->added }} added</span>
                                 <span class="badge-soft badge-soft-info">{{ $b->updated }} updated</span>
                                 <span class="badge-soft badge-soft-{{ $b->rejected ? 'danger' : 'secondary' }}">{{ $b->rejected }} rejected</span>
+                                @if (! empty($b->summary['new_constituencies']))
+                                    <span class="badge-soft badge-soft-primary" title="{{ implode(', ', $b->summary['new_constituencies']) }}">{{ count($b->summary['new_constituencies']) }} new AC / PC</span>
+                                @endif
                                 @if ($b->summary['renamed_count'] ?? 0)
                                     <a class="badge-soft badge-soft-primary" data-bs-toggle="collapse" href="#ren-{{ $b->id }}" role="button" aria-expanded="false">{{ $b->summary['renamed_count'] }} renamed <i class="bi bi-chevron-down"></i></a>
                                 @endif

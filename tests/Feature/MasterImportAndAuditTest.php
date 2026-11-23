@@ -16,7 +16,10 @@ use Tests\TestCase;
 
 class MasterImportAndAuditTest extends TestCase
 {
-    private function xlsx(array $rows, array $headings = MasterImportService::SCHOOL_COLUMNS): UploadedFile
+    /** The older template order (management before category, coordinates before status): read by heading name. */
+    private const OLD_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
+
+    private function xlsx(array $rows, array $headings = self::OLD_COLUMNS): UploadedFile
     {
         $path = 'tmp/test-'.uniqid().'.xlsx';
         Excel::store(new ArrayExport($headings, $rows), $path, 'local');

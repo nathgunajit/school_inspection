@@ -138,8 +138,17 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - District template (`?district=`) has a second sheet with the district's clusters (`App\Exports\SchoolTemplateExport`).
   - Location Master is also checked before saving. Matching is by code, so a new `name` corrects the name and keeps the ID and all links (audited `location_renamed`). A different `parent_code` for an existing record is rejected (no moves). The "Current locations" download (`imports.template` location `?current=1`) is the file to edit.
   - UDISE+ 2025-26 export (`Documents/SchoolMaster_UDISE 202526.xlsx`, 44,197 schools, 21 columns) imports **as it is** (All districts).
-    - Headings are read through `SCHOOL_ALIASES` (`cluster lcode`, `Med_Final_25`, `Assembly_Name`, `LS`, `School_Location`, `Other_Streams`).
-    - Extra columns are stored in `schools.school_type` (boys / girls / co_ed), `area_type` (rural / urban), `medium`, `assembly_constituency`, `lok_sabha`, `pincode` and `streams` (JSON; null = no Higher Secondary). Labels come from `School::SCHOOL_TYPES` / `AREA_TYPES` / `STREAMS` and the `*_label` accessors.
+    - Headings are read through `SCHOOL_ALIASES` (`cluster lcode`, `Med_Final_25`, `Assembly_Name` → `ac`, `LS` → `pc`, `School_Location`, `Other_Streams`).
+    - Extra columns are stored in `schools.school_type` (boys / girls / co_ed), `area_type` (rural / urban), `medium`, `ac_id`, `pc_id`, `pincode` and `streams` (JSON; null = no Higher Secondary). Labels come from `School::SCHOOL_TYPES` / `AREA_TYPES` / `STREAMS` and the `*_label` accessors.
+    - **Template order** (`MasterImportService::SCHOOL_COLUMNS` / `SCHOOL_GROUPS`, one list for every school template and the error file): school (udise_code, school_name), then location (district_code, block_code, cluster_code), then details (… `ac`, `pc` …, status), with **latitude / longitude last**. The header groups are coloured.
+      - Sheets: Schools, Clusters, AC list, PC list, Value lists.
+      - Uploads are still read by heading name, so any order imports.
+    - The upload page preselects **All districts**.
+  - **AC / PC Master**: `assembly_constituencies` (code `AC18002`, name, `pc_id`) and `parliamentary_constituencies` (code `PC1801`, name), each with its own code.
+    - Models `AssemblyConstituency` / `ParliamentaryConstituency`, `School::ac()` / `pc()` (`pc_id` follows the AC).
+    - Seeded by `ConstituencySeeder` from `database/data/assam_constituencies.php`: 126 ACs and 14 PCs from the UDISE file. PC codes use the ECI order (PC1801 Kokrajhar … PC1814 Jorhat), because the file has none.
+    - The admin screen is `Admin\ConstituencyController` (`/admin/constituencies`, `manage_masters`, audited `ac_*` / `pc_*`). It has Edit modals and Make inactive. Moving an AC to another PC moves its schools' `pc_id`.
+    - Import matching: `ac` accepts "NAME-AC18002", "AC18002", "18002" or the name; `pc` accepts the code or the name. A new AC (with a code) or PC is added, and listed as `summary['new_constituencies']`.
     - `"N - Label"` values are read by number (`MasterImportService::udiseNumbered()`). Category and Management map through `UDISE_CATEGORY` / `UDISE_MANAGEMENT` to master codes, so no duplicate master values are created.
     - A UDISE column missing from the file leaves the stored value alone, and a value that cannot be read becomes null without rejecting the row.
     - Schools are written with the query builder (bulk insert by 500, one preloaded UDISE→id map). The real file takes about 100 s and 700 MB for each of preview and confirm (`memory_limit` 1024M).

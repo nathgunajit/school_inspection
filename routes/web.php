@@ -171,6 +171,11 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/schools', [Admin\SchoolMasterController::class, 'store'])->name('schools.store');
                 Route::get('/schools/{school}/edit', [Admin\SchoolMasterController::class, 'edit'])->name('schools.edit');
                 Route::put('/schools/{school}', [Admin\SchoolMasterController::class, 'update'])->name('schools.update');
+                // AC / PC Master (Assembly and Parliamentary constituencies)
+                Route::get('/constituencies', [Admin\ConstituencyController::class, 'index'])->name('constituencies.index');
+                Route::post('/constituencies/{type}', [Admin\ConstituencyController::class, 'store'])->whereIn('type', ['ac', 'pc'])->name('constituencies.store');
+                Route::put('/constituencies/ac/{ac}', [Admin\ConstituencyController::class, 'updateAc'])->name('constituencies.ac.update');
+                Route::put('/constituencies/pc/{pc}', [Admin\ConstituencyController::class, 'updatePc'])->name('constituencies.pc.update');
                 // FLN TLM master (classroom observation, step 4)
                 Route::get('/tlm-items', [Admin\TlmItemController::class, 'index'])->name('tlm.index');
                 Route::post('/tlm-items', [Admin\TlmItemController::class, 'store'])->name('tlm.store');

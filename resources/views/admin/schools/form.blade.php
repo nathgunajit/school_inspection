@@ -57,14 +57,23 @@
                             @error('medium')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Assembly constituency</label>
-                            <input name="assembly_constituency" value="{{ old('assembly_constituency', $school->assembly_constituency) }}" maxlength="60" class="form-control @error('assembly_constituency') is-invalid @enderror">
-                            @error('assembly_constituency')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <label class="form-label" for="s_ac">Assembly constituency (AC)</label>
+                            <select name="ac_id" id="s_ac" class="form-select @error('ac_id') is-invalid @enderror">
+                                <option value="">—</option>
+                                @foreach ($pcs as $pc)
+                                    @if ($pc->acs->isNotEmpty())
+                                        <optgroup label="{{ $pc->label }}">
+                                            @foreach ($pc->acs as $ac)<option value="{{ $ac->id }}" @selected(old('ac_id', $school->ac_id) == $ac->id)>{{ $ac->label }}</option>@endforeach
+                                        </optgroup>
+                                    @endif
+                                @endforeach
+                            </select>
+                            @error('ac_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Lok Sabha constituency</label>
-                            <input name="lok_sabha" value="{{ old('lok_sabha', $school->lok_sabha) }}" maxlength="40" class="form-control @error('lok_sabha') is-invalid @enderror">
-                            @error('lok_sabha')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <label class="form-label">Parliamentary constituency (PC)</label>
+                            <input class="form-control" value="{{ $school->pc?->label ?? '' }}" placeholder="Follows the AC" readonly tabindex="-1">
+                            <div class="form-text">Set from the chosen AC when you save.</div>
                         </div>
                         <div class="col-md-9">
                             <label class="form-label">Address</label>

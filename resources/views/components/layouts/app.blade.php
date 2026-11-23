@@ -67,6 +67,7 @@
         @can('manage_masters')
             <div class="nav-section">Masters</div>
             {!! $link('admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master') !!}
+            {!! $link('admin.constituencies.index', 'admin.constituencies.*', 'bi-bank', 'AC / PC Master') !!}
             {!! $link('admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master') !!}
             {!! $link('admin.tlm.index', 'admin.tlm.*', 'bi-box-seam', 'TLM Master') !!}
             {!! $link('admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload') !!}

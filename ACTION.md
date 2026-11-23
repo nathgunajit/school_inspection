@@ -2277,3 +2277,31 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `php artisan test`: 207 passed.
   - Loaded the real file into local MySQL (batch #3, All districts): 44,188 added, 9 updated, 0 rejected, 35 districts, about 100 s.
   - The category and management counts match the Excel; 1,465 schools have HS streams and 1,892 are urban; no extra master values were created.
+
+## 2026-11-23: School import format, All districts default, AC / PC Master
+- **Excel format**: one column order for every school template and the error file (`MasterImportService::SCHOOL_COLUMNS` / `SCHOOL_GROUPS`).
+  - Order: school (udise_code, school_name), then location (district_code, block_code, cluster_code), then details (category, management, school_type, area_type, medium, **ac**, **pc**, streams, address, pincode, status), with **latitude / longitude last**.
+  - Header groups are coloured (`ArrayExport` header fills).
+  - Workbook sheets: Schools, Clusters, AC list, PC list, Value lists.
+  - Uploads are still read by heading name, so old files and the raw UDISE+ export import unchanged.
+- **Upload page**: All districts is preselected. The preview and History list any AC / PC added from the file.
+- **AC / PC Master**:
+  - Tables `assembly_constituencies` (code AC18002, name, pc_id) and `parliamentary_constituencies` (code PC1801, name), each with its own code (migration `2026_11_23_000002_create_constituencies`).
+  - `schools.ac_id` / `pc_id` replace the free-text `assembly_constituency` / `lok_sabha`.
+  - Seeded by `ConstituencySeeder` from `database/data/assam_constituencies.php`, built from the UDISE file: 126 ACs, each in exactly one of 14 PCs.
+  - The file has no PC codes. PC codes follow the ECI numbering (PC1801 Kokrajhar … PC1814 Jorhat), because the delimitation-2023 AC numbers are not grouped by PC. They can be edited.
+  - Admin screen `/admin/constituencies` (`Admin\ConstituencyController`, view `admin/constituencies/index`, sidebar "AC / PC Master"): AC / PC tabs, search, PC filter, add, Edit modal, make inactive. Audited `ac_*` / `pc_*`; moving an AC to another PC moves its schools.
+  - Import: `ac` is matched by code, "NAME-ACcode", number or name; `pc` by code or name. Unknown ones are added.
+  - Admin school form: AC select grouped by PC (the PC follows the AC). The school page shows "DOTMA (ST) · AC18002" and "KOKRAJHAR (ST) · PC1801".
+- Data:
+  - The local `schools` table was found empty (the 12:48 import was removed outside this session).
+  - Migrated, seeded the AC / PC master, and re-imported `Documents/SchoolMaster_UDISE 202526.xlsx` with All districts (batch #4): 44,197 added, 0 rejected, 0 new AC / PC, all schools linked to an AC and a PC.
+  - The PC counts match the Excel `LS` column (DHUBRI 4,489; DARRANG-UDALGURI 3,908; KOKRAJHAR (ST) 3,680).
+- Files:
+  - `database/migrations/2026_11_23_000002_create_constituencies.php`, `database/data/assam_constituencies.php`, `database/seeders/{ConstituencySeeder,DatabaseSeeder}.php`
+  - `app/Models/{AssemblyConstituency,ParliamentaryConstituency,School}.php`, `app/Exports/ArrayExport.php`, `app/Services/MasterImportService.php`
+  - `app/Http/Controllers/{Admin/ConstituencyController,Admin/SchoolMasterController,SchoolController}.php`, `routes/web.php`
+  - `resources/views/admin/{constituencies/index,schools/form,imports/index}.blade.php`, `resources/views/schools/show.blade.php`, `resources/views/components/layouts/app.blade.php`
+  - tests: `SchoolUdiseImportTest` (8 tests), `DistrictSchoolImportTest`, `MasterImportAndAuditTest`
+  - docs: `CLAUDE.md`, `Product Details/{Database_Architecture_and_Schema,UI_Pages_and_Application_Modules}.md`, rebuilt docx
+- Verified: `php artisan test` 211 passed. Not opened in a browser.

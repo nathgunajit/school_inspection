@@ -16,7 +16,10 @@ use Tests\TestCase;
 /** District-wise School Master upload (no District / Block columns), preview → confirm, district report. */
 class DistrictSchoolImportTest extends TestCase
 {
-    private function xlsx(array $rows, array $headings = MasterImportService::SCHOOL_DISTRICT_COLUMNS): UploadedFile
+    /** The older district-file order: files are read by heading name, so any column order still imports. */
+    private const OLD_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
+
+    private function xlsx(array $rows, array $headings = self::OLD_DISTRICT_COLUMNS): UploadedFile
     {
         $path = 'tmp/test-'.uniqid().'.xlsx';
         Excel::store(new ArrayExport($headings, $rows), $path, 'local');
@@ -92,8 +95,8 @@ class DistrictSchoolImportTest extends TestCase
 
         $export = MasterImportService::districtTemplate($this->north());
         $sheets = $export->sheets();
-        $this->assertCount(2, $sheets);
-        $this->assertSame(MasterImportService::SCHOOL_DISTRICT_COLUMNS, $sheets[0]->headings());
+        $this->assertCount(5, $sheets); // Schools, Clusters, AC list, PC list, Value lists
+        $this->assertSame(MasterImportService::SCHOOL_COLUMNS, $sheets[0]->headings());
         $codes = array_column($sheets[1]->array(), 0);
         $this->assertContains('18010101', $codes);
         $this->assertNotContains('18020101', $codes, 'only clusters of the district');

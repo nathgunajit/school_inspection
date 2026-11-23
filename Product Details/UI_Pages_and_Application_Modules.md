@@ -48,8 +48,9 @@
 | User detail | `/admin/users/{key}` | `@show` (+ `update`, `status`, `transfer`, `reset-password`, `permissions`) | `admin/users/show` | `manage_users` (transfer/reset/grants: State Admin) | Edit, activate/deactivate, transfer, reset password, grants |
 | Mobile Changes | `/admin/mobile-requests` | `Admin\MobileRequestController@index` / `decide` | `admin/mobile-requests` | `state_admin` | Approve or reject mobile changes |
 | Location Master | `/admin/locations/{type?}` | `Admin\LocationController` | `admin/locations/index` | `manage_masters` | Districts, blocks, clusters: add and edit, codes, coordinates |
+| AC / PC Master | `/admin/constituencies` (`?tab=pc`) | `Admin\ConstituencyController` | `admin/constituencies/index` | `manage_masters` | Assembly (AC) and Parliamentary (PC) constituencies with their codes: list, search, add, Edit modal, make inactive |
 | School Master | `/admin/schools`, `/create`, `/{key}/edit` | `Admin\SchoolMasterController` | `admin/schools/index`, `admin/schools/form` | `manage_masters` | List and form |
-| Excel Upload | `/admin/imports` | `Admin\ImportController` | `admin/imports/index` | `manage_masters` | Templates, upload, batch history, error file |
+| Excel Upload | `/admin/imports` | `Admin\ImportController` | `admin/imports/index` | `manage_masters` | Templates (Schools sheet: school, location, details, lat / lng last; plus Clusters, AC list, PC list, Value lists), upload (All districts by default), batch history, error file |
 | Rating Settings | `/admin/rating` | `Admin\RatingController` | `admin/rating/index` | `manage_masters` | Weights, points, bands; save as a new version; recalculate |
 | Login Monitoring | `/admin/login-report` | `Admin\LoginReportController` | `admin/login-report/index`, `row`, `user`, `tabs` | `state_admin` | Logins, refusals, devices, top refused mobiles; per-user history; Excel |
 | Daily login report (V8) | `/admin/login-report/daily` (+ `/export`) | `Admin\LoginReportController@daily` / `@dailyExport` | `admin/login-report/daily` | `state_admin` | One row per active officer for a date: first sign-in, last activity, sign-ins, time online, refused attempts and the **current status** (Online now / Signed out / Timed out / Not signed in / Never signed in); Excel |
@@ -142,7 +143,7 @@
 | Map View (New Module 1) | Map View, school map, directions | Implemented |
 | Scheduling (New Module 2) | Calendar, Plan, Plan details, Approvals | Implemented |
 | User administration | Approvals, User List/detail, Mobile changes | Implemented |
-| Masters | Location, School, Excel Upload | Implemented |
+| Masters | Location, AC / PC, School, Excel Upload | Implemented |
 | Monitoring | Login Monitoring, Audit Log | Implemented |
 | Settings | `config/inspection.php` + `.env`; Rating Settings is the only settings screen | Partial (no general settings UI) |
 | Help / user manual in app | None | Not implemented |
