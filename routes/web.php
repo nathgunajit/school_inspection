@@ -170,6 +170,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
             Route::middleware('can:manage_masters')->group(function () {
                 Route::get('/locations/{type?}', [Admin\LocationController::class, 'index'])->name('locations.index');
+                Route::get('/locations/{type}/export/{format}', [Admin\LocationController::class, 'export'])->whereIn('format', ['excel', 'pdf'])->middleware('throttle:10,1')->name('locations.export');
                 Route::post('/locations/{type}', [Admin\LocationController::class, 'store'])->name('locations.store');
                 Route::put('/locations/{type}/{id}', [Admin\LocationController::class, 'update'])->name('locations.update');
                 Route::delete('/locations/{type}/{id}', [Admin\LocationController::class, 'destroy'])->name('locations.destroy'); // V13
@@ -180,6 +181,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::put('/schools/{school}', [Admin\SchoolMasterController::class, 'update'])->name('schools.update');
                 // Modification V13: list export, delete an unused school, remove a district's unused schools
                 Route::get('/schools-export', [Admin\SchoolMasterController::class, 'export'])->name('schools.export');
+                Route::get('/schools-export-pdf', [Admin\SchoolMasterController::class, 'exportPdf'])->middleware('throttle:10,1')->name('schools.export-pdf');
                 Route::delete('/schools/{school}', [Admin\SchoolMasterController::class, 'destroy'])->name('schools.destroy');
                 Route::post('/schools-remove-district', [Admin\SchoolMasterController::class, 'removeDistrict'])->name('schools.remove-district');
                 // AC / PC Master (Assembly and Parliamentary constituencies)

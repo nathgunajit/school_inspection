@@ -22,6 +22,12 @@ class District extends Model
         return $this->hasMany(Block::class);
     }
 
+    /** Clusters of the district, through its blocks (Master downloads count them). */
+    public function clusters()
+    {
+        return $this->hasManyThrough(Cluster::class, Block::class);
+    }
+
     public function schools()
     {
         return $this->hasMany(School::class);

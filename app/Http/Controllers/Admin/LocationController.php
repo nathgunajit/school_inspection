@@ -33,11 +33,9 @@ class LocationController extends Controller
         abort_unless(isset(self::TYPES[$type]), 404);
         [$model, $parentModel, $fk, $label] = self::TYPES[$type];
 
-        $items = $model::query()
+        $items = $this->listQuery($request, $type)
             ->when($fk, fn ($q) => $q->with(str_replace('_id', '', $fk)))
-            ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('code', 'like', "%$s%")))
-            ->when($fk && $request->parent, fn ($q) => $q->where($fk, $request->parent))
-            ->orderBy('name')->paginate(config('inspection.per_page'))->withQueryString();
+            ->paginate(config('inspection.per_page'))->withQueryString();
 
         return view('admin.locations.index', [
             'type' => $type, 'label' => $label, 'items' => $items, 'fk' => $fk,
@@ -48,6 +46,64 @@ class LocationController extends Controller
             'boundaries' => app(DistrictBoundaryService::class),
             'boundaryNames' => $type === 'districts' ? app(DistrictBoundaryService::class)->names() : [],
         ]);
+    }
+
+    /** The list with the screen's filters (search by name / code, parent), shared by the page and its downloads. */
+    private function listQuery(Request $request, string $type)
+    {
+        [$model, , $fk] = self::TYPES[$type];
+
+        return $model::query()
+            ->when(trim((string) $request->query('q')), fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('code', 'like', "%$s%")))
+            ->when($fk && (int) $request->query('parent'), fn ($q) => $q->where($fk, (int) $request->query('parent')))
+            ->orderBy('name')->orderBy('id');
+    }
+
+    /** 23-11-2026: the State / District / Block / Cluster Master list (with the screen's filters) as Excel or PDF. */
+    public function export(Request $request, string $type, string $format)
+    {
+        abort_unless(isset(self::TYPES[$type]) && in_array($format, ['excel', 'pdf'], true), 404);
+        [, $parentModel, $fk, $label] = self::TYPES[$type];
+        $status = fn ($r) => $r->is_active ? 'Active' : 'Inactive';
+        $coord = fn ($v) => $v === null ? '' : number_format((float) $v, 6, '.', '');
+
+        // all 4,607 clusters as PDF: about 2 minutes, 200 pages and ~650 MB
+        set_time_limit(300);
+        if ($mem = config('inspection.import_memory')) {
+            @ini_set('memory_limit', (string) $mem);
+        }
+        $query = $this->listQuery($request, $type);
+        [$headings, $map] = match ($type) {
+            'states' => [['Sl', 'Code', 'Name', 'Districts', 'Status'],
+                fn ($r) => [$r->code, $r->name, $r->districts_count, $status($r)]],
+            'districts' => [['Sl', 'Code', 'Name', 'State', 'Latitude', 'Longitude', 'Blocks', 'Clusters', 'Schools', 'Status'],
+                fn ($r) => [$r->code, $r->name, $r->state?->name, $coord($r->latitude), $coord($r->longitude), $r->blocks_count, $r->clusters_count, $r->schools_count, $status($r)]],
+            'blocks' => [['Sl', 'Code', 'Name', 'District', 'Latitude', 'Longitude', 'Clusters', 'Schools', 'Status'],
+                fn ($r) => [$r->code, $r->name, $r->district?->label, $coord($r->latitude), $coord($r->longitude), $r->clusters_count, $r->schools_count, $status($r)]],
+            'clusters' => [['Sl', 'Code', 'Name', 'Block', 'District', 'Schools', 'Status'],
+                fn ($r) => [$r->code, $r->name, $r->block?->label, $r->block?->district?->label, $r->schools_count, $status($r)]],
+        };
+        match ($type) {
+            'states' => $query->withCount('districts'),
+            'districts' => $query->with('state:id,name')->withCount(['blocks', 'clusters', 'schools']),
+            'blocks' => $query->with('district:id,code,name')->withCount(['clusters', 'schools']),
+            'clusters' => $query->with('block:id,code,name,district_id', 'block.district:id,code,name')->withCount('schools'),
+        };
+        $rows = $query->get()->values()->map(fn ($r, $i) => array_merge([$i + 1], $map($r)))->all();
+
+        $filters = array_values(array_filter([
+            trim((string) $request->query('q')) !== '' ? 'Search: '.trim((string) $request->query('q')) : null,
+            $fk && (int) $request->query('parent') && ($p = $parentModel::find((int) $request->query('parent')))
+                ? class_basename($parentModel).': '.($p->label ?? $p->name) : null,
+        ]));
+        AuditLogger::log('master_exported', null, ['master' => $type, 'format' => $format, 'filters' => $filters, 'rows' => count($rows)]);
+
+        $file = strtolower($label).'_master_'.now()->format('Y-m-d');
+        if ($format === 'pdf') {
+            return \App\Support\MasterPdf::download($label.' Master', $headings, $rows, $filters, $file.'.pdf');
+        }
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ArrayExport($headings, $rows), $file.'.xlsx');
     }
 
     public function store(Request $request, string $type)

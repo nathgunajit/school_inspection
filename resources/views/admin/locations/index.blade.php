@@ -19,6 +19,14 @@
                     </div>
                 @endif
                 <div class="col-auto"><button class="btn btn-primary btn-icon" aria-label="Search"><i class="bi bi-search"></i></button></div>
+                {{-- 23-11-2026: the list with these filters as Excel or PDF --}}
+                <div class="col-auto dropdown">
+                    <button type="button" class="btn btn-soft-primary" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-download"></i><span class="d-none d-sm-inline">Download</span></button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 row-actions">
+                        <li><a class="dropdown-item" data-no-loader href="{{ route('admin.locations.export', [$type, 'excel'] + request()->only(['q', 'parent'])) }}"><i class="bi bi-file-earmark-excel text-success"></i>{{ $label }} Master · Excel</a></li>
+                        <li><a class="dropdown-item" data-no-loader href="{{ route('admin.locations.export', [$type, 'pdf'] + request()->only(['q', 'parent'])) }}"><i class="bi bi-file-earmark-pdf text-danger"></i>{{ $label }} Master · PDF</a></li>
+                    </ul>
+                </div>
             </form>
 
             <div class="card">

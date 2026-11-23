@@ -56,6 +56,52 @@ class SchoolMasterController extends Controller
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SchoolListExport($this->filtered($request)), 'school_master_'.now()->format('Y-m-d').'.xlsx');
     }
 
+    /**
+     * 23-11-2026: the filtered list as PDF. DomPDF cannot lay out the whole state (44,000 rows), so the PDF
+     * is limited to config('inspection.master_pdf_max_rows'); a larger list asks for a district / block filter.
+     */
+    public function exportPdf(Request $request)
+    {
+        $base = $this->filtered($request);
+        $count = (clone $base)->count();
+        $max = (int) config('inspection.master_pdf_max_rows', 3000);
+        if ($count > $max) {
+            return back()->with('warning', number_format($count).' schools match. A PDF holds up to '.number_format($max)
+                .' schools: filter by district, block or cluster, or use Export Excel for the full list.');
+        }
+        // one district (2,200 schools): about 70 s, 170 pages and ~650 MB
+        set_time_limit(300);
+        if ($mem = config('inspection.import_memory')) {
+            @ini_set('memory_limit', (string) $mem);
+        }
+
+        $rows = $base->with(['district:id,code,name', 'block:id,code,name', 'cluster:id,code,name', 'category:id,label', 'management:id,label'])
+            ->orderBy('name')->orderBy('id')->get()->values()
+            ->map(fn (School $s, $i) => [$i + 1, $s->udise_code, $s->name, $s->cluster?->label, $s->block?->label, $s->district?->label,
+                $s->category?->label, $s->management?->label, $s->medium, ucfirst((string) $s->status)])->all();
+
+        $id = fn (string $k) => (int) $request->query($k) ?: null;
+        $filters = array_values(array_filter([
+            trim((string) $request->query('q')) !== '' ? 'Search: '.trim((string) $request->query('q')) : null,
+            ($v = $id('district_id')) ? 'District: '.District::find($v)?->label : null,
+            ($v = $id('block_id')) ? 'Block: '.Block::find($v)?->label : null,
+            ($v = $id('cluster_id')) ? 'Cluster: '.Cluster::find($v)?->label : null,
+            ($v = $id('ac_id')) ? 'AC: '.AssemblyConstituency::find($v)?->name : null,
+            ($v = $id('pc_id')) ? 'PC: '.ParliamentaryConstituency::find($v)?->name : null,
+            ($v = $id('management_id')) ? 'Management: '.MasterValue::find($v)?->label : null,
+            ($v = $id('category_id')) ? 'Category: '.MasterValue::find($v)?->label : null,
+            ($v = $request->query('area_type')) ? 'Area: '.(School::AREA_TYPES[$v] ?? $v) : null,
+            ($v = $request->query('school_type')) ? 'Type: '.(School::SCHOOL_TYPES[$v] ?? $v) : null,
+            ($v = $request->query('medium')) ? 'Medium: '.$v : null,
+            ($v = $request->query('status')) ? 'Status: '.ucfirst((string) $v) : null,
+        ]));
+        AuditLogger::log('school_list_exported', null, ['format' => 'pdf', 'filters' => array_filter($request->only(self::FILTERS)), 'rows' => count($rows)]);
+
+        return \App\Support\MasterPdf::download('School Master',
+            ['Sl', 'UDISE', 'School name', 'Cluster', 'Block', 'District', 'Category', 'Management', 'Medium', 'Status'],
+            $rows, $filters, 'school_master_'.now()->format('Y-m-d').'.pdf');
+    }
+
     /** Modification V13 item 3: delete a school with no inspection and no schedule. */
     public function destroy(School $school)
     {

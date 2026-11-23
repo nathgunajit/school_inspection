@@ -1,6 +1,7 @@
 <x-layouts.app title="School Master">
     <x-slot:actions>
         <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="The whole state (44,000 schools) takes 2–3 minutes; filter by district for a quicker file"><i class="bi bi-file-earmark-excel"></i>Export Excel</a>
+        <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="PDF of the filtered list (up to {{ number_format(config('inspection.master_pdf_max_rows')) }} schools)"><i class="bi bi-file-earmark-pdf"></i>Export PDF</a>
         <a href="{{ route('admin.schools.create') }}" class="btn btn-primary d-none d-sm-inline-flex"><i class="bi bi-plus-lg"></i>Add school</a>
     </x-slot:actions>
 
@@ -59,7 +60,8 @@
     </form>
     <div class="d-flex flex-wrap gap-2 mb-3 d-sm-none">
         <a href="{{ route('admin.schools.create') }}" class="btn btn-primary flex-grow-1"><i class="bi bi-plus-lg"></i>Add school</a>
-        <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-excel"></i>Export</a>
+        <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+        <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </div>
 
     <div class="text-sm text-secondary mb-2" data-school-count>
