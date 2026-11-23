@@ -182,6 +182,34 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(2, Inspection::count());
     }
 
+    /** 23-11-2026: Find School lists schools to visit first: never inspected, then the fewest visits (oldest last visit on a tie). */
+    public function test_find_school_lists_not_inspected_first_then_least_visited(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $make = fn ($name, $udise) => \App\Models\School::create(['udise_code' => $udise, 'name' => $name, 'state_id' => $cluster->block->district->state_id,
+            'district_id' => $cluster->block->district_id, 'block_id' => $cluster->block_id, 'cluster_id' => $cluster->id, 'status' => 'active']);
+        $a = $make('Zorder A School', '99000000001'); // 2 visits
+        $b = $make('Zorder B School', '99000000002'); // 1 visit, last month
+        $make('Zorder C School', '99000000003');      // never
+        $d = $make('Zorder D School', '99000000004'); // 1 visit, this month
+        $visit = function ($school, string $date) use ($officer) {
+            $i = $this->startInspection($officer, $school);
+            $i->forceFill(['status' => InspectionStatus::Submitted, 'submitted_at' => now(), 'inspection_date' => $date, 'inspection_no' => 'T/'.$i->id])->save();
+        };
+        $visit($a, now()->subMonths(3)->toDateString());
+        $visit($a, now()->subMonths(2)->toDateString());
+        $visit($b, now()->subMonth()->toDateString());
+        $visit($d, now()->subDays(2)->toDateString());
+
+        $html = $this->actingAs($officer)->getJson(route('schools.index', ['q' => 'Zorder']), ['X-Requested-With' => 'XMLHttpRequest'])->assertOk()->json('html');
+        $pos = fn ($n) => strpos($html, "Zorder</mark> {$n} School");
+        $this->assertTrue($pos('C') < $pos('B') && $pos('B') < $pos('D') && $pos('D') < $pos('A'), 'order C (never), B (1, older), D (1, recent), A (2)');
+        $this->assertStringContainsString('Inspected 2 times', $html);
+        $this->assertStringContainsString('Inspected 1 time ·', $html);
+        $this->assertStringContainsString('school-tag todo', $html);
+    }
+
     public function test_school_completed_by_another_officer_is_blocked_for_the_rest_of_the_month(): void
     {
         $this->travelTo(now()->startOfMonth()->addDays(9)->setTime(10, 0));

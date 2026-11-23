@@ -26,7 +26,7 @@
     <div class="find-meta">
         <span><strong>{{ number_format($schools->total()) }}</strong> school{{ $schools->total() === 1 ? '' : 's' }} found
             @if ($schools->lastPage() > 1) · showing {{ $schools->firstItem() }}–{{ $schools->lastItem() }} @endif</span>
-        <span class="d-none d-sm-inline">Tap a school to open it</span>
+        <span class="d-none d-sm-inline"><i class="bi bi-sort-down"></i> Not inspected first, then the least visited · tap a school to open it</span>
     </div>
     <div class="school-list">
         @foreach ($schools as $s)
@@ -44,8 +44,9 @@
                         @if ($s->mine_today)<span class="school-tag warn"><i class="bi bi-pencil-square"></i> Your inspection today</span>@endif
                         @if ($s->other_draft)<span class="school-tag lock"><i class="bi bi-hourglass-split"></i> Draft by another officer</span>
                         @elseif ($s->other_this_month)<span class="school-tag lock-done"><i class="bi bi-patch-check"></i> Inspected this month</span>@endif
-                        @if ($s->last_inspected_on)<span class="school-tag ok"><i class="bi bi-check2"></i> Last inspected {{ \Illuminate\Support\Carbon::parse($s->last_inspected_on)->format('d M Y') }}</span>
-                        @else<span class="school-tag">Not inspected yet</span>@endif
+                        {{-- 23-11-2026: the list is ordered by these: not inspected first, then the fewest visits --}}
+                        @if ($s->last_inspected_on)<span class="school-tag ok"><i class="bi bi-check2"></i> Inspected {{ $s->visits }} time{{ $s->visits == 1 ? '' : 's' }} · last {{ \Illuminate\Support\Carbon::parse($s->last_inspected_on)->format('d M Y') }}</span>
+                        @else<span class="school-tag todo"><i class="bi bi-flag"></i> Not inspected yet</span>@endif
                         @unless ($s->isActive())<span class="school-tag off">Closed</span>@endunless
                     </span>
                 </span>

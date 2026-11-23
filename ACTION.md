@@ -2366,3 +2366,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `resources/js/camera.js`: location state `geoState` (locating / ok / failed). While locating, the camera header and the live stamp line show a spinner "Getting location…", and after a shot **Use photo** is disabled with the same spinner (`syncUseButton()`). The raw picture is kept, and when the location arrives it is stamped again with the coordinates (`restampShot()`) and Use photo is enabled. If the location fails (no GPS, denied, 15 s timeout), Use photo works as before with the required reason. The click handler also refuses while locating.
 - Docs: `CLAUDE.md` (rule 6).
 - Verified: `npm run build`; `php artisan test`, all passing. Not tried on a phone camera (no camera in this environment).
+
+## 2026-11-23: Find School lists schools to visit first
+- `SchoolController::index`: new `visits` count (Submitted / Unlocked inspections) and order active first, then visits ascending (never inspected first), then oldest last inspection, then name. Already inspected schools move down the list.
+- `schools/_results.blade.php`: "Not inspected yet" is highlighted (`.school-tag.todo`, `app.scss`); inspected schools show "Inspected N times · last DD Mon YYYY"; the list header says the order.
+- Test: `InspectionFlowTest::test_find_school_lists_not_inspected_first_then_least_visited`. Docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, docx rebuilt.
+- Verified: `php artisan test`, all passing; the ordering query on MySQL for a district of 1,733 schools takes about 0.1 s (index `insp_school_status_date_idx`).

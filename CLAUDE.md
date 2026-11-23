@@ -187,6 +187,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - Schools are written with the query builder (bulk insert by 500, one preloaded UDISE→id map). The real file takes about 100 s and 700 MB for each of preview and confirm (`memory_limit` 1024M).
   - District report tab: `App\Services\SchoolCountReport` (schools per district / block, active, closed, with GPS), block drill-down `imports.district`, Excel `imports.report`.
 - Page loader and network banner: `<x-page-loader />` in both layouts (inline CSS, `window.SI_LOADER`), `resources/js/network-status.js` (slow / offline / back-online banner `#si-net-banner`). The full splash shows only on a slow load or for `data-loader="heavy"` (+ `data-loader-text`); other navigation gets a thin top bar and a busy submit button. `data-no-loader` opts out. Submit buttons get the processing look from `resources/js/button-busy.js` (`data-loading-text`, `window.SI_BUSY`, `data-no-busy` to skip).
+- Find School order (23-11-2026, `SchoolController::index`): active first, then `visits` (count of Submitted / Unlocked inspections) ascending, so never-inspected schools come first, then the oldest `last_inspected_on`, then name. Each result shows "Not inspected yet" (`.school-tag.todo`) or "Inspected N times · last date".
 - `config/inspection.php`: the configurable "Proposed" values (PRD 30): draft expiry, lockout, limits, retention
 - `database/migrations/`: schema; master tables run first (`0001_01_00_*`)
 

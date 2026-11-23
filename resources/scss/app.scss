@@ -1399,6 +1399,7 @@ button.fy-tr { cursor: pointer; &:hover { background: #f6f9fd; } &.is-active { b
 // School already taken: another officer's draft / completed this month (Modification V3 items 3, 4)
 .school-tag.lock { background: rgba($warning, .14); color: #a35a05; }
 .school-tag.lock-done { background: rgba($primary, .1); color: #0d47a1; }
+.school-tag.todo { background: rgba($warning, .16); color: #9a4a00; font-weight: 600; } // 23-11-2026: Find School, not inspected yet (listed first)
 .start-block { border-radius: .9rem; padding: .9rem 1rem; border: 1px solid;
     &.is-draft { border-color: rgba($warning, .45); background: linear-gradient(135deg, rgba($warning, .1), #fff 70%); .sb-head i { color: #b45309; } }
     &.is-done { border-color: rgba($primary, .3); background: linear-gradient(135deg, rgba($primary, .07), rgba($success, .05)); .sb-head i { color: $primary; } }

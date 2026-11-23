@@ -33,13 +33,16 @@ class SchoolController extends Controller
                 ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
                 ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherThisMonth($user)])
                 ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])], 'inspection_date')
+                ->withCount(['inspections as visits' => fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])])
                 ->when($q !== '', fn ($w) => ctype_digit($q)
                     ? $w->where('udise_code', 'like', $q.'%')
                     : $w->where('name', 'like', '%'.$q.'%'))
                 ->when($request->district_id, fn ($w, $v) => $w->where('district_id', $v))
                 ->when($request->block_id, fn ($w, $v) => $w->where('block_id', $v))
                 ->when($request->cluster_id, fn ($w, $v) => $w->where('cluster_id', $v))
-                ->orderByRaw("status = 'active' desc")->orderBy('name')
+                // 23-11-2026: schools to visit first: never inspected, then the least visited (on a tie the one visited longest ago);
+                // closed schools stay last
+                ->orderByRaw("status = 'active' desc")->orderBy('visits')->orderBy('last_inspected_on')->orderBy('name')
                 ->paginate(config('inspection.per_page'))->withQueryString()
             : null;
 
