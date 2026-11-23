@@ -2361,3 +2361,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - One table per section with fixed columns (widths on a first spacer row; DomPDF ignores `<colgroup>`). Totals are rows of the same table, so their number box lines up with the question boxes. A group heading is kept on the page of its first question (nested block).
   - Print-safe: body 9.5 pt, nothing under 8 pt, dark text (#111827 / #1f2937), darker borders and lines, solid dark-blue group headings, shaded and bordered total rows; override rules stop outer cell styles from leaking into nested boxes.
 - Verified: rendered with DomPDF (9 pages) and every page looked at as an image (throwaway pdf-to-img in the session scratchpad, not in the project). `ModificationV11Test` checks the cell layout. `php artisan test`, all passing.
+
+## 2026-11-23: Camera waits for the geo tag before Use photo
+- `resources/js/camera.js`: location state `geoState` (locating / ok / failed). While locating, the camera header and the live stamp line show a spinner "Getting location…", and after a shot **Use photo** is disabled with the same spinner (`syncUseButton()`). The raw picture is kept, and when the location arrives it is stamped again with the coordinates (`restampShot()`) and Use photo is enabled. If the location fails (no GPS, denied, 15 s timeout), Use photo works as before with the required reason. The click handler also refuses while locating.
+- Docs: `CLAUDE.md` (rule 6).
+- Verified: `npm run build`; `php artisan test`, all passing. Not tried on a phone camera (no camera in this environment).

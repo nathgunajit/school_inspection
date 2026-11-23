@@ -19,7 +19,8 @@ let stream = null;
 let facing = 'environment';
 let geo = null;          // latest position
 let geoWatch = null;
-let shot = null;         // { blob, url, takenAt, geo }
+let geoState = 'locating'; // 23-11-2026: 'locating' | 'ok' | 'failed'; Use photo waits while 'locating'
+let shot = null;         // { blob, url, takenAt, geo, frame } (frame: the raw picture, stamped again when the location arrives)
 let target = {};         // { category, question, caption }
 let uploading = 0;
 
@@ -201,16 +202,57 @@ function stopCamera() {
     stream = null;
 }
 
-function startGeo() {
+const LOCATING_HTML = '<span class="spinner-border spinner-border-sm me-1" style="width:.75rem;height:.75rem" aria-hidden="true"></span>Getting location…';
+function setGeoState(state) {
+    geoState = state;
     const el = $('#cam-gps');
-    if (!navigator.geolocation) { el.innerHTML = '<i class="bi bi-geo-alt"></i> No location'; return; }
+    if (el) {
+        el.innerHTML = state === 'ok' ? `<i class="bi bi-geo-alt-fill text-success"></i> ±${geo.acc} m`
+            : state === 'locating' ? LOCATING_HTML
+                : '<i class="bi bi-geo-alt text-warning"></i> Location unavailable';
+        el.classList.toggle('is-locating', state === 'locating');
+    }
+    updateMeta();
+    syncUseButton();
+}
+function startGeo() {
+    geo = null;
+    if (!navigator.geolocation) { setGeoState('failed'); return; }
+    setGeoState('locating');
     geoWatch = navigator.geolocation.watchPosition((p) => {
         geo = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
-        el.innerHTML = `<i class="bi bi-geo-alt-fill text-success"></i> ±${geo.acc} m`;
-    }, () => { geo = null; el.innerHTML = '<i class="bi bi-geo-alt text-warning"></i> Location unavailable'; },
+        setGeoState('ok');
+        restampShot();
+    }, () => { geo = null; setGeoState('failed'); },
     { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 });
 }
 function stopGeo() { if (geoWatch !== null) navigator.geolocation.clearWatch(geoWatch); geoWatch = null; }
+
+/**
+ * 23-11-2026: Use photo is disabled while the location is still loading (a spinner shows on the button).
+ * When the location arrives the waiting photo is stamped again with it; if it fails, Use photo asks for a reason as before.
+ */
+function syncUseButton() {
+    const btn = $('#cam-use');
+    if (!btn) return;
+    btn.dataset.html ??= btn.innerHTML;
+    const waiting = !!shot && !shot.geo && geoState === 'locating';
+    btn.disabled = waiting;
+    btn.setAttribute('aria-busy', waiting ? 'true' : 'false');
+    btn.innerHTML = waiting ? LOCATING_HTML : btn.dataset.html;
+    $('#cam-noloc')?.classList.toggle('d-none', !shot || !!shot.geo || waiting);
+}
+async function restampShot() {
+    if (!shot || shot.geo || !shot.frame || !geo) return;
+    const g = { ...geo };
+    const s = shot;
+    const blob = await processImage(s.frame, s.frame.width, s.frame.height, s.takenAt, g);
+    if (shot !== s) return; // retaken or closed meanwhile
+    URL.revokeObjectURL(s.url);
+    Object.assign(s, { blob, url: URL.createObjectURL(blob), geo: g });
+    preview.src = s.url;
+    syncUseButton();
+}
 
 function showMode(mode) {
     const capture = mode === 'capture';
@@ -244,13 +286,14 @@ document.addEventListener('click', (e) => {
 });
 
 modalEl?.addEventListener('shown.bs.modal', () => { showMode('capture'); startCamera(); startGeo(); });
-modalEl?.addEventListener('hidden.bs.modal', () => { stopCamera(); stopGeo(); if (shot?.url) URL.revokeObjectURL(shot.url); shot = null; });
+modalEl?.addEventListener('hidden.bs.modal', () => { stopCamera(); stopGeo(); if (shot?.url) URL.revokeObjectURL(shot.url); shot = null; syncUseButton(); });
 
 $('#cam-switch')?.addEventListener('click', () => { facing = facing === 'environment' ? 'user' : 'environment'; startCamera(); });
 
 function updateMeta() {
     const now = new Date();
-    $('#cam-meta').textContent = `${SI.stamp.udise} · ${fmtDate(now)} · ${geo ? `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}` : 'No location'}`;
+    const m = $('#cam-meta');
+    if (m) m.textContent = `${SI.stamp.udise} · ${fmtDate(now)} · ${geo ? `${geo.lat.toFixed(5)}, ${geo.lng.toFixed(5)}` : geoState === 'locating' ? 'Getting location…' : 'No location'}`;
 }
 setInterval(() => { if (modalEl?.classList.contains('show')) updateMeta(); }, 1000);
 
@@ -291,19 +334,27 @@ $('#cam-shutter')?.addEventListener('click', async () => {
     if (!stream || !video.videoWidth) return;
     const takenAt = new Date();
     const g = geo ? { ...geo } : null;
-    const blob = await processImage(video, video.videoWidth, video.videoHeight, takenAt, g);
+    // keep the raw picture while the location is loading, so it can be stamped again when it arrives
+    let frame = null;
+    if (!g) {
+        frame = document.createElement('canvas');
+        frame.width = video.videoWidth; frame.height = video.videoHeight;
+        frame.getContext('2d').drawImage(video, 0, 0);
+    }
+    const blob = await processImage(frame || video, video.videoWidth, video.videoHeight, takenAt, g);
 
-    shot = { blob, url: URL.createObjectURL(blob), takenAt, geo: g };
+    shot = { blob, url: URL.createObjectURL(blob), takenAt, geo: g, frame };
     preview.src = shot.url;
-    $('#cam-noloc').classList.toggle('d-none', !!g);
     $('#cam-noloc').value = '';
     showMode('review');
+    syncUseButton();
+    restampShot(); // the location may have arrived while the photo was processed
 });
 
-$('#cam-retake')?.addEventListener('click', () => { if (shot?.url) URL.revokeObjectURL(shot.url); shot = null; showMode('capture'); });
+$('#cam-retake')?.addEventListener('click', () => { if (shot?.url) URL.revokeObjectURL(shot.url); shot = null; showMode('capture'); syncUseButton(); });
 
 $('#cam-use')?.addEventListener('click', async () => {
-    if (!shot) return;
+    if (!shot || (!shot.geo && geoState === 'locating')) return; // still getting the location
     const reason = $('#cam-noloc').value.trim();
     if (!shot.geo && !reason) { $('#cam-noloc').focus(); return window.toast('Location is not available. Enter a reason to continue.', 'warning'); }
     const category = catSel.value;
@@ -328,6 +379,7 @@ $('#cam-use')?.addEventListener('click', async () => {
     };
     item.source = 'camera';
     shot = null; // keep object URL alive for the thumbnail
+    syncUseButton();
     SI.evidence.push(item);
     modal.hide();
     upload(item);
