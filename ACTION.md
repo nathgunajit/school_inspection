@@ -2251,3 +2251,29 @@ How the points were read (not asked, best reading of the document): items 3 and 
   - tests: new `ModificationV12Test` (5 tests); `StepCompletionTest`, `ModificationV11Test`, `DistrictBoundaryTest` and `MasterImportAndAuditTest` updated
   - docs: `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`, V12 docx copy in `Product Details/Requirements/`, rebuilt docx
 - Verified: `php artisan test` 204 passed; `npm run build` OK. Not checked in a browser. The real state-wide UDISE file (22 MB, about 168 MB of sheet XML) was not test-uploaded and may need more PHP memory / time.
+
+## 2026-11-23: School Master with the full UDISE+ 2025-26 columns
+Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21 columns, no duplicate or bad UDISE codes, all with lat/lng, and all 4,607 clusters already in the Location Master. Before this change the importer kept only name / management / category / address / GPS and did not read the `cluster lcode` heading.
+- New `schools` columns (migration `2026_11_23_000001_add_udise_fields_to_schools`, all nullable): `school_type`, `area_type`, `medium`, `assembly_constituency`, `lok_sabha`, `streams` (json), `pincode`, plus an index on `area_type`.
+- `MasterImportService`:
+  - UDISE heading aliases and the `SCHOOL_UDISE_COLUMNS` (in the templates and error file)
+  - `"N - Label"` parsing; Category / Management mapped by UDISE number (`UDISE_CATEGORY` / `UDISE_MANAGEMENT`)
+  - master ID cache; a missing column keeps the stored value
+  - bulk insert via the query builder (one preloaded UDISE map instead of a query per row); `set_time_limit(0)`
+- `MasterValueSeeder`: new categories `pr_to_hsec`, `upr_to_hsec`, `sec_hsec` and managements `kgbv`, `self_based`.
+- `School` model: constants and `school_type_label` / `area_type_label` / `medium_label` / `streams_label`.
+- UI:
+  - admin school form (type, rural / urban, medium, assembly, Lok Sabha, pincode, HS streams)
+  - school page details
+  - inspection PDF chips
+  - map popup line (type · area · medium)
+- Files:
+  - `database/migrations/2026_11_23_000001_add_udise_fields_to_schools.php`, `database/seeders/MasterValueSeeder.php`
+  - `app/Models/School.php`, `app/Services/{MasterImportService,MapDataService}.php`, `app/Http/Controllers/Admin/SchoolMasterController.php`
+  - `resources/views/{admin/schools/form,schools/show,inspections/pdf}.blade.php`, `resources/js/map.js`
+  - `tests/Feature/SchoolUdiseImportTest.php` (3 new)
+  - docs: `CLAUDE.md`, `Product Details/Database_Architecture_and_Schema.md`, rebuilt docx
+- Verified:
+  - `php artisan test`: 207 passed.
+  - Loaded the real file into local MySQL (batch #3, All districts): 44,188 added, 9 updated, 0 rejected, 35 districts, about 100 s.
+  - The category and management counts match the Excel; 1,465 schools have HS streams and 1,892 are urban; no extra master values were created.

@@ -43,9 +43,50 @@
                             <label class="form-label">School category</label>
                             <select name="category_id" class="form-select"><option value="">—</option>@foreach ($categories as $c)<option value="{{ $c->id }}" @selected(old('category_id', $school->category_id) == $c->id)>{{ $c->label }}</option>@endforeach</select>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6 col-md-3">
+                            <label class="form-label">School type</label>
+                            <select name="school_type" class="form-select"><option value="">—</option>@foreach (\App\Models\School::SCHOOL_TYPES as $k => $l)<option value="{{ $k }}" @selected(old('school_type', $school->school_type) === $k)>{{ $l }}</option>@endforeach</select>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label">Rural / Urban</label>
+                            <select name="area_type" class="form-select"><option value="">—</option>@foreach (\App\Models\School::AREA_TYPES as $k => $l)<option value="{{ $k }}" @selected(old('area_type', $school->area_type) === $k)>{{ $l }}</option>@endforeach</select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Medium of instruction</label>
+                            <input name="medium" value="{{ old('medium', $school->medium) }}" maxlength="60" class="form-control @error('medium') is-invalid @enderror" placeholder="e.g. Assamese">
+                            @error('medium')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Assembly constituency</label>
+                            <input name="assembly_constituency" value="{{ old('assembly_constituency', $school->assembly_constituency) }}" maxlength="60" class="form-control @error('assembly_constituency') is-invalid @enderror">
+                            @error('assembly_constituency')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Lok Sabha constituency</label>
+                            <input name="lok_sabha" value="{{ old('lok_sabha', $school->lok_sabha) }}" maxlength="40" class="form-control @error('lok_sabha') is-invalid @enderror">
+                            @error('lok_sabha')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-9">
                             <label class="form-label">Address</label>
                             <textarea name="address" rows="2" class="form-control">{{ old('address', $school->address) }}</textarea>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Pincode</label>
+                            <input name="pincode" value="{{ old('pincode', $school->pincode) }}" maxlength="6" inputmode="numeric" class="form-control font-monospace @error('pincode') is-invalid @enderror">
+                            @error('pincode')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        @php $streams = old('streams', is_array($school->streams) ? array_keys(array_filter($school->streams)) : []); @endphp
+                        <div class="col-12">
+                            <div class="form-check mb-2">
+                                <input type="hidden" name="has_hs" value="0">
+                                <input type="checkbox" name="has_hs" value="1" id="s_has_hs" class="form-check-input" @checked(old('has_hs', is_array($school->streams)))>
+                                <label for="s_has_hs" class="form-check-label">Has Higher Secondary (streams offered)</label>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3 ms-4">
+                                @foreach (\App\Models\School::STREAMS as $k => $l)
+                                    <div class="form-check"><input type="checkbox" name="streams[]" value="{{ $k }}" id="s_st_{{ $k }}" class="form-check-input" @checked(in_array($k, $streams, true))><label for="s_st_{{ $k }}" class="form-check-label">{{ $l }}</label></div>
+                                @endforeach
+                            </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <label class="form-label">Latitude</label>

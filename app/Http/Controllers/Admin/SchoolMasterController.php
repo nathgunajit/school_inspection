@@ -78,9 +78,26 @@ class SchoolMasterController extends Controller
             'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
             'status' => ['required', 'in:active,closed'],
-        ], ['block_id.exists' => 'Select a block of the selected district.', 'cluster_id.exists' => 'Select a cluster of the selected block.']);
+            // UDISE+ 2025-26 fields
+            'school_type' => ['nullable', Rule::in(array_keys(School::SCHOOL_TYPES))],
+            'area_type' => ['nullable', Rule::in(array_keys(School::AREA_TYPES))],
+            'medium' => ['nullable', 'string', 'max:60'],
+            'assembly_constituency' => ['nullable', 'string', 'max:60'],
+            'lok_sabha' => ['nullable', 'string', 'max:40'],
+            'pincode' => ['nullable', 'digits:6'],
+            'has_hs' => ['nullable', 'boolean'],
+            'streams' => ['nullable', 'array'],
+            'streams.*' => [Rule::in(array_keys(School::STREAMS))],
+        ], ['block_id.exists' => 'Select a block of the selected district.', 'cluster_id.exists' => 'Select a cluster of the selected block.',
+            'pincode.digits' => 'Pincode must be 6 digits.']);
 
         $data['state_id'] = District::find($data['district_id'])->state_id;
+        // Streams apply to Higher Secondary schools only: unticked "Has Higher Secondary" clears them.
+        $picked = $data['streams'] ?? [];
+        $data['streams'] = $request->boolean('has_hs')
+            ? collect(School::STREAMS)->mapWithKeys(fn ($l, $k) => [$k => in_array($k, $picked, true)])->all()
+            : null;
+        unset($data['has_hs']);
 
         return $data;
     }

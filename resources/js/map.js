@@ -230,6 +230,7 @@ if (el) {
                 <div class="mp-chips"><span class="mp-status st-${s.status}"><span class="dot st-${s.status}"></span>${status}</span>
                     ${!showRating ? '' : s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}</div>
                 <div class="mp-row"><i class="bi bi-geo-alt"></i><span>${esc(s.area)}</span></div>
+                ${s.info ? `<div class="mp-row"><i class="bi bi-building"></i><span>${esc(s.info)}</span></div>` : ''}
                 ${s.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(s.address)}</span></div>` : ''}
                 ${last}
                 ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}

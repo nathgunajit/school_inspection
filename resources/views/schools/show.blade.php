@@ -37,7 +37,14 @@
                         <dt>Cluster</dt><dd>{{ $school->cluster?->name }}</dd>
                         <dt>Management</dt><dd>{{ $school->management?->label ?? '—' }}</dd>
                         <dt>Category</dt><dd>{{ $school->category?->label ?? '—' }}</dd>
-                        <dt>Address</dt><dd>{{ $school->address ?: '—' }}</dd>
+                        @if ($school->school_type_label || $school->area_type_label)
+                            <dt>School type</dt><dd>{{ collect([$school->school_type_label, $school->area_type_label])->filter()->join(' · ') }}</dd>
+                        @endif
+                        @if ($school->medium_label)<dt>Medium</dt><dd>{{ $school->medium_label }}</dd>@endif
+                        @if ($school->streams_label)<dt>HS streams</dt><dd>{{ $school->streams_label }}</dd>@endif
+                        @if ($school->assembly_constituency)<dt>Assembly</dt><dd>{{ $school->assembly_constituency }}</dd>@endif
+                        @if ($school->lok_sabha)<dt>Lok Sabha</dt><dd>{{ $school->lok_sabha }}</dd>@endif
+                        <dt>Address</dt><dd>{{ $school->address ?: '—' }}@if ($school->pincode) <span class="text-secondary">· PIN {{ $school->pincode }}</span>@endif</dd>
                         <dt>Coordinates</dt><dd>{{ $school->hasCoordinates() ? number_format($school->latitude, 5).', '.number_format($school->longitude, 5) : 'Not available' }}</dd>
                         <dt>Status</dt><dd><span class="badge-soft badge-soft-{{ $school->isActive() ? 'success' : 'secondary' }}">{{ ucfirst($school->status) }}</span></dd>
                     </dl>

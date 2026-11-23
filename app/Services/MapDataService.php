@@ -214,7 +214,7 @@ class MapDataService
             [$insp, $prog, $ib, $pb] = $this->statusSql($filters);
             $q = $this->schoolsQuery($user, 'school', $clusterId, $filters)
                 ->when($search, fn ($w) => $w->where(fn ($s) => $s->where('schools.udise_code', 'like', $search.'%')->orWhere('schools.name', 'like', '%'.$search.'%')))
-                ->selectRaw("schools.id, schools.udise_code, schools.name, schools.address, schools.latitude, schools.longitude,
+                ->selectRaw("schools.id, schools.udise_code, schools.name, schools.address, schools.latitude, schools.longitude, schools.school_type, schools.area_type, schools.medium,
                     schools.district_id, schools.block_id, schools.cluster_id,
                     case when $insp then 'inspected' when $prog then 'in_progress' else 'pending' end as map_status", array_merge($ib, $pb))
                 ->with(['cluster:id,name', 'block:id,name', 'district:id,name'])
@@ -235,6 +235,7 @@ class MapDataService
                 'udise' => $s->udise_code,
                 'name' => $s->name,
                 'address' => $s->address,
+                'info' => collect([$s->school_type_label, $s->area_type_label, $s->medium_label])->filter()->implode(' · ') ?: null, // UDISE+ details
                 'lat' => $s->latitude,
                 'lng' => $s->longitude,
                 'status' => $s->map_status,

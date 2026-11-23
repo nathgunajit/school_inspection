@@ -809,7 +809,14 @@ Indexes: `role_permissions_permission_id_foreign` (permission_id).
 | `cluster_id` | bigint(20) unsigned |  |  | clusters.id (restrict) | No |  |
 | `management_id` | bigint(20) unsigned |  |  | master_values.id (restrict) | Yes |  |
 | `category_id` | bigint(20) unsigned |  |  | master_values.id (restrict) | Yes |  |
+| `school_type` | varchar(10) | 10 |  |  | Yes |  |
+| `area_type` | varchar(10) | 10 |  |  | Yes |  |
+| `medium` | varchar(60) | 60 |  |  | Yes |  |
+| `assembly_constituency` | varchar(60) | 60 |  |  | Yes |  |
+| `lok_sabha` | varchar(40) | 40 |  |  | Yes |  |
+| `streams` | json |  |  |  | Yes |  |
 | `address` | text |  |  |  | Yes |  |
+| `pincode` | char(6) | 6 |  |  | Yes |  |
 | `latitude` | decimal(10,7) | 10,7 |  |  | Yes |  |
 | `longitude` | decimal(10,7) | 10,7 |  |  | Yes |  |
 | `status` | enum('active','closed') | 6 |  |  | No | active |
@@ -817,7 +824,17 @@ Indexes: `role_permissions_permission_id_foreign` (permission_id).
 | `updated_at` | timestamp |  |  |  | Yes |  |
 | `deleted_at` | timestamp |  |  |  | Yes |  |
 
-Indexes: `schools_block_status_name_idx` (block_id, status, name); `schools_category_id_foreign` (category_id); `schools_cluster_status_name_idx` (cluster_id, status, name); `schools_district_status_name_idx` (district_id, status, name); `schools_management_id_foreign` (management_id); `schools_name_index` (name); `schools_state_id_foreign` (state_id); **unique** `schools_udise_code_unique` (udise_code).
+UDISE+ 2025-26 fields (migration `2026_11_23_000001`, all optional), filled from the School Master upload:
+- `school_type`: `boys` / `girls` / `co_ed` (UDISE `School_Type`)
+- `area_type`: `rural` / `urban` (`School_Location`)
+- `medium`: as in `Med_Final_25`, e.g. `AssameseBodo`, shown as "Assamese, Bodo"
+- `assembly_constituency` (`Assembly_Name`) and `lok_sabha` (`LS`)
+- `streams`: JSON such as `{"arts":true,"commerce":false,…}` from the five `*_Stream` columns; null when all are "NA" (no Higher Secondary)
+- `pincode`: 6 digits, else null
+
+Category and Management are matched by their UDISE number (`"1 - Primary"`) to `master_values` codes (`MasterImportService::UDISE_CATEGORY` / `UDISE_MANAGEMENT`).
+
+Indexes: `schools_area_type_index` (area_type); `schools_block_status_name_idx` (block_id, status, name); `schools_category_id_foreign` (category_id); `schools_cluster_status_name_idx` (cluster_id, status, name); `schools_district_status_name_idx` (district_id, status, name); `schools_management_id_foreign` (management_id); `schools_name_index` (name); `schools_state_id_foreign` (state_id); **unique** `schools_udise_code_unique` (udise_code).
 
 #### `sessions`
 

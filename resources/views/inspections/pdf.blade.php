@@ -171,6 +171,7 @@
         <div>
             <span class="sc-chip">{{ $s->management?->label ?? 'Management —' }}</span>
             <span class="sc-chip">{{ $s->category?->label ?? 'Category —' }}</span>
+            @foreach (array_filter([$s->school_type_label, $s->area_type_label, $s->medium_label]) as $chip)<span class="sc-chip">{{ $chip }}</span>@endforeach
             <span class="sc-chip st">{{ $inspection->status->label() }}</span>
         </div>
     </div>

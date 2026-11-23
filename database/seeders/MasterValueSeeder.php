@@ -29,6 +29,9 @@ class MasterValueSeeder extends Seeder
                 'govt_aided' => 'Government Aided',
                 'tribal_welfare' => 'Tribal / Social Welfare Department',
                 'central_govt' => 'Central Government',
+                // UDISE+ 2025-26 management codes 10 and 17 (School Master upload)
+                'kgbv' => 'KGBV / Residential School',
+                'self_based' => 'Self Based School',
                 'other' => 'Other',
             ],
             'category' => [
@@ -38,6 +41,10 @@ class MasterValueSeeder extends Seeder
                 'secondary_full' => 'Primary to Secondary (Class 1–10)',
                 'secondary' => 'Upper Primary with Secondary (Class 6–10)',
                 'secondary_only' => 'Secondary only (Class 9–10)',
+                // UDISE+ 2025-26 category codes 3, 5 and 10 (School Master upload)
+                'pr_to_hsec' => 'Primary to Higher Secondary (Class 1–12)',
+                'upr_to_hsec' => 'Upper Primary to Higher Secondary (Class 6–12)',
+                'sec_hsec' => 'Secondary with Higher Secondary (Class 9–12)',
                 'higher_secondary' => 'Higher Secondary',
             ],
             'photo_category' => [

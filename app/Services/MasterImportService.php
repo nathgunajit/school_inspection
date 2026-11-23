@@ -29,16 +29,36 @@ class MasterImportService
     /** Optional columns (district and block only); older files without them still import. */
     public const LOCATION_OPTIONAL = ['latitude', 'longitude'];
 
-    public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
+    /** Optional UDISE+ 2025-26 columns (all may be left empty; a column missing from the file leaves the stored value as it is). */
+    public const SCHOOL_UDISE_COLUMNS = ['school_type', 'area_type', 'medium', 'assembly_constituency', 'lok_sabha', 'pincode',
+        'arts_stream', 'commerce_stream', 'science_stream', 'vocational_stream', 'other_stream'];
+
+    public const SCHOOL_COLUMNS = ['udise_code', 'school_name', 'district_code', 'block_code', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status', ...self::SCHOOL_UDISE_COLUMNS];
 
     /** District-wise upload: block and district come from the cluster, so these columns are enough. */
     public const SCHOOL_REQUIRED = ['udise_code', 'school_name', 'cluster_code'];
 
-    public const SCHOOL_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status'];
+    public const SCHOOL_DISTRICT_COLUMNS = ['udise_code', 'school_name', 'cluster_code', 'management', 'category', 'address', 'latitude', 'longitude', 'status', ...self::SCHOOL_UDISE_COLUMNS];
 
     /** V12 item 6: heading names used by UDISE+ exports, read as the template columns. */
     public const SCHOOL_ALIASES = ['udise_sch_code' => 'udise_code', 'udise' => 'udise_code', 'udise_code_11' => 'udise_code', 'clcode' => 'cluster_code', 'cluster' => 'cluster_code',
-        'crc_code' => 'cluster_code', 'sch_name' => 'school_name', 'name_of_school' => 'school_name', 'dist_code' => 'district_code', 'distcd' => 'district_code', 'blk_code' => 'block_code', 'blkcd' => 'block_code'];
+        'crc_code' => 'cluster_code', 'sch_name' => 'school_name', 'name_of_school' => 'school_name', 'dist_code' => 'district_code', 'distcd' => 'district_code', 'blk_code' => 'block_code', 'blkcd' => 'block_code',
+        // UDISE+ 2025-26 School Master export (Documents/SchoolMaster_UDISE 202526.xlsx)
+        'cluster_lcode' => 'cluster_code', 'school_location' => 'area_type', 'med_final_25' => 'medium', 'medium_of_instruction' => 'medium',
+        'assembly_name' => 'assembly_constituency', 'ls' => 'lok_sabha', 'lok_sabha_name' => 'lok_sabha', 'other_streams' => 'other_stream', 'pin_code' => 'pincode'];
+
+    /** UDISE+ category number (the "N - " prefix) to the Category master code. */
+    public const UDISE_CATEGORY = [1 => 'primary', 2 => 'primary_upper', 3 => 'pr_to_hsec', 4 => 'upper_primary', 5 => 'upr_to_hsec',
+        6 => 'secondary_full', 7 => 'secondary', 8 => 'secondary_only', 10 => 'sec_hsec', 11 => 'higher_secondary'];
+
+    /** UDISE+ management number to the Management master code. */
+    public const UDISE_MANAGEMENT = [1 => 'dept_education', 10 => 'kgbv', 17 => 'self_based'];
+
+    /** Example values for SCHOOL_UDISE_COLUMNS in the templates (the UDISE+ wording is accepted as it is). */
+    private const UDISE_EXAMPLE = ['3 - Co-ed', '1-Rural', 'Assamese', 'DOTMA (ST)-AC18002', 'KOKRAJHAR (ST)', '783346', 'NA', 'NA', 'NA', 'NA', 'NA'];
+
+    /** @var array<string, int|null> master id per type|value, filled during one import */
+    private array $masterCache = [];
 
     /** V12 item 6: template for all districts at once: the Schools sheet plus every cluster with its block and district. */
     public static function allDistrictsTemplate(): \App\Exports\SchoolTemplateExport
@@ -50,7 +70,7 @@ class MasterImportService
 
         return new \App\Exports\SchoolTemplateExport(
             new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
-                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '', '', 'active',
+                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '', '', 'active', ...self::UDISE_EXAMPLE,
             ]]),
             new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name', 'district_code', 'district_name'],
                 $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name, $c->district_code, $c->district_name])->all()),
@@ -69,7 +89,7 @@ class MasterImportService
 
         return new \App\Exports\SchoolTemplateExport(
             new ArrayExport(self::SCHOOL_DISTRICT_COLUMNS, [[
-                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, '.$district->name, '', '', 'active',
+                ($first?->code ?? '00000000').'001', 'Govt. Primary School No. 1', $first?->code ?? '', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, '.$district->name, '', '', 'active', ...self::UDISE_EXAMPLE,
             ]]),
             new ArrayExport(['cluster_code', 'cluster_name', 'block_code', 'block_name'], $clusters->map(fn ($c) => [$c->code, $c->name, $c->block_code, $c->block_name])->all()),
             'Clusters of '.$district->name,
@@ -108,7 +128,7 @@ class MasterImportService
                 ['cluster', '18010101', 'Riverside Cluster 1', '180101', 'active', '', ''],
             ])
             : new ArrayExport(self::SCHOOL_COLUMNS, [
-                ['18010101001', 'Govt. Primary School No. 1', '1801', '180101', '18010101', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '26.1130000', '91.7110000', 'active'],
+                ['18010101001', 'Govt. Primary School No. 1', '1801', '180101', '18010101', 'Department of Education', 'Primary (Class 1–5)', 'Village, Block, District', '26.1130000', '91.7110000', 'active', ...self::UDISE_EXAMPLE],
             ]);
     }
 
@@ -135,6 +155,7 @@ class MasterImportService
 
     private function readRows(string $type, UploadedFile|string $file, ?District $district, bool $all = false): Collection
     {
+        set_time_limit(0); // a state-wide School Master (~44,000 rows) takes over a minute to read
         $alias = fn ($h) => $type === 'school' ? (self::SCHOOL_ALIASES[$h] ?? $h) : $h;
         $headings = array_map($alias, (new HeadingRowImport)->toArray($file)[0][0] ?? []);
         $expected = $type === 'location' ? self::LOCATION_COLUMNS
@@ -318,6 +339,18 @@ class MasterImportService
             $summary['blocks'][$k][$what]++;
         };
 
+        set_time_limit(0);
+        $this->masterCache = []; // a preview's new master values are rolled back
+        $now = now();
+        $existing = DB::table('schools')->pluck('id', 'udise_code')->all(); // soft-deleted rows included
+        $inserts = [];
+        $flush = function () use (&$inserts) {
+            foreach (array_chunk($inserts, 500) as $chunk) {
+                DB::table('schools')->insert($chunk);
+            }
+            $inserts = [];
+        };
+
         foreach ($rows as $i => $r) {
             $rowNo = $i + 2;
             $known = fn () => $blocksById[$clusters[(string) ($r['cluster_code'] ?? '')]->block_id ?? 0] ?? null;
@@ -353,12 +386,10 @@ class MasterImportService
             if (($lat !== null && $lat !== '') xor ($lng !== null && $lng !== '')) { $fail('Give both latitude and longitude, or neither'); continue; }
             if ($lat !== null && $lat !== '' && (! is_numeric($lat) || ! is_numeric($lng) || abs($lat) > 90 || abs($lng) > 180)) { $fail('Invalid latitude/longitude'); continue; }
 
-            $status = strtolower((string) ($r['status'] ?: 'active'));
+            $status = strtolower((string) (($r['status'] ?? '') ?: 'active'));
             if (! in_array($status, ['active', 'closed'], true)) { $fail('Status must be active or closed'); continue; }
 
-            $school = School::withTrashed()->firstOrNew(['udise_code' => $udise]);
-            $school->exists ? $updated++ : $added++;
-            $school->fill([
+            $attrs = [
                 'name' => mb_substr((string) $r['school_name'], 0, 200),
                 'state_id' => $d->state_id,
                 'district_id' => $d->id,
@@ -370,27 +401,112 @@ class MasterImportService
                 'latitude' => $lat === '' ? null : $lat,
                 'longitude' => $lng === '' ? null : $lng,
                 'status' => $status,
-            ]);
-            $school->deleted_at = null;
-            $tally($b, $school->exists ? 'updated' : 'added');
-            $school->save();
+                'deleted_at' => null,
+                'updated_at' => $now,
+            ] + $this->udiseFields($r);
+
+            // Query builder, not Eloquent: a state-wide file has ~44,000 rows and is run twice (preview, then confirm).
+            if (isset($existing[$udise])) {
+                DB::table('schools')->where('id', $existing[$udise])->update($attrs);
+                $updated++;
+                $tally($b, 'updated');
+            } else {
+                $inserts[] = $attrs + ['udise_code' => $udise, 'created_at' => $now];
+                $added++;
+                $tally($b, 'added');
+                if (count($inserts) >= 500) {
+                    $flush();
+                }
+            }
         }
+        $flush();
 
         uasort($summary['districts'], fn ($x, $y) => strcmp($x['name'], $y['name']));
 
         return compact('added', 'updated', 'errors', 'summary');
     }
 
-    /** Match a master value by code or label; add it if new (UDISE exports vary in wording). */
+    /**
+     * Match a master value by code or label; add it if new (UDISE exports vary in wording).
+     * UDISE+ values such as "1 - Primary" are matched by their number first (UDISE_CATEGORY / UDISE_MANAGEMENT),
+     * then by the text after the number. Results are cached for the rest of the import.
+     */
     private function masterId(string $type, mixed $value): ?int
     {
         $value = trim((string) $value);
         if ($value === '') {
             return null;
         }
-        $mv = MasterValue::where('type', $type)
-            ->where(fn ($q) => $q->where('code', Str::snake($value))->orWhere('label', $value))->first();
+        $key = $type.'|'.$value;
+        if (array_key_exists($key, $this->masterCache)) {
+            return $this->masterCache[$key];
+        }
 
-        return ($mv ?? MasterValue::create(['type' => $type, 'code' => Str::limit(Str::snake($value), 40, ''), 'label' => $value, 'sort' => 999]))->id;
+        [$no, $text] = self::udiseNumbered($value);
+        $map = ['category' => self::UDISE_CATEGORY, 'management' => self::UDISE_MANAGEMENT][$type] ?? [];
+        $mv = $no !== null && isset($map[$no]) ? MasterValue::where('type', $type)->where('code', $map[$no])->first() : null;
+        $mv ??= MasterValue::where('type', $type)
+            ->where(fn ($q) => $q->where('code', Str::snake($text))->orWhere('label', $text))->first();
+        $mv ??= MasterValue::create(['type' => $type, 'code' => Str::limit(Str::snake($text), 40, ''), 'label' => mb_substr($text, 0, 120), 'sort' => 999]);
+
+        return $this->masterCache[$key] = $mv->id;
+    }
+
+    /** "3 - Co-ed" → [3, 'Co-ed']; "1-Rural" → [1, 'Rural']; "Co-ed" → [null, 'Co-ed']. */
+    public static function udiseNumbered(mixed $value): array
+    {
+        $value = trim((string) $value);
+
+        return preg_match('/^(\d+)\s*-\s*(.+)$/u', $value, $m) ? [(int) $m[1], trim($m[2])] : [null, $value];
+    }
+
+    /**
+     * The optional UDISE+ fields of one row. Only columns present in the file are returned, so an older template
+     * leaves the stored values alone. A value that cannot be read is stored as null; it never rejects the row.
+     */
+    private function udiseFields(Collection $r): array
+    {
+        $has = fn ($c) => $r->has($c);
+        $text = fn ($c, $len) => ($v = trim((string) ($r[$c] ?? ''))) === '' || strtoupper($v) === 'NA' ? null : mb_substr($v, 0, $len);
+        $out = [];
+
+        if ($has('school_type')) {
+            $out['school_type'] = self::pick($r['school_type'], [1 => 'boys', 2 => 'girls', 3 => 'co_ed'], ['boys' => 'boys', 'girls' => 'girls', 'coed' => 'co_ed', 'co_ed' => 'co_ed', 'co_educational' => 'co_ed']);
+        }
+        if ($has('area_type')) {
+            $out['area_type'] = self::pick($r['area_type'], [1 => 'rural', 2 => 'urban'], ['rural' => 'rural', 'urban' => 'urban']);
+        }
+        foreach (['medium' => 60, 'assembly_constituency' => 60, 'lok_sabha' => 40] as $c => $len) {
+            if ($has($c)) {
+                $out[$c] = $text($c, $len);
+            }
+        }
+        if ($has('pincode')) {
+            $pin = preg_replace('/\D/', '', (string) ($r['pincode'] ?? ''));
+            $out['pincode'] = strlen($pin) === 6 ? $pin : null;
+        }
+
+        $streamCols = array_filter(array_keys(School::STREAMS), fn ($s) => $has($s.'_stream'));
+        if ($streamCols) {
+            $streams = [];
+            foreach ($streamCols as $s) {
+                $v = self::pick($r[$s.'_stream'], [1 => true, 2 => false], ['yes' => true, 'y' => true, 'no' => false, 'n' => false]);
+                if ($v !== null) {
+                    $streams[$s] = $v;
+                }
+            }
+            $out['streams'] = $streams ? json_encode($streams) : null;
+        }
+
+        return $out;
+    }
+
+    /** Read a UDISE+ coded value by its number ("2 - Girls") or its words ("Girls"). */
+    private static function pick(mixed $value, array $byNumber, array $byWord): mixed
+    {
+        [$no, $text] = self::udiseNumbered($value);
+        $word = Str::snake(str_replace('-', '', strtolower($text)));
+
+        return $byWord[$word] ?? ($no !== null ? ($byNumber[$no] ?? null) : null);
     }
 }
