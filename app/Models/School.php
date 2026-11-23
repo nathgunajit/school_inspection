@@ -38,14 +38,56 @@ class School extends Model
         return self::AREA_TYPES[$this->area_type] ?? null;
     }
 
-    /** "AssameseBodoEnglish" → "Assamese, Bodo, English" (UDISE joins the languages). */
-    public function getMediumLabelAttribute(): ?string
+    /**
+     * 23-11-2026: a school may teach in more than one medium. `medium` is stored as a list, "Assamese, Bodo".
+     * Known languages (the School Master tick boxes and the list filter).
+     */
+    public const MEDIUMS = ['Assamese', 'Bengali', 'Bodo', 'English', 'Hindi', 'Garo', 'Manipuri', 'Bishnupriya Manipuri', 'Hmar', 'Karbi', 'Nepali'];
+
+    /**
+     * "AssameseBodo", "Assamese,Bodo", ['Assamese', 'Bodo'] → "Assamese, Bodo" (UDISE+ Med_Final_25 joins the languages).
+     * Known names are matched first (case-insensitive, longest first, so "Bishnupriya manipuri" stays one language);
+     * any other text is split on capitals, commas, slashes and spaces. Duplicates are dropped; null when empty.
+     */
+    public static function normaliseMedium(string|array|null $value): ?string
     {
-        if (! $this->medium) {
+        $text = is_array($value) ? implode(',', array_filter(array_map('strval', $value))) : (string) $value;
+        if (trim($text) === '') {
             return null;
         }
+        $known = self::MEDIUMS;
+        usort($known, fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+        $pattern = '/'.implode('|', array_map(fn ($k) => str_replace(' ', '\s*', preg_quote($k, '/')), $known)).'/i';
 
-        return implode(', ', preg_split('/(?<=[a-z])(?=[A-Z])|\s*[,\/]\s*/', trim($this->medium)));
+        $found = []; // offset => name
+        $rest = preg_replace_callback($pattern, function ($m) use (&$found, $known, $text) {
+            $name = collect($known)->first(fn ($k) => preg_match('/^'.str_replace(' ', '\s*', preg_quote($k, '/')).'$/i', $m[0][0]));
+            $found[$m[0][1]] = $name;
+
+            return str_repeat(',', strlen($m[0][0])); // keep the offsets of the other words
+        }, $text, -1, $count, PREG_OFFSET_CAPTURE);
+
+        // other words: split on camel case, commas, slashes and spaces
+        preg_match_all('/[^\s,\/;]+/u', preg_replace('/(?<=[a-z])(?=[A-Z])/', ' ', $rest), $m, PREG_OFFSET_CAPTURE);
+        foreach ($m[0] as [$word, $off]) {
+            $found[$off] = mb_convert_case($word, MB_CASE_TITLE);
+        }
+        ksort($found);
+        $list = array_values(array_unique($found));
+
+        return $list ? mb_substr(implode(', ', $list), 0, 120) : null;
+    }
+
+    /** The mediums as a list, e.g. ['Assamese', 'Bodo']. */
+    public function mediums(): array
+    {
+        return $this->medium ? array_values(array_filter(array_map('trim', explode(',', self::normaliseMedium($this->medium) ?? '')))) : [];
+    }
+
+    /** "Assamese, Bodo" (older joined values such as "AssameseBodo" are read the same way). */
+    public function getMediumLabelAttribute(): ?string
+    {
+        return $this->medium ? self::normaliseMedium($this->medium) : null;
     }
 
     /** Streams offered, e.g. "Arts, Science"; null when the school has no Higher Secondary data. */

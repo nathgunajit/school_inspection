@@ -51,10 +51,23 @@
                             <label class="form-label">Rural / Urban</label>
                             <select name="area_type" class="form-select"><option value="">—</option>@foreach (\App\Models\School::AREA_TYPES as $k => $l)<option value="{{ $k }}" @selected(old('area_type', $school->area_type) === $k)>{{ $l }}</option>@endforeach</select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Medium of instruction</label>
-                            <input name="medium" value="{{ old('medium', $school->medium) }}" maxlength="60" class="form-control @error('medium') is-invalid @enderror" placeholder="e.g. Assamese">
-                            @error('medium')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        {{-- 23-11-2026: a school may teach in more than one medium (e.g. Assamese and Bodo); stored as "Assamese, Bodo" --}}
+                        @php
+                            $mediumsNow = $school->mediums();
+                            $mediumsPicked = old('medium', array_values(array_intersect($mediumsNow, \App\Models\School::MEDIUMS)));
+                            $mediumOther = old('medium_other', implode(', ', array_diff($mediumsNow, \App\Models\School::MEDIUMS)));
+                        @endphp
+                        <div class="col-12">
+                            <label class="form-label d-block">Medium of instruction <small class="text-secondary fw-normal">· tick every medium taught</small></label>
+                            <div class="d-flex flex-wrap gap-2 medium-picks">
+                                @foreach (\App\Models\School::MEDIUMS as $m)
+                                    <input type="checkbox" class="btn-check" name="medium[]" value="{{ $m }}" id="med_{{ $loop->index }}" @checked(in_array($m, (array) $mediumsPicked, true))>
+                                    <label class="btn btn-sm btn-outline-primary" for="med_{{ $loop->index }}">{{ $m }}</label>
+                                @endforeach
+                            </div>
+                            <input name="medium_other" value="{{ $mediumOther }}" maxlength="60" class="form-control mt-2 @error('medium_other') is-invalid @enderror" placeholder="Other medium, if not listed (e.g. Rabha)" aria-label="Other medium">
+                            @error('medium_other')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('medium')<div class="text-danger text-xs mt-1">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="s_ac">Assembly constituency (AC)</label>

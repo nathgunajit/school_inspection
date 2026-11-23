@@ -2372,3 +2372,11 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `schools/_results.blade.php`: "Not inspected yet" is highlighted (`.school-tag.todo`, `app.scss`); inspected schools show "Inspected N times · last DD Mon YYYY"; the list header says the order.
 - Test: `InspectionFlowTest::test_find_school_lists_not_inspected_first_then_least_visited`. Docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, docx rebuilt.
 - Verified: `php artisan test`, all passing; the ordering query on MySQL for a district of 1,733 schools takes about 0.1 s (index `insp_school_status_date_idx`).
+
+## 2026-11-23: Inspection PDF shows limited school data; a school may have more than one medium
+- **PDF** (`inspections/pdf.blade.php`): the school card no longer prints School type (Boys / Girls / Co-ed) or Rural / Urban; it shows "Medium: …" with management, category and status.
+- **Medium** (`School::MEDIUMS`, `normaliseMedium()`, `mediums()`, `medium_label`): stored as a list "Assamese, Bodo". Known languages are matched first ("Bishnupriya Manipuri" stays one), other text is split on capitals / commas / slashes / spaces, duplicates dropped.
+  - Migration `2026_11_23_000003_normalise_school_medium`: column widened to 120 and every stored value normalised. MySQL: run 23-11-2026 in 8 s, 44,197 schools keep a medium, "Assamese, Bodo" = 1,207 (was "AssameseBodo" 1,203 + "Assamese,Bodo" 4). Backup of id + medium before the run: session scratchpad `before_medium.tsv`.
+  - Import (`MasterImportService`) normalises UDISE `Med_Final_25`. School Master form: tick boxes per language plus "Other medium" (`SchoolMasterController::validated()`). School Master list: Medium filter (`medium like %X%`, also used by the Excel export).
+- Tests: new `SchoolMediumTest`; `SchoolUdiseImportTest` now expects "Assamese, Bodo". Docs: `CLAUDE.md`, Database doc, docx rebuilt.
+- Verified: `php artisan test`, all passing. The School Master form not opened in a browser.

@@ -47,6 +47,11 @@
             <select name="school_type" class="form-select" data-autosubmit aria-label="School type"><option value="">Type</option>
                 @foreach (\App\Models\School::SCHOOL_TYPES as $k => $l)<option value="{{ $k }}" @selected(request('school_type') === $k)>{{ $l }}</option>@endforeach</select>
         </div>
+        {{-- 23-11-2026: a school with "Assamese, Bodo" is found under both --}}
+        <div class="col-6 col-md-2">
+            <select name="medium" class="form-select" data-autosubmit aria-label="Medium"><option value="">Any medium</option>
+                @foreach (\App\Models\School::MEDIUMS as $m)<option value="{{ $m }}" @selected(request('medium') === $m)>{{ $m }}</option>@endforeach</select>
+        </div>
         <div class="col-12 col-md-2 d-flex gap-2">
             <button class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i>Search</button>
             @if ($filtered)<a href="{{ route('admin.schools.index') }}" class="btn btn-light" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>@endif

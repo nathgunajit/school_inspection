@@ -173,7 +173,8 @@
         <div>
             <span class="sc-chip">{{ $s->management?->label ?? 'Management —' }}</span>
             <span class="sc-chip">{{ $s->category?->label ?? 'Category —' }}</span>
-            @foreach (array_filter([$s->school_type_label, $s->area_type_label, $s->medium_label]) as $chip)<span class="sc-chip">{{ $chip }}</span>@endforeach
+            {{-- 23-11-2026: limited school data; school type and rural / urban are not printed, the medium is --}}
+            @if ($s->medium_label)<span class="sc-chip">Medium: {{ $s->medium_label }}</span>@endif
             <span class="sc-chip st">{{ $inspection->status->label() }}</span>
         </div>
     </div>

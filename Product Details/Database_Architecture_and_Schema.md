@@ -815,7 +815,7 @@ Indexes: `role_permissions_permission_id_foreign` (permission_id).
 | `category_id` | bigint(20) unsigned |  |  | master_values.id (restrict) | Yes |  |
 | `school_type` | varchar(10) | 10 |  |  | Yes |  |
 | `area_type` | varchar(10) | 10 |  |  | Yes |  |
-| `medium` | varchar(60) | 60 |  |  | Yes |  |
+| `medium` | varchar(120) | 120 |  |  | Yes | List, e.g. "Assamese, Bodo" (a school may teach in more than one medium) |
 | `ac_id` | bigint(20) unsigned |  |  | assembly_constituencies.id (restrict) | Yes |  |
 | `pc_id` | bigint(20) unsigned |  |  | parliamentary_constituencies.id (restrict) | Yes |  |
 | `streams` | json |  |  |  | Yes |  |

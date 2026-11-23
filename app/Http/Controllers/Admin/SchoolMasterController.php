@@ -18,7 +18,7 @@ use Illuminate\Validation\Rule;
 class SchoolMasterController extends Controller
 {
     /** Modification V13 item 2: list filters (query string, numeric IDs), shared by the list and its Excel export. */
-    public const FILTERS = ['q', 'district_id', 'block_id', 'cluster_id', 'ac_id', 'pc_id', 'management_id', 'category_id', 'area_type', 'school_type', 'status'];
+    public const FILTERS = ['q', 'district_id', 'block_id', 'cluster_id', 'ac_id', 'pc_id', 'management_id', 'category_id', 'area_type', 'school_type', 'medium', 'status'];
 
     public function index(Request $request)
     {
@@ -106,6 +106,8 @@ class SchoolMasterController extends Controller
             ->when($id('category_id'), fn ($q, $v) => $q->where('category_id', $v))
             ->when($request->query('area_type'), fn ($q, $v) => $q->where('area_type', $v))
             ->when($request->query('school_type'), fn ($q, $v) => $q->where('school_type', $v))
+            // 23-11-2026: a school with "Assamese, Bodo" is found under both languages
+            ->when(in_array($request->query('medium'), School::MEDIUMS, true) ? $request->query('medium') : null, fn ($q, $v) => $q->where('medium', 'like', '%'.$v.'%'))
             ->when($request->query('status'), fn ($q, $v) => $q->where('status', $v));
     }
 
@@ -166,7 +168,10 @@ class SchoolMasterController extends Controller
             // UDISE+ 2025-26 fields
             'school_type' => ['nullable', Rule::in(array_keys(School::SCHOOL_TYPES))],
             'area_type' => ['nullable', Rule::in(array_keys(School::AREA_TYPES))],
-            'medium' => ['nullable', 'string', 'max:60'],
+            // 23-11-2026: one or more mediums (tick boxes) plus an optional other language
+            'medium' => ['nullable'],
+            'medium.*' => ['string', 'max:60'],
+            'medium_other' => ['nullable', 'string', 'max:60'],
             'ac_id' => ['nullable', Rule::exists('assembly_constituencies', 'id')],
             'pincode' => ['nullable', 'digits:6'],
             'has_hs' => ['nullable', 'boolean'],
@@ -184,6 +189,9 @@ class SchoolMasterController extends Controller
             ? collect(School::STREAMS)->mapWithKeys(fn ($l, $k) => [$k => in_array($k, $picked, true)])->all()
             : null;
         unset($data['has_hs']);
+        // tick boxes (array) or older single text; saved as "Assamese, Bodo"
+        $data['medium'] = School::normaliseMedium(array_merge((array) ($data['medium'] ?? []), [$data['medium_other'] ?? '']));
+        unset($data['medium_other']);
 
         return $data;
     }

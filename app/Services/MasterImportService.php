@@ -643,7 +643,7 @@ class MasterImportService
             $out['area_type'] = self::pick($r['area_type'], [1 => 'rural', 2 => 'urban'], ['rural' => 'rural', 'urban' => 'urban']);
         }
         if ($has('medium')) {
-            $out['medium'] = $text('medium', 60);
+            $out['medium'] = School::normaliseMedium($text('medium', 120)); // 23-11-2026: "AssameseBodo" → "Assamese, Bodo"
         }
         if ($has('ac') || $has('pc')) {
             [$acId, $pcId] = $this->constituency($r['ac'] ?? null, $r['pc'] ?? null);

@@ -72,7 +72,7 @@ class SchoolUdiseImportTest extends TestCase
         $this->assertSame('dept_education', $a->management->code);
         $this->assertSame('co_ed', $a->school_type);
         $this->assertSame('rural', $a->area_type);
-        $this->assertSame('AssameseBodo', $a->medium);
+        $this->assertSame('Assamese, Bodo', $a->medium); // 23-11-2026: stored as a list
         $this->assertSame('Assamese, Bodo', $a->medium_label);
         $this->assertSame('AC18002', $a->ac->code);
         $this->assertSame('DOTMA (ST)', $a->ac->name);
