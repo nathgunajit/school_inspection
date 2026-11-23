@@ -161,8 +161,9 @@ class MapDataService
                     'code' => $a->code,
                     'name' => $a->name, // matched to boundary names in map.js
                     'label' => $a->label,
-                    'lat' => $a->latitude ?? ($r?->lat !== null ? round((float) $r->lat, 6) : null),
-                    'lng' => $a->longitude ?? ($r?->lng !== null ? round((float) $r->lng, 6) : null),
+                    // the centre of the area's schools; a district / block point is its office (offices()), used only when there are no schools with GPS
+                    'lat' => $r?->lat !== null ? round((float) $r->lat, 6) : $a->latitude,
+                    'lng' => $r?->lng !== null ? round((float) $r->lng, 6) : $a->longitude,
                     'schools' => $total,
                     'inspected' => $inspected,
                     'in_progress' => $progress,
@@ -242,6 +243,8 @@ class MapDataService
                 'status' => $s->map_status,
                 'area' => collect([$s->cluster?->label, $s->block?->label, $s->district?->label])->filter()->implode(' · '),
                 'cluster_id' => $s->cluster_id,
+                'block_id' => $s->block_id, // 23-11-2026: the Block / District office distances in the popup
+                'district_id' => $s->district_id,
                 'last' => ($l = $last->get($s->id)) ? [
                     'id' => $l->id, 'key' => $l->getRouteKey(), 'no' => $l->inspection_no, 'date' => $l->inspection_date?->format('d-m-Y'), 'officer' => $l->officer?->name,
                 ] : null,
@@ -250,6 +253,56 @@ class MapDataService
                     'score' => (float) $l->rating->score_percent, 'band' => $l->rating->band, 'color' => $l->rating->color,
                 ] : null,
             ])->values()->all();
+        });
+    }
+
+    /**
+     * 23-11-2026: District and Block offices for the map (their latitude / longitude in the Location Master).
+     *  state view (district level)  → every district office
+     *  inside a district (block)    → that district office and its block offices
+     *  inside a block / a cluster   → the block office and its district office
+     *  a school search              → the offices of the schools found
+     * Outside the State, only the user's own district / block (and the district that contains them) is listed.
+     * Active offices with coordinates only.
+     *
+     * @return list<array{type: string, id: int, name: string, label: string, lat: float, lng: float, address: ?string}>
+     */
+    public function offices(User $user, string $level, ?int $parent, array $schoolRows = []): array
+    {
+        $districtIds = $blockIds = null; // null = every one
+        $blocksToo = true;
+        if ($level === 'district') {
+            $blocksToo = false;
+        } elseif ($level === 'block' && $parent !== null) {
+            $districtIds = [$parent];
+            $blockIds = Block::where('district_id', $parent)->pluck('id')->all();
+        } elseif (($level === 'cluster' || $level === 'school') && $parent !== null) {
+            $chain = $this->chain($level === 'cluster' ? 'block' : 'cluster', $parent);
+            $districtIds = [$chain['district_id'] ?? 0];
+            $blockIds = [$chain['block_id'] ?? 0];
+        } else {
+            $districtIds = array_values(array_unique(array_filter(array_column($schoolRows, 'district_id'))));
+            $blockIds = array_values(array_unique(array_filter(array_column($schoolRows, 'block_id'))));
+        }
+
+        return $this->remember($user, ['offices', $level, $parent, $districtIds, $blockIds], function () use ($user, $districtIds, $blockIds, $blocksToo) {
+            $jur = $user->level->isStateWide() ? null : $this->j->current($user);
+            $scope = fn ($q, string $col) => $q->where('is_active', true)->whereNotNull('latitude')->whereNotNull('longitude')
+                ->when($jur && $jur->$col, fn ($w) => $w->whereKey($jur->$col));
+            $row = fn (string $type, $m) => [
+                'type' => $type, 'id' => $m->id, 'name' => $m->name, 'label' => $m->label,
+                'lat' => (float) $m->latitude, 'lng' => (float) $m->longitude, 'address' => $m->office_address,
+            ];
+
+            $districts = $scope(District::query(), 'district_id')->when($districtIds !== null, fn ($q) => $q->whereIn('id', $districtIds))
+                ->orderBy('name')->get(['id', 'code', 'name', 'latitude', 'longitude', 'office_address'])->map(fn ($d) => $row('district', $d));
+            $blocks = $blocksToo
+                ? $scope(Block::query(), 'block_id')->when($blockIds !== null, fn ($q) => $q->whereIn('id', $blockIds))
+                    ->when($jur && ! $jur->block_id && $jur->district_id, fn ($q) => $q->where('district_id', $jur->district_id))
+                    ->orderBy('name')->limit(500)->get(['id', 'code', 'name', 'latitude', 'longitude', 'office_address'])->map(fn ($b) => $row('block', $b))
+                : collect();
+
+            return $districts->concat($blocks)->values()->all();
         });
     }
 

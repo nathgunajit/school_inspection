@@ -18,7 +18,7 @@
                         </select>
                     </div>
                 @endif
-                <div class="col-auto"><button class="btn btn-primary btn-icon" aria-label="Search"><i class="bi bi-search"></i></button></div>
+                <div class="col-12 col-sm-auto"><x-filter-buttons /></div>
                 {{-- 23-11-2026: the list with these filters as Excel or PDF --}}
                 <div class="col-auto dropdown">
                     <button type="button" class="btn btn-soft-primary" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-download"></i><span class="d-none d-sm-inline">Download</span></button>
@@ -108,12 +108,16 @@
                                         <input name="name" value="{{ $v('name', $item->name) }}" class="form-control {{ $err->has('name') ? 'is-invalid' : '' }}" required>
                                         @if ($err->has('name'))<div class="invalid-feedback">{{ $err->first('name') }}</div>@endif</div>
                                     @if ($geo)
-                                        <div class="col-6"><label class="form-label">Latitude <span class="opt">optional</span></label>
+                                        <div class="col-12 form-text mt-2 mb-n1"><i class="bi bi-building me-1"></i>{{ $label }} office location: shown on the Map View with the distance to each school.</div>
+                                        <div class="col-6"><label class="form-label">Office latitude <span class="opt">optional</span></label>
                                             <input name="latitude" value="{{ $v('latitude', $item->latitude) }}" inputmode="decimal" class="form-control {{ $err->has('latitude') ? 'is-invalid' : '' }}" placeholder="26.1445">
                                             @if ($err->has('latitude'))<div class="invalid-feedback">{{ $err->first('latitude') }}</div>@endif</div>
-                                        <div class="col-6"><label class="form-label">Longitude <span class="opt">optional</span></label>
+                                        <div class="col-6"><label class="form-label">Office longitude <span class="opt">optional</span></label>
                                             <input name="longitude" value="{{ $v('longitude', $item->longitude) }}" inputmode="decimal" class="form-control {{ $err->has('longitude') ? 'is-invalid' : '' }}" placeholder="91.7362">
                                             @if ($err->has('longitude'))<div class="invalid-feedback">{{ $err->first('longitude') }}</div>@endif</div>
+                                        <div class="col-12"><label class="form-label">Office address <span class="opt">optional</span></label>
+                                            <input name="office_address" value="{{ $v('office_address', $item->office_address) }}" maxlength="255" class="form-control {{ $err->has('office_address') ? 'is-invalid' : '' }}" placeholder="e.g. Office of the DMC, Kokrajhar">
+                                            @if ($err->has('office_address'))<div class="invalid-feedback">{{ $err->first('office_address') }}</div>@endif</div>
                                     @endif
                                     @if ($type === 'districts' && $boundaryNames)
                                         {{-- V6 Module 7: KML outline drawn for this district on the maps --}}
@@ -167,7 +171,10 @@
                                     @error('longitude')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
-                            <div class="form-text mb-3"><i class="bi bi-info-circle me-1"></i>Headquarters location in decimal degrees.</div>
+                            <label class="form-label mt-2">Office address <span class="opt">optional</span></label>
+                            <input name="office_address" value="{{ $addOld('office_address') }}" maxlength="255" class="form-control @error('office_address') is-invalid @enderror">
+                            @error('office_address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text mb-3"><i class="bi bi-info-circle me-1"></i>Office location in decimal degrees. It is shown on the Map View with the distance to each school.</div>
                         @endif
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>

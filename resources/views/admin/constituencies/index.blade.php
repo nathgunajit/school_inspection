@@ -23,7 +23,7 @@
                             @foreach ($pcs as $p)<option value="{{ $p->id }}" @selected($pcFilter === $p->id)>{{ $p->label }}</option>@endforeach
                         </select>
                     </div>
-                    <div class="col-auto"><button class="btn btn-primary btn-icon" aria-label="Search"><i class="bi bi-search"></i></button></div>
+                    <div class="col-12 col-sm-auto"><x-filter-buttons :reset="route('admin.constituencies.index')" /></div>
                 </form>
 
                 <div class="card">

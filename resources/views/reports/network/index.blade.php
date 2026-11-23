@@ -2,12 +2,12 @@
 <x-layouts.app title="Network Issues at Schools">
     <p class="text-secondary text-sm mb-3">Schools where the inspecting officer reported an internet or network problem. Use the remarks to arrange connectivity and raise the issue.</p>
 
-    <div class="row g-3 mb-3">
+    <div id="nw-stats" class="row g-3 mb-3" data-filter-region>
         <div class="col-6 col-md-3"><x-stat-card label="Reports" :value="$total" icon="bi-wifi-off" tone="warning" /></div>
         <div class="col-6 col-md-3"><x-stat-card label="Schools" :value="$schools" icon="bi-building" /></div>
     </div>
 
-    <form method="GET" class="card card-body mb-3">
+    <form method="GET" id="nw-form" class="filter-bar mb-3" data-filter data-filter-region data-loader-text="Loading network issues…">
         <div class="row g-2 align-items-end">
             @if ($districts->isNotEmpty())
                 <div class="col-12 col-md-4"><label class="form-label text-sm" for="nf_d">District</label>
@@ -16,12 +16,11 @@
             @endif
             <div class="col-6 col-md-3"><label class="form-label text-sm" for="nf_from">From</label><input id="nf_from" type="date" name="from" value="{{ $f['from'] ?? '' }}" class="form-control"></div>
             <div class="col-6 col-md-3"><label class="form-label text-sm" for="nf_to">To</label><input id="nf_to" type="date" name="to" value="{{ $f['to'] ?? '' }}" class="form-control"></div>
-            <div class="col-12 col-md d-flex gap-2">
-                <button class="btn btn-primary flex-grow-1"><i class="bi bi-funnel"></i>Apply</button>
-                <a href="{{ url()->current() }}" class="btn btn-light" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>
-            </div>
+            <div class="col-12 col-md-auto"><x-filter-buttons /></div>
         </div>
     </form>
+
+    <div id="nw-results" data-filter-region data-filter-results>
 
     <div class="card">
         <div class="table-responsive">
@@ -48,4 +47,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $rows->links() }}</div>
+    </div>
 </x-layouts.app>

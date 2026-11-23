@@ -29,16 +29,17 @@
         </div>
     </div>
 
-    <form method="GET" class="filter-bar mb-3 row g-2">
-        <div class="col-12 col-md-3"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="User name or mobile"></div>
+    <form method="GET" id="au-form" class="filter-bar mb-3 row g-2" data-filter data-filter-region data-loader-text="Loading audit log…">
+        <div class="col-12 col-md"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="User name or mobile"></div>
         <div class="col-6 col-md-2"><select name="action" class="form-select" data-autosubmit aria-label="Action"><option value="">All actions</option>
             @foreach ($actions as $a)<option value="{{ $a }}" @selected(request('action') === $a)>{{ str_replace('_', ' ', $a) }}</option>@endforeach</select></div>
         <div class="col-6 col-md-2"><input name="ip" value="{{ request('ip') }}" class="form-control" placeholder="IP address"></div>
         <div class="col-6 col-md-2"><input type="date" name="from" value="{{ request('from') }}" class="form-control" aria-label="From"></div>
         <div class="col-6 col-md-2"><input type="date" name="to" value="{{ request('to') }}" class="form-control" aria-label="To"></div>
-        <div class="col-12 col-md-1 d-grid"><button class="btn btn-primary"><i class="bi bi-search"></i></button></div>
+        <div class="col-12 col-md-auto"><x-filter-buttons /></div>
     </form>
 
+    <div id="au-results" data-filter-region data-filter-results>
     <div class="card">
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
@@ -61,4 +62,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $logs->links() }}</div>
+    </div>
 </x-layouts.app>

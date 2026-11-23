@@ -7,7 +7,7 @@ import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
-import { createMap, schoolIcon, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline, createDirections, directionsPanelHtml, bindDirectionsPanel } from './map-common';
+import { createMap, schoolIcon, officeIcon, haversineKm, fmtKm, directionsUrl, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline, createDirections, directionsPanelHtml, bindDirectionsPanel } from './map-common';
 
 const el = document.getElementById('map');
 if (el) {
@@ -28,6 +28,11 @@ if (el) {
     let current = { ...start };
     let lastRows = [];
     const markers = new Map();
+    // 23-11-2026: District / Block offices, drawn above the schools, with distances in the school popups
+    map.createPane('offices').style.zIndex = 640;
+    const officeLayer = L.layerGroup().addTo(map);
+    let offices = [];
+    const officeOf = (type, id) => offices.find((o) => o.type === type && o.id === id);
 
     const $ = (id) => document.getElementById(id);
     const filters = () => ({ from: $('fFrom').value, to: $('fTo').value, officer: $('fOfficer').value });
@@ -83,9 +88,11 @@ if (el) {
                 : await getJson(cfg.urls.areas.replace('__L__', level) + '?' + qs({ parent, ...filters() }));
             current = { level, parent };
             lastRows = data.rows;
+            offices = data.offices || [];
             renderStats(data.totals);
             renderCrumbs(data.breadcrumb, level);
             level === 'school' ? renderSchools(data.rows, focusSchool) : renderAreas(data.rows, level);
+            renderOffices();
             renderTable(data.rows, level);
             syncSelects(data.breadcrumb, level, data.rows);
             syncOutline(data.outline || null, level);
@@ -235,6 +242,57 @@ if (el) {
         else fitTo(map, stateLayer ? stateLayer.getBounds() : [], cfg);
     }
 
+    /* ---- 23-11-2026: District / Block offices ---- */
+    const officeName = (o) => (o.type === 'district' ? 'District office' : 'Block office');
+    const schoolPts = () => (current.level === 'school' ? lastRows.filter((s) => s.lat !== null && s.lng !== null) : []);
+
+    function officePopup(o) {
+        const pts = schoolPts().filter((s) => (o.type === 'district' ? s.district_id === o.id : s.block_id === o.id))
+            .map((s) => ({ s, km: haversineKm([o.lat, o.lng], [s.lat, s.lng]) })).sort((a, b) => a.km - b.km);
+        const span = pts.length
+            ? `<div class="mp-row"><i class="bi bi-rulers"></i><span>${fmt(pts.length)} school(s) shown · nearest <b>${fmtKm(pts[0].km)}</b>, farthest <b>${fmtKm(pts[pts.length - 1].km)}</b> <span class="text-muted">(approx.)</span></span></div>`
+            : '';
+        return `<div class="map-pop map-pop-office office-${o.type}">
+            <div class="mp-head"><div class="mp-icon"><i class="bi bi-building-fill"></i></div>
+                <div class="min-w-0"><div class="mp-title">${esc(officeName(o))}</div><div class="mp-sub">${esc(o.label)}</div></div></div>
+            <div class="mp-body">
+                ${o.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(o.address)}</span></div>` : ''}
+                <div class="mp-row"><i class="bi bi-geo-alt"></i><span class="font-monospace text-xs">${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}</span></div>
+                ${span}
+                ${directionsPanelHtml(o.lat, o.lng)}
+            </div></div>`;
+    }
+
+    function renderOffices() {
+        officeLayer.clearLayers();
+        const on = $('fOffices')?.checked !== false;
+        document.querySelector('[data-office-key]')?.classList.toggle('d-none', !(on && offices.length));
+        const note = $('officeNote');
+        if (note) note.textContent = offices.length ? `${offices.length} office(s) in this view` : 'No office location is set for this area (Location Master → Office latitude / longitude).';
+        if (!on) return;
+        offices.forEach((o) => {
+            L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
+                .bindTooltip(`${o.type === 'district' ? 'District' : 'Block'} office · ${esc(o.name)}`, { permanent: offices.length <= 40, direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
+                .bindPopup(officePopup(o))
+                .addTo(officeLayer);
+        });
+    }
+
+    /** The school's distance to its Block and District office (straight line), with a Google Maps route from the office. */
+    function officeRows(s) {
+        if (s.lat === null || s.lng === null) return '';
+        const row = (type, id) => {
+            const o = officeOf(type, id);
+            const name = type === 'district' ? 'District office' : 'Block office';
+            if (!o) return `<div class="mp-row text-muted"><i class="bi bi-building"></i><span>${name}: location not set</span></div>`;
+            const km = haversineKm([o.lat, o.lng], [s.lat, s.lng]);
+            return `<div class="mp-row"><i class="bi bi-building-fill office-ink-${type}"></i><span class="min-w-0">${name} · ${esc(o.name)}</span>
+                <b class="ms-auto text-nowrap">${fmtKm(km)}</b>
+                <a class="mp-office-go" href="${directionsUrl([s.lat, s.lng], [o.lat, o.lng])}" target="_blank" rel="noopener noreferrer" title="Route from the ${name.toLowerCase()} (Google Maps)" aria-label="Route from the ${name.toLowerCase()}"><i class="bi bi-sign-turn-right"></i></a></div>`;
+        };
+        return `<div class="mp-last mp-offices"><div class="mp-last-label">Distance from offices <span class="text-muted">(approx.)</span></div>${row('block', s.block_id)}${row('district', s.district_id)}</div>`;
+    }
+
     function schoolPopup(s) {
         const status = { inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status];
         const icon = { inspected: 'bi-check2-circle', in_progress: 'bi-hourglass-split', pending: 'bi-clock' }[s.status] || 'bi-building';
@@ -258,6 +316,7 @@ if (el) {
                 ${s.info ? `<div class="mp-row"><i class="bi bi-building"></i><span>${esc(s.info)}</span></div>` : ''}
                 ${s.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(s.address)}</span></div>` : ''}
                 ${last}
+                ${officeRows(s)}
                 ${s.lat !== null && s.lng !== null ? directionsPanelHtml(s.lat, s.lng) : ''}
                 ${actions ? `<div class="mp-actions">${actions}</div>` : ''}
             </div></div>`;
@@ -287,13 +346,20 @@ if (el) {
         const head = $('mapTableHead');
         const body = $('mapTableBody');
         if (level === 'school') {
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            // 23-11-2026: straight-line distance to the school's Block office, when its location is set
+            const hasBlockOffice = offices.some((o) => o.type === 'block');
+            const blockKm = (s) => {
+                const o = officeOf('block', s.block_id);
+                return o && s.lat !== null && s.lng !== null ? fmtKm(haversineKm([o.lat, o.lng], [s.lat, s.lng])) : '—';
+            };
+            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
             body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
                 <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
                 <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
                 ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
+                ${hasBlockOffice ? `<td class="text-end text-nowrap">${blockKm(s)}</td>` : ''}
                 <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
-                : '<tr><td colspan="6" class="text-muted p-3">No schools match the filters.</td></tr>';
+                : '<tr><td colspan="8" class="text-muted p-3">No schools match the filters.</td></tr>';
         } else {
             head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
                 <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
@@ -384,6 +450,8 @@ if (el) {
         document.querySelectorAll('[data-legend]').forEach((l) => l.classList.toggle('d-none', l.dataset.legend !== colourBy));
         if (current.level === 'school') renderSchools(lastRows);
     }));
+
+    $('fOffices')?.addEventListener('change', renderOffices);
 
     /* ---- drill-down from popups and table rows ---- */
     const drill = (id) => (current.level === 'school' ? null : load(nextLevel[current.level], id));

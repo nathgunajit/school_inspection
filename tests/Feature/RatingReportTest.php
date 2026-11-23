@@ -138,17 +138,56 @@ class RatingReportTest extends TestCase
         $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Rating Report');
     }
 
-    public function test_excel_export_and_no_pdf(): void
+    public function test_excel_export(): void
     {
         $this->seedRatings();
         $officer = $this->admin();
 
         $xlsx = $this->actingAs($officer)->get(route('reports.ratings.export', ['from' => now()->subYear()->toDateString()]))->assertOk();
         $this->assertStringContainsString('spreadsheetml', $xlsx->headers->get('content-type'));
-        // Modification V9: the rating report PDF is removed
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('reports.ratings.pdf'));
-        $this->actingAs($officer)->get('/reports/ratings/pdf')->assertNotFound();
-        $this->actingAs($officer)->get(route('reports.ratings'))->assertOk()->assertDontSee('bi-file-earmark-pdf', false);
         $this->assertSame(1, \App\Models\AuditLog::where('action', 'rating_report_exported')->count());
+    }
+
+    /** 23-11-2026: the designed Rating Report PDF (the V9 removal is reversed). */
+    public function test_pdf_is_for_the_state_admin_audited_and_capped(): void
+    {
+        $this->seedRatings();
+        $admin = $this->admin();
+        $from = now()->subYear()->toDateString();
+
+        $this->actingAs($admin)->get(route('reports.ratings', ['from' => $from]))->assertOk()->assertSee(route('reports.ratings.export-pdf', ['from' => $from]), false);
+        $pdf = $this->get(route('reports.ratings.export-pdf', ['from' => $from]))->assertOk();
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+        $log = \App\Models\AuditLog::where('action', 'rating_report_exported')->latest('id')->first();
+        $this->assertSame(['pdf', 2], [$log->meta['format'], $log->meta['rows']]);
+
+        // nobody else: the report is for the State Administrator only
+        $this->actingAs($this->officer(UserLevel::State))->get(route('reports.ratings.export-pdf'))->assertForbidden();
+
+        config(['inspection.master_pdf_max_rows' => 1]);
+        $this->actingAs($admin)->from(route('reports.ratings'))->get(route('reports.ratings.export-pdf', ['from' => $from]))
+            ->assertRedirect(route('reports.ratings'))->assertSessionHas('warning');
+    }
+
+    public function test_pdf_view_renders_every_block(): void
+    {
+        $this->seedRatings();
+        $admin = $this->admin();
+        $service = app(\App\Services\RatingReportService::class);
+        $f = $service->filters(request()->merge(['from' => now()->subYear()->toDateString()]));
+        $rows = $service->schools($admin, $f);
+        $html = view('reports.ratings.pdf', [
+            'title' => 'Rating Report', 'filters' => $f, 'chips' => ['Period: test'], 'summary' => $service->summary($admin, $f),
+            'areas' => $service->areas($admin, $f), 'areaLevel' => $service->areaLevel($admin, $f),
+            'best' => $rows->sortByDesc('score')->take(5), 'lowest' => $rows->sortBy('score')->take(5)->values(),
+            'rows' => $service->sortSchools($rows, 'score_desc'), 'sortLabel' => 'Highest score first',
+            'logos' => [], 'generatedAt' => now(),
+        ])->render();
+
+        foreach (['Rated inspections', 'Average score', 'Rating bands', 'Average by section', 'Best rated schools', 'Lowest rated schools', 'District-wise rating', 'School-wise rating'] as $part) {
+            $this->assertStringContainsString($part, $html, $part);
+        }
+        $this->assertStringContainsString('▲', $html, 'the improved school shows its change');
     }
 }

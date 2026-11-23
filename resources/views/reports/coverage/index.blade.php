@@ -18,12 +18,13 @@
 <x-layouts.app title="Inspection Coverage Report">
     <x-slot:actions>
         @can('configure_coverage')<a href="{{ route('reports.coverage.settings') }}" class="btn btn-light d-none d-sm-inline-flex"><i class="bi bi-sliders"></i>Configure</a>@endcan
-        @can('export_excel')
+        @can('export_excel')<span id="cov-actions" class="d-contents" data-filter-region>
             <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
             <a href="{{ route('reports.coverage.export-pdf', $keep) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
-        @endcan
+        </span>@endcan
     </x-slot:actions>
 
+    <div id="cov-top" data-filter-region>
     @can('export_excel')
         <div class="d-flex gap-2 mb-3 d-sm-none">
             <a href="{{ route('reports.coverage.export', $keep) }}" class="btn btn-sm btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
@@ -55,28 +56,29 @@
                 <span><i class="bi bi-arrow-repeat"></i>Inspection cycle: <b>{{ $setting->cycleLabel() }}</b> ({{ $cycle->from->format('d M') }} – {{ $cycle->to->format('d M Y') }})</span>
             </div>
         </div>
-        <form method="GET" id="cov-custom" class="collapse cov-custom {{ $period->type === 'custom' ? 'show' : '' }}">
+        <form method="GET" id="cov-custom" data-filter data-loader-text="Calculating coverage…" class="collapse cov-custom {{ $period->type === 'custom' ? 'show' : '' }}">
             @foreach (collect($keep)->except(['type', 'ref', 'from', 'to']) as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
             <input type="hidden" name="type" value="custom">
             <div class="row g-2 align-items-end">
                 <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-from">From</label><input type="date" id="cv-from" name="from" value="{{ $period->type === 'custom' ? $period->fromDate() : '' }}" class="form-control form-control-sm" required></div>
                 <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-to">To</label><input type="date" id="cv-to" name="to" value="{{ $period->type === 'custom' ? $period->toDate() : '' }}" class="form-control form-control-sm" required></div>
-                <div class="col-12 col-md-2 d-grid"><button class="btn btn-sm btn-primary"><i class="bi bi-check2"></i>Apply range</button></div>
+                <div class="col-12 col-md-auto"><x-filter-buttons label="Apply range" icon="bi-check2" :reset="false" /></div>
             </div>
         </form>
     </section>
+    </div>
 
     {{-- ============ Area filters ============ --}}
-    <form method="GET" class="filter-bar filter-sm mb-3" data-loader="heavy" data-loader-text="Calculating coverage…">
+    <form method="GET" id="cov-form" class="filter-bar filter-sm mb-3" data-filter data-filter-region data-loader-text="Calculating coverage…">
         @foreach (collect($keep)->only(['type', 'ref', 'from', 'to']) as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
         <div class="row g-2 align-items-end">
             @if ($districts->isNotEmpty())
-                <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-d">District</label>
+                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="cv-d">District</label>
                     <select id="cv-d" name="district_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.block_id && (this.form.block_id.value=''); this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All districts</option>
                         @foreach ($districts as $d)<option value="{{ $d->id }}" @selected($filters['district_id'] === $d->id)>{{ $d->label }}</option>@endforeach</select></div>
             @endif
             @if ($blocks->isNotEmpty())
-                <div class="col-6 col-md-3"><label class="form-label text-xs mb-1" for="cv-b">Block</label>
+                <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="cv-b">Block</label>
                     <select id="cv-b" name="block_id" class="form-select form-select-sm" data-autosubmit onchange="this.form.cluster_id && (this.form.cluster_id.value='')"><option value="">All blocks</option>
                         @foreach ($blocks as $b)<option value="{{ $b->id }}" @selected($filters['block_id'] === $b->id)>{{ $b->label }}</option>@endforeach</select></div>
             @endif
@@ -92,9 +94,11 @@
                 <select id="cv-sort" name="sort" class="form-select form-select-sm" data-autosubmit>
                     @foreach ($sorts as $k => $l)<option value="{{ $k }}" @selected($filters['sort'] === $k)>{{ $l }}</option>@endforeach</select></div>
             @if ($level)<input type="hidden" name="level" value="{{ $level }}">@endif
+            <div class="col-12 col-md-auto ms-md-auto"><x-filter-buttons :reset="route('reports.coverage', collect($keep)->only(['type', 'ref', 'from', 'to'])->all())" /></div>
         </div>
     </form>
 
+    <div id="cov-results" data-filter-region data-filter-results>
     {{-- ============ KPIs ============ --}}
     <div class="row g-2 g-md-3 mb-3">
         <div class="col-6 col-xl-2"><x-stat-card wrap label="Assigned schools" :value="number_format($s['schools'])" icon="bi-buildings" tone="primary" hint="active, in this area" /></div>
@@ -198,6 +202,7 @@
             </div>
         </section>
     @endif
+    </div>
 
     {{-- ============ How it is counted ============ --}}
     <details class="cov-help">

@@ -86,6 +86,17 @@ export async function drawDistrictOutline(map, url, { mask = true, fit = false, 
  * only when the officer presses "Show route"; "Google Maps" opens turn-by-turn directions in a new tab.
  * ------------------------------------------------------------------ */
 
+/** 23-11-2026: District (D, blue) / Block (B, green) office pin. */
+export function officeIcon(type) {
+    return L.divIcon({
+        className: '',
+        html: `<span class="si-office office-${type}" title="${type === 'district' ? 'District office' : 'Block office'}"><i class="bi bi-building-fill"></i><b>${type === 'district' ? 'D' : 'B'}</b></span>`,
+        iconSize: [34, 40],
+        iconAnchor: [17, 38],
+        popupAnchor: [0, -34],
+    });
+}
+
 /** Straight-line distance in km between two [lat, lng] points. */
 export function haversineKm(a, b) {
     const R = 6371;

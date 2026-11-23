@@ -25,11 +25,20 @@ class MasterPdf
      */
     public static function sections(string $title, array $sections, array $filters, string $file)
     {
-        $dompdf = Pdf::loadView('admin.exports.master-pdf', [
+        return self::view('admin.exports.master-pdf', [
             'title' => $title, 'sections' => $sections, 'filters' => $filters,
             'records' => count(end($sections)['rows'] ?? []),
-            'logos' => PdfLogos::all(), 'generatedAt' => now(),
-        ])->setPaper('a4', 'landscape')->getDomPDF();
+        ], 'landscape', $file);
+    }
+
+    /**
+     * Any PDF view with the shared parts: logos and generated time passed in as $logos / $generatedAt,
+     * "Page X of Y" stamped at the bottom right (23-11-2026; also the Rating Report PDF).
+     */
+    public static function view(string $view, array $data, string $orientation, string $file)
+    {
+        $dompdf = Pdf::loadView($view, $data + ['logos' => PdfLogos::all(), 'generatedAt' => now()])
+            ->setPaper('a4', $orientation)->getDomPDF();
         $dompdf->render();
         $canvas = $dompdf->getCanvas();
         $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');

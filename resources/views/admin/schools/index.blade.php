@@ -1,12 +1,12 @@
 <x-layouts.app title="School Master">
     <x-slot:actions>
-        <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="The whole state (44,000 schools) takes 2–3 minutes; filter by district for a quicker file"><i class="bi bi-file-earmark-excel"></i>Export Excel</a>
-        <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="PDF of the filtered list (up to {{ number_format(config('inspection.master_pdf_max_rows')) }} schools)"><i class="bi bi-file-earmark-pdf"></i>Export PDF</a>
+        <span id="sm-actions" class="d-contents" data-filter-region><a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="The whole state (44,000 schools) takes 2–3 minutes; filter by district for a quicker file"><i class="bi bi-file-earmark-excel"></i>Export Excel</a>
+        <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="PDF of the filtered list (up to {{ number_format(config('inspection.master_pdf_max_rows')) }} schools)"><i class="bi bi-file-earmark-pdf"></i>Export PDF</a></span>
         <a href="{{ route('admin.schools.create') }}" class="btn btn-primary d-none d-sm-inline-flex"><i class="bi bi-plus-lg"></i>Add school</a>
     </x-slot:actions>
 
     {{-- Modification V13 item 2: filters by location, AC / PC, management, category and area --}}
-    <form method="GET" class="filter-bar mb-3 row g-2">
+    <form method="GET" id="sm-form" class="filter-bar mb-3 row g-2" data-filter data-filter-region data-loader-text="Loading schools…">
         <div class="col-12 col-md-4"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="UDISE code or school name" aria-label="Search"></div>
         <div class="col-6 col-md-2">
             <select name="district_id" class="form-select" data-autosubmit aria-label="District"><option value="">All districts</option>
@@ -48,11 +48,9 @@
             <select name="school_type" class="form-select" data-autosubmit aria-label="School type"><option value="">Type</option>
                 @foreach (\App\Models\School::SCHOOL_TYPES as $k => $l)<option value="{{ $k }}" @selected(request('school_type') === $k)>{{ $l }}</option>@endforeach</select>
         </div>
-        <div class="col-12 col-md-2 d-flex gap-2">
-            <button class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i>Search</button>
-            @if ($filtered)<a href="{{ route('admin.schools.index') }}" class="btn btn-light" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>@endif
-        </div>
+        <div class="col-12 col-md-auto ms-md-auto"><x-filter-buttons :reset="route('admin.schools.index')" /></div>
     </form>
+    <div id="sm-results" data-filter-region data-filter-results>
     <div class="d-flex flex-wrap gap-2 mb-3 d-sm-none">
         <a href="{{ route('admin.schools.create') }}" class="btn btn-primary flex-grow-1"><i class="bi bi-plus-lg"></i>Add school</a>
         <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
@@ -105,4 +103,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $schools->links() }}</div>
+    </div>
 </x-layouts.app>

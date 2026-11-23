@@ -25,7 +25,7 @@
                 @if ($list !== '')<input type="hidden" name="list" value="{{ $list }}">@endif
                 @if ($class !== '')<input type="hidden" name="class" value="{{ $class }}">@endif
                 <div class="col"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="Search TLM by name or code"></div>
-                <div class="col-auto"><button class="btn btn-primary btn-icon" aria-label="Search"><i class="bi bi-search"></i></button></div>
+                <div class="col-12 col-sm-auto"><x-filter-buttons :reset="route('admin.tlm.index', array_filter(['list' => $list, 'class' => $class], fn ($v) => $v !== ''))" /></div>
             </form>
 
             <div class="card">

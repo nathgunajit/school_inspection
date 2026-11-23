@@ -5,13 +5,13 @@
 @endphp
 <x-layouts.app title="My Schools">
     <x-slot:actions>
-        @can('export_excel')
+        @can('export_excel')<span id="ms-actions" class="d-contents" data-filter-region>
             <a href="{{ route('schools.mine.export', request()->except('page')) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Download Excel</a>
             <a href="{{ route('schools.mine.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>Download PDF</a>
-        @endcan
+        </span>@endcan
     </x-slot:actions>
 
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div id="ms-top" class="d-flex flex-wrap align-items-center gap-2 mb-3" data-filter-region>
         <span class="badge-soft badge-soft-primary my-scope"><i class="bi bi-geo-alt"></i>{{ $scope }}</span>
         <span class="text-xs text-secondary">Schools you are responsible for. Not inspected schools are listed first.</span>
         @can('export_excel')
@@ -22,18 +22,17 @@
         @endcan
     </div>
 
-    <div class="row g-2 g-md-3 mb-3">
+    <div id="ms-stats" class="row g-2 g-md-3 mb-3" data-filter-region>
         <div class="col-6 col-md-3"><x-stat-card wrap label="My schools" :value="number_format($stats['total'])" icon="bi-buildings" tone="primary" hint="in your area" :href="route('schools.mine', $keep)" /></div>
         <div class="col-6 col-md-3"><x-stat-card wrap label="Inspected" :value="number_format($stats['inspected'])" icon="bi-clipboard-check" tone="success" :hint="$pct($stats['inspected'])" :href="route('schools.mine', ['inspected' => 'yes'] + $keep)" /></div>
         <div class="col-6 col-md-3"><x-stat-card wrap label="Not inspected yet" :value="number_format($stats['not_inspected'])" icon="bi-hourglass-split" tone="warning" :hint="$pct($stats['not_inspected'])" :href="route('schools.mine', ['inspected' => 'no'] + $keep)" /></div>
         <div class="col-6 col-md-3"><x-stat-card wrap label="Inspected this month" :value="number_format($stats['this_month'])" icon="bi-calendar-check" tone="info" :hint="now()->format('F Y')" /></div>
     </div>
 
-    <form method="GET" class="filter-bar mb-3" id="my-schools-filter">
+    <form method="GET" class="filter-bar mb-3" id="my-schools-filter" data-filter data-filter-region data-loader-text="Loading schools…">
         <div class="row g-2 align-items-end">
             <div class="col-12 col-md"><label class="form-label text-xs mb-1" for="ms-q">School</label>
-                <div class="input-group"><input id="ms-q" name="q" value="{{ $q }}" class="form-control" placeholder="Name or UDISE Code" maxlength="100" type="search">
-                    <button class="btn btn-primary" aria-label="Search"><i class="bi bi-search"></i></button></div></div>
+                <input id="ms-q" name="q" value="{{ $q }}" class="form-control" placeholder="Name or UDISE Code" maxlength="100" type="search"></div>
             @if ($districts->isNotEmpty())
                 <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="ms-d">District</label>
                     <select id="ms-d" name="district_id" class="form-select" data-autosubmit data-clears="block_id,cluster_id"><option value="">All districts</option>
@@ -55,12 +54,11 @@
                     <option value="no" @selected(request('inspected') === 'no')>Not inspected yet</option>
                     <option value="yes" @selected(request('inspected') === 'yes')>Inspected</option>
                 </select></div>
-            @if (request()->hasAny(['q', 'district_id', 'block_id', 'cluster_id', 'inspected']))
-                <div class="col-auto"><a href="{{ route('schools.mine') }}" class="btn btn-light"><i class="bi bi-x-lg"></i>Reset</a></div>
-            @endif
+            <div class="col-12 col-md-auto"><x-filter-buttons :reset="route('schools.mine')" /></div>
         </div>
     </form>
 
+    <div id="ms-results" data-filter-region data-filter-results>
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center gap-2">
             <span><i class="bi bi-buildings me-2 text-primary"></i>School list</span>
@@ -104,13 +102,6 @@
         </div>
     </div>
     <div class="mt-3">{{ $schools->links() }}</div>
+    </div>
 
-    @push('scripts')
-    <script>
-        // a new district / block clears the lower selects before the form reloads
-        document.querySelectorAll('#my-schools-filter [data-clears]').forEach((el) => el.addEventListener('change', () => {
-            el.dataset.clears.split(',').forEach((n) => { const s = el.form.elements[n]; if (s) s.value = ''; });
-        }, true));
-    </script>
-    @endpush
 </x-layouts.app>

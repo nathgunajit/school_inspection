@@ -68,6 +68,7 @@ class MapController extends Controller
             'outline' => $this->map->outlineUrl($level, $parent),
             'rows' => $this->withoutRatings($rows, $user),
             'totals' => $this->map->totals($rows, count($this->map->officers($user, $level, $parent))),
+            'offices' => $this->map->offices($user, $level, $parent), // 23-11-2026: District / Block offices
         ]);
     }
 
@@ -97,6 +98,7 @@ class MapController extends Controller
             'outline' => $cluster !== null ? $this->map->outlineUrl('school', $cluster) : null,
             'rows' => $this->withoutRatings($rows, $user),
             'totals' => $this->map->schoolTotals($rows, $cluster !== null ? count($this->map->officers($user, 'school', $cluster)) : 0),
+            'offices' => $this->map->offices($user, 'school', $cluster, $rows),
         ]);
     }
 

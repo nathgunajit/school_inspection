@@ -107,6 +107,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
             Route::get('/', [RatingReportController::class, 'index'])->name('');
             Route::get('/export', [RatingReportController::class, 'export'])->name('.export');
+            Route::get('/export-pdf', [RatingReportController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('.export-pdf');
         });
         Route::get('/export/{mode}', [ReportController::class, 'export'])->middleware('can:export_excel')->name('inspections.export');
         Route::get('/export-pdf/{mode}', [ReportController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('inspections.export-pdf');

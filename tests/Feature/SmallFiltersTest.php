@@ -18,8 +18,8 @@ class SmallFiltersTest extends TestCase
             $html = $this->actingAs($user)->get($url)->assertOk()->getContent();
             $this->assertStringContainsString('filter-bar filter-sm', $html, $url);
             $this->assertStringContainsString('form-control form-control-sm', $html, $url);
-            $this->assertStringContainsString('btn btn-sm btn-primary', $html, $url);
-            preg_match('/<form method="GET" class="filter-bar filter-sm.*?<\/form>/s', $html, $m);
+            $this->assertStringContainsString('btn btn-primary btn-filter', $html, $url); // 23-11-2026: one fixed Apply size (<x-filter-buttons>)
+            preg_match('/<form method="GET"[^>]*class="filter-bar filter-sm.*?<\/form>/s', $html, $m);
             $this->assertDoesNotMatchRegularExpression('/class="form-(control|select)"/', $m[0], "$url: every filter field is small");
         }
     }

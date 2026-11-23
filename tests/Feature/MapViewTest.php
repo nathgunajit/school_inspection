@@ -141,8 +141,11 @@ class MapViewTest extends TestCase
         $res = $this->actingAs($this->admin())->getJson(route('map.areas', ['level' => 'block', 'parent' => $block->district_id]))->assertOk();
         $this->assertSame(['Assam', $block->district->label], array_column($res->json('breadcrumb'), 'name'));
         $row = collect($res->json('rows'))->firstWhere('id', $block->id);
-        $this->assertEquals(26.5, $row['lat']);
-        $this->assertEquals(92.1, $row['lng']);
+        // 23-11-2026: the area point is the centre of its schools; the block's own point is its office (offices list)
+        $avg = \App\Models\School::where('block_id', $block->id)->where('status', 'active')->whereNotNull('latitude')->avg('latitude');
+        $this->assertEqualsWithDelta($avg !== null ? (float) $avg : 26.5, $row['lat'], 0.00001);
+        $office = collect($res->json('offices'))->first(fn ($o) => $o['type'] === 'block' && $o['id'] === $block->id);
+        $this->assertEquals([26.5, 92.1], [$office['lat'], $office['lng']]);
     }
 
     public function test_inputs_are_validated(): void

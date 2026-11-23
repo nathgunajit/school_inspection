@@ -2,13 +2,13 @@
 @php use App\Models\UserLoginLog; use App\Services\LoginMonitorService as LM; $s = $summary; $keep = request()->except('status', 'page'); @endphp
 <x-layouts.app title="Login Monitoring">
     <x-slot:actions>
-        <a href="{{ route('admin.login-report.export', request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Export</a>
+        <span id="lr-actions" class="d-contents" data-filter-region><a href="{{ route('admin.login-report.export', request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Export</a></span>
     </x-slot:actions>
 
     @include('admin.login-report.tabs', ['active' => 'log'])
 
     {{-- Modification V8 item 8: tiles keep their text inside the box (labels wrap, never cut off) --}}
-    <div class="row g-2 g-md-3 mb-3 login-stats">
+    <div id="lr-stats" class="row g-2 g-md-3 mb-3 login-stats" data-filter-region>
         <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Sign-ins" :value="number_format($s['logins'])" icon="bi-box-arrow-in-right" tone="primary" hint="in the period" :href="route('admin.login-report.index', ['status' => 'success'] + $keep)" /></div>
         <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Officers signed in" :value="number_format($s['users'])" icon="bi-people" tone="accent" hint="different officers" /></div>
         <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Online now" :value="number_format($s['online'])" icon="bi-broadcast" tone="success" hint="active session" :href="route('admin.login-report.index', ['status' => 'online'] + $keep)" /></div>
@@ -17,7 +17,7 @@
         <div class="col-6 col-md-4 col-xl-2"><x-stat-card wrap label="Never signed in" :value="number_format($s['never'])" icon="bi-person-dash" tone="orange" hint="active officers" /></div>
     </div>
 
-    <form method="GET" class="filter-bar mb-3" data-loader="heavy" data-loader-text="Loading login report…">
+    <form method="GET" id="lr-form" class="filter-bar mb-3" data-filter data-filter-region data-loader-text="Loading login report…">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-from">From</label><input type="date" id="f-from" name="from" value="{{ $filters['from'] }}" class="form-control"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-to">To</label><input type="date" id="f-to" name="to" value="{{ $filters['to'] }}" class="form-control"></div>
@@ -30,11 +30,13 @@
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-status">Result</label>
                 <select id="f-status" name="status" class="form-select" data-autosubmit><option value="">All</option>
                     @foreach (UserLoginLog::STATUSES + ['online' => 'Online now'] as $k => $label)<option value="{{ $k }}" @selected($filters['status'] === $k)>{{ $label }}</option>@endforeach</select></div>
-            <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="f-q">Officer</label>
-                <div class="input-group"><input id="f-q" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Name or mobile"><button class="btn btn-primary" aria-label="Search"><i class="bi bi-search"></i></button></div></div>
+            <div class="col-12 col-md"><label class="form-label text-xs mb-1" for="f-q">Officer</label>
+                <input id="f-q" name="q" value="{{ $filters['q'] }}" class="form-control" placeholder="Name or mobile"></div>
+            <div class="col-12 col-md-auto"><x-filter-buttons /></div>
         </div>
     </form>
 
+    <div id="lr-results" data-filter-region data-filter-results>
     <div class="row g-3 mb-3">
         <div class="col-12 col-lg-7">
             <div class="card h-100">
@@ -118,4 +120,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $logs->links() }}</div>
+    </div>
 </x-layouts.app>

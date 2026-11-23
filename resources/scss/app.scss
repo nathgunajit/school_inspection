@@ -2436,3 +2436,52 @@ body.bars-hidden {
     &.st-pending { background: $st-pending; }
     &.si-cluster-md > i { font-size: 1.2rem; }
     &.si-cluster-lg > i { font-size: 1.35rem; } }
+
+// =============================================================
+//  23-11-2026: filter Apply / Reset with one fixed size (<x-filter-buttons>), and loading inside the
+//  results section only (resources/js/filter-partial.js: form[data-filter], [data-filter-results])
+// =============================================================
+.filter-actions { display: flex; align-items: flex-end; gap: .5rem; height: 100%; }
+.btn.btn-filter, .btn.btn-filter-reset, .filter-sm .btn.btn-filter, .filter-sm .btn.btn-filter-reset {
+    height: 40px; min-height: 40px; font-size: $field-fs; font-weight: 600; padding: 0 1rem; border-radius: .55rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: .4rem; white-space: nowrap; flex-shrink: 0;
+    @include media-breakpoint-down(md) { height: 44px; min-height: 44px; font-size: $field-fs-phone; } }
+.btn.btn-filter { min-width: 112px; }
+.btn.btn-filter-reset { min-width: 44px; padding: 0 .85rem; border: 1px solid #d5dce6; color: #475569; }
+@include media-breakpoint-down(md) { .filter-actions .btn-filter { flex: 1 1 auto; } }
+// the field next to the buttons lines up with them: the small filter fields grow to the same 40 px
+.filter-sm .form-select-sm, .filter-sm .form-control-sm { height: 40px; min-height: 40px; }
+@include media-breakpoint-down(md) { .filter-sm .form-select-sm, .filter-sm .form-control-sm { height: 44px; min-height: 44px; } }
+
+[data-filter-results] { position: relative; transition: opacity .15s; }
+[data-filter-results].is-section-loading { min-height: 160px; pointer-events: none; }
+[data-filter-results].is-section-loading > *:not(.section-loader) { opacity: .35; filter: blur(.6px); transition: opacity .15s; }
+.section-loader { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-start; justify-content: center; padding-top: 4.5rem;
+    .sl-box { position: sticky; top: 40vh; display: inline-flex; align-items: center; gap: .65rem; background: #fff; border: 1px solid #dfe5ee;
+        border-radius: 999px; padding: .55rem 1.1rem .55rem .65rem; box-shadow: 0 10px 30px -12px rgba(15, 23, 42, .35); font-weight: 600; color: #0f172a; font-size: .875rem; }
+    .sl-spin { width: 26px; height: 26px; border-radius: 50%; border: 3px solid rgba($primary, .15); border-top-color: $primary; border-right-color: #1e9b4b;
+        animation: slSpin .7s linear infinite; }
+}
+@keyframes slSpin { to { transform: rotate(360deg); } }
+.d-contents { display: contents; }
+
+// 23-11-2026: District (blue, D) / Block (green, B) offices on the Map View
+$office-district: #1565c0;
+$office-block: #1e9b4b;
+.si-office { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #fff; font-size: 1rem;
+    border: 2px solid #fff; box-shadow: 0 4px 12px -2px rgba(15, 23, 42, .45);
+    &::after { content: ''; position: absolute; left: 50%; bottom: -7px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: inherit; }
+    b { position: absolute; top: -8px; right: -8px; min-width: 17px; height: 17px; border-radius: 9px; background: #fff; font-size: .62rem; line-height: 17px; text-align: center; font-weight: 800; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); }
+    &.office-district { background: $office-district; border-top-color: $office-district; b { color: $office-district; } &::after { border-top-color: $office-district; } }
+    &.office-block { background: $office-block; b { color: $office-block; } &::after { border-top-color: $office-block; } } }
+.office-dot { display: inline-grid; place-items: center; width: 1.05rem; height: 1.05rem; border-radius: .3rem; color: #fff; font-size: .6rem; font-weight: 800; margin-right: .4rem; vertical-align: -2px;
+    &.office-district { background: $office-district; } &.office-block { background: $office-block; } }
+.si-office-label { font-size: .68rem; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+    &.office-district { color: $office-district; } &.office-block { color: darken($office-block, 6%); } }
+.map-pop.map-pop-office { --mp: #{$office-district}; --mp-dark: #{darken($office-district, 14%)};
+    &.office-block { --mp: #{$office-block}; --mp-dark: #{darken($office-block, 12%)}; } }
+.map-pop .mp-offices .mp-row { align-items: center; }
+.office-ink-district { color: $office-district !important; }
+.office-ink-block { color: $office-block !important; }
+.mp-office-go { flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: #eef4fc; color: $primary; text-decoration: none;
+    &:hover { background: $primary; color: #fff; } }

@@ -1,7 +1,7 @@
 <x-layouts.app title="User List">
-    <form method="GET" class="filter-bar mb-3">
+    <form method="GET" id="us-form" class="filter-bar mb-3" data-filter data-filter-region data-loader-text="Loading officers…">
         <div class="row g-2">
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md">
                 <div class="input-group">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input name="q" value="{{ $filters['q'] ?? '' }}" class="form-control" placeholder="Name, mobile or employee ID">
@@ -35,10 +35,11 @@
                     </select>
                 </div>
             @endif
-            <div class="col-4 col-md-1 d-grid"><button class="btn btn-primary"><i class="bi bi-funnel"></i><span class="d-none d-xl-inline">Go</span></button></div>
+            <div class="col-12 col-md-auto"><x-filter-buttons /></div>
         </div>
     </form>
 
+    <div id="us-results" data-filter-region data-filter-results>
     <div class="card">
         <div class="table-responsive d-none d-md-block">
             <table class="table align-middle mb-0">
@@ -75,4 +76,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $users->links() }}</div>
+    </div>
 </x-layouts.app>

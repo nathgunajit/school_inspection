@@ -35,8 +35,8 @@
 | Excel export | `/export/{mine\|area}` | `ReportController@export` | — | `export_excel` | One column per question code |
 | PDF list | `/export-pdf/{mine\|area}` | `ReportController@exportPdf` | `admin/exports/master-pdf` | `export_excel` | 23-11-2026: one row per inspection (ID, date, school, cluster, block, officer, status, absentees, classrooms, photos, submitted), the filters as chips; at most `MASTER_PDF_MAX_ROWS` rows |
 | Inspection Coverage Report | `/reports/coverage` (+ `/export` Excel, `/export-pdf` PDF, `/settings`) | `CoverageReportController` | `reports/coverage/index`, `settings` | `view_reports` (downloads: `export_excel`) | Visit / inspection coverage per district, block or cluster; the PDF (23-11-2026) prints the summary and the level in view (or a cluster's schools) |
-| Rating Report | `/reports/ratings` | `RatingReportController@index` (+ `export`, `pdf`) | `reports/ratings/index`, `reports/ratings/pdf` | `view_reports` | Summary, bands, sections, areas, schools latest vs previous; V13 **Map view** button (`/map?colour=rating`, ratings always shown to the State Admin) |
-| Map View | `/map` | `MapController@index` (+ JSON `areas/{level}`, `schools`) | `map/index` | `view_reports` | Drill-down map, colour by status/rating, district outline, directions |
+| Rating Report | `/reports/ratings` (+ `/export` Excel, `/export-pdf` PDF) | `RatingReportController@index` (+ `export`, `exportPdf`) | `reports/ratings/index`, `reports/ratings/pdf` | State Admin only (downloads: `export_excel`) | Summary, bands, sections, areas, schools latest vs previous; V13 **Map view** button (`/map?colour=rating`, ratings always shown to the State Admin); 23-11-2026 designed A4 PDF (KPI cards, band / section bars, best and lowest, area-wise and school-wise tables) |
+| Map View | `/map` | `MapController@index` (+ JSON `areas/{level}`, `schools`) | `map/index` | `view_reports` | Drill-down map, colour by status/rating, district outline, directions; 23-11-2026 District (D) / Block (B) office markers from the Location Master office location, with the distance from each school to its offices |
 | Schedules calendar | `/schedules` | `ScheduleController@index` | `schedules/index` | `view_reports` | Plans by day for the officers in the area |
 | Plan a day | `/schedules/plan` | `ScheduleController@plan` (+ JSON `plan/schools`, `POST /schedules`) | `schedules/plan` | `view_reports` | Choose officer, date, schools; drag to order; route estimate; save / submit / publish |
 | Plan details | `/schedules/{key}` | `ScheduleController@show` | `schedules/show` | `view_reports` + `canView` | Visits, route map, approve/reject/cancel/reassign, skip a visit |
@@ -128,6 +128,7 @@
 - **Empty states:** `<x-empty-state>`.
 - **Avatars:** `<x-user-avatar>` (private photo or initials).
 - **Pagination:** Bootstrap 5, 25 rows.
+- **Filter bars (23-11-2026):** `<x-filter-buttons>` gives every filter the same Apply / Reset size (40 px, 44 px on phones). Report and list filters load inside the results section only (`filter-partial.js`): a spinner covers the results box, the URL updates and Back works.
 
 **Responsive behaviour:** mobile-first; sidebar → drawer; bottom nav; the camera is full screen on phones; maps are full height.
 

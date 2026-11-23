@@ -2,12 +2,14 @@
 <x-layouts.app :title="$area ? 'Inspections in My Area' : 'My Inspections'">
     <x-slot:actions>
         @can('export_excel')
+            <span id="flt-actions" class="d-contents" data-filter-region>
             <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
             <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+            </span>
         @endcan
     </x-slot:actions>
 
-    <div class="row g-3 mb-3">
+    <div id="flt-stats" class="row g-3 mb-3" data-filter-region>
         @if ($area)
             <div class="col-4"><x-stat-card label="Schools in jurisdiction" :value="number_format($counts['schools'])" icon="bi-building" tone="primary" /></div>
             <div class="col-4"><x-stat-card label="Schools inspected" :value="number_format($counts['inspected'])" icon="bi-check2-circle" tone="accent" /></div>
@@ -19,7 +21,7 @@
         @endif
     </div>
 
-    <form method="GET" class="filter-bar filter-sm mb-3">
+    <form method="GET" class="filter-bar filter-sm mb-3" id="flt-form" data-filter data-filter-region data-loader-text="Loading inspections…">
         <div class="row g-2">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">From</label><input type="date" name="from" value="{{ request('from', $area ? ($period[0] ?? '') : '') }}" class="form-control form-control-sm"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">To</label><input type="date" name="to" value="{{ request('to', $area ? ($period[1] ?? '') : '') }}" class="form-control form-control-sm"></div>
@@ -40,12 +42,10 @@
                 <select name="status" class="form-select form-select-sm" data-autosubmit><option value="">All</option>
                     @foreach (($area ? ['submitted' => 'Submitted', 'unlocked' => 'Unlocked'] : ['draft' => 'Draft / Unlocked', 'submitted' => 'Submitted', 'cancelled' => 'Cancelled']) as $k => $l)
                         <option value="{{ $k }}" @selected(request('status') === $k)>{{ $l }}</option>@endforeach</select></div>
-            <div class="col-12 col-md d-flex align-items-end gap-2">
-                <button class="btn btn-sm btn-primary flex-grow-1"><i class="bi bi-funnel"></i>Apply</button>
-                <a href="{{ url()->current() }}" class="btn btn-sm btn-light" aria-label="Clear filters"><i class="bi bi-x-lg"></i></a>
-            </div>
+            <div class="col-12 col-md-auto"><x-filter-buttons /></div>
         </div>
     </form>
+    <div id="flt-results" data-filter-region data-filter-results>
     @can('export_excel')
         <div class="d-flex gap-2 mb-3 d-sm-none">
             <a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
@@ -99,4 +99,5 @@
         </div>
     </div>
     <div class="mt-3">{{ $inspections->links() }}</div>
+    </div>
 </x-layouts.app>

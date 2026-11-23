@@ -7,6 +7,7 @@ import './date-picker';
 import './rating-settings';
 import './imports';
 import './network-status';
+import './filter-partial';
 
 window.bootstrap = bootstrap;
 window.axios = axios;
@@ -140,8 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => new bootstrap.Tooltip(el));
 
     /* ---------- Confirm before submit ---------- */
-    document.querySelectorAll('form[data-confirm]').forEach((form) =>
-        form.addEventListener('submit', (e) => { if (!confirm(form.dataset.confirm)) e.preventDefault(); }));
+    // delegated (capture), so rows swapped in by filter-partial.js still ask
+    document.addEventListener('submit', (e) => {
+        const form = e.target.closest?.('form[data-confirm]');
+        if (form && !confirm(form.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
 
     /* ---------- Location cascade: select[data-cascade-child="#id"][data-cascade-url="/api/..?parent="] ---------- */
     document.querySelectorAll('select[data-cascade-child]').forEach((parent) => {
@@ -149,7 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ---------- Auto-submit filter selects ---------- */
-    document.querySelectorAll('[data-autosubmit]').forEach((el) => el.addEventListener('change', () => el.form.submit()));
+    // delegated, so selects swapped in by filter-partial.js keep working; requestSubmit() fires the submit
+    // event, which filter-partial.js turns into a section load. data-clears="block_id,cluster_id" empties the
+    // lower selects first (a new district / block).
+    document.addEventListener('change', (e) => {
+        const el = e.target.closest?.('[data-autosubmit]');
+        if (!el?.form) return;
+        (el.dataset.clears || '').split(',').filter(Boolean).forEach((n) => { const s = el.form.elements[n]; if (s) s.value = ''; });
+        if (el.form.requestSubmit) el.form.requestSubmit(); else el.form.submit();
+    });
 });
 
 export async function cascade(parent) {

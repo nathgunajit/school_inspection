@@ -151,9 +151,10 @@ class LocationController extends Controller
             $rules[$fk] = ['required', Rule::exists((new $parentModel)->getTable(), 'id')];
         }
         if (in_array($type, self::WITH_COORDINATES, true)) {
-            // optional headquarters location; both or neither
+            // optional office location (23-11-2026: shown on the Map View with distances); both or neither
             $rules['latitude'] = ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'];
             $rules['longitude'] = ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'];
+            $rules['office_address'] = ['nullable', 'string', 'max:255'];
         }
         if ($type === 'districts') {
             $rules['boundary_name'] = ['nullable', Rule::in(app(DistrictBoundaryService::class)->names())];

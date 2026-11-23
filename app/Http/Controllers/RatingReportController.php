@@ -6,6 +6,7 @@ use App\Exports\ArrayExport;
 use App\Models\Inspection;
 use App\Services\AuditLogger;
 use App\Services\RatingReportService;
+use App\Support\MasterPdf;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -13,7 +14,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * V6 Module 10: rating report (screen, Excel), scoped to the user's jurisdiction.
- * Modification V9: the PDF is removed.
+ * Modification V9: the PDF is removed; 23-11-2026: a new, designed PDF is added (exportPdf).
  * 20-11-2026: the report is for the State Administrator only (403 for everyone else), whatever RATING_DISPLAY says;
  * that switch still hides ratings on the other pages.
  */
@@ -68,5 +69,55 @@ class RatingReportController extends Controller implements HasMiddleware
         return Excel::download(new ArrayExport(['Inspection ID', 'Date', 'District', 'Block', 'Cluster', 'UDISE Code', 'School', 'Category', 'Officer',
             'Score (%)', 'Rating band', 'Scheme version', ...$sections->map(fn ($s) => $s['title'].' (%)')->all()], $data),
             'rating-report-'.$f['from'].'-to-'.$f['to'].'.xlsx');
+    }
+
+    /**
+     * 23-11-2026: the report as an A4 PDF (KPI cards, band and section bars, best / lowest, area-wise and
+     * school-wise tables), with the screen's filters. The V9 removal is reversed. At most master_pdf_max_rows schools.
+     */
+    public function exportPdf(Request $request)
+    {
+        $user = $request->user();
+        $f = $this->report->filters($request);
+        $schools = $this->report->schools($user, $f);
+        if ($schools->count() > MasterPdf::maxRows()) {
+            return back()->with('warning', 'The PDF holds up to '.number_format(MasterPdf::maxRows()).' schools; '.number_format($schools->count())
+                .' match. Choose a district or a shorter period, or download Excel.');
+        }
+        MasterPdf::prepare();
+        $ranked = $schools->sortByDesc('score')->values();
+        $options = $this->report->options($user, $f);
+
+        AuditLogger::log('rating_report_exported', null, ['format' => 'pdf', 'rows' => $schools->count()] + array_filter($f));
+
+        return MasterPdf::view('reports.ratings.pdf', [
+            'title' => 'Rating Report',
+            'filters' => $f,
+            'chips' => $this->chips($user, $f, $options),
+            'summary' => $this->report->summary($user, $f),
+            'areas' => $this->report->areas($user, $f),
+            'areaLevel' => $this->report->areaLevel($user, $f),
+            'best' => $ranked->take(5),
+            'lowest' => $ranked->reverse()->take(5)->values(),
+            'rows' => $this->report->sortSchools($schools, $f['sort']),
+            'sortLabel' => RatingReportService::SORTS[$f['sort']],
+        ], 'portrait', 'rating-report-'.$f['from'].'-to-'.$f['to'].'.pdf');
+    }
+
+    /** Filter chips printed under the PDF header. */
+    private function chips($user, array $f, array $options): array
+    {
+        $name = fn ($model, $id) => $id ? $model::find($id)?->label : null;
+
+        return array_values(array_filter([
+            'Downloaded by: '.$user->name,
+            'Period: '.\Illuminate\Support\Carbon::parse($f['from'])->format('d M Y').' – '.\Illuminate\Support\Carbon::parse($f['to'])->format('d M Y'),
+            ($v = $name(\App\Models\District::class, $f['district_id'])) ? 'District: '.$v : null,
+            ($v = $name(\App\Models\Block::class, $f['block_id'])) ? 'Block: '.$v : null,
+            ($v = $name(\App\Models\Cluster::class, $f['cluster_id'])) ? 'Cluster: '.$v : null,
+            $f['band'] ? 'Band: '.$f['band'] : null,
+            $f['category_id'] ? 'Category: '.$options['categories']->firstWhere('id', $f['category_id'])?->label : null,
+            $f['version'] ? 'Scheme version '.$f['version'] : null,
+        ]));
     }
 }

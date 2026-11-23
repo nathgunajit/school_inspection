@@ -9,12 +9,15 @@
 @endphp
 <x-layouts.app title="Rating Report">
     <x-slot:actions>
-        @can('export_excel')<a href="{{ route('reports.ratings.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-excel"></i>Excel</a>@endcan
+        @can('export_excel')<span id="rr-actions" class="d-contents" data-filter-region>
+            <a href="{{ route('reports.ratings.export', $keep) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('reports.ratings.export-pdf', $keep) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </span>@endcan
         {{-- Modification V13 item 6: the same ratings on the map, school pins coloured by rating band --}}
         <a href="{{ route('map.index', ['colour' => 'rating']) }}" class="btn btn-soft-success" data-rating-map><i class="bi bi-geo-alt"></i>Map view</a>
     </x-slot:actions>
 
-    <form method="GET" class="filter-bar filter-sm mb-3" data-loader="heavy" data-loader-text="Loading rating report…">
+    <form method="GET" id="rr-form" class="filter-bar filter-sm mb-3" data-filter data-filter-region data-loader-text="Loading rating report…">
         <div class="row g-2 align-items-end">
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-from">From</label><input type="date" id="r-from" name="from" value="{{ $filters['from'] }}" class="form-control form-control-sm"></div>
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1" for="r-to">To</label><input type="date" id="r-to" name="to" value="{{ $filters['to'] }}" class="form-control form-control-sm"></div>
@@ -45,10 +48,17 @@
                         @foreach ($versions as $v)<option value="{{ $v }}" @selected($filters['version'] === $v)>Version {{ $v }}</option>@endforeach</select></div>
             @endif
             <input type="hidden" name="sort" value="{{ $filters['sort'] }}">
-            <div class="col-6 col-md-1 d-grid"><button class="btn btn-sm btn-primary" aria-label="Apply filters"><i class="bi bi-funnel"></i><span class="d-none d-xl-inline">Go</span></button></div>
+            <div class="col-12 col-md-auto ms-md-auto"><x-filter-buttons /></div>
         </div>
     </form>
 
+    <div id="rr-results" data-filter-region data-filter-results>
+    @can('export_excel')
+        <div class="d-flex gap-2 mb-3 d-sm-none">
+            <a href="{{ route('reports.ratings.export', $keep) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+            <a href="{{ route('reports.ratings.export-pdf', $keep) }}" class="btn btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </div>
+    @endcan
     {{-- Modification V8 item 5: clean tiles, the label stays inside the box --}}
     <div class="row g-2 g-md-3 mb-3 rating-stats">
         <div class="col-6 col-lg-3"><x-stat-card wrap label="Rated inspections" :value="number_format($s['rated'])" icon="bi-clipboard-data" tone="primary" hint="submitted and rated" /></div>
@@ -174,7 +184,7 @@
         <div class="card">
             <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
                 <span><i class="bi bi-building me-2 text-primary"></i>Schools <span class="text-xs text-secondary">(latest rating in the period, against the rating before it)</span></span>
-                <form method="GET" class="d-flex align-items-center gap-2">
+                <form method="GET" data-filter data-loader-text="Sorting schools…" class="d-flex align-items-center gap-2">
                     @foreach (request()->except('sort', 'page') as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
                     <label for="r-sort" class="text-xs text-secondary text-nowrap">Sort</label>
                     <select id="r-sort" name="sort" class="form-select form-select-sm" data-autosubmit>
@@ -212,4 +222,5 @@
         </div>
         <div class="mt-3">{{ $rows->links() }}</div>
     @endif
+    </div>
 </x-layouts.app>

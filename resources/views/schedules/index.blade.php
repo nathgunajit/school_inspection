@@ -43,6 +43,7 @@
                 <select name="status" class="form-select" data-autosubmit><option value="">All</option>
                     @foreach (\App\Enums\ScheduleStatus::cases() as $s)<option value="{{ $s->value }}" @selected(request('status') === $s->value)>{{ $s->label() }}</option>@endforeach
                 </select></div>
+            <div class="col-12 col-md-auto"><x-filter-buttons :reset="route('schedules.index', ['view' => $view])" /></div>
         </form>
     </div>
 
