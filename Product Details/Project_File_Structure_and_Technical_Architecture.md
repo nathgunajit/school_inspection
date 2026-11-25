@@ -236,7 +236,7 @@ The scheduler requires a cron or Windows Task Scheduler entry for `php artisan s
 - **School suggestions** (`school-suggest.js`): name / UDISE suggestions on school search boxes.
 - **Live unread counters** (`notice-badge.js`, V14): opening a notice clears its New tag and lowers every counter at once; counts are fetched again on Back, tab focus and every minute (`/notices/unread-count`).
 - **Calendar day popup** (`holiday-day.js`, V14): clicking a calendar date opens the day's holidays; holiday managers add or remove holidays there.
-- **Latest Notice strip** (dashboard, V14): a pure CSS marquee (`.news-ticker`) of the newest notice ticked for the homepage.
+- **Latest Notice strip** (dashboard, V14): a static strip (`.news-ticker`, no scrolling since 25-11-2026) of the pinned or newest notice ticked for the homepage.
 
 ---
 

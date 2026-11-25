@@ -29,7 +29,7 @@ class DashboardTickerTest extends TestCase
         return preg_match('~<section class="news-ticker".*?</section>~s', $html, $m) ? $m[0] : '';
     }
 
-    public function test_officer_sees_live_notices_scrolling_with_new_until_read(): void
+    public function test_officer_sees_the_latest_notice_with_new_until_read(): void
     {
         $cluster = Cluster::orderBy('id')->first();
         $crcc = $this->officer(UserLevel::Cluster, $cluster);
@@ -48,8 +48,11 @@ class DashboardTickerTest extends TestCase
         foreach (['news-ticker-type', 'NEW', $live->ref_no, $admin->name] as $gone) {
             $this->assertStringNotContainsString($gone, $strip);
         }
-        $this->assertStringContainsString('aria-hidden="true"', $strip, 'the list is doubled for a seamless loop');
-        $this->assertSame(5, substr_count($strip, 'tabindex="-1"'), 'one notice, 6 copies, only the first focusable');
+        // 25-11-2026: static strip, no scrolling copies; title and date in one aligned item
+        $this->assertSame(1, substr_count($strip, 'class="news-ticker-item"'));
+        $this->assertSame(1, substr_count($strip, 'class="news-ticker-title"'));
+        $this->assertStringNotContainsString('tabindex="-1"', $strip);
+        $this->assertStringNotContainsString('news-ticker-track', $strip);
         foreach (['Older camera instruction', 'Old expired training', 'Withdrawn format', 'Other district order'] as $t) {
             $this->assertStringNotContainsString($t, $strip);
         }
