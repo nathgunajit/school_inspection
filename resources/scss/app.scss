@@ -675,7 +675,7 @@ $ticker-red: #c62828;
 .news-ticker-all { flex: 0 0 auto; display: flex; align-items: center; gap: .3rem; padding: 0 .9rem; border-left: 1px solid $border-color; font-weight: 500; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
     .news-ticker-track { animation: none; }
-    .news-ticker-list[aria-hidden] { display: none; }
+    .news-ticker-list[aria-hidden], .news-ticker-list .is-repeat { display: none; }
     .news-ticker-viewport { overflow-x: auto; mask-image: none; }
     .news-ticker-dot { animation: none; }
 }

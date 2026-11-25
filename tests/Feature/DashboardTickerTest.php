@@ -34,6 +34,7 @@ class DashboardTickerTest extends TestCase
         $cluster = Cluster::orderBy('id')->first();
         $crcc = $this->officer(UserLevel::Cluster, $cluster);
         $admin = $this->admin();
+        $this->notice($admin, 'Older camera instruction', ['notice_date' => today()->subDays(3)->toDateString()]);
         $live = $this->notice($admin, 'Monthly inspection drive');
         $this->notice($admin, 'Old expired training', ['notice_date' => today()->subDays(5)->toDateString(), 'expires_on' => today()->subDay()->toDateString()]);
         $this->notice($admin, 'Withdrawn format', ['status' => 'withdrawn', 'withdrawn_at' => now()]);
@@ -43,7 +44,8 @@ class DashboardTickerTest extends TestCase
         $this->assertStringContainsString('Monthly inspection drive', $strip);
         $this->assertStringContainsString('NEW', $strip);
         $this->assertStringContainsString('aria-hidden="true"', $strip, 'the list is doubled for a seamless loop');
-        foreach (['Old expired training', 'Withdrawn format', 'Other district order'] as $t) {
+        $this->assertSame(5, substr_count($strip, 'tabindex="-1"'), 'one notice, 6 copies, only the first focusable');
+        foreach (['Older camera instruction', 'Old expired training', 'Withdrawn format', 'Other district order'] as $t) {
             $this->assertStringNotContainsString($t, $strip);
         }
 

@@ -2736,3 +2736,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** a breaking-news style strip at the top of the Dashboard scrolls the latest live Notices & Orders (officer: `Notice::for()`, up to 8; State Admin: every live published notice). Type pill, title, ref no, sender, date, "NEW" while unread; click opens the notice; View all. Pure CSS marquee (list twice, copy `aria-hidden`), pauses on hover / focus, no motion with `prefers-reduced-motion`, hidden when there are no live notices.
 - **Files:** `app/Http/Controllers/DashboardController.php`, `resources/views/dashboard.blade.php`, new `resources/views/dashboard/partials/ticker.blade.php`, `resources/scss/app.scss` (`.news-ticker`), new `tests/Feature/DashboardTickerTest.php`, `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
 - **Verified:** `npm run build`; full suite 291 passed.
+
+## 25-11-2026: Ticker slower, newest notice only
+- **What:** the Dashboard ticker now shows only the newest live notice (`take(1)`) and crawls in a fixed 40 s loop; the notice repeats 3× per half of the track so the strip stays full (repeats `aria-hidden`, not focusable, hidden with reduced motion).
+- **Files:** `DashboardController.php`, `dashboard/partials/ticker.blade.php`, `app.scss`, `DashboardTickerTest.php`, `CLAUDE.md`, `PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Verified:** `npm run build`; full test suite (see commit).
