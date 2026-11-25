@@ -2741,3 +2741,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** the Dashboard ticker now shows only the newest live notice (`take(1)`) and crawls in a fixed 40 s loop; the notice repeats 3× per half of the track so the strip stays full (repeats `aria-hidden`, not focusable, hidden with reduced motion).
 - **Files:** `DashboardController.php`, `dashboard/partials/ticker.blade.php`, `app.scss`, `DashboardTickerTest.php`, `CLAUDE.md`, `PROJECT_DOCUMENT.md`, rebuilt Word file.
 - **Verified:** `npm run build`; full test suite (see commit).
+
+## 25-11-2026: Latest Notice ticker redesigned
+- **What:** the ticker is now a rounded gradient pill (white → light blue → light orange, soft blue shadow) with a red → orange "Latest Notice" label and a pulsing white megaphone badge, bordered type chip, bold title, meta with # ref / person / calendar icons, a gold "NEW" pill, blue diamond separators and a white "View all" pill whose arrow moves on hover. Phones: icon-only label, no meta. Behaviour unchanged (newest notice only, 40 s, pause on hover / focus, reduced motion).
+- **Files:** `resources/scss/app.scss` (`.news-ticker*`), `resources/views/dashboard/partials/ticker.blade.php`, `CLAUDE.md`.
+- **Verified:** `npm run build`; full suite 291 passed.
