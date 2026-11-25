@@ -35,16 +35,42 @@ class HolidayCalendar
         return $j?->district_id ? (int) $j->district_id : null;
     }
 
-    /** Y-m-d => holiday names, for one year and district (state holidays included). */
+    /**
+     * Y-m-d => holiday names, for one year and district (state holidays included). Only the days off (gazetted):
+     * restricted and half holidays never block a plan or the daily list.
+     */
     public function year(int $year, ?int $districtId): array
     {
-        $key = 'holidays:'.Cache::get(self::VERSION_KEY, 0).":$year:".($districtId ?? 'state');
+        $key = 'holidays:v2:'.Cache::get(self::VERSION_KEY, 0).":$year:".($districtId ?? 'state');
 
-        return Cache::remember($key, 3600, fn () => Holiday::query()
+        return Cache::remember($key, 3600, fn () => $this->area(Holiday::query(), $districtId)
+            ->whereIn('type', Holiday::OFF_TYPES)
             ->whereBetween('date', ["$year-01-01", "$year-12-31"])
-            ->where(fn ($q) => $q->whereNull('district_id')->when($districtId, fn ($w) => $w->orWhere('district_id', $districtId)))
             ->orderBy('date')->orderByRaw('district_id is not null')->get(['date', 'name'])
             ->groupBy('date')->map(fn ($g) => $g->pluck('name')->all())->all());
+    }
+
+    /** Every holiday (all types) between two dates for display: state rows plus the district's. */
+    public function between(CarbonInterface|string $from, CarbonInterface|string $to, ?int $districtId)
+    {
+        $f = $from instanceof CarbonInterface ? $from->toDateString() : $from;
+        $t = $to instanceof CarbonInterface ? $to->toDateString() : $to;
+
+        return $this->area(Holiday::query(), $districtId)->whereBetween('date', [$f, $t])
+            ->orderBy('date')->orderByRaw('district_id is not null')->orderBy('name')->get();
+    }
+
+    /** The next $n holidays from today (all types). */
+    public function upcoming(?int $districtId, int $n = 6)
+    {
+        return $this->area(Holiday::query(), $districtId)->where('date', '>=', today()->toDateString())
+            ->orderBy('date')->orderByRaw("case when type = 'gazetted' then 0 when type = 'half' then 1 else 2 end")
+            ->orderBy('name')->take($n)->get();
+    }
+
+    private function area($q, ?int $districtId)
+    {
+        return $q->where(fn ($w) => $w->whereNull('district_id')->when($districtId, fn ($x) => $x->orWhere('district_id', $districtId)));
     }
 
     /** The holiday name(s) on a date, or null. */

@@ -200,7 +200,11 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - `HolidayController` (`/holidays`): every officer sees state holidays plus their district's.
     - Gate `manage_holidays` (= `configure_coverage`): the State Admin manages everything, a District officer with `manage_users` their own district's local rows only.
     - Excel import: `date`, `name`, `district_code`. All rows are checked first; existing rows are skipped.
-    - Weekly off: `config('inspection.holidays.weekly_off')` (Sunday).
+    - Weekly off: `config('inspection.holidays.weekly_off')` (Sunday). 2nd / 4th Saturdays are **not** off days (user decision).
+    - **Types** (25-11-2026, `holidays.type`): `gazetted` is the only type that closes the day (`Holiday::OFF_TYPES`; `HolidayCalendar::year()` reads only it); `restricted` and `half` are shown only. `between()` / `upcoming()` return every type for display; chips use `Holiday::chipClass()`.
+    - **Assam 2026 list:** `database/data/assam_holidays_2026.php` + `AssamHolidaySeeder` (in `DatabaseSeeder`, not in the test seed list; re-runnable). Loaded on MySQL 25-11-2026. Ali-Aye-Ligang is a gazetted district row for its 11 districts, restricted elsewhere.
+    - **Template:** `HolidayTemplateExport` (sheets Holidays + Value lists); `holidays.template?fill=assam-2026` is the filled list (also `Documents/HolidayList2026.xlsx`).
+    - **Dashboard Calendar & Notices:** `dashboard/partials/calendar.blade.php` (mini month, upcoming holidays, notices; the State Admin sees sent notices).
     - `ScheduleService::checkDate()` refuses a plan on a holiday of the officer's district, and the schedule calendar shows the holiday.
   - **Notices & Orders** (item 1):
     - Tables `notices` (type instruction / notification / order, ref_no, attachment on the private disk `notices/`, `levels` JSON, district / block / cluster, expires_on, status published / withdrawn) and `notice_reads` (read_at, acknowledged_at).

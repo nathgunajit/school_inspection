@@ -1,7 +1,7 @@
 @php
     $from = $month->copy()->startOfMonth()->startOfWeek(\Carbon\Carbon::MONDAY);
     $to = $month->copy()->endOfMonth()->endOfWeek(\Carbon\Carbon::SUNDAY);
-    $keep = request()->only('district');
+    $keep = request()->only('district', 'restricted');
     $q = fn ($over) => route('holidays.index', array_merge($keep, $over));
     $isOld = fn () => ! old('_edit');
     $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -9,7 +9,13 @@
 <x-layouts.app title="Holiday Calendar">
     @if ($canManage)
         <x-slot:actions>
-            <a href="{{ route('holidays.template') }}" class="btn btn-light"><i class="bi bi-download"></i><span class="d-none d-sm-inline">Template</span></a>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-download"></i><span class="d-none d-sm-inline">Template</span></button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li><a class="dropdown-item" href="{{ route('holidays.template') }}" data-no-loader><i class="bi bi-file-earmark-excel text-success"></i>Blank template</a></li>
+                    <li><a class="dropdown-item" href="{{ route('holidays.template', ['fill' => 'assam-2026']) }}" data-no-loader><i class="bi bi-file-earmark-spreadsheet text-success"></i>Assam holiday list 2026 (filled)</a></li>
+                </ul>
+            </div>
             <button type="button" class="btn btn-soft-primary" data-bs-toggle="modal" data-bs-target="#holiday-import"><i class="bi bi-upload"></i><span class="d-none d-sm-inline">Import</span></button>
         </x-slot:actions>
     @endif
@@ -33,6 +39,11 @@
                         @foreach ($districts as $d)<option value="{{ $d->id }}" @selected((int) $district === $d->id)>{{ $d->label }}</option>@endforeach
                     </select></div>
             @endif
+            <div class="col-12 col-md-auto"><label class="form-label text-xs mb-1" for="h-restricted">Restricted holidays</label>
+                <select id="h-restricted" name="restricted" class="form-select" data-autosubmit>
+                    <option value="1" @selected($showRestricted)>Show</option>
+                    <option value="0" @selected(! $showRestricted)>Hide</option>
+                </select></div>
             <div class="col-12 col-md-auto"><x-filter-buttons :reset="route('holidays.index')" /></div>
         </form>
     </div>
@@ -47,18 +58,19 @@
                         $key = $d->toDateString();
                         $out = ! $d->isSameMonth($month);
                         $list = $byDate->get($key, collect());
+                        $isOffDay = $list->contains(fn ($h) => $h->isOff());
                         $off = in_array((int) $d->dayOfWeek, $weeklyOff, true);
                     @endphp
                     @if ($out)
                         <div class="sched-day is-out d-none d-md-block"></div>
                     @else
-                        <div class="sched-day {{ $d->isToday() ? 'is-today' : '' }} {{ $list->isNotEmpty() ? 'is-holiday' : '' }} {{ $off ? 'is-off' : '' }} {{ $list->isEmpty() && ! $off ? 'd-none d-md-block' : '' }}">
+                        <div class="sched-day {{ $d->isToday() ? 'is-today' : '' }} {{ $isOffDay ? 'is-holiday' : '' }} {{ $off ? 'is-off' : '' }} {{ $list->isEmpty() && ! $off ? 'd-none d-md-block' : '' }}">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="sched-date"><span class="d-md-none">{{ $d->format('D') }} </span>{{ $d->format('j') }}</span>
                                 @if ($off)<span class="text-xs text-secondary">Off</span>@endif
                             </div>
                             @foreach ($list as $h)
-                                <span class="holiday-chip {{ $h->isState() ? 'is-state' : 'is-local' }}" title="{{ $h->areaLabel() }}">{{ $h->name }}</span>
+                                <span class="holiday-chip {{ $h->chipClass() }}" title="{{ $h->typeLabel() }} · {{ $h->areaLabel() }}">{{ $h->name }}</span>
                             @endforeach
                         </div>
                     @endif
@@ -67,6 +79,8 @@
             <div class="d-flex flex-wrap gap-2 mt-3 text-xs">
                 <span class="holiday-chip is-state">State holiday</span>
                 <span class="holiday-chip is-local">Local (district) holiday</span>
+                <span class="holiday-chip is-restricted">Restricted holiday (office open)</span>
+                <span class="holiday-chip is-half">Half holiday (from 1 PM)</span>
                 <span class="text-secondary">Weekly off: {{ collect($weeklyOff)->map(fn ($n) => $dayNames[$n] ?? $n)->implode(', ') }}</span>
             </div>
         </div>
@@ -84,6 +98,10 @@
                             <label class="form-label" for="h-name">Holiday name</label>
                             <input id="h-name" name="name" value="{{ $isOld() ? old('name') : '' }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Bohag Bihu" required>
                             @error('name')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
+                            <label class="form-label" for="h-type">Type</label>
+                            <select id="h-type" name="type" class="form-select mb-3 @error('type') is-invalid @enderror">
+                                @foreach (\App\Models\Holiday::TYPES as $k => $l)<option value="{{ $k }}" @selected(($isOld() ? old('type') : null) === $k)>{{ $l }}</option>@endforeach
+                            </select>
                             <label class="form-label" for="h-scope">Applies to</label>
                             <select id="h-scope" name="district_id" class="form-select mb-3 @error('district_id') is-invalid @enderror">
                                 @can('state_admin')<option value="">Whole state (state holiday)</option>@endcan
@@ -108,7 +126,7 @@
                                 <span class="holiday-date"><b>{{ \Carbon\Carbon::parse($h->date)->format('d') }}</b>{{ \Carbon\Carbon::parse($h->date)->format('M') }}</span>
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="fw-semibold text-truncate">{{ $h->name }}</div>
-                                    <div class="text-xs"><span class="holiday-chip {{ $h->isState() ? 'is-state' : 'is-local' }} d-inline-block">{{ $h->areaLabel() }}</span> · {{ \Carbon\Carbon::parse($h->date)->format('l') }}</div>
+                                    <div class="text-xs"><span class="holiday-chip {{ $h->chipClass() }} d-inline-block">{{ $h->isOff() ? $h->areaLabel() : $h->typeLabel().($h->isState() ? '' : ' · '.$h->district?->label) }}</span> · {{ \Carbon\Carbon::parse($h->date)->format('l') }}</div>
                                 </div>
                                 @if ($editable)
                                     <div class="dropdown">
@@ -151,6 +169,10 @@
                         <input type="date" name="date" value="{{ $v('date', $h->date) }}" class="form-control mb-3" required>
                         <label class="form-label">Holiday name</label>
                         <input name="name" value="{{ $v('name', $h->name) }}" maxlength="150" class="form-control mb-3" required>
+                        <label class="form-label">Type</label>
+                        <select name="type" class="form-select mb-3">
+                            @foreach (\App\Models\Holiday::TYPES as $k => $l)<option value="{{ $k }}" @selected($v('type', $h->type) === $k)>{{ $l }}</option>@endforeach
+                        </select>
                         <label class="form-label">Applies to</label>
                         <select name="district_id" class="form-select">
                             @can('state_admin')<option value="" @selected($v('district_id', $h->district_id) === null)>Whole state (state holiday)</option>@endcan
@@ -176,10 +198,11 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-sm text-secondary">Columns: <code>date</code> (YYYY-MM-DD), <code>name</code>, <code>district_code</code>{{ auth()->user()->isStateAdmin() ? ' (leave blank for a state holiday)' : ' (your district code)' }}. Every row is checked first: nothing is saved while any row has a problem. Holidays already in the calendar are skipped.</p>
+                        <p class="text-sm text-secondary">Columns: <code>date</code> (YYYY-MM-DD), <code>name</code>, <code>type</code> (gazetted, restricted or half; blank = gazetted), <code>district_code</code>{{ auth()->user()->isStateAdmin() ? ' (leave blank for a state holiday)' : ' (your district code)' }}. Every row is checked first: nothing is saved while any row has a problem. Holidays already in the calendar are skipped.</p>
                         <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control @error('file') is-invalid @enderror" required>
                         @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <a href="{{ route('holidays.template') }}" class="d-inline-block mt-2 text-sm"><i class="bi bi-download me-1"></i>Download the template</a>
+                        <a href="{{ route('holidays.template') }}" class="d-inline-block mt-2 text-sm" data-no-loader><i class="bi bi-download me-1"></i>Download the template</a>
+                        <a href="{{ route('holidays.template', ['fill' => 'assam-2026']) }}" class="d-inline-block mt-2 ms-3 text-sm" data-no-loader><i class="bi bi-file-earmark-spreadsheet me-1"></i>Assam list 2026</a>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>

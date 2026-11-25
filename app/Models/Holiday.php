@@ -10,7 +10,34 @@ class Holiday extends Model
 {
     use HasEncryptedRouteKey;
 
-    protected $fillable = ['date', 'name', 'district_id', 'created_by'];
+    /** 25-11-2026: only gazetted holidays close offices; restricted and half holidays are shown only. */
+    public const TYPES = ['gazetted' => 'Holiday', 'restricted' => 'Restricted holiday', 'half' => 'Half holiday (from 1 PM)'];
+
+    public const OFF_TYPES = ['gazetted'];
+
+    protected $fillable = ['date', 'name', 'type', 'district_id', 'created_by'];
+
+    protected $attributes = ['type' => 'gazetted'];
+
+    public function isOff(): bool
+    {
+        return in_array($this->type ?? 'gazetted', self::OFF_TYPES, true);
+    }
+
+    public function typeLabel(): string
+    {
+        return self::TYPES[$this->type ?? 'gazetted'] ?? 'Holiday';
+    }
+
+    /** CSS modifier for the chips: state / local (gazetted), restricted, half. */
+    public function chipClass(): string
+    {
+        return match ($this->type) {
+            'restricted' => 'is-restricted',
+            'half' => 'is-half',
+            default => $this->isState() ? 'is-state' : 'is-local',
+        };
+    }
 
     protected static function booted(): void
     {

@@ -74,27 +74,8 @@
         </div>
     @endif
 
-    {{-- V14 item 1: latest instructions / notifications / orders --}}
-    @if ($notices->isNotEmpty())
-        <div class="dash-panel mb-4">
-            <div class="dash-panel-head">
-                <h3><i class="bi bi-megaphone"></i>Notices &amp; orders</h3>
-                <a href="{{ route('notices.index') }}">View all <i class="bi bi-arrow-right"></i></a>
-            </div>
-            @foreach ($notices as $n)
-                @php $new = ! $n->reads->first()?->read_at; @endphp
-                <a href="{{ route('notices.show', $n) }}" class="dash-row">
-                    <span class="notice-icon is-{{ $n->type }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
-                    <span class="flex-grow-1 min-w-0">
-                        <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $n->title }}</span>
-                        <span class="d-block text-xs text-secondary text-truncate">{{ $n->typeLabel() }}@if ($n->ref_no) · No. {{ $n->ref_no }}@endif · {{ $n->creator->name }}</span>
-                    </span>
-                    @if ($new)<span class="badge text-bg-warning">New</span>@endif
-                    <span class="text-xs text-secondary text-nowrap">{{ \Carbon\Carbon::parse($n->notice_date)->format('d M') }}</span>
-                </a>
-            @endforeach
-        </div>
-    @endif
+    {{-- 25-11-2026: Calendar & Notices (holidays of the month, upcoming holidays, latest notices / orders) --}}
+    @include('dashboard.partials.calendar')
 
     {{-- Today's published plan (New Module 2) --}}
     @if ($todayPlan)

@@ -874,6 +874,9 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - The Excel template has the columns `date`, `name` and `district_code`; a blank district code means a state holiday.
   - Every row is checked before anything is saved: the date, the name, a district code that exists, and the uploader's right to that district.
   - Holidays already in the calendar are skipped.
+- **Holiday types** (25-11-2026): `gazetted` (office closed: the only type that blocks plans and Today's schools), `restricted` (Restricted Holiday, an employee may take 2: shown only) and `half` (half holiday from 1 PM: shown only). The import has a `type` column (blank = gazetted).
+- **Assam list 2026:** `AssamHolidaySeeder` loads the GAD notification of 17-11-2025 (`Documents/HolidayList2026.pdf`): 35 holidays, 1 half holiday, 39 restricted holidays, and Ali-Aye-Ligang as a full holiday in its 11 districts. The page's Template menu gives the blank template and the filled Assam 2026 list (`Documents/HolidayList2026.xlsx`). 2nd / 4th Saturdays are not off days in the app.
+- **Dashboard:** a Calendar & Notices row: the month with holidays marked by type, the next 6 holidays, and the latest notices (the State Admin sees the ones sent, with read counts).
 - **Weekly off days:** `config('inspection.holidays.weekly_off')`, default Sunday.
 - **Effects:**
   - No inspection plan can be saved for a holiday of the officer's district (`ScheduleService::checkDate()`).

@@ -115,4 +115,69 @@ class HolidayCalendarTest extends TestCase
         $this->actingAs($far)->postJson(route('schedules.store'), ['officer_id' => $far->id, 'date' => $date,
             'school_ids' => School::where('cluster_id', $other->id)->orderBy('id')->take(1)->pluck('id')->all(), 'action' => 'save'])->assertOk();
     }
+
+    /** 25-11-2026: restricted and half holidays are shown, but never block a plan or the daily list. */
+    public function test_restricted_and_half_holidays_are_shown_only(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $district = $cluster->block->district_id;
+        $officer = $this->officer(UserLevel::Cluster, $cluster);
+        $date = today()->addDays(2)->toDateString();
+        Holiday::create(['date' => $date, 'name' => 'Uruka of Magh Bihu', 'type' => 'restricted']);
+        Holiday::create(['date' => $date, 'name' => 'Lakshmi Puja', 'type' => 'half']);
+
+        $calendar = app(HolidayCalendar::class);
+        $this->assertNull($calendar->holiday($date, $district));
+        $this->assertSame(2, $calendar->between($date, $date, $district)->count());
+        $this->assertSame(['Lakshmi Puja', 'Uruka of Magh Bihu'], $calendar->upcoming($district)->pluck('name')->all());
+
+        \App\Models\DailyDisplaySetting::state()->update(['weekly_off' => []]);
+        $ids = School::where('cluster_id', $cluster->id)->orderBy('id')->take(1)->pluck('id')->all();
+        $this->actingAs($officer)->postJson(route('schedules.store'), ['officer_id' => $officer->id, 'date' => $date, 'school_ids' => $ids, 'action' => 'save'])->assertOk();
+
+        $this->get(route('holidays.index', ['month' => substr($date, 0, 7)]))->assertOk()->assertSee('Uruka of Magh Bihu')->assertSee('is-restricted', false);
+        $this->get(route('holidays.index', ['month' => substr($date, 0, 7), 'restricted' => '0']))->assertOk()->assertDontSee('Uruka of Magh Bihu')->assertSee('Lakshmi Puja');
+
+        // the dashboard shows the calendar and the upcoming holidays
+        $this->get(route('dashboard'))->assertOk()->assertSee('Upcoming holidays')->assertSee('Uruka of Magh Bihu')->assertSee('Restricted');
+
+        // the admin sets the type
+        $this->actingAs($this->admin())->post(route('holidays.store'), ['date' => $date, 'name' => 'Deuri Bihu', 'type' => 'restricted'])->assertRedirect();
+        $this->assertSame('restricted', Holiday::where('name', 'Deuri Bihu')->value('type'));
+        $this->post(route('holidays.store'), ['date' => $date, 'name' => 'Odd', 'type' => 'weekly'])->assertSessionHasErrors('type');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Notices &amp; orders sent', false);
+    }
+
+    public function test_import_reads_the_type_column_and_templates_download(): void
+    {
+        $y = now()->year + 1;
+        $file = fn (array $rows) => UploadedFile::fake()->createWithContent('h.xlsx',
+            Excel::raw(new ArrayExport(['date', 'name', 'type', 'district_code'], $rows), \Maatwebsite\Excel\Excel::XLSX));
+        $this->actingAs($this->admin())->post(route('holidays.import'), ['file' => $file([["$y-01-13", 'Uruka', 'weekly', '']])])->assertSessionHas('import_errors');
+        $this->post(route('holidays.import'), ['file' => $file([["$y-01-13", 'Uruka', 'R.H.', ''], ["$y-10-25", 'Lakshmi Puja', 'Half holiday', ''], ["$y-01-14", 'Magh Bihu', '', '']])])
+            ->assertSessionHas('success');
+        $this->assertSame(['Lakshmi Puja' => 'half', 'Magh Bihu' => 'gazetted', 'Uruka' => 'restricted'], Holiday::orderBy('name')->pluck('type', 'name')->all());
+
+        $this->get(route('holidays.template'))->assertOk()->assertDownload('holiday-template.xlsx');
+        $this->get(route('holidays.template', ['fill' => 'assam-2026']))->assertOk()->assertDownload('holiday-list-assam-2026.xlsx');
+    }
+
+    public function test_assam_2026_seeder_loads_the_notification_once(): void
+    {
+        $r = (new \Database\Seeders\AssamHolidaySeeder)->run();
+        // the demo master has none of the 11 Ali-Aye-Ligang districts
+        $this->assertSame(['gazetted' => 35, 'half' => 1, 'restricted' => 39], Holiday::selectRaw('type, count(*) c')->groupBy('type')->orderBy('type')->pluck('c', 'type')->map(fn ($c) => (int) $c)->all());
+        $this->assertCount(11, $r['missing']);
+        $this->assertSame(0, (new \Database\Seeders\AssamHolidaySeeder)->run()['added']);
+
+        $calendar = app(HolidayCalendar::class);
+        $this->assertSame('Holiday: Bohag Bihu', $calendar->offReason('2026-04-15', null, []));   // Deuri Bihu (restricted) not shown as off
+        $this->assertTrue($calendar->isWorkingDay('2026-02-18', null, []));                        // Ali Aye Ligang restricted outside the 11 districts
+
+        // a district of the 11 gets the full holiday
+        $d = \App\Models\District::orderBy('id')->first();
+        $d->update(['code' => '1812']);
+        (new \Database\Seeders\AssamHolidaySeeder)->run();
+        $this->assertFalse($calendar->isWorkingDay('2026-02-18', $d->id, []));
+    }
 }

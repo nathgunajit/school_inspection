@@ -42,17 +42,31 @@ class DashboardController extends Controller
         $todayPlan = \App\Models\InspectionSchedule::query()->where('officer_id', $user->id)->where('schedule_date', today()->toDateString())
             ->whereIn('status', [\App\Enums\ScheduleStatus::Published, \App\Enums\ScheduleStatus::Completed])->with('items.school:id,name', 'creator:id,name')->first();
 
-        // V14 item 1: the latest notices addressed to the officer (unread first)
-        $notices = $user->isStateAdmin() ? collect() : \App\Models\Notice::query()->for($user)
-            ->with(['reads' => fn ($r) => $r->where('user_id', $user->id), 'creator:id,name'])
-            ->orderByDesc('notice_date')->orderByDesc('id')->take(5)->get()
-            ->sortBy(fn ($n) => $n->reads->first()?->read_at ? 1 : 0)->values()->take(3);
+        // V14 item 1: the latest notices addressed to the officer (unread first); the State Admin sees the latest sent ones
+        $noticesSent = $user->isStateAdmin();
+        $notices = $noticesSent
+            ? \App\Models\Notice::query()->with('creator:id,name')->withCount(['reads as read_count' => fn ($r) => $r->whereNotNull('read_at')])
+                ->orderByDesc('notice_date')->orderByDesc('id')->take(4)->get()
+            : \App\Models\Notice::query()->for($user)
+                ->with(['reads' => fn ($r) => $r->where('user_id', $user->id), 'creator:id,name'])
+                ->orderByDesc('notice_date')->orderByDesc('id')->take(6)->get()
+                ->sortBy(fn ($n) => $n->reads->first()?->read_at ? 1 : 0)->values()->take(4);
+
+        // 25-11-2026: Calendar & Notices, this month's holidays (all types) and the next ones
+        $holidays = app(\App\Services\HolidayCalendar::class);
+        $holidayDistrict = $holidays->districtOf($user);
+        $calendar = [
+            'month' => today()->startOfMonth(),
+            'byDate' => $holidays->between(today()->startOfMonth(), today()->endOfMonth(), $holidayDistrict)->groupBy('date'),
+            'upcoming' => $holidays->upcoming($holidayDistrict, 6),
+            'weeklyOff' => $holidays->weeklyOff(app(\App\Services\DailySchoolListService::class)->settingFor($user)->weekly_off),
+        ];
 
         // V14 item 5: Today's schools (generated on the first view of the day)
         $daily = app(\App\Services\DailySchoolListService::class);
         $todaySchools = $daily->appliesTo($user) ? $daily->forOfficer($user) : null;
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'todaySchools') + [
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'todaySchools', 'calendar') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

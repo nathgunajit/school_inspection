@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             ConstituencySeeder::class,
             DemoLocationSchoolSeeder::class,
             StateAdminSeeder::class,
+            AssamHolidaySeeder::class,
         ]);
 
         // Demo officers for development and training only

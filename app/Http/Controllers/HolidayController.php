@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\ArrayExport;
+use App\Exports\HolidayTemplateExport;
 use App\Models\District;
 use App\Models\Holiday;
 use App\Services\AuditLogger;
@@ -10,6 +10,7 @@ use App\Services\HolidayCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
@@ -33,8 +34,10 @@ class HolidayController extends Controller
         // State-wide users may look at one district's calendar; others always see their own district
         $district = $own ?? ($request->filled('district') ? (int) $request->query('district') : null);
 
+        $showRestricted = $request->query('restricted') !== '0';
         $holidays = Holiday::with('district:id,name,code')
             ->whereBetween('date', ["$year-01-01", "$year-12-31"])
+            ->when(! $showRestricted, fn ($q) => $q->where('type', '!=', 'restricted'))
             ->where(fn ($q) => $q->whereNull('district_id')->when($district, fn ($w) => $w->orWhere('district_id', $district))
                 ->when(! $district && $user->isStateAdmin() && $request->query('district') === 'all', fn ($w) => $w->orWhereNotNull('district_id')))
             ->orderBy('date')->orderByRaw('district_id is not null')->orderBy('name')->get();
@@ -55,6 +58,7 @@ class HolidayController extends Controller
             'canManage' => $user->can('manage_holidays'),
             'weeklyOff' => $this->calendar->weeklyOff(),
             'calendar' => $this->calendar,
+            'showRestricted' => $showRestricted,
         ]);
     }
 
@@ -91,17 +95,15 @@ class HolidayController extends Controller
         return back()->with('success', 'Deleted '.$holiday->name.'.');
     }
 
-    /** Excel template: date, name, district_code (blank = state holiday), plus a list of district codes. */
+    /** Excel template: date, name, type, district_code (blank = state holiday), plus value lists; ?fill=assam-2026 = the Assam list 2026. */
     public function template(Request $request)
     {
+        if ($request->query('fill') === 'assam-2026') {
+            return Excel::download(HolidayTemplateExport::assam2026(), 'holiday-list-assam-2026.xlsx');
+        }
         $own = $this->calendar->districtOf($request->user());
-        $code = $own ? District::whereKey($own)->value('code') : '';
-        $rows = [
-            [now()->year.'-01-14', 'Magh Bihu', $own ? $code : ''],
-            [now()->year.'-08-15', 'Independence Day', $own ? $code : ''],
-        ];
 
-        return Excel::download(new ArrayExport(['date', 'name', 'district_code'], $rows), 'holiday-template.xlsx');
+        return Excel::download(HolidayTemplateExport::example($own ? District::whereKey($own)->value('code') : null), 'holiday-template.xlsx');
     }
 
     /** All rows are checked first; nothing is saved while any row has an error. Rows already in the calendar are skipped. */
@@ -117,7 +119,7 @@ class HolidayController extends Controller
         $rows = $rows->map(fn ($r) => collect($r)->map(fn ($v) => is_string($v) ? trim($v) : $v))
             ->filter(fn ($r) => $r->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty())->values();
         if ($rows->isEmpty() || ! $rows->first()->has('date') || ! $rows->first()->has('name')) {
-            throw ValidationException::withMessages(['file' => 'The file needs the columns date, name and district_code (download the template).']);
+            throw ValidationException::withMessages(['file' => 'The file needs the columns date, name, type and district_code (download the template).']);
         }
 
         $districts = District::pluck('id', 'code')->mapWithKeys(fn ($id, $code) => [(string) $code => (int) $id]);
@@ -128,6 +130,7 @@ class HolidayController extends Controller
             $date = $this->parseDate($r->get('date'));
             $name = trim((string) $r->get('name'));
             $code = trim((string) ($r->get('district_code') ?? ''));
+            $type = $this->parseType($r->get('type'));
             $districtId = $code === '' ? null : ($districts[$code] ?? false);
             if (! $date) {
                 $errors[] = "Row $line: the date is missing or not a date (use YYYY-MM-DD).";
@@ -135,13 +138,16 @@ class HolidayController extends Controller
             if ($name === '' || mb_strlen($name) > 150) {
                 $errors[] = "Row $line: the holiday name is missing or longer than 150 characters.";
             }
+            if ($type === null) {
+                $errors[] = "Row $line: type '".$r->get('type')."' is not known (use gazetted, restricted or half; blank = gazetted).";
+            }
             if ($districtId === false) {
                 $errors[] = "Row $line: district code $code is not in the District Master.";
             } elseif (! $this->calendar->canManage($user, $districtId)) {
                 $errors[] = "Row $line: you can add only ".($user->isStateAdmin() ? '' : 'your own district\'s ').'holidays'.($districtId === null && ! $user->isStateAdmin() ? ' (fill in your district code)' : '').'.';
             }
-            if ($date && $name !== '' && $districtId !== false) {
-                $clean[$date.'|'.($districtId ?? '').'|'.mb_strtolower($name)] = ['date' => $date, 'name' => $name, 'district_id' => $districtId];
+            if ($date && $name !== '' && $districtId !== false && $type !== null) {
+                $clean[$date.'|'.($districtId ?? '').'|'.mb_strtolower($name)] = ['date' => $date, 'name' => $name, 'type' => $type, 'district_id' => $districtId];
             }
         }
         if ($errors) {
@@ -167,9 +173,11 @@ class HolidayController extends Controller
         $data = $request->validate([
             'date' => ['required', 'date_format:Y-m-d'],
             'name' => ['required', 'string', 'min:2', 'max:150'],
+            'type' => ['nullable', Rule::in(array_keys(Holiday::TYPES))],
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
         ], ['date.date_format' => 'Pick the holiday date.']);
         $data['name'] = trim($data['name']);
+        $data['type'] = $data['type'] ?? 'gazetted';
         $data['district_id'] = isset($data['district_id']) ? (int) $data['district_id'] : null;
         if (! $this->calendar->canManage($request->user(), $data['district_id'])) {
             throw ValidationException::withMessages(['district_id' => $request->user()->isStateAdmin() ? 'Pick a district.' : 'You can add holidays for your own district only.']);
@@ -182,6 +190,19 @@ class HolidayController extends Controller
         }
 
         return $data;
+    }
+
+    /** gazetted (blank, holiday, gazetted, full), restricted (restricted, rh, r.h.) or half; null = unknown. */
+    private function parseType(mixed $v): ?string
+    {
+        $t = preg_replace('/[^a-z]/', '', mb_strtolower(trim((string) $v)));
+
+        return match (true) {
+            in_array($t, ['', 'holiday', 'gazetted', 'gazettedholiday', 'full', 'fullholiday', 'publicholiday'], true) => 'gazetted',
+            in_array($t, ['restricted', 'restrictedholiday', 'rh'], true) => 'restricted',
+            in_array($t, ['half', 'halfholiday', 'halfday'], true) => 'half',
+            default => null,
+        };
     }
 
     private function parseDate(mixed $v): ?string
@@ -210,7 +231,7 @@ class HolidayController extends Controller
 
     private function meta(Holiday $h): array
     {
-        return ['date' => $h->date, 'name' => $h->name, 'district_id' => $h->district_id];
+        return ['date' => $h->date, 'name' => $h->name, 'type' => $h->type, 'district_id' => $h->district_id];
     }
 
     private function keepDistrict(Holiday $h): array
