@@ -46,6 +46,27 @@ Artisan::command('users:reset-demo {--force : Do not ask for confirmation}', fun
     return 0;
 })->purpose('Remove all users except the State Administrator and seed demo officers');
 
+/* 25-11-2026: empty the test inspection data (inspections, schedules, Today's Schools lists); users and masters stay. */
+Artisan::command('inspections:clean-test-data {--force : Do not ask for confirmation}', function () {
+    if (app()->isProduction()) {
+        $this->error('Refused: test data cannot be cleaned in production.');
+
+        return 1;
+    }
+    $cleaner = app(\App\Services\TestDataCleaner::class);
+    $p = $cleaner->preview();
+    $this->line('First: '.$p['pre_sql']);
+    $this->table(['No.', 'Table', 'Rows', 'SQL'], array_map(fn ($r, $i) => [$i + 1, $r['table'], $r['rows'], $r['sql']], $p['rows'], array_keys($p['rows'])));
+    $this->line("Total {$p['total']} row(s), {$p['files']} file(s).");
+    if (! $this->option('force') && ! $this->confirm('Delete all of this? It cannot be undone.')) {
+        return 1;
+    }
+    $r = $cleaner->run();
+    $this->info("Cleaned: {$r['total']} row(s) and {$r['files']} file(s) removed.");
+
+    return 0;
+})->purpose('Delete every test inspection, schedule and Today\'s Schools list (not in production)');
+
 /* Modification V13 item 4: audit entries older than the retention period go to an Excel archive, then are deleted. */
 Artisan::command('audit:purge {--days= : Keep this many days (default AUDIT_RETENTION_DAYS)}', function () {
     $days = $this->option('days') !== null ? (int) $this->option('days') : null;

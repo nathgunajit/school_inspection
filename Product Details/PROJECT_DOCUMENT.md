@@ -981,3 +981,27 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 
 - **Folding groups** under *Administration*: **Users** (Pending Approvals with its count, User List, Mobile Changes), **Masters** (Location, AC / PC, School and TLM Masters, Excel Upload) and **Admin Settings** (Rating Settings, Coverage Settings, Today's Schools Settings, Login Monitoring, Audit Log). Masters and Admin Settings were one group until 25-11-2026. Each settings link has its own permission, so a District officer with Manage users sees Admin Settings with only Coverage and Today's Schools Settings. A group is closed unless one of its pages is open. In the icon rail every link stays visible.
 - Page addresses, permissions and the phone bottom navigation are unchanged.
+
+### 14.6 Clean test data (25-11-2026)
+- **Who / where:** the State Administrator, from **Admin Settings → Clean Test Data**, or `php artisan inspections:clean-test-data`. Not available in production (no link; the page and command refuse).
+- **What it removes:** every inspection (drafts and submitted, with answers, rows, photographs and ratings), every Inspection Schedule and every Today's Schools list, so testing can start again. Users, schools and the other masters, notices, holidays, settings and the audit log are kept.
+- **Before deleting,** the page lists each table with its current row count and the SQL it runs. After cleaning, the same table shows the rows removed. The tables, in order (inside one transaction):
+
+| No. | Table | What it holds | SQL |
+|---|---|---|---|
+| 0 | `inspections` | (pre-fill links) | `UPDATE inspections SET prefilled_from_id = NULL;` |
+| 1 | `inspection_classroom_tlm` | TLM ticks of the classroom rows (step 4) | `DELETE FROM inspection_classroom_tlm;` |
+| 2 | `inspection_classroom_observations` | Classroom observation rows (step 4) | `DELETE FROM inspection_classroom_observations;` |
+| 3 | `inspection_absent_teachers` | Absent teacher rows (step 3) | `DELETE FROM inspection_absent_teachers;` |
+| 4 | `inspection_fund_positions` | Fund rows by financial year (step 5) | `DELETE FROM inspection_fund_positions;` |
+| 5 | `inspection_answers` | Every questionnaire answer | `DELETE FROM inspection_answers;` |
+| 6 | `inspection_remarks` | Remarks and suggestions | `DELETE FROM inspection_remarks;` |
+| 7 | `inspection_ratings` | Calculated inspection ratings | `DELETE FROM inspection_ratings;` |
+| 8 | `inspection_evidence` | Photographs (rows; the image files are deleted too) | `DELETE FROM inspection_evidence;` |
+| 9 | `daily_school_lists` | Today's Schools rows | `DELETE FROM daily_school_lists;` |
+| 10 | `daily_school_list_days` | Today's Schools "list made" day markers | `DELETE FROM daily_school_list_days;` |
+| 11 | `inspection_schedule_items` | Planned school stops | `DELETE FROM inspection_schedule_items;` |
+| 12 | `inspection_schedules` | Inspection plans (their order files are deleted too) | `DELETE FROM inspection_schedules;` |
+| 13 | `inspections` | Inspections, drafts and submitted (also soft-deleted ones) | `DELETE FROM inspections;` |
+
+- **Safety:** the administrator types `DELETE` to confirm. Every run is audited (`test_data_cleaned`, with the rows removed per table and the file count).

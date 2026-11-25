@@ -146,6 +146,7 @@ Since 25-11-2026 related pages share one menu item and switch with tabs on the p
 | Admin Settings group: Rating Settings | `admin.rating.index` | `manage_masters` | ✔ | — | — | — | — |
 | Admin Settings group: Coverage Settings, Today's Schools Settings | `reports.coverage.settings`, `today.settings` | `configure_coverage` / `manage_holidays` | ✔ | — | own district (with Manage users) | — | — |
 | Admin Settings group: Login Monitoring, Audit Log | `admin.login-report.index`, `admin.audit.index` | `state_admin` | ✔ | — | — | — | — |
+| Admin Settings group: Clean Test Data (not in production) | `admin.test-data.index` | `state_admin` | ✔ | — | — | — | — |
 | Account menu: My Profile, Change Password, Sign out | | always | ✔ | ✔ | ✔ | ✔ | ✔ |
 
 **Bottom navigation (phones):** Home, My Visits, a central "+" (new inspection), Area (`view_reports`), Profile.

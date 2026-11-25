@@ -208,6 +208,9 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/audit/purge', [Admin\AuditLogController::class, 'purge'])->middleware('throttle:5,1')->name('audit.purge');
                 Route::post('/audit/cache', [Admin\AuditLogController::class, 'clearCache'])->middleware('throttle:5,1')->name('audit.cache');
                 Route::get('/audit/archive/{file}', [Admin\AuditLogController::class, 'archive'])->name('audit.archive');
+                // 25-11-2026: clean the test inspection data (refused in production)
+                Route::get('/test-data', [Admin\TestDataController::class, 'index'])->name('test-data.index');
+                Route::post('/test-data/clean', [Admin\TestDataController::class, 'clean'])->middleware('throttle:3,1')->name('test-data.clean');
                 // V6 Module 6: login user monitoring
                 Route::get('/login-report', [Admin\LoginReportController::class, 'index'])->name('login-report.index');
                 Route::get('/login-report/export', [Admin\LoginReportController::class, 'export'])->name('login-report.export');

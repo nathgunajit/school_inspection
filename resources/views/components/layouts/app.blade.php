@@ -52,6 +52,7 @@
         $u->can('manage_holidays') ? ['today.settings', 'today.settings*', 'bi-signpost-split', 'Today\'s Schools Settings', null] : null,
         $u->can('state_admin') ? ['admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring', null] : null,
         $u->can('state_admin') ? ['admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log', null] : null,
+        $u->can('state_admin') && ! app()->isProduction() ? ['admin.test-data.index', 'admin.test-data.*', 'bi-trash3', 'Clean Test Data', null] : null, // 25-11-2026
     ]));
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
