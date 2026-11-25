@@ -50,6 +50,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - `app/Enums/`: UserLevel, UserStatus, InspectionStatus, EvidenceStatus
 - `app/Services/`: JurisdictionService, ApproverResolver, PermissionService, AuditLogger, InspectionNumberGenerator, EvidenceStorage, MapDataService, ScheduleService, RatingService, Otp/*
 - Map View: `MapController` (`/map`, `/map/areas/{level}`, `/map/schools`), `resources/js/map.js` + `map-common.js` (Leaflet + markercluster, bundled; `leaflet-global.js` exposes `L` for the plugin). Tiles, cache and boundary files in `config('inspection.map')`. `php artisan map:boundaries` rebuilds `public/geo/*.geojson` from `public/KML/Assam` (raw KML is not committed).
+  - 25-11-2026: a **Map view** button at the top of the page (`[data-map-jump]`, `href="#mapCard"`) scrolls to the map card (`#mapCard`, `scroll-margin-top`), closes the phone filters, redraws the map (`invalidateSize()`) and focuses it; `/map#mapCard` does the same on load.
   - V6 Module 7: the command also writes dissolved per-district outlines in `public/geo/districts/` (`index.json` + `<slug>.geojson`).
   - `DistrictBoundaryService` links a District Master row to its outline (`districts.boundary_name`, else by name) and locates points.
   - The map JSON carries `outline` (the URL for the district in view), drawn by `drawDistrictOutline()` in `map-common.js`.

@@ -1740,7 +1740,7 @@ $st-pending: $danger;
 $cov-mid: #e0a800;
 
 .si-map { height: clamp(360px, 62vh, 680px); border-radius: .6rem; background: #dfe7ef; z-index: 0; }
-.map-card { position: relative; }
+.map-card { position: relative; scroll-margin-top: 5rem; } /* 25-11-2026: the "Map view" button scrolls here, below the sticky top bar */
 .map-loading { position: absolute; top: 4rem; right: 1.5rem; z-index: 500; background: #fff; border-radius: 2rem; padding: .3rem .8rem; box-shadow: 0 2px 8px rgba(0,0,0,.15); font-size: .8rem; }
 .map-crumbs { font-size: .85rem; flex-wrap: wrap; }
 .map-search-results { position: absolute; z-index: 1060; left: 0; right: 0; max-height: 18rem; overflow: auto; }

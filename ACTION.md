@@ -2799,3 +2799,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Tests:** new `InspectionVisibilityTest` (4); `UserTypeAccessTest` (a second CRCC of the cluster no longer sees the first one's inspection), `TodaySchoolsTest` and `SchoolRatingDisplayTest` adjusted to the rule.
 - **MySQL:** migrated; officer_level filled on every row (4 cluster, 1 state_admin).
 - **Verified:** full suite 307 passed.
+
+## 25-11-2026: Map View, "Map view" button at the top of the page
+- **What:** a primary **Map view** button in the page's top bar (all screen sizes) scrolls to the map card, closes the phone filters panel, redraws the map and focuses it; `/map#mapCard` opens straight at the map. Works as a plain anchor without JS.
+- **Files:** `resources/views/map/index.blade.php`, `resources/js/map.js`, `resources/scss/app.scss` (`.map-card` scroll margin), `tests/Feature/MapViewTest.php`, `CLAUDE.md`, `Product Details/UI_Pages_and_Application_Modules.md`, rebuilt Word file.
+- **Verified:** `npm run build`; full suite 307 passed.
