@@ -15,16 +15,17 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | Production target | MySQL 8 or MariaDB 10.4+ (CHECK constraints need MariaDB 10.2+ / MySQL 8.0.16+) |
 | Connection | `config/database.php`, values from `.env` (`DB_*`). Credentials are not reproduced here |
 | Tests | In-memory SQLite (`phpunit.xml`). `tests/TestCase.php` refuses any other connection |
-| Total tables | **38**: 31 application tables + 7 Laravel framework tables |
-| Foreign keys | 53 |
-| CHECK constraints | 10 (JSON validity and mobile number format) |
-| Migrations | 24 files. Master tables first (`0001_01_00_*`), then users, framework, access, schools, inspections, audit, then the modification migrations dated 2026-11-18/19 |
+| Total tables | **50**: 42 application tables + 8 Laravel framework tables (checked on MySQL, 25-11-2026) |
+| Foreign keys | 78 |
+| CHECK constraints | 15 (JSON validity and mobile number format) |
+| Migrations | 43 files. Master tables first (`0001_01_00_*`), then users, framework, access, schools, inspections, audit, then the modification migrations dated 2026-11-18 to 2026-11-25 (V14: holidays, notices, notice types, Today's Schools, schedule orders) |
 
 **Purpose.** The database stores:
 - the location hierarchy (State → District → Block → Cluster) and the School Master;
 - officers, their postings (jurisdictions), roles and permissions, and the registration approval chain;
 - inspections: the answers of the 7-step questionnaire, repeating rows, geo-stamped evidence, remarks, and the automatic rating;
-- inspection schedules (day plans);
+- inspection schedules (day plans, with an optional order letter);
+- the Holiday Calendar, Notices & Orders (with notice types and read receipts), the Today's Schools daily lists and the coverage settings (V14, 25-11-2026);
 - the audit trail and login monitoring.
 
 **Architecture.** It is one relational schema behind a Laravel 12 monolith. All writes go through Eloquent models and services, so there are no stored procedures and no triggers. Business rules are enforced in two layers:
@@ -40,6 +41,10 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | Inspection | `inspections`, `inspection_answers`, `inspection_absent_teachers`, `inspection_classroom_observations`, `inspection_fund_positions`, `inspection_remarks`, `inspection_evidence` |
 | Rating (New Module 3) | `rating_schemes`, `rating_criteria`, `inspection_ratings` |
 | Scheduling (New Module 2) | `inspection_schedules`, `inspection_schedule_items` |
+| Coverage report settings | `coverage_settings` |
+| Holiday Calendar (V14) | `holidays` |
+| Notices & Orders (V14) | `notices`, `notice_reads`, `notice_types` |
+| Today's Schools (V14) | `daily_display_settings`, `daily_school_list_days`, `daily_school_lists` |
 | Audit and monitoring | `audit_logs`, `user_login_logs` |
 | Laravel framework | `migrations`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens` |
 
@@ -79,8 +84,16 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 24 | `inspection_ratings` | Derived rating of a submitted inspection: score, band, sections, details, strengths, weaknesses (JSON) | `id` | inspections, rating_schemes |
 | 25 | `rating_schemes` | Versioned rating schemes; one active; bands JSON | `id` | rating_criteria, inspection_ratings, users |
 | 26 | `rating_criteria` | Criteria of a scheme: section, code, kind (answer/metric), weight, points JSON | `id` | rating_schemes |
-| 27 | `inspection_schedules` | Day plan of one officer: status, reviewer, start point, distance and time | `id` | users, inspection_schedule_items |
+| 27 | `inspection_schedules` | Day plan of one officer: status, reviewer, start point, distance and time; optional order reference and letter (V14) | `id` | users, inspection_schedule_items |
 | 28 | `inspection_schedule_items` | Schools of a plan in visit order, with travel estimate and status; links to the inspection done | `id` | inspection_schedules, schools, inspections |
+| 28a | `coverage_settings` | Coverage report period and inspection cycle: state default (district null) or a district's own; photo verify radius | `id` | districts, users |
+| 28b | `holidays` | Holiday Calendar: date, name, type (gazetted closes the day; restricted / half are shown only), district (null = state holiday) | `id` | districts, users |
+| 28c | `notices` | Notices & Orders letter: type (a `notice_types` code), ref no, title, body, attachment (private disk), levels JSON, area, expiry, show on homepage, status | `id` | notice_types (by code), districts, blocks, clusters, users, notice_reads |
+| 28d | `notice_reads` | One row per officer and notice: read and acknowledged times | `id` | notices, users |
+| 28e | `notice_types` | Notice types master: stable code, name, icon, colour, order, active | `id` | notices (by code), users |
+| 28f | `daily_display_settings` | Today's Schools settings: state default (district null) or a district's own; officer levels, daily limit, priority rules, weekly off | `id` | districts, users |
+| 28g | `daily_school_list_days` | Marker that an officer's list for a day was made (made once, then fixed) | `id` | users |
+| 28h | `daily_school_lists` | Today's Schools rows: officer, day, school, position, reason, source (auto / carried / manual), status, the inspection done | `id` | users, schools, inspections |
 | 29 | `audit_logs` | Append-only audit trail: action, subject, user, IP, meta JSON. Since V13, entries older than `AUDIT_RETENTION_DAYS` (30) are archived to Excel and then deleted, monthly (`audit:purge`) | `id` | users |
 | 30 | `user_login_logs` | Login monitoring: successes and refusals, device, browser, IP, last seen, logout | `id` | users |
 | 31 | `password_reset_tokens` | Laravel email reset tokens | `email` | — |
@@ -116,6 +129,13 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | `inspections` | `inspection_evidence` | `inspection_id` | **restrict** (files must be removed through `EvidenceStorage` first) |
 | `rating_schemes` | `rating_criteria` (cascade), `inspection_ratings` (restrict: a scheme in use cannot be deleted) | `scheme_id` | |
 | `inspection_schedules` | `inspection_schedule_items` | `schedule_id` | cascade |
+| `districts` | `holidays`, `coverage_settings`, `daily_display_settings` | `district_id` | cascade |
+| `districts` / `blocks` / `clusters` | `notices` (audience area) | `*_id` | set null |
+| `users` | `notices` (`created_by`) | | **restrict** (`users:reset-demo` deletes a removed officer's notices first) |
+| `notices` | `notice_reads` | `notice_id` | cascade |
+| `users` | `notice_reads`, `daily_school_list_days`, `daily_school_lists` (`officer_id`) | | cascade |
+| `schools` | `daily_school_lists` | `school_id` | cascade |
+| `inspections` | `daily_school_lists` | `inspection_id` | set null |
 
 ### 3.3 Many-to-many
 - `roles` ↔ `permissions` through `role_permissions`.
@@ -127,6 +147,8 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 - **Schedule** (master `inspection_schedules`) with its items.
 - **Rating scheme** (master `rating_schemes`) with its criteria.
 - **Import batch** with an error file on the private disk (`error_file_path`).
+- **Notice** (master `notices`) with its read receipts (`notice_reads`) and an optional attachment on the private disk.
+- `notices.type` holds a `notice_types.code`: a link by value (no foreign key), so a type is made inactive, never deleted.
 
 ### 3.5 ER diagram
 
@@ -182,6 +204,12 @@ erDiagram
 | Evidence upload is idempotent | unique `inspection_evidence.evidence_uid` |
 | One plan per officer per day; a school on at most one plan per day | unique keys on `inspection_schedules` (`officer_id`, `schedule_date`) and `inspection_schedule_items` (`school_id`, `schedule_date`) |
 | One rating per inspection | unique `inspection_ratings.inspection_id` |
+| A holiday once per day and area | unique `holidays` (`date`, `district_id`, `name`) |
+| One read receipt per officer and notice | unique `notice_reads` (`notice_id`, `user_id`) |
+| Notice type codes and names are unique | unique `notice_types.code`, `notice_types.name` |
+| A day's list is made once per officer | unique `daily_school_list_days` (`officer_id`, `list_date`); `insertOrIgnore` claims it |
+| A school on one officer's list per day | unique `daily_school_lists` (`school_id`, `list_date`) and (`officer_id`, `list_date`, `school_id`) |
+| One settings row per district (null = state default) | unique `district_id` on `coverage_settings` and `daily_display_settings` |
 | Mobile number format | CHECK `chk_users_mobile` and `chk_mcr_new_mobile`: `^[6-9][0-9]{9}$` |
 | JSON columns are valid JSON | CHECK `json_valid(...)` on `audit_logs.meta`, `inspection_answers.value`, the rating JSON columns, `rating_schemes.bands`, `rating_criteria.points` |
 | UDISE code is 11 characters | `schools.udise_code` `char(11)`, unique |
@@ -204,6 +232,10 @@ erDiagram
 | **Ratings** | On submit, `RatingService::rate()` scores the inspection with the active scheme and stores `inspection_ratings` (derived; never edited by hand). Saving the settings creates a new scheme version. `ratings:recalculate` rebuilds the ratings. | `app/Rating/RatingCalculator.php`, `RatingService` | Implemented |
 | **Dashboard statistics** | Computed live with COUNT queries. The dashboard is personal (today, month, total, drafts). The area figures are on the Map View (`MapDataService`, cached for 60 s) and the Rating Report (`RatingReportService`). There are no summary tables. | `DashboardController`, `MapDataService`, `RatingReportService` | Implemented (no materialised statistics) |
 | **Audit** | `AuditLogger::log()` only inserts, and the `AuditLog` model refuses updates and deletes. The only deletion is the V13 retention purge (`HousekeepingService::purgeAudit()`, `audit:purge`), which writes an Excel archive to `private:audit-archive/` first. | `app/Services/AuditLogger.php`, `app/Services/HousekeepingService.php` | Implemented |
+| **Holidays** (V14) | State holidays (district null) and district local holidays; only `gazetted` closes the day for plans and Today's Schools. Added on the Holiday Calendar (also by clicking a date), by Excel import or the Assam 2026 seeder. | `HolidayCalendar`, `HolidayController` | Implemented |
+| **Notices & Orders** (V14) | A letter reaches the officers of the chosen levels inside its area while published and not expired; opening it writes `notice_reads.read_at`, Acknowledge `acknowledged_at`. Types come from `notice_types`. | `NoticeService`, `NoticeController`, `Admin\NoticeTypeController` | Implemented |
+| **Today's Schools** (V14) | On the first view of a working day the officer's list is made once (manual → carried → picked by priority or at random) from `daily_display_settings`; submitting an inspection marks the row visited. | `DailySchoolListService`, `TodaySchoolsController` | Implemented |
+| **Clean test data** (local server only) | The State Admin empties inspections, schedules, the login log or the audit log (Excel archive first) by group; never in production. | `TestDataCleaner` | Implemented |
 | **Data retention** | `config('inspection.retention_years') = 5` is declared, but no job uses it. | `config/inspection.php` | **Not implemented** |
 | **OTP** | The `otp_verifications` table and the `OtpSender` interface with `LogOtpSender` exist; no screen uses them. | `app/Services/Otp/` | Not implemented (Phase 2) |
 
@@ -313,6 +345,84 @@ Indexes: **unique** `blocks_code_unique` (code); `blocks_district_id_foreign` (d
 
 Indexes: `clusters_block_id_foreign` (block_id); **unique** `clusters_code_unique` (code).
 
+#### `coverage_settings`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `district_id` | bigint(20) unsigned |  |  | districts.id (cascade) | Yes |  |
+| `period_type` | varchar(12) | 12 |  |  | No | monthly |
+| `custom_from` | date |  |  |  | Yes |  |
+| `custom_to` | date |  |  |  | Yes |  |
+| `inspection_cycle` | varchar(12) | 12 |  |  | No | quarterly |
+| `verify_radius_m` | smallint(5) unsigned |  |  |  | No | 500 |
+| `updated_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `coverage_settings_district_id_unique` (district_id); `coverage_settings_updated_by_foreign` (updated_by).
+
+#### `daily_display_settings`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `district_id` | bigint(20) unsigned |  |  | districts.id (cascade) | Yes |  |
+| `enabled` | tinyint(1) |  |  |  | No | 1 |
+| `levels` | longtext |  |  |  | Yes |  |
+| `daily_limit` | tinyint(3) unsigned |  |  |  | No | 2 |
+| `selection` | varchar(10) | 10 |  |  | No | priority |
+| `prefer_not_inspected` | tinyint(1) |  |  |  | No | 1 |
+| `prefer_low_rating` | tinyint(1) |  |  |  | No | 1 |
+| `low_rating_below` | tinyint(3) unsigned |  |  |  | No | 50 |
+| `prefer_issues` | tinyint(1) |  |  |  | No | 1 |
+| `prefer_less_visited` | tinyint(1) |  |  |  | No | 1 |
+| `carry_forward` | tinyint(1) |  |  |  | No | 1 |
+| `recent_days` | smallint(5) unsigned |  |  |  | No | 30 |
+| `weekly_off` | longtext |  |  |  | No |  |
+| `skip_blocked` | tinyint(1) |  |  |  | No | 1 |
+| `max_distance_km` | smallint(5) unsigned |  |  |  | Yes |  |
+| `updated_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `daily_display_settings_district_id_unique` (district_id); `daily_display_settings_updated_by_foreign` (updated_by).
+CHECK `levels`: `json_valid(`levels`)`
+CHECK `weekly_off`: `json_valid(`weekly_off`)`
+
+#### `daily_school_list_days`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `officer_id` | bigint(20) unsigned |  |  | users.id (cascade) | No |  |
+| `list_date` | date |  |  |  | No |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `daily_school_list_days_officer_id_list_date_unique` (officer_id, list_date).
+
+#### `daily_school_lists`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `officer_id` | bigint(20) unsigned |  |  | users.id (cascade) | No |  |
+| `list_date` | date |  |  |  | No |  |
+| `school_id` | bigint(20) unsigned |  |  | schools.id (cascade) | No |  |
+| `position` | smallint(5) unsigned |  |  |  | No | 0 |
+| `reason` | varchar(20) | 20 |  |  | No |  |
+| `source` | varchar(10) | 10 |  |  | No |  |
+| `status` | varchar(10) | 10 |  |  | No | pending |
+| `carried_from` | date |  |  |  | Yes |  |
+| `skip_reason` | varchar(200) | 200 |  |  | Yes |  |
+| `inspection_id` | bigint(20) unsigned |  |  | inspections.id (set null) | Yes |  |
+| `assigned_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: `daily_school_lists_assigned_by_foreign` (assigned_by); `daily_school_lists_inspection_id_foreign` (inspection_id); **unique** `daily_school_lists_officer_id_list_date_school_id_unique` (officer_id, list_date, school_id); `daily_school_lists_officer_id_status_list_date_index` (officer_id, status, list_date); **unique** `daily_school_lists_school_id_list_date_unique` (school_id, list_date).
+
 #### `districts`
 
 IDs of `districts`, `blocks` and `clusters` follow the Location Master code order (1801 → 1). `php artisan locations:renumber --force` restores that order and moves every referencing column (schools, user_jurisdictions, inspections, import_batches, coverage_settings, blocks, clusters) and the id keys in `import_batches.summary`.
@@ -345,6 +455,21 @@ Indexes: **unique** `districts_code_unique` (code); `districts_state_id_foreign`
 | `failed_at` | timestamp |  |  |  | No | current_timestamp() |
 
 Indexes: **unique** `failed_jobs_uuid_unique` (uuid).
+
+#### `holidays`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `date` | date |  |  |  | No |  |
+| `name` | varchar(150) | 150 |  |  | No |  |
+| `type` | varchar(20) | 20 |  |  | No | gazetted |
+| `district_id` | bigint(20) unsigned |  |  | districts.id (cascade) | Yes |  |
+| `created_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: `holidays_created_by_foreign` (created_by); **unique** `holidays_date_district_id_name_unique` (date, district_id, name); `holidays_district_id_date_index` (district_id, date); `holidays_type_date_index` (type, date).
 
 #### `import_batches`
 
@@ -598,6 +723,10 @@ Indexes: `inspection_remarks_inspection_id_type_index` (inspection_id, type).
 | `total_distance_km` | decimal(8,2) | 8,2 |  |  | No | 0.00 |
 | `total_minutes` | smallint(5) unsigned |  |  |  | No | 0 |
 | `notes` | varchar(500) | 500 |  |  | Yes |  |
+| `order_ref` | varchar(60) | 60 |  |  | Yes |  |
+| `attachment_path` | varchar(255) | 255 |  |  | Yes |  |
+| `attachment_name` | varchar(255) | 255 |  |  | Yes |  |
+| `attachment_mime` | varchar(100) | 100 |  |  | Yes |  |
 | `created_at` | timestamp |  |  |  | Yes |  |
 | `updated_at` | timestamp |  |  |  | Yes |  |
 
@@ -692,6 +821,65 @@ Indexes: **unique** `master_values_type_code_unique` (type, code).
 Indexes: `mcr_status_created_idx` (status, created_at); `mcr_user_status_idx` (user_id, status); `mobile_change_requests_decided_by_foreign` (decided_by).
 
 CHECK `chk_mcr_new_mobile`: ``new_mobile` regexp '^[6-9][0-9]{9}$'`
+
+#### `notices`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `type` | varchar(30) | 30 |  |  | No |  |
+| `ref_no` | varchar(60) | 60 |  |  | Yes |  |
+| `title` | varchar(200) | 200 |  |  | No |  |
+| `body` | text |  |  |  | No |  |
+| `notice_date` | date |  |  |  | No |  |
+| `attachment_path` | varchar(255) | 255 |  |  | Yes |  |
+| `attachment_name` | varchar(255) | 255 |  |  | Yes |  |
+| `attachment_mime` | varchar(100) | 100 |  |  | Yes |  |
+| `levels` | longtext |  |  |  | No |  |
+| `district_id` | bigint(20) unsigned |  |  | districts.id (set null) | Yes |  |
+| `block_id` | bigint(20) unsigned |  |  | blocks.id (set null) | Yes |  |
+| `cluster_id` | bigint(20) unsigned |  |  | clusters.id (set null) | Yes |  |
+| `expires_on` | date |  |  |  | Yes |  |
+| `show_on_home` | tinyint(1) |  |  |  | No | 1 |
+| `status` | varchar(12) | 12 |  |  | No | published |
+| `created_by` | bigint(20) unsigned |  |  | users.id (restrict) | No |  |
+| `withdrawn_at` | timestamp |  |  |  | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: `notices_block_id_foreign` (block_id); `notices_cluster_id_foreign` (cluster_id); `notices_created_by_foreign` (created_by); `notices_district_id_foreign` (district_id); `notices_status_notice_date_index` (status, notice_date).
+CHECK `levels`: `json_valid(`levels`)`
+
+#### `notice_reads`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `notice_id` | bigint(20) unsigned |  |  | notices.id (cascade) | No |  |
+| `user_id` | bigint(20) unsigned |  |  | users.id (cascade) | No |  |
+| `read_at` | timestamp |  |  |  | Yes |  |
+| `acknowledged_at` | timestamp |  |  |  | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `notice_reads_notice_id_user_id_unique` (notice_id, user_id); `notice_reads_user_id_notice_id_index` (user_id, notice_id).
+
+#### `notice_types`
+
+| Field | Data type | Length | PK | FK | Nullable | Default |
+|---|---|---|---|---|---|---|
+| `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
+| `code` | varchar(30) | 30 |  |  | No |  |
+| `name` | varchar(60) | 60 |  |  | No |  |
+| `icon` | varchar(40) | 40 |  |  | No | bi-megaphone |
+| `color` | char(7) | 7 |  |  | No | #1565c0 |
+| `sort_order` | smallint(5) unsigned |  |  |  | No | 0 |
+| `is_active` | tinyint(1) |  |  |  | No | 1 |
+| `updated_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
+| `created_at` | timestamp |  |  |  | Yes |  |
+| `updated_at` | timestamp |  |  |  | Yes |  |
+
+Indexes: **unique** `notice_types_code_unique` (code); **unique** `notice_types_name_unique` (name); `notice_types_updated_by_foreign` (updated_by).
 
 #### `otp_verifications`
 

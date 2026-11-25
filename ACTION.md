@@ -2782,3 +2782,13 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** on the Holiday Calendar and the dashboard calendar, clicking a date that has a holiday opens a popup with its holidays; the State Administrator (and a District user manager for their own district) can click any date to add a holiday on it or remove one from the popup. Adding from the dashboard returns to the dashboard; form errors reopen the popup.
 - **Files:** new `resources/views/holidays/partials/day-modal.blade.php`, `resources/js/holiday-day.js` (+ `app.js`), `app/Services/HolidayCalendar.php` (`editableDistricts()`, `dayData()`), `app/Http/Controllers/{HolidayController,DashboardController}.php`, views `holidays/index`, `dashboard/partials/calendar`, `resources/scss/app.scss`, `tests/Feature/HolidayCalendarTest.php` (+2 tests), `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
 - **Verified:** `npm run build`; full suite 303 passed.
+
+## 25-11-2026: Product Details documents brought up to V14; Word file rebuilt
+- **What:** the technical chapters were still at 19-11-2026 for the V14 modules. Updated from the code and the live MySQL schema (read only):
+  - `Database_Architecture_and_Schema.md`: totals (50 tables = 42 + 8, 78 FKs, 15 CHECKs, 43 migrations), module rows, inventory 28a–28h, relationships, DB rules, business logic, and generated column blocks for `coverage_settings`, `holidays`, `notices`, `notice_reads`, `notice_types`, `daily_display_settings`, `daily_school_list_days`, `daily_school_lists` (+ `inspection_schedules` order columns).
+  - `UI_Pages_and_Application_Modules.md`: Today's Schools (+ Assign, Settings), Holiday Calendar (date popup), Notices & Orders (Inbox / Sent, New notice, notice page), Network Issues, Notice Types, Clean Test Data; endpoints; dashboard strip, live counters, Masters / Admin Settings; module summary. The removed inspections Excel export row is marked removed.
+  - `PROJECT_DOCUMENT.md`: §5 table count, ER lines and a V14 tables table; §6 module → tables rows; file map (commands, seeders, JS / views).
+  - `Project_File_Structure_and_Technical_Architecture.md`: file inventory 45–53, routes, console commands, frontend modules.
+  - `System_Architecture_and_Workflow.md`: module map + §8.1 V14 workflows. `README.md`: dates and table count.
+- **Files:** `Product Details/*.md` (above), `School_Inspection_Product_Details.docx` (rebuilt, 3.76 MB).
+- **Verified:** `node tools/docs/build-product-docx.cjs` wrote the file; every new table / page name found in the documents.

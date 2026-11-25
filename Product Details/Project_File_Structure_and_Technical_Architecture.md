@@ -84,7 +84,7 @@ SCHOOLINSPECTION/
 | Sl | Path | Type | Purpose | Module |
 |---|---|---|---|---|
 | 1 | `routes/web.php` | Routes | All web routes, grouped by middleware and gate | All |
-| 2 | `routes/console.php` | Routes | Artisan closures and the daily schedule (00:30 draft expiry, 01:00 purge of temporary registration files) | Inspection, Registration |
+| 2 | `routes/console.php` | Routes | Artisan closures and the schedule (00:30 draft expiry, 01:00 purge of temporary registration files, monthly audit / cache clean-up), `users:reset-demo`, `data:clean-test` | Inspection, Registration |
 | 3 | `bootstrap/app.php` | Bootstrap | Middleware aliases, global web middleware | Security |
 | 4 | `app/Providers/AppServiceProvider.php` | Provider | Defines a gate per permission slug and the `state_admin` gate; rate limiters `login`, `register`, `uploads`; forces HTTPS in production | Access |
 | 5 | `config/inspection.php` | Config | Draft expiry, login lockout, upload limits, mandatory photos, map, schedule and security settings, page size, retention | All |
@@ -92,14 +92,14 @@ SCHOOLINSPECTION/
 | 7 | `app/Questionnaire/InspectionValidator.php` | Domain | Missing items, teacher totals rule, warnings, progress % | Inspection |
 | 8 | `app/Http/Controllers/InspectionController.php` | Controller | Start, steps, save answers and rows, review, submit, cancel, unlock | Inspection |
 | 9 | `app/Http/Controllers/EvidenceController.php` | Controller | Upload, serve and delete photos and documents | Evidence |
-| 10 | `app/Http/Controllers/ReportController.php` | Controller | My Inspections, Inspections in Area, report page, PDF, Excel | Reports |
+| 10 | `app/Http/Controllers/ReportController.php` | Controller | My Inspections, Inspections in Area, report page, inspection PDF, list PDF (the list Excel was removed in V14) | Reports |
 | 11 | `app/Http/Controllers/RatingReportController.php` | Controller | Rating report, Excel, PDF | Rating |
 | 12 | `app/Http/Controllers/MapController.php` | Controller | Map page and its JSON (areas, schools) | Map |
 | 13 | `app/Http/Controllers/ScheduleController.php` | Controller | Calendar, planner, approvals, plan actions | Scheduling |
 | 14 | `app/Http/Controllers/SchoolController.php` | Controller | Find School (search by UDISE or name, within the jurisdiction) and the school page | Schools |
 | 15 | `app/Http/Controllers/DashboardController.php` | Controller | Personal dashboard | Dashboard |
 | 16 | `app/Http/Controllers/Auth/*` | Controllers | Login, Register, Password (change, forgot, reset) | Auth |
-| 17 | `app/Http/Controllers/Admin/*` | Controllers | Approvals, Users, Locations, Schools, Imports, Rating settings, Mobile requests, Audit log, Login report | Admin |
+| 17 | `app/Http/Controllers/Admin/*` | Controllers | Approvals, Users, Locations, Constituencies, Schools, TLM items, Notice types, Imports, Rating settings, Mobile requests, Audit log, Login report, Test data | Admin |
 | 18 | `app/Services/JurisdictionService.php` | Service | Scopes every query to the user's area | Access |
 | 19 | `app/Services/PermissionService.php` | Service | Role plus individual permissions; per-request cache | Access |
 | 20 | `app/Services/ApproverResolver.php` | Service | Who may approve which registration | Registration |
@@ -127,6 +127,15 @@ SCHOOLINSPECTION/
 | 42 | `resources/scss/app.scss` | SCSS | Design tokens and components | UI |
 | 43 | `database/seeders/*` | Seeders | Roles/permissions, master values, demo locations and schools, State Admin, demo officers (non-production) | Data |
 | 44 | `tests/TestCase.php` | Test | Refuses to run on anything but SQLite in-memory | Testing |
+| 45 | `app/Http/Controllers/HolidayController.php`, `app/Services/HolidayCalendar.php`, `app/Models/Holiday.php` | Controller/Service | Holiday Calendar: month grid, add / edit / delete, Excel template and import, working-day checks, day popup data (`dayData()`), districts a user may edit (`editableDistricts()`) | Holidays (V14) |
+| 46 | `app/Http/Controllers/NoticeController.php`, `app/Services/NoticeService.php`, `app/Models/{Notice,NoticeRead}.php` | Controller/Service | Notices & Orders: inbox, compose, publish (audience check), read / acknowledge, read report, homepage tick, withdraw, attachment, unread count (cached) | Notices (V14) |
+| 47 | `app/Http/Controllers/Admin/NoticeTypeController.php`, `app/Models/NoticeType.php` | Controller/Model | Notice Types master (cached map; add, edit, make inactive) | Notices (V14) |
+| 48 | `app/Http/Controllers/TodaySchoolsController.php`, `app/Services/DailySchoolListService.php`, `app/Models/{DailyDisplaySetting,DailySchoolList}.php` | Controller/Service | Today's Schools: list made once per day, priority / random pick, carry-over, assign, open drafts, settings | Today's Schools (V14) |
+| 49 | `app/Http/Controllers/NetworkIssueController.php` | Controller | Network Issues list and PDF (NET_01) | Reports |
+| 50 | `app/Http/Controllers/Admin/TestDataController.php`, `app/Services/TestDataCleaner.php` | Controller/Service | Clean Test Data by group, local server only (404 otherwise) | Test data |
+| 51 | `app/Services/DemoUserReset.php`, `HousekeepingService.php` | Service | `users:reset-demo`; audit archive / purge and cache clean-up | Housekeeping |
+| 52 | `resources/js/notice-badge.js`, `holiday-day.js`, `filter-partial.js`, `school-suggest.js` | JS | Live unread counters; calendar day popup; section loading of filter pages; school suggestions | UI |
+| 53 | `resources/views/components/page-tabs.blade.php`, `dashboard/partials/{calendar,notices,ticker}.blade.php`, `holidays/partials/day-modal.blade.php` | Views | Page tabs of merged menu items; dashboard rail and Latest Notice strip; day popup | UI |
 
 ### 3.1 Shared components and reusable code
 - **Blade components:** `<x-layouts.app>`, `<x-layouts.portal>`, `<x-status-badge>`, `<x-rating-badge>`, `<x-stat-card>`, `<x-empty-state>`, `<x-user-avatar>`.
@@ -184,10 +193,14 @@ flowchart TB
 | Schools | `/schools`, `/schools/{school}`, `POST /schools/{school}/inspections`, `/my-inspections`, `/subjects/suggest` | School, Inspection, Report | `conduct_inspections` |
 | Inspection | `/inspections/{inspection}/…` (step, answers, progress, teachers, classrooms, funds, suggestions, review, submit, submitted, cancel, unlock, evidence, show, pdf) | Inspection, Evidence, Report | policy |
 | Evidence | `/evidence/{evidence}` GET/DELETE | Evidence | policy |
-| Reports | `/inspections`, `/reports/ratings[/export\|/pdf]`, `/export/{mine\|area}` | Report, RatingReport | `view_reports`, `export_excel` |
+| Reports | `/inspections`, `/export-pdf/{mine\|area}`, `/reports/coverage[/export\|/export-pdf\|/settings]`, `/reports/ratings[/export\|/export-pdf]`, `/reports/network-issues[/export-pdf]` | Report, CoverageReport, RatingReport, NetworkIssue | `view_reports`, `export_excel`, `configure_coverage`, `state_admin` (ratings) |
+| Today's Schools (V14) | `/today`, `/today/assign`, `/today/rows/{row}[/skip]`, `/today/settings` | TodaySchools | `conduct_inspections`, `view_reports` (assign), `manage_holidays` (settings) |
+| Holidays (V14) | `/holidays`, `/holidays/{holiday}`, `/holidays/template`, `/holidays/import` | Holiday | any (view); `manage_holidays` (edit) |
+| Notices (V14) | `/notices`, `/notices/create`, `/notices/unread-count`, `/notices/{notice}` + acknowledge, attachment, home, withdraw | Notice | any (inbox); `issue_notices` (compose, home, withdraw) |
+| School suggestions | `/school-suggest` | School@suggest | auth (throttled) |
 | Map | `/map`, `/map/areas/{level}`, `/map/schools` | Map | `view_reports` |
 | Schedules | `/schedules`, `/plan`, `/plan/schools`, `/approvals`, `/{schedule}` + approve/reject/cancel/reassign, `/items/{item}/skip` | Schedule | `view_reports` + `ScheduleService` checks |
-| Admin | `/admin/approvals*`, `/admin/users*`, `/admin/mobile-requests`, `/admin/audit`, `/admin/login-report*`, `/admin/locations*`, `/admin/schools*`, `/admin/rating*`, `/admin/imports*` | `Admin\*` | `approve_registrations`, `manage_users`, `state_admin`, `manage_masters` |
+| Admin | `/admin/approvals*`, `/admin/users*`, `/admin/mobile-requests`, `/admin/audit`, `/admin/login-report*`, `/admin/locations*`, `/admin/schools*`, `/admin/rating*`, `/admin/imports*`, `/admin/constituencies*`, `/admin/tlm-items*`, `/admin/notice-types*`, `/admin/test-data*` (local only) | `Admin\*` | `approve_registrations`, `manage_users`, `state_admin`, `manage_masters` |
 | Framework | `/up`, `/captcha/*` | Laravel, mews/captcha | none |
 
 The full page list is in `UI_Pages_and_Application_Modules.md`.
@@ -200,6 +213,11 @@ The full page list is in `UI_Pages_and_Application_Modules.md`.
 | `ratings:recalculate [--all]` | Re-rate inspections with the active scheme | manual |
 | `map:boundaries [--check\|--assign]` | Build GeoJSON outlines from the KML; link districts | manual |
 | `security:keys` | Generate the RSA key pair in `storage/app/private/keys` | manual (once per server) |
+| `audit:purge [--days=]` | Archive audit entries older than the retention period to Excel, then delete them | monthly, 1st 02:00 |
+| `cache:purge` | Clear the cache, compiled views and kept registration files | monthly, 1st 02:15 |
+| `users:reset-demo --force` | Keep only the State Administrator and seed the demo officers and notices (refused in production) | manual |
+| `data:clean-test {inspections\|schedules\|login_logs\|audit_logs\|all}` (alias `inspections:clean-test-data`) | Clean test data by group; local server only (`TEST_DATA_CLEANUP`, never production) | manual |
+| `locations:renumber --force` | Renumber districts, blocks and clusters in code order | manual |
 
 The scheduler requires a cron or Windows Task Scheduler entry for `php artisan schedule:run` every minute. That is a deployment step and is not in the code.
 
@@ -214,6 +232,11 @@ The scheduler requires a cron or Windows Task Scheduler entry for `php artisan s
 - **Review** (`review.js`) locks Submit until the device queue is empty.
 - **Maps** (`map.js`, `school-map.js`, `map-common.js`): Leaflet with clustered markers, area polygons and colour by status or rating. Directions use OSRM, called only when the officer presses "Show route".
 - **Planner** (`schedule-planner.js`): pick schools, drag to reorder, suggested order (`RouteOptimizer` on the server), travel estimates.
+- **Section loading** (`filter-partial.js`): filter forms and same-page links swap only the result sections, with a loader; the URL is pushed so Back works.
+- **School suggestions** (`school-suggest.js`): name / UDISE suggestions on school search boxes.
+- **Live unread counters** (`notice-badge.js`, V14): opening a notice clears its New tag and lowers every counter at once; counts are fetched again on Back, tab focus and every minute (`/notices/unread-count`).
+- **Calendar day popup** (`holiday-day.js`, V14): clicking a calendar date opens the day's holidays; holiday managers add or remove holidays there.
+- **Latest Notice strip** (dashboard, V14): a pure CSS marquee (`.news-ticker`) of the newest notice ticked for the homepage.
 
 ---
 

@@ -205,7 +205,21 @@ flowchart LR
     SCHED --> AUDIT
     MASTERS --> AUDIT
     RATE --> AUDIT
+    HOL[Holiday Calendar] --> SCHED
+    HOL --> TODAY[Today's Schools]
+    TODAY --> SCHOOLS
+    INSP --> TODAY
+    NOTICE[Notices & Orders] --> DASH[Dashboard: Latest Notice, calendar, counters]
+    HOL --> DASH
+    NOTICE --> AUDIT
+    HOL --> AUDIT
 ```
+
+### 8.1 V14 workflows (25-11-2026)
+- **Holiday → planning:** a gazetted holiday (state, or the officer's district) closes the day. `ScheduleService::checkDate()` refuses a plan on it, and Today's Schools makes no list. Restricted and half holidays are only shown. Holidays are added on the Holiday Calendar (also by clicking a date), by Excel import or by the Assam 2026 seeder.
+- **Today's Schools:** on the first view of a working day, `DailySchoolListService` makes the officer's list once (manual → carried over → picked by priority or at random, within the daily limit and the settings). Submitting an inspection marks the row visited; a started draft stays on the list with Continue.
+- **Notice → read → counters:** the sender publishes a notice to officer levels inside an area (`NoticeService::publish()`). Officers see it in the Inbox, the dashboard card and, when ticked for the homepage, the Latest Notice strip. Opening it records `read_at` and lowers every unread counter at once; Acknowledge records `acknowledged_at`; the sender sees the read report and can withdraw it.
+- **Clean Test Data (local server only):** the State Administrator empties one part (inspections and Today's Schools, schedules, the login log, or the audit log after an Excel archive). The page and command do not exist in production.
 
 ## 9. Deployment view (current and recommended)
 

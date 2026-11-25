@@ -32,7 +32,7 @@
 | Inspection PDF | `/inspections/{key}/pdf` | `ReportController@pdf` | `inspections/pdf` | same | DomPDF. Since V8 the device location at start/submit is not printed |
 | My Inspections | `/my-inspections` | `ReportController@mine` | `inspections/index` (`mode=mine`) | `conduct_inspections` | Own inspections, filters, Excel and PDF (23-11-2026) |
 | Inspections in Area | `/inspections` | `ReportController@area` | `inspections/index` (`mode=area`) | `view_reports` | Area list: district/block/cluster/officer/status/school/date filters, Excel and PDF (23-11-2026) |
-| Excel export | `/export/{mine\|area}` | `ReportController@export` | — | `export_excel` | One column per question code |
+| ~~Excel export~~ | removed | — | — | — | Since V14 (23-11 / 25-11-2026) My Inspections and Inspections in My Area download as PDF only (the `inspections.export` route and `ReportController::export()` are removed) |
 | PDF list | `/export-pdf/{mine\|area}` | `ReportController@exportPdf` | `admin/exports/master-pdf` | `export_excel` | 23-11-2026: one row per inspection (ID, date, school, cluster, block, officer, status, absentees, classrooms, photos, submitted), the filters as chips; at most `MASTER_PDF_MAX_ROWS` rows |
 | Inspection Coverage Report | `/reports/coverage` (+ `/export` Excel, `/export-pdf` PDF, `/settings`) | `CoverageReportController` | `reports/coverage/index`, `settings` | `view_reports` (downloads: `export_excel`) | Visit / inspection coverage per district, block or cluster; the PDF (23-11-2026) prints the summary and the level in view (or a cluster's schools) |
 | Rating Report | `/reports/ratings` (+ `/export` Excel, `/export-pdf` PDF) | `RatingReportController@index` (+ `export`, `exportPdf`) | `reports/ratings/index`, `reports/ratings/pdf` | State Admin only (downloads: `export_excel`) | Summary, bands, sections, areas, schools latest vs previous; V13 **Map view** button (`/map?colour=rating`, ratings always shown to the State Admin); 23-11-2026 designed A4 PDF (KPI cards, band / section bars, best and lowest, area-wise and school-wise tables) |
@@ -41,6 +41,14 @@
 | Plan a day | `/schedules/plan` | `ScheduleController@plan` (+ JSON `plan/schools`, `POST /schedules`) | `schedules/plan` | `view_reports` | Choose officer, date, schools; drag to order; route estimate; save / submit / publish |
 | Plan details | `/schedules/{key}` | `ScheduleController@show` | `schedules/show` | `view_reports` + `canView` | Visits, route map, approve/reject/cancel/reassign, skip a visit |
 | Plan approvals | `/schedules/approvals` | `ScheduleController@approvals` | `schedules/approvals` | higher officers | Plans waiting for approval |
+| Today's Schools (V14) | `/today` (+ `rows/{key}/skip`, `rows/{key}` delete) | `TodaySchoolsController@index` (+ `skip`, `remove`) | `today/index` | `conduct_inspections` | The officer's schools for the day (made once on the first view: assigned, carried over, then picked by priority); Start / Continue an open draft, Not visited with a reason, distance from the office |
+| Assign schools (V14) | `/today/assign` (+ POST) | `TodaySchoolsController@assign` / `@storeAssign` | `today/assign` | `view_reports`, superiors only | A higher officer picks an officer and a day and ticks schools for them |
+| Today's Schools Settings (V14) | `/today/settings` (+ PUT) | `TodaySchoolsController@settings` / `@updateSettings` | `today/settings` | `manage_holidays` | State default and district settings: on / off, daily limit, officer levels (a district chooses Block / Cluster only), priority rules, recent-visit and distance limits, weekly off |
+| Holiday Calendar (V14) | `/holidays` (+ store, update, destroy, `template`, `import`) | `HolidayController` | `holidays/index` (+ partial `holidays/partials/day-modal`) | any (editing: `manage_holidays`) | Month grid and year list. **Click a date:** a popup lists its holidays; holiday managers add a holiday on that date or remove one there. Excel template / import |
+| Notices & Orders (V14) | `/notices` (Inbox / Sent) | `NoticeController@index` | `notices/index` | any (Sent: `issue_notices`) | Inbox with New tags and filters (type, unread); Sent with read counts |
+| New notice (V14) | `/notices/create` (+ POST) | `NoticeController@create` / `@store` | `notices/create` | `issue_notices` | Type (from the Notice Types master), ref no, date, subject, message, attachment, show until, audience levels and area, "Show in Latest Notice on the homepage" |
+| Notice page (V14) | `/notices/{key}` (+ `acknowledge`, `attachment`, `home`, `withdraw`) | `NoticeController@show` | `notices/show` | audience or sender | Opening marks it read; Acknowledge; attachment; read report, Show on / Remove from homepage and Withdraw for the sender |
+| Network Issues (V11) | `/reports/network-issues` (+ `/export-pdf`) | `NetworkIssueController@index` / `@exportPdf` | `reports/network/index` | `view_reports` | Schools that reported a network problem (NET_01), filtered list and PDF |
 
 ### 1.3 Administration pages
 | Page | Route | Controller@method | Blade view | Role | Main functionality |
@@ -58,6 +66,8 @@
 | Login Monitoring | `/admin/login-report` | `Admin\LoginReportController` | `admin/login-report/index`, `row`, `user`, `tabs` | `state_admin` | Logins, refusals, devices, top refused mobiles; per-user history; Excel |
 | Daily login report (V8) | `/admin/login-report/daily` (+ `/export`) | `Admin\LoginReportController@daily` / `@dailyExport` | `admin/login-report/daily` | `state_admin` | One row per active officer for a date: first sign-in, last activity, sign-ins, time online, refused attempts and the **current status** (Online now / Signed out / Timed out / Not signed in / Never signed in); Excel |
 | Audit Log | `/admin/audit` (+ `purge`, `cache`, `archive/{file}`) | `Admin\AuditLogController` | `admin/audit` | `state_admin` | Filterable audit trail. V13 Clean up card: archive to Excel and delete entries older than N days, Clear cache, archive downloads (also automatic on the 1st of each month) |
+| Notice Types (V14) | `/admin/notice-types` (+ store, update, `status`) | `Admin\NoticeTypeController` | `admin/notice-types/index` (+ `fields`) | `manage_masters` | Letter types with icon, colour and use count; add, edit (window), make inactive; never deleted |
+| Clean Test Data (local server only) | `/admin/test-data` (+ `clean`) | `Admin\TestDataController` | `admin/test-data/index` (+ `table`) | `state_admin`, only when `TestDataCleaner::enabled()` (else 404) | Four parts (Inspections & Today's Schools, Inspection Schedules, Login log, Audit log) with their tables, row counts and SQL; typed DELETE per part |
 
 ### 1.4 Non-page endpoints used by the UI (JSON / files)
 - `/locations/{type}`: cascading dropdowns, public, throttled.
@@ -65,6 +75,9 @@
 - `/inspections/{key}/answers`, `progress`, `teachers`, `classrooms`, `funds`, `suggestions`: autosave and rows.
 - `/inspections/{key}/evidence` and `/evidence/{key}`: upload, serve and delete files.
 - `/subjects/suggest`: subject autocomplete.
+- `/school-suggest`: school name / UDISE suggestions (`school-suggest.js`).
+- `/notices/unread-count`: the unread count for the live counters (`notice-badge.js`; JSON, no-store).
+- `/notices/{key}/attachment`, `/schedules/{key}/attachment`: private letter files.
 - `/admin/users/{key}/photo` and `id-proof`: private files.
 - `/register/kept/{field}`: preview of a kept upload.
 - `/captcha/*`: CAPTCHA image.
@@ -97,11 +110,14 @@
   - Under *Administration*, the folding groups **Users**, **Masters** and **Admin Settings** (Bootstrap collapse, open while one of their pages is open). Everything is filtered by permission.
   - The note "Government of Assam".
   - Since 23-11-2026 it opens as an icon rail by default (the highlighted white Expand button opens it, and `localStorage` `si-sidebar = full` keeps it open). Hovering a rail icon shows a styled name popup (`.si-nav-tip`, with the badge count where there is one). On phones it is an off-canvas drawer.
-- **Top bar:** menu button (mobile), a back button where a page sets one, the page title, a pending approvals bell with count, and the account dropdown. The dropdown shows the avatar, designation, level, jurisdiction, My Profile, Change Password and Sign out.
+- **Top bar:** menu button (mobile), a back button where a page sets one, the page title, an unread notices megaphone (V14), a pending approvals bell with count, and the account dropdown. The dropdown shows the avatar, designation, level, jurisdiction, My Profile, Change Password and Sign out.
 - **Bottom navigation (phones):** Home · My Visits · "+" (new inspection) · Area · Profile.
 - **Footer:** there is no global footer; the sidebar note acts as one.
 - **Session:** an idle warning before the 20-minute expiry, with "Stay signed in".
 - **Flash messages:** `partials/flash` (success, info, warning, error).
+- **Dashboard (V14):** a **Latest Notice** strip above the banner slowly scrolls the newest notice ticked for the homepage (pauses on hover, still with reduced motion); the right rail has the month calendar (click a date for its holidays) and the Notices & orders card.
+- **Live counters (V14):** the unread notice counts (sidebar, topbar, Inbox tab, dashboard card, banner pill) drop at once when a notice is opened and are checked again on Back, tab focus and every minute (`notice-badge.js`).
+- **Masters / Admin Settings (25-11-2026):** Masters = Location, AC / PC, School, TLM, Notice Types, Excel Upload; Admin Settings = Rating, Coverage, Today's Schools Settings, Login Monitoring, Audit Log, and Clean Test Data on a local server.
 
 ## 4. Design system (`resources/scss/app.scss`)
 
@@ -146,12 +162,16 @@
 | Dashboard | Dashboard | Implemented (personal, no charts) |
 | Schools | Find School, My Schools (own jurisdiction list, 23-11-2026), School page | Implemented |
 | Inspection | Steps 1–7, Review, Submitted, Report, PDF | Implemented |
-| Reports | My Inspections, Inspections in Area, Excel | Implemented |
+| Reports | My Inspections, Inspections in Area (PDF), Coverage, Rating, Network Issues | Implemented |
 | Rating (New Module 3) | Rating card, Rating Report, Rating Settings | Implemented |
 | Map View (New Module 1) | Map View, school map, directions | Implemented |
 | Scheduling (New Module 2) | Calendar, Plan, Plan details, Approvals | Implemented |
 | User administration | Approvals, User List/detail, Mobile changes | Implemented |
-| Masters | Location, AC / PC, School, Excel Upload | Implemented |
+| Masters | Location, AC / PC, School, TLM, Notice Types, Excel Upload | Implemented |
+| Holiday Calendar (V14) | Holiday Calendar (date popup with add / remove), dashboard calendar | Implemented |
+| Notices & Orders (V14) | Inbox / Sent, New notice, Notice page, Latest Notice strip, live counters | Implemented |
+| Today's Schools (V14) | Today's Schools, Assign schools, Settings | Implemented |
+| Test data (local only) | Clean Test Data | Implemented (never in production) |
 | Monitoring | Login Monitoring, Audit Log | Implemented |
-| Settings | `config/inspection.php` + `.env`; Rating Settings is the only settings screen | Partial (no general settings UI) |
+| Settings | `config/inspection.php` + `.env`; screens: Rating, Coverage and Today's Schools Settings | Partial (no general settings UI) |
 | Help / user manual in app | None | Not implemented |

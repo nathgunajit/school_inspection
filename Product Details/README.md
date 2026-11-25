@@ -2,12 +2,12 @@
 
 This folder holds every product and technical document of the project. The whole set is also combined in **one Word file: `School_Inspection_Product_Details.docx`**.
 
-The technical chapters (Part A) were prepared on 19-11-2026, as asked in `Requirements/Documentation.docx`. They come from a read-only review of the source code, the migrations, the live database schema (structure only, no row data) and the UI.
+The technical chapters (Part A) were prepared on 19-11-2026 and brought up to Modification V14 on 25-11-2026 (Holiday Calendar, Notices & Orders with notice types, Today's Schools, Clean Test Data, the smaller sidebar), as asked in `Requirements/Documentation.docx`. They come from a read-only review of the source code, the migrations, the live database schema (structure only, no row data) and the UI.
 
 ## Part A: Technical documentation
 | # | Document | For | Contents |
 |---|---|---|---|
-| A1 | [Database_Architecture_and_Schema.md](Database_Architecture_and_Schema.md) | Developers, DBA | 38 tables, every column, keys, relations, ER diagram, business logic |
+| A1 | [Database_Architecture_and_Schema.md](Database_Architecture_and_Schema.md) | Developers, DBA | 50 tables (updated 25-11-2026 with the V14 tables), every column, keys, relations, ER diagram, business logic |
 | A2 | [Project_File_Structure_and_Technical_Architecture.md](Project_File_Structure_and_Technical_Architecture.md) | Developers | Stack, folders, file inventory, backend/frontend architecture, routes, commands |
 | A3 | [School_Inspection_Mechanism.md](School_Inspection_Mechanism.md) | Everyone | Users, schools, planning, the full questionnaire, workflow, rating, reports |
 | A4 | [User_Roles_and_Permissions.md](User_Roles_and_Permissions.md) | Admins, developers | Levels, permission matrix, approval chain, scoping, login, menu visibility |

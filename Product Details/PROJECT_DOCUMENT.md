@@ -418,7 +418,7 @@ flowchart LR
   - Both exports are audited (`rating_report_exported`).
 
 ## 5. Database schema
-MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 38 tables (including Laravel's `migrations`), all created by `database/migrations`. The location masters run first (`0001_01_00_*`).
+MySQL / MariaDB database `schoolinspection`, InnoDB, utf8mb4. There are 50 tables (42 application + 8 Laravel framework tables, checked on 25-11-2026), all created by the 43 files in `database/migrations`. The location masters run first (`0001_01_00_*`).
 
 ### 5.1 Entity relationship diagram (main tables)
 ```mermaid
@@ -456,6 +456,12 @@ erDiagram
     rating_schemes ||--o{ inspection_ratings : "version used"
     inspections ||--o| inspection_ratings : "rating"
     users ||--o{ user_login_logs : "sign-in attempts (V6)"
+    districts ||--o{ holidays : "local holidays (V14)"
+    users ||--o{ notices : "sends (V14)"
+    notices ||--o{ notice_reads : "read / acknowledged"
+    notice_types ||--o{ notices : "type (by code)"
+    users ||--o{ daily_school_lists : "Today's Schools (V14)"
+    schools ||--o{ daily_school_lists : listed
 ```
 
 ### 5.2 Tables
@@ -506,6 +512,19 @@ erDiagram
 | `rating_schemes` | Versioned scoring set-ups; one active | `version` UQ, `name`, `is_active`, `bands` JSON (min, label, color), `created_by`, `activated_at` |
 | `rating_criteria` | Scored items of a scheme | `scheme_id` FK, `section`, `code` (question code or metric key), `label`, `kind` (answer/metric), `weight`, `points` JSON (answer → 0..1), `sort`; UQ (scheme, code) |
 | `inspection_ratings` | One rating per inspection | `inspection_id` UQ FK, `scheme_id` FK, `obtained`, `applicable`, `score_percent` (null = not rated), `band`, `color`, `sections`, `details`, `strengths`, `weaknesses` JSON, `calculated_at` |
+
+**V14 (25-11-2026): Holiday Calendar, Notices & Orders, Today's Schools, settings**
+| Table | Purpose | Main columns |
+|---|---|---|
+| `holidays` | State (district null) and district local holidays | `date`, `name`, `type` (gazetted closes the day; restricted, half shown only), `district_id`, UQ (date, district, name) |
+| `notices` | Notices & Orders letters | `type` (a `notice_types.code`), `ref_no`, `title`, `body`, `notice_date`, attachment on the private disk, `levels` JSON, `district_id` / `block_id` / `cluster_id`, `expires_on`, `show_on_home`, `status` (published / withdrawn), `created_by` (restrict) |
+| `notice_reads` | Read receipts | `notice_id`, `user_id` UQ pair, `read_at`, `acknowledged_at` |
+| `notice_types` | Notice types master | `code` UQ (never changes), `name` UQ, `icon`, `color`, `sort_order`, `is_active` |
+| `daily_display_settings` | Today's Schools settings (district null = state default) | `enabled`, `levels` JSON, `daily_limit`, `selection`, priority switches, `recent_days`, `weekly_off` JSON, `skip_blocked`, `max_distance_km` |
+| `daily_school_list_days` | "List made" marker | UQ (`officer_id`, `list_date`) |
+| `daily_school_lists` | Today's Schools rows | `officer_id`, `list_date`, `school_id`, `position`, `reason`, `source`, `status`, `inspection_id`, `assigned_by`; UQ (school, day) and (officer, day, school) |
+| `coverage_settings` | Coverage report period and cycle (district null = state default) | `period_type`, `custom_from/to`, `inspection_cycle`, `verify_radius_m` |
+| (column) `inspection_schedules` | Assigned visits with an order | `order_ref`, `attachment_path` / `_name` / `_mime` (private `schedule-orders/`) |
 
 **Audit and system**
 | Table | Purpose |
@@ -558,6 +577,12 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | School rating display, V6 (`School::latestRatedInspection`, `MapDataService`) | inspections, inspection_ratings, rating_schemes | — |
 | Rating report, V6 (`RatingReportController`, `RatingReportService`) | inspections, inspection_ratings, rating_schemes, schools, locations | audit_logs (exports) |
 | Nightly job `inspections:expire-drafts` | inspections | inspections (cancelled), audit_logs |
+| Holiday Calendar, V14 (`HolidayController`, `HolidayCalendar`) | holidays, districts | holidays, audit_logs |
+| Notices & Orders, V14 (`NoticeController`, `NoticeService`) | notices, notice_reads, notice_types, users, user_jurisdictions | notices, notice_reads, private disk `notices/`, audit_logs |
+| Notice Types, V14 (`Admin\NoticeTypeController`) | notice_types, notices (counts) | notice_types, audit_logs |
+| Today's Schools, V14 (`TodaySchoolsController`, `DailySchoolListService`) | daily_display_settings, daily_school_lists, schools, inspections, inspection_ratings, inspection_answers, holidays, inspection_schedule_items | daily_school_list_days, daily_school_lists, daily_display_settings, audit_logs |
+| Coverage settings (`CoverageReportController`) | coverage_settings | coverage_settings, audit_logs |
+| Clean Test Data, local only (`Admin\TestDataController`, `TestDataCleaner`) | the tables of the chosen part | deletes: inspection tables + Today's Schools lists, or schedules, or user_login_logs, or audit_logs (Excel archive first); audit_logs |
 
 **Example: one auto-save**
 1. `POST /inspections/{id}/answers`
@@ -582,11 +607,11 @@ Indexes and the reason for each one are in `DB_INDEXING.md`.
 | `app/Questionnaire` | `QuestionnaireDefinition` (version 2, the fixed questions; it drives both the screens and the validation), `InspectionValidator` |
 | `app/Policies/InspectionPolicy.php` | view / update / cancel / unlock rules |
 | `app/Http/Middleware` | `active` (signed-out if not active), `password.fresh` (force password change); V6, in the web group: `DecryptPasswordFields`, `TouchLastSeen` |
-| `app/Console/Commands` | `map:boundaries` (KML → GeoJSON, outlines, `--check` / `--assign`), `ratings:recalculate`, V6 `security:keys` |
+| `app/Console/Commands` | `map:boundaries` (KML → GeoJSON, outlines, `--check` / `--assign`), `ratings:recalculate`, V6 `security:keys`; closure commands in `routes/console.php`: `users:reset-demo`, `audit:purge`, `cache:purge`, `register:purge-tmp`, `data:clean-test {group}` (local only, alias `inspections:clean-test-data`) |
 | `config/inspection.php` | Configurable values: draft expiry, login lock, photo limits, mandatory photos, page size, retention |
-| `resources/views`, `resources/js`, `resources/scss` | Blade screens, wizard / camera / review / map / planner JS, Samagra Shiksha theme. V6: `password-encrypt.js`, `school-map.js`, outline and directions helpers in `map-common.js`, `admin/login-report/*`, `reports/ratings/*` |
+| `resources/views`, `resources/js`, `resources/scss` | Blade screens, wizard / camera / review / map / planner JS, Samagra Shiksha theme. V6: `password-encrypt.js`, `school-map.js`, outline and directions helpers in `map-common.js`, `admin/login-report/*`, `reports/ratings/*`. V14: `filter-partial.js` (section loading), `school-suggest.js`, `notice-badge.js` (live unread counters), `holiday-day.js` (calendar day popup); views `holidays/*`, `notices/*`, `today/*`, `admin/notice-types/*`, `admin/test-data/*`, `dashboard/partials/{calendar,notices,ticker}` |
 | `public/geo` | State and district GeoJSON; V6 `districts/<slug>.geojson` + `index.json` (committed; raw `public/KML` is not) |
-| `database/seeders` | Roles, masters, demo locations and schools, State Admin, demo users, load-test data |
+| `database/seeders` | Roles, masters, demo locations and schools, State Admin, demo users, demo notices (`DemoNoticeSeeder`), Assam 2026 holidays (`AssamHolidaySeeder`), load-test data |
 | `tests/Feature` | Registration and login, approvals and users, the inspection flow, masters and audit, user types, load-test switch, map, schedules, rating; V6: `UrlEncryptionTest`, `PasswordEncryptionTest`, `LoginReportTest`, `DistrictBoundaryTest`, `SchoolDirectionsTest`, `SchoolRatingDisplayTest`, `RatingReportTest` |
 | `tools/loadtest` | Load driver (LOAD_TEST.md) |
 
