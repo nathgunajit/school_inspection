@@ -27,7 +27,7 @@ php artisan migrate --seed        # schema + roles, permissions, masters, State 
 php artisan test                  # feature tests (use sqlite in-memory, see phpunit.xml)
 php artisan inspections:expire-drafts   # cancels drafts older than config('inspection.draft_expiry_days')
 ```
-Default State Admin login: mobile `9999999999` / `Admin@12345` (from `.env` ADMIN_*; password change is forced on first login).
+Default State Admin login: mobile `9999999999` / `Admin@12345` (from `.env` ADMIN_*; password change is forced on first login). Since 25-11-2026 the admin has `gender` = `ADMIN_GENDER` (default male), so the male default photo shows until one is uploaded; `StateAdminSeeder` reuses the existing State Admin even when their mobile was changed.
 
 Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for all). Since V13 they are placed on the **current Location Master**: the first two districts by code, the first two blocks of each and the first cluster of each block. On the real Assam master that means KOKRAJHAR / DHUBRI.
 - `php artisan users:reset-demo --force` (refused in production) deletes **every user except the State Administrator**, with their inspections (and evidence files), schedules, jurisdictions and requests, and then seeds these accounts. It is audited `demo_users_reset`.
@@ -212,6 +212,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - `NoticeService`: `publish()` (the area is checked against the sender's district), `unreadCount()` (cached 60 s with a version key), `canView()` / `canManage()`, `report()`.
     - `NoticeController` (`/notices`): Inbox / Sent, compose (gate `issue_notices` = `configure_coverage`, levels below the sender only), the show page (marks read; Acknowledge; read report; Withdraw), and the audited attachment route.
     - Shown in the sidebar and topbar badge and the dashboard card. No SMS or email.
+    - **Demo data** (25-11-2026): `DemoNoticeSeeder` (non-production, in `DatabaseSeeder` after `DemoUserSeeder`, re-runnable by `ref_no`) adds 8 notices from the State Admin and the demo District / Block officers: every type, whole-state and district / block audiences, one expired, one withdrawn, an order with a DomPDF letter attached (`notices/` on the private disk) and a few reads / acknowledgements. `users:reset-demo` deletes the removed officers' notices (`created_by` restricts) and seeds them again.
   - **Assigned visits with an order** (item 4):
     - `inspection_schedules.order_ref` / `attachment_*` (private `schedule-orders/`), set by `ScheduleService::attachOrder()` from `store` (the planner posts `FormData`).
     - Served by `schedules.attachment` (`canView`, audited). Shown by the partial `schedules/partials/order` (plan page, dashboard).

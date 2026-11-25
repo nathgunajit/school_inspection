@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\UserLevel;
 use App\Models\User;
+use Database\Seeders\DemoNoticeSeeder;
 use Database\Seeders\DemoUserSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +41,9 @@ class DemoUserReset
                 $files = array_merge($files,
                     DB::table('users')->whereIn('id', $chunk)->whereNotNull('photo_path')->pluck('photo_path')->all(),
                     DB::table('users')->whereIn('id', $chunk)->whereNotNull('id_proof_path')->where('id_proof_path', '!=', 'id-proofs/demo-id-card.png')->pluck('id_proof_path')->all());
+                // 25-11-2026: notices they sent (created_by restricts the delete); reads cascade
+                $files = array_merge($files, DB::table('notices')->whereIn('created_by', $chunk)->whereNotNull('attachment_path')->pluck('attachment_path')->all());
+                DB::table('notices')->whereIn('created_by', $chunk)->delete();
                 DB::table('mobile_change_requests')->whereIn('user_id', $chunk)->delete();
                 DB::table('registration_requests')->whereIn('user_id', $chunk)->delete();
                 DB::table('user_jurisdictions')->whereIn('user_id', $chunk)->delete();
@@ -55,6 +59,7 @@ class DemoUserReset
         }
 
         app(DemoUserSeeder::class)->run();
+        app(DemoNoticeSeeder::class)->run(); // the demo officers' notices again
         $created = User::where('level', '!=', UserLevel::StateAdmin->value)->count();
         // the signed-in user may have been one of the removed accounts: record it under them only if they still exist
         $actor = User::find(auth()->id()) ?? User::find($admin);

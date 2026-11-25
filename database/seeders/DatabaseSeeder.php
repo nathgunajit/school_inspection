@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
 
         // Demo officers for development and training only
         if (! app()->isProduction()) {
-            $this->call(DemoUserSeeder::class);
+            $this->call([DemoUserSeeder::class, DemoNoticeSeeder::class]); // 25-11-2026: demo Notices & Orders
         }
     }
 }

@@ -2708,3 +2708,26 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Verified:**
   - Full suite 286 passed.
   - On MySQL the State default is Cluster only. KOKRAJHAR's own row (all four, saved by the State Admin) now gives Cluster + Block: its District / State officers follow the State, which does not tick them.
+
+## 2026-11-25: Notices & Orders demo data; State Administrator shows the male photo
+- **Request:** insert demo data for the Notices & Orders module, and give the System (State) Administrator the male photo.
+- **Change:**
+  - New `database/seeders/DemoNoticeSeeder.php` (non-production; re-runnable by `ref_no`; called from `DatabaseSeeder` after `DemoUserSeeder`). It adds 8 notices:
+    - State Admin: an order with a DomPDF order letter attached (`notices/` on the private disk), an instruction, a notification, one expired notice and one withdrawn notice.
+    - KOKRAJHAR district: an instruction to Block and Cluster officers.
+    - DHUBRI district: an order to Cluster officers.
+    - DOTMA block: a notification to Cluster officers.
+    - Plus 3 read / acknowledged rows. Each new notice is audited `notice_published` with `demo: true`.
+  - `DemoUserReset`: deletes the removed officers' notices and attachment files first (`notices.created_by` restricts the delete), then runs `DemoNoticeSeeder` again.
+  - `StateAdminSeeder`:
+    - sets `gender = ADMIN_GENDER` (default male; also fills a null gender on an existing admin), so `<x-user-avatar>` shows `img/avatar-male.svg`
+    - now reuses the existing State Admin when their mobile was changed. Before, it failed on the unique `employee_id`.
+  - `.env.example`: `ADMIN_GENDER=male`.
+- **Files:**
+  - `database/seeders/{DemoNoticeSeeder,StateAdminSeeder,DatabaseSeeder}.php`, `app/Services/DemoUserReset.php`, `.env.example`
+  - new `tests/Feature/DemoNoticeSeederTest.php`
+  - `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file
+- **Run on MySQL:** `db:seed --class=StateAdminSeeder` (admin gender male, still one admin) and `db:seed --class=DemoNoticeSeeder`: 8 notices, 3 reads, 5 unread for demo CRCC 9000000031.
+- **Verified:**
+  - Full suite 289 passed before the seeder fix.
+  - After the fix: the DemoNoticeSeeder and V13 tests, 14 passed.

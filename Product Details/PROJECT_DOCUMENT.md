@@ -910,7 +910,8 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - `App\Models\Notice` / `NoticeRead`
   - `App\Services\NoticeService`
   - `NoticeController`, views `notices/index|create|show`
-- **Tests:** `tests/Feature/NoticeTest.php`.
+- **Demo data:** on non-production installs `DemoNoticeSeeder` adds 8 sample notices (state-wide orders, instructions and notifications from the State Administrator; a KOKRAJHAR district instruction, a DHUBRI district order and a DOTMA block notification), including one with an attached order letter (PDF), one expired and one withdrawn, with a few reads and acknowledgements.
+- **Tests:** `tests/Feature/NoticeTest.php`, `tests/Feature/DemoNoticeSeederTest.php`.
 
 ### 14.3 Assigned visits with an order, and self-planned visits (items 4 and 2)
 - **Order with the plan:** the Plan Inspections planner has an **Order / letter no.** box and an **Attach the order** file (PDF, Word or image, up to 5 MB).
