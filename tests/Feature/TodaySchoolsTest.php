@@ -188,6 +188,36 @@ class TodaySchoolsTest extends TestCase
         $this->actingAs($this->crcc())->get(route('today.settings'))->assertForbidden();
     }
 
+    /** 25-11-2026: "Officers who get the list" is the State's choice; a District user sees it ticked and locked. */
+    public function test_district_user_cannot_change_the_officer_levels(): void
+    {
+        $payload = ['enabled' => 1, 'daily_limit' => 2, 'selection' => 'priority', 'low_rating_below' => 50, 'recent_days' => 30, 'weekly_off' => [0]];
+        $admin = $this->admin();
+        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'state', 'levels' => ['cluster', 'block']] + $payload)->assertRedirect();
+
+        $districtId = $this->cluster->block->district_id;
+        $d = $this->officer(UserLevel::District, $this->cluster);
+        $this->grant($d, Permission::MANAGE_USERS);
+        $this->actingAs($d->fresh())->get(route('today.settings'))->assertOk()
+            ->assertSee('Set by the State Administrator')
+            ->assertSee('value="block" id="lv0block" disabled checked', false)
+            ->assertSee('value="state" id="lv0state" disabled >', false);
+        $this->put(route('today.settings.update'), ['levels' => ['state']] + array_merge($payload, ['daily_limit' => 1]))->assertRedirect();
+
+        $row = DailyDisplaySetting::where('district_id', $districtId)->firstOrFail();
+        $this->assertNull($row->getRawOriginal('levels'));
+        $this->assertTrue($row->followsStateLevels());
+        $this->assertSame([1, ['cluster', 'block']], [DailyDisplaySetting::forDistrict($districtId)->daily_limit, DailyDisplaySetting::forDistrict($districtId)->levels]);
+
+        // the district follows a later State change
+        DailyDisplaySetting::state()->update(['levels' => ['cluster']]);
+        $this->assertSame(['cluster'], DailyDisplaySetting::forDistrict($districtId)->levels);
+
+        // the State Admin may still give a district its own levels
+        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'district', 'district_id' => $districtId, 'levels' => ['district']] + $payload)->assertRedirect();
+        $this->assertSame(['district'], DailyDisplaySetting::forDistrict($districtId)->levels);
+    }
+
     public function test_open_issues_raise_the_priority(): void
     {
         $schools = School::where('cluster_id', $this->cluster->id)->where('status', 'active')->orderBy('id')->get();

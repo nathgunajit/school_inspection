@@ -218,7 +218,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - Item 2 (self-planned visits): a past `planned` stop is **Pending** (`InspectionScheduleItem::isPending()`, calendar filter `status=pending`).
   - **Today's Schools** (item 5, `/today`, `TodaySchoolsController`, `DailySchoolListService`):
     - **Tables:**
-      - `daily_display_settings` (null district = state default, a district override like `CoverageSetting`; gate `manage_holidays`)
+      - `daily_display_settings` (null district = state default, a district override like `CoverageSetting`; gate `manage_holidays`). **Officers who get the list** (`levels`) is the State's choice: a District user sees the state levels ticked and locked, and their row stores `levels = null` (= follow the State, filled by `DailyDisplaySetting::forDistrict()`, `followsStateLevels()`); only the State Admin can give a district its own levels (migration `2026_11_25_000007`)
       - `daily_school_list_days` (the generated-day marker: `insertOrIgnore` = generate once)
       - `daily_school_lists` (source auto / carried / manual, status pending / visited / skipped / carried; unique (school, day) and (officer, day, school))
     - **Generation:** lazy on the first view (dashboard or `/today`), in the order manual → carried (pending < 30 days) → `pick()` up to `daily_limit`.

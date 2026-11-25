@@ -144,12 +144,13 @@ class TodaySchoolsController extends Controller
         foreach (['enabled', 'prefer_not_inspected', 'prefer_low_rating', 'prefer_issues', 'prefer_less_visited', 'carry_forward', 'skip_blocked'] as $flag) {
             $data[$flag] = $request->boolean($flag);
         }
-        $data['levels'] = array_values($data['levels'] ?? []);
+        // 25-11-2026: only the State Admin chooses the officer levels; a District user's row follows the State (null)
+        $data['levels'] = $user->isStateAdmin() ? array_values($data['levels'] ?? []) : null;
         $data['weekly_off'] = array_values(array_map('intval', $data['weekly_off'] ?? []));
         $data['max_distance_km'] = $data['max_distance_km'] ?? null;
 
         $row = DailyDisplaySetting::updateOrCreate(['district_id' => $districtId], $data + ['updated_by' => $user->id]);
-        AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId] + $data);
+        AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId, 'levels' => $data['levels'] ?? 'state'] + $data);
 
         return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. They apply from the next day\'s list.');
     }

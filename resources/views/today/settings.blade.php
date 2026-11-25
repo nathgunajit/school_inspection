@@ -38,8 +38,14 @@
                                 <div class="form-text">Schools a day per officer (default 2).</div></div>
                             <div class="col-sm-8"><label class="form-label">Officers who get the list</label>
                                 <div class="d-flex flex-wrap gap-3">
-                                    @foreach ($levelNames as $k => $l)<div class="form-check"><input class="form-check-input" type="checkbox" name="levels[]" value="{{ $k }}" id="lv{{ $i }}{{ $k }}" @checked(in_array($k, $r->levels ?? [], true))><label class="form-check-label" for="lv{{ $i }}{{ $k }}">{{ $l }}</label></div>@endforeach
-                                </div></div>
+                                    @if ($isState)
+                                        @foreach ($levelNames as $k => $l)<div class="form-check"><input class="form-check-input" type="checkbox" name="levels[]" value="{{ $k }}" id="lv{{ $i }}{{ $k }}" @checked(in_array($k, $r->levels ?? [], true))><label class="form-check-label" for="lv{{ $i }}{{ $k }}">{{ $l }}</label></div>@endforeach
+                                    @else
+                                        {{-- 25-11-2026: District users see the State's levels, ticked and locked --}}
+                                        @foreach ($levelNames as $k => $l)<div class="form-check"><input class="form-check-input" type="checkbox" value="{{ $k }}" id="lv{{ $i }}{{ $k }}" disabled @checked(in_array($k, $state->levels ?? [], true))><label class="form-check-label" for="lv{{ $i }}{{ $k }}">{{ $l }}</label></div>@endforeach
+                                    @endif
+                                </div>
+                                @unless ($isState)<div class="form-text"><i class="bi bi-lock-fill me-1"></i>Set by the State Administrator (State default).</div>@endunless</div>
                             <div class="col-12"><label class="form-label">Selection</label>
                                 @foreach (DS::SELECTIONS as $k => $l)<div class="form-check"><input class="form-check-input" type="radio" name="selection" value="{{ $k }}" id="sel{{ $i }}{{ $k }}" @checked($r->selection === $k)><label class="form-check-label" for="sel{{ $i }}{{ $k }}">{{ $l }}</label></div>@endforeach</div>
 

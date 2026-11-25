@@ -36,6 +36,21 @@ class DailyDisplaySetting extends Model
 
     public static function forDistrict(?int $districtId): self
     {
-        return ($districtId ? static::where('district_id', $districtId)->first() : null) ?? static::state();
+        $row = $districtId ? static::where('district_id', $districtId)->first() : null;
+        if (! $row) {
+            return static::state();
+        }
+        // 25-11-2026: null levels = the district follows the State's levels (filled in memory, never saved)
+        if ($row->getRawOriginal('levels') === null) {
+            $row->levels = static::state()->levels;
+        }
+
+        return $row;
+    }
+
+    /** A district row whose officer levels come from the state default. */
+    public function followsStateLevels(): bool
+    {
+        return $this->district_id !== null && $this->getRawOriginal('levels') === null;
     }
 }

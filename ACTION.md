@@ -2616,3 +2616,17 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Upcoming holidays shows the next 4 with "today / tomorrow / in N days".
 - **Files:** `resources/views/components/layouts/app.blade.php`, `resources/views/dashboard.blade.php`, `dashboard/partials/calendar.blade.php`, new `dashboard/partials/notices.blade.php`, `DashboardController.php` (`$noticeUnread`, 4 upcoming), `resources/scss/app.scss`, `tests/Feature/HolidayCalendarTest.php`, `CLAUDE.md`.
 - **Verified:** `npm run build`; new test (menu order, Rating Report position, dashboard rail); full suite 284 passed.
+
+## 2026-11-25: Today's Schools Settings, officer levels locked to the State for District users
+- **Request:** "Officers who get the list": for a District user, the State default choice is ticked automatically and cannot be unticked.
+- **Decision (user):** lock it for District users only; the State Admin can still give one district its own levels.
+- **Change:**
+  - Migration `2026_11_25_000007_daily_settings_levels_nullable`: `daily_display_settings.levels` is nullable, and a null on a district row means "follow the State". District rows last saved by a non-State-Admin were set to null.
+  - `DailyDisplaySetting::forDistrict()` fills the State's levels in memory; new `followsStateLevels()`.
+  - `TodaySchoolsController::updateSettings()` ignores posted levels from a District user and stores null; the audit meta has `levels: state`.
+  - The settings view shows the State's levels ticked and disabled for District users, with "Set by the State Administrator (State default)".
+- **Files:** the migration, `app/Models/DailyDisplaySetting.php`, `app/Http/Controllers/TodaySchoolsController.php`, `resources/views/today/settings.blade.php`, `tests/Feature/TodaySchoolsTest.php`, `CLAUDE.md`.
+- **Verified:**
+  - Migrated on MySQL: the column is nullable, and the one district row (KOKRAJHAR) was set by the State Admin, so it keeps its own levels.
+  - New test: locked boxes, a crafted post ignored, the district follows a later State change, the State Admin's district override kept.
+  - Full suite: 285 passed.
