@@ -892,7 +892,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - **Tests:** `tests/Feature/HolidayCalendarTest.php`.
 
 ### 14.2 Notices & Orders (item 1)
-- **Sending:** the State Admin, or a District officer with Manage users (gate `issue_notices`), sends an **Instruction**, **Notification** or **Order** letter from **Notices & Orders → New notice**. Fields:
+- **Sending:** the State Admin, or a District officer with Manage users (gate `issue_notices`), sends a letter of one of the **notice types** (Instruction, Notification, Order, Publication, Meeting Minutes, Information, or any type added since) from **Notices & Orders → New notice**. Fields:
   - type, letter / order number, date, subject, message
   - an optional attachment: PDF, Word or image up to 5 MB, stored on the private disk under `notices/`
   - "show until" (optional)
@@ -906,13 +906,14 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - **Read report:** the sender (and the State Admin or the district's sender) sees "Who has read it": officers, read and acknowledged counts, and a per-officer status. They can **Withdraw** the notice, which removes it from the inboxes.
 - **Audit:** `notice_published` (audience, recipient count), `notice_acknowledged`, `notice_attachment_viewed`, `notice_withdrawn`, `notice_home_changed`.
 - **Homepage setting:** the New notice form has a switch **Show in Latest Notice on the homepage** (on by default). Only ticked notices can scroll in the Dashboard's Latest Notice strip. The sender (or anyone who can manage the notice) can change it later with **Show on homepage / Remove from homepage** on the notice page; the change is audited (`notice_home_changed`). The inbox and the dashboard card are not affected.
+- **Notice types (master):** **Masters → Notice Types** lists the types with their icon, colour and how many notices use each. The State Administrator can add a type (its code is made from the name), edit its name, icon, colour and order, and make it inactive. An inactive type is no longer offered when writing a notice, but notices already sent keep it. Types are never deleted. Every change is audited.
 - **Not included:** SMS and email (Phase 1 has no SMS gateway). Notices are in-app.
 - **Code:**
   - tables `notices`, `notice_reads`
   - `App\Models\Notice` / `NoticeRead`
   - `App\Services\NoticeService`
   - `NoticeController`, views `notices/index|create|show`
-- **Demo data:** on non-production installs `DemoNoticeSeeder` adds 8 sample notices (state-wide orders, instructions and notifications from the State Administrator; a KOKRAJHAR district instruction, a DHUBRI district order and a DOTMA block notification), including one with an attached order letter (PDF), one expired and one withdrawn, with a few reads and acknowledgements.
+- **Demo data:** on non-production installs `DemoNoticeSeeder` adds 10 sample notices (including a Publication and Meeting Minutes) (state-wide orders, instructions and notifications from the State Administrator; a KOKRAJHAR district instruction, a DHUBRI district order and a DOTMA block notification), including one with an attached order letter (PDF), one expired and one withdrawn, with a few reads and acknowledgements.
 - **Tests:** `tests/Feature/NoticeTest.php`, `tests/Feature/DemoNoticeSeederTest.php`.
 
 ### 14.3 Assigned visits with an order, and self-planned visits (items 4 and 2)
@@ -983,25 +984,15 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - Page addresses, permissions and the phone bottom navigation are unchanged.
 
 ### 14.6 Clean test data (25-11-2026)
-- **Who / where:** the State Administrator, from **Admin Settings → Clean Test Data**, or `php artisan inspections:clean-test-data`. Not available in production (no link; the page and command refuse).
-- **What it removes:** every inspection (drafts and submitted, with answers, rows, photographs and ratings), every Inspection Schedule and every Today's Schools list, so testing can start again. Users, schools and the other masters, notices, holidays, settings and the audit log are kept.
-- **Before deleting,** the page lists each table with its current row count and the SQL it runs. After cleaning, the same table shows the rows removed. The tables, in order (inside one transaction):
+- **Who / where:** the State Administrator, from **Admin Settings → Clean Test Data**, or `php artisan data:clean-test <group|all>`.
+- **Local server only.** It is never available on the production server, and on any other server only when `TEST_DATA_CLEANUP` is on (the default only for a local or testing install). When it is off there is no menu link, the page and its button answer "not found" (404), and the command refuses.
+- **Four separate parts**, each with its own table of what will be deleted (table, rows now, SQL) and its own confirmation (type `DELETE`). After cleaning, the same table shows the rows removed. Each part runs in one transaction and is recorded in the Audit Log (`test_data_cleaned`).
 
-| No. | Table | What it holds | SQL |
+| Part | Tables, in order | SQL | Also |
 |---|---|---|---|
-| 0 | `inspections` | (pre-fill links) | `UPDATE inspections SET prefilled_from_id = NULL;` |
-| 1 | `inspection_classroom_tlm` | TLM ticks of the classroom rows (step 4) | `DELETE FROM inspection_classroom_tlm;` |
-| 2 | `inspection_classroom_observations` | Classroom observation rows (step 4) | `DELETE FROM inspection_classroom_observations;` |
-| 3 | `inspection_absent_teachers` | Absent teacher rows (step 3) | `DELETE FROM inspection_absent_teachers;` |
-| 4 | `inspection_fund_positions` | Fund rows by financial year (step 5) | `DELETE FROM inspection_fund_positions;` |
-| 5 | `inspection_answers` | Every questionnaire answer | `DELETE FROM inspection_answers;` |
-| 6 | `inspection_remarks` | Remarks and suggestions | `DELETE FROM inspection_remarks;` |
-| 7 | `inspection_ratings` | Calculated inspection ratings | `DELETE FROM inspection_ratings;` |
-| 8 | `inspection_evidence` | Photographs (rows; the image files are deleted too) | `DELETE FROM inspection_evidence;` |
-| 9 | `daily_school_lists` | Today's Schools rows | `DELETE FROM daily_school_lists;` |
-| 10 | `daily_school_list_days` | Today's Schools "list made" day markers | `DELETE FROM daily_school_list_days;` |
-| 11 | `inspection_schedule_items` | Planned school stops | `DELETE FROM inspection_schedule_items;` |
-| 12 | `inspection_schedules` | Inspection plans (their order files are deleted too) | `DELETE FROM inspection_schedules;` |
-| 13 | `inspections` | Inspections, drafts and submitted (also soft-deleted ones) | `DELETE FROM inspections;` |
+| Inspections & Today's Schools | `inspection_classroom_tlm`, `inspection_classroom_observations`, `inspection_absent_teachers`, `inspection_fund_positions`, `inspection_answers`, `inspection_remarks`, `inspection_ratings`, `inspection_evidence`, `daily_school_lists`, `daily_school_list_days`, `inspections` | first `UPDATE inspections SET prefilled_from_id = NULL;`, then `DELETE FROM <table>;` for each | photo files deleted; schedule stops stay without their inspection link |
+| Inspection Schedules | `inspection_schedule_items`, `inspection_schedules` | `DELETE FROM <table>;` | order letter files deleted; inspections stay |
+| Login log | `user_login_logs` | `DELETE FROM user_login_logs;` | Login Monitoring and its Daily report start empty |
+| Audit log | `audit_logs` | `DELETE FROM audit_logs WHERE id <= <last id>;` | an Excel archive of every entry is saved first (Audit Log → Archives); the clean-up is then the first new entry |
 
-- **Safety:** the administrator types `DELETE` to confirm. Every run is audited (`test_data_cleaned`, with the rows removed per table and the file count).
+- **Never touched:** users and their postings, schools and the other masters, notices, holidays and settings.

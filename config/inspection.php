@@ -49,6 +49,10 @@ return [
     // Demo accounts panel on the login page (DemoUserSeeder). Never shown when APP_ENV=production.
     'demo_logins' => (bool) env('DEMO_LOGINS', true),
 
+    // 25-11-2026: Admin Settings → Clean Test Data (TestDataCleaner). Local server only: on by default for APP_ENV local /
+    // testing, off otherwise; never available in production, whatever this says. When off the page is a 404.
+    'test_data_cleanup' => (bool) env('TEST_DATA_CLEANUP', in_array(env('APP_ENV'), ['local', 'testing'], true)),
+
     // Load testing only (V5 Step 2, Product Details/LOAD_TEST.md): lifts the per-IP login rate limit. Always off in production.
     'loadtest' => (bool) env('LOADTEST_MODE', false) && env('APP_ENV') !== 'production',
 

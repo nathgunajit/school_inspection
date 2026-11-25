@@ -44,6 +44,7 @@
         ['admin.constituencies.index', 'admin.constituencies.*', 'bi-bank', 'AC / PC Master', null],
         ['admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master', null],
         ['admin.tlm.index', 'admin.tlm.*', 'bi-box-seam', 'TLM Master', null],
+        ['admin.notice-types.index', 'admin.notice-types.*', 'bi-tags', 'Notice Types', null], // 25-11-2026
         ['admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload', null],
     ] : [];
     $settingsNav = array_values(array_filter([
@@ -52,7 +53,8 @@
         $u->can('manage_holidays') ? ['today.settings', 'today.settings*', 'bi-signpost-split', 'Today\'s Schools Settings', null] : null,
         $u->can('state_admin') ? ['admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring', null] : null,
         $u->can('state_admin') ? ['admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log', null] : null,
-        $u->can('state_admin') && ! app()->isProduction() ? ['admin.test-data.index', 'admin.test-data.*', 'bi-trash3', 'Clean Test Data', null] : null, // 25-11-2026
+        // 25-11-2026: local server only (never production; TEST_DATA_CLEANUP)
+        $u->can('state_admin') && \App\Services\TestDataCleaner::enabled() ? ['admin.test-data.index', 'admin.test-data.*', 'bi-trash3', 'Clean Test Data', null] : null,
     ]));
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1

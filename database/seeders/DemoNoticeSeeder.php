@@ -68,6 +68,13 @@ class DemoNoticeSeeder extends Seeder
             [$dotma, ['type' => 'notification', 'ref_no' => 'BEEO/DTM/2026/054', 'title' => 'Cluster review meeting on Friday',
                 'body' => "A review meeting of all Cluster Resource Centre Coordinators of the block will be held at the Block office on Friday at 11:00 AM.\n\nPlease bring the list of schools inspected this month and the open issues found.",
                 'notice_date' => $day(0), 'levels' => ['cluster']], 'block', false],
+            // 25-11-2026: the new types (Notice Types master)
+            [$admin, ['type' => 'publication', 'ref_no' => 'SSA/PUB/2026/011', 'title' => 'School Inspection handbook for officers, 2026',
+                'body' => "The handbook explains each step of the inspection form, the photographs to take and how the rating is worked out.\n\nPlease read it before the next inspection drive and share it with the officers of your area.",
+                'notice_date' => $day(3), 'levels' => $all], [], false],
+            [$kokrajhar, ['type' => 'meeting_minutes', 'ref_no' => 'DPO/KJR/2026/MM-07', 'title' => 'Minutes of the district review meeting',
+                'body' => "1. Every Block shall finish the pending inspections of the month by the 25th.\n2. Cluster officers shall use the in-app camera for all photographs.\n3. The next review meeting will be held in the first week of next month.",
+                'notice_date' => $day(5), 'levels' => ['block', 'cluster']], 'district', false],
             [$admin, ['type' => 'notification', 'ref_no' => 'SSA/GEN/2026/039', 'title' => 'Training on the School Inspection application (completed)',
                 'body' => 'The online training on the School Inspection application for all officers was held as scheduled. Recordings are available with the district office.',
                 'notice_date' => $day(10), 'expires_on' => $day(1), 'levels' => $all], [], false],

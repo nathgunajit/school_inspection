@@ -4,7 +4,7 @@
             <div class="card card-elevated notice-letter">
                 <div class="card-body">
                     <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                        <span class="notice-type is-{{ $notice->type }}"><i class="bi {{ $notice->typeIcon() }} me-1"></i>{{ $notice->typeLabel() }}</span>
+                        <span class="notice-type" style="--nt: {{ $notice->typeColor() }}"><i class="bi {{ $notice->typeIcon() }} me-1"></i>{{ $notice->typeLabel() }}</span>
                         @if ($notice->ref_no)<span class="text-sm text-secondary">No. {{ $notice->ref_no }}</span>@endif
                         <span class="text-sm text-secondary ms-auto">Dated {{ \Carbon\Carbon::parse($notice->notice_date)->format('d M Y') }}</span>
                     </div>

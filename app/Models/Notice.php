@@ -17,10 +17,7 @@ class Notice extends Model
 {
     use HasEncryptedRouteKey;
 
-    public const TYPES = ['instruction' => 'Instruction', 'notification' => 'Notification', 'order' => 'Order'];
-
-    public const TYPE_ICONS = ['instruction' => 'bi-list-check', 'notification' => 'bi-megaphone', 'order' => 'bi-file-earmark-text'];
-
+    // 25-11-2026: the types are the NoticeType master (Masters → Notice Types); `type` holds its code
     protected $fillable = ['type', 'ref_no', 'title', 'body', 'notice_date', 'attachment_path', 'attachment_name', 'attachment_mime',
         'levels', 'district_id', 'block_id', 'cluster_id', 'expires_on', 'show_on_home', 'status', 'created_by', 'withdrawn_at'];
 
@@ -40,8 +37,9 @@ class Notice extends Model
     public function getNoticeDateAttribute($v): ?string { return $v ? substr((string) $v, 0, 10) : null; }
     public function getExpiresOnAttribute($v): ?string { return $v ? substr((string) $v, 0, 10) : null; }
 
-    public function typeLabel(): string { return self::TYPES[$this->type] ?? ucfirst($this->type); }
-    public function typeIcon(): string { return self::TYPE_ICONS[$this->type] ?? 'bi-megaphone'; }
+    public function typeLabel(): string { return NoticeType::map()[$this->type]['name'] ?? ucfirst(str_replace('_', ' ', (string) $this->type)); }
+    public function typeIcon(): string { return NoticeType::map()[$this->type]['icon'] ?? 'bi-megaphone'; }
+    public function typeColor(): string { return NoticeType::map()[$this->type]['color'] ?? '#1565c0'; }
     public function isWithdrawn(): bool { return $this->status === 'withdrawn'; }
     public function isExpired(): bool { return $this->expires_on !== null && $this->expires_on < today()->toDateString(); }
 

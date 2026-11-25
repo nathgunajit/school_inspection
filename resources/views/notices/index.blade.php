@@ -20,7 +20,7 @@
             <div class="col-12 col-md"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="Search by title or letter number" aria-label="Search"></div>
             <div class="col-6 col-md-3"><select name="type" class="form-select" aria-label="Type" data-autosubmit>
                 <option value="">All types</option>
-                @foreach (\App\Models\Notice::TYPES as $k => $l)<option value="{{ $k }}" @selected($type === $k)>{{ $l }}</option>@endforeach
+                @foreach (\App\Models\NoticeType::options(false) as $k => $l)<option value="{{ $k }}" @selected($type === $k)>{{ $l }}</option>@endforeach
             </select></div>
             @if ($tab === 'inbox')
                 <div class="col-6 col-md-auto d-flex align-items-center"><div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="unread" value="1" id="n-unread" @checked(request('unread')) data-autosubmit><label class="form-check-label" for="n-unread">Unread only</label></div></div>
@@ -36,10 +36,10 @@
                     @foreach ($items as $n)
                         @php $unreadRow = $tab === 'inbox' && ! $n->reads->first()?->read_at; @endphp
                         <a href="{{ route('notices.show', $n) }}" class="list-group-item list-group-item-action d-flex gap-3 align-items-start {{ $unreadRow ? 'is-unread' : '' }} {{ $n->isWithdrawn() ? 'text-secondary' : '' }}">
-                            <span class="notice-icon is-{{ $n->type }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
+                            <span class="notice-icon" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
                             <span class="flex-grow-1 min-w-0">
                                 <span class="d-flex flex-wrap gap-2 align-items-center">
-                                    <span class="notice-type is-{{ $n->type }}">{{ $n->typeLabel() }}</span>
+                                    <span class="notice-type" style="--nt: {{ $n->typeColor() }}">{{ $n->typeLabel() }}</span>
                                     @if ($n->ref_no)<span class="text-xs text-secondary">No. {{ $n->ref_no }}</span>@endif
                                     @if ($unreadRow)<span class="badge text-bg-warning">New</span>@endif
                                     @if ($n->isWithdrawn())<span class="badge text-bg-secondary">Withdrawn</span>@elseif ($n->isExpired())<span class="badge text-bg-light">Expired</span>@endif

@@ -23,12 +23,15 @@ class HousekeepingService
 {
     public const ARCHIVE_DIR = 'audit-archive';
 
-    /** @return array{count: int, cutoff: string, file: ?string} */
-    public function purgeAudit(?int $days = null): array
+    /**
+     * @param  bool  $everything  25-11-2026, Clean Test Data (local server only): every entry up to now, the current second included
+     * @return array{count: int, cutoff: string, file: ?string}
+     */
+    public function purgeAudit(?int $days = null, bool $everything = false): array
     {
         set_time_limit(0);
         $days ??= (int) config('inspection.audit_retention_days', 30);
-        $cutoff = now()->subDays(max(0, $days));
+        $cutoff = $everything ? now()->addSecond() : now()->subDays(max(0, $days));
         // fixed upper id, so entries written while this runs (and the purge entry itself) are never touched
         $maxId = DB::table('audit_logs')->where('created_at', '<', $cutoff)->max('id');
         if (! $maxId) {

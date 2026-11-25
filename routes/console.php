@@ -46,26 +46,46 @@ Artisan::command('users:reset-demo {--force : Do not ask for confirmation}', fun
     return 0;
 })->purpose('Remove all users except the State Administrator and seed demo officers');
 
-/* 25-11-2026: empty the test inspection data (inspections, schedules, Today's Schools lists); users and masters stay. */
-Artisan::command('inspections:clean-test-data {--force : Do not ask for confirmation}', function () {
-    if (app()->isProduction()) {
-        $this->error('Refused: test data cannot be cleaned in production.');
+/* 25-11-2026: clean test data by group (inspections, schedules, login log, audit log). Local server only. */
+$cleanTestData = function (string $group, bool $force, $cmd): int {
+    $cleaner = app(\App\Services\TestDataCleaner::class);
+    $groups = array_keys(\App\Services\TestDataCleaner::GROUPS);
+    if (! \App\Services\TestDataCleaner::enabled()) {
+        $cmd->error('Clean Test Data is disabled on this server (never in production; TEST_DATA_CLEANUP).');
 
         return 1;
     }
-    $cleaner = app(\App\Services\TestDataCleaner::class);
-    $p = $cleaner->preview();
-    $this->line('First: '.$p['pre_sql']);
-    $this->table(['No.', 'Table', 'Rows', 'SQL'], array_map(fn ($r, $i) => [$i + 1, $r['table'], $r['rows'], $r['sql']], $p['rows'], array_keys($p['rows'])));
-    $this->line("Total {$p['total']} row(s), {$p['files']} file(s).");
-    if (! $this->option('force') && ! $this->confirm('Delete all of this? It cannot be undone.')) {
+    if ($group !== 'all' && ! in_array($group, $groups, true)) {
+        $cmd->error('Unknown group. Use one of: '.implode(', ', $groups).', all.');
+
         return 1;
     }
-    $r = $cleaner->run();
-    $this->info("Cleaned: {$r['total']} row(s) and {$r['files']} file(s) removed.");
+    $pick = $group === 'all' ? $groups : [$group];
+    $preview = $cleaner->preview();
+    foreach ($pick as $key) {
+        $p = $preview[$key];
+        $cmd->line($p['title'].($p['pre_sql'] ? ' (first: '.$p['pre_sql'].')' : ''));
+        $cmd->table(['No.', 'Table', 'Rows', 'SQL'], array_map(fn ($r, $i) => [$i + 1, $r['table'], $r['rows'], $r['sql']], $p['rows'], array_keys($p['rows'])));
+        $cmd->line("Total {$p['total']} row(s), {$p['files']} file(s).");
+    }
+    if (! $force && ! $cmd->confirm('Delete all of this? It cannot be undone.')) {
+        return 1;
+    }
+    foreach ($pick as $key) {
+        $r = $cleaner->run($key);
+        $cmd->info("Cleaned {$r['title']}: {$r['total']} row(s) and {$r['files']} file(s) removed".($r['archive'] ? " (archive: {$r['archive']})" : '').'.');
+    }
 
     return 0;
-})->purpose('Delete every test inspection, schedule and Today\'s Schools list (not in production)');
+};
+
+Artisan::command('data:clean-test {group : inspections, schedules, login_logs, audit_logs or all} {--force : Do not ask for confirmation}', function () use ($cleanTestData) {
+    return $cleanTestData((string) $this->argument('group'), (bool) $this->option('force'), $this);
+})->purpose('Clean test data by group (local server only; never in production)');
+
+Artisan::command('inspections:clean-test-data {--force : Do not ask for confirmation}', function () use ($cleanTestData) {
+    return $cleanTestData('inspections', (bool) $this->option('force'), $this);
+})->purpose('Same as data:clean-test inspections');
 
 /* Modification V13 item 4: audit entries older than the retention period go to an Excel archive, then are deleted. */
 Artisan::command('audit:purge {--days= : Keep this many days (default AUDIT_RETENTION_DAYS)}', function () {

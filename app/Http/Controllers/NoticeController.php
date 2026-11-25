@@ -27,7 +27,7 @@ class NoticeController extends Controller
         $user = $request->user();
         $canIssue = $user->can('issue_notices');
         $tab = $request->query('tab') === 'sent' && $canIssue ? 'sent' : ($user->isStateAdmin() ? 'sent' : 'inbox');
-        $type = array_key_exists((string) $request->query('type'), Notice::TYPES) ? (string) $request->query('type') : '';
+        $type = array_key_exists((string) $request->query('type'), \App\Models\NoticeType::options(false)) ? (string) $request->query('type') : '';
 
         $query = $tab === 'sent'
             ? Notice::query()->when(! $user->isStateAdmin(), fn ($q) => $q->where(fn ($w) => $w->where('created_by', $user->id)
@@ -66,7 +66,7 @@ class NoticeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type' => ['required', Rule::in(array_keys(Notice::TYPES))],
+            'type' => ['required', Rule::exists('notice_types', 'code')->where('is_active', true)], // 25-11-2026: NoticeType master
             'ref_no' => ['nullable', 'string', 'max:60'],
             'title' => ['required', 'string', 'min:3', 'max:200'],
             'body' => ['required', 'string', 'min:3', 'max:10000'],

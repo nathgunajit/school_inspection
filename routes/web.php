@@ -248,6 +248,11 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/tlm-items', [Admin\TlmItemController::class, 'store'])->name('tlm.store');
                 Route::put('/tlm-items/{tlmItem}', [Admin\TlmItemController::class, 'update'])->name('tlm.update');
                 Route::delete('/tlm-items/{tlmItem}', [Admin\TlmItemController::class, 'destroy'])->name('tlm.destroy'); // V13
+                // 25-11-2026: Notices & Orders letter types
+                Route::get('/notice-types', [Admin\NoticeTypeController::class, 'index'])->name('notice-types.index');
+                Route::post('/notice-types', [Admin\NoticeTypeController::class, 'store'])->name('notice-types.store');
+                Route::put('/notice-types/{noticeType}', [Admin\NoticeTypeController::class, 'update'])->name('notice-types.update');
+                Route::patch('/notice-types/{noticeType}/status', [Admin\NoticeTypeController::class, 'status'])->name('notice-types.status');
                 // Rating Settings (New Module 3)
                 Route::get('/rating', [Admin\RatingController::class, 'index'])->name('rating.index');
                 Route::post('/rating', [Admin\RatingController::class, 'update'])->name('rating.update');

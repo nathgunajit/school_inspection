@@ -22,9 +22,9 @@ class DemoNoticeSeederTest extends TestCase
         $admin = $this->admin();
         $this->seed(DemoUserSeeder::class);
         $this->seed(DemoNoticeSeeder::class);
-        $this->assertSame(8, Notice::count());
+        $this->assertSame(10, Notice::count());
         $this->seed(DemoNoticeSeeder::class);
-        $this->assertSame(8, Notice::count(), 're-runnable');
+        $this->assertSame(10, Notice::count(), 're-runnable');
 
         $order = Notice::where('ref_no', DemoNoticeSeeder::ATTACHMENT_REF)->firstOrFail();
         Storage::disk('private')->assertExists($order->attachment_path);
@@ -34,7 +34,7 @@ class DemoNoticeSeederTest extends TestCase
         // a Cluster officer of the first district: state-wide + their district's notice; not the other district's, the expired or the withdrawn one
         $crcc = User::where('mobile', '9000000031')->firstOrFail();
         $inbox = Notice::query()->for($crcc)->pluck('ref_no')->all();
-        foreach ([DemoNoticeSeeder::ATTACHMENT_REF, 'SSA/INSP/2026/098', 'SSA/GEN/2026/045', 'DPO/KJR/2026/312', 'BEEO/DTM/2026/054'] as $ref) {
+        foreach ([DemoNoticeSeeder::ATTACHMENT_REF, 'SSA/INSP/2026/098', 'SSA/GEN/2026/045', 'DPO/KJR/2026/312', 'BEEO/DTM/2026/054', 'SSA/PUB/2026/011', 'DPO/KJR/2026/MM-07'] as $ref) {
             $this->assertContains($ref, $inbox);
         }
         foreach (['DPO/DHB/2026/207', 'SSA/GEN/2026/039', 'SSA/INSP/2026/090'] as $ref) {
@@ -55,7 +55,7 @@ class DemoNoticeSeederTest extends TestCase
         $this->seed(DemoNoticeSeeder::class);
 
         $this->artisan('users:reset-demo', ['--force' => true])->assertSuccessful();
-        $this->assertSame(8, Notice::count(), 'the officers\' notices are made again for the new demo accounts');
+        $this->assertSame(10, Notice::count(), 'the officers\' notices are made again for the new demo accounts');
         $this->assertSame(0, Notice::whereNotIn('created_by', User::pluck('id'))->count());
     }
 

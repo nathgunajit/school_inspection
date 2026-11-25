@@ -8,7 +8,7 @@
     @forelse ($notices as $n)
         @php $new = ! $noticesSent && ! $n->reads->first()?->read_at; @endphp
         <a href="{{ route('notices.show', $n) }}" class="dash-row">
-            <span class="notice-icon is-{{ $n->type }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
+            <span class="notice-icon" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
             <span class="flex-grow-1 min-w-0">
                 <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $n->title }}</span>
                 <span class="d-block text-xs text-secondary text-truncate">{{ $n->typeLabel() }}@if ($n->ref_no) · No. {{ $n->ref_no }}@endif · {{ $noticesSent ? 'read by '.$n->read_count : $n->creator->name }}@if ($n->isWithdrawn()) · withdrawn @endif</span>

@@ -10,7 +10,7 @@
                     <div class="row g-3">
                         <div class="col-sm-4"><label class="form-label" for="n-type">Type</label>
                             <select id="n-type" name="type" class="form-select @error('type') is-invalid @enderror" required>
-                                @foreach (\App\Models\Notice::TYPES as $k => $l)<option value="{{ $k }}" @selected(old('type', 'instruction') === $k)>{{ $l }}</option>@endforeach
+                                @foreach (\App\Models\NoticeType::options(true) as $k => $l)<option value="{{ $k }}" @selected(old('type', 'instruction') === $k)>{{ $l }}</option>@endforeach
                             </select></div>
                         <div class="col-sm-4"><label class="form-label" for="n-ref">Letter / order no. <span class="opt">optional</span></label>
                             <input id="n-ref" name="ref_no" value="{{ old('ref_no') }}" maxlength="60" class="form-control" placeholder="e.g. SSA/ASM/2026/112"></div>

@@ -15,7 +15,7 @@
                             @php $new = ! $noticesSent && ! $n->reads->first()?->read_at; $repeat = $copy || $r > 0; @endphp
                             <li @if ($repeat) class="is-repeat" aria-hidden="true" @endif>
                                 <a href="{{ route('notices.show', $n) }}" @if ($repeat) tabindex="-1" @endif>
-                                    <span class="news-ticker-type is-{{ $n->type }}"><i class="bi {{ $n->typeIcon() }}"></i>{{ $n->typeLabel() }}</span>
+                                    <span class="news-ticker-type" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i>{{ $n->typeLabel() }}</span>
                                     @if ($new)<span class="news-ticker-new">NEW</span>@endif
                                     <b>{{ $n->title }}</b>
                                     <span class="news-ticker-meta">

@@ -672,9 +672,10 @@ $ticker-red: #e53935;
 .news-ticker-sep { display: inline-grid; place-items: center; margin: 0 1.75rem; color: $primary; opacity: .45; font-size: .5rem; }
 .news-ticker-type { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; font-weight: 600; letter-spacing: .02em;
     padding: .2rem .6rem; border-radius: 999px; border: 1px solid transparent;
-    &.is-instruction { background: rgba($primary, .08); color: $primary; border-color: rgba($primary, .18); }
-    &.is-notification { background: rgba($accent, .09); color: darken($accent, 5%); border-color: rgba($accent, .2); }
-    &.is-order { background: rgba($warning, .12); color: darken($warning, 18%); border-color: rgba($warning, .28); } }
+    /* 25-11-2026: the colour comes from the Notice Types master (style="--nt: #hex") */
+    --nt: #{$primary};
+    background: color-mix(in srgb, var(--nt) 10%, #fff); color: color-mix(in srgb, var(--nt) 85%, #000);
+    border-color: color-mix(in srgb, var(--nt) 25%, transparent); }
 .news-ticker-new { font-size: .62rem; font-weight: 700; letter-spacing: .05em; padding: .15rem .45rem; border-radius: 999px; color: #fff;
     background: linear-gradient(120deg, #ffb300, $warning); box-shadow: 0 0 0 3px rgba($warning, .15), 0 4px 10px -4px rgba($warning, .9); }
 .news-ticker-meta { display: inline-flex; align-items: center; gap: .85rem; color: $secondary; font-size: .78rem;
@@ -2611,14 +2612,12 @@ $half-holiday: #0284c7;
 // ---------- V14 item 1: notices / orders ----------
 .notice-list .list-group-item { padding: .8rem 1rem;
     &.is-unread { background: rgba($primary, .04); border-left: 3px solid $primary; } }
-.notice-icon { flex: 0 0 auto; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .6rem; font-size: 1.1rem;
-    &.is-instruction { background: rgba($primary, .1); color: $primary; }
-    &.is-notification { background: rgba($accent, .12); color: $accent; }
-    &.is-order { background: rgba($warning, .15); color: darken($warning, 15%); } }
-.notice-type { display: inline-flex; align-items: center; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .15rem .5rem; border-radius: 999px;
-    &.is-instruction { background: rgba($primary, .1); color: $primary; }
-    &.is-notification { background: rgba($accent, .12); color: darken($accent, 5%); }
-    &.is-order { background: rgba($warning, .15); color: darken($warning, 18%); } }
+/* 25-11-2026: type colours come from the Notice Types master (style="--nt: #hex") */
+.notice-icon { --nt: #{$primary}; flex: 0 0 auto; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .6rem; font-size: 1.1rem;
+    background: color-mix(in srgb, var(--nt) 12%, #fff); color: color-mix(in srgb, var(--nt) 90%, #000); }
+.notice-type { --nt: #{$primary}; display: inline-flex; align-items: center; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .15rem .5rem; border-radius: 999px;
+    background: color-mix(in srgb, var(--nt) 12%, #fff); color: color-mix(in srgb, var(--nt) 85%, #000); }
+.notice-type-swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: .3rem; vertical-align: -.15rem; border: 1px solid rgba(0,0,0,.1); }
 .notice-body { white-space: normal; line-height: 1.6; }
 .notice-attach { display: flex; align-items: center; gap: .5rem; padding: .6rem .8rem; border: 1px dashed #cbd5e1; border-radius: .5rem; background: #f8fafc; }
 .notice-stat { padding: .5rem; border-radius: .5rem; background: #f1f5f9; b { display: block; font-size: 1.25rem; } span { font-size: .72rem; color: #64748b; }
