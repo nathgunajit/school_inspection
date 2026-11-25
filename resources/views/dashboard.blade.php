@@ -22,7 +22,7 @@
             $user->can('conduct_inspections') ? ["Today's schools", route('today.index'), 'bi-signpost-2', null] : null,
             $user->can('view_reports') ? ['Plan inspections', route('schedules.index'), 'bi-calendar-week', null] : null,
             $user->can('view_reports') ? ['Map', route('map.index'), 'bi-map', null] : null,
-            ['Notices', route('notices.index'), 'bi-megaphone', $noticeUnread ?: null],
+            ['Notices', route('notices.index'), 'bi-megaphone', 'notices'], // 25-11-2026: live counter (notice-badge.js)
             ['Holidays', route('holidays.index'), 'bi-calendar-heart', null],
         ]);
     @endphp
@@ -41,7 +41,7 @@
                 <div class="dash-sub"><i class="bi bi-geo-alt me-1"></i>{{ $jurisdiction?->label() ?: $user->level->label() }}</div>
                 <nav class="dash-hero-actions" aria-label="Quick links">
                     @foreach ($quick as [$qLabel, $qHref, $qIcon, $qBadge])
-                        <a href="{{ $qHref }}" class="dash-hero-pill"><i class="bi {{ $qIcon }}"></i>{{ $qLabel }}@if ($qBadge)<span class="badge rounded-pill text-bg-warning">{{ $qBadge }}</span>@endif</a>
+                        <a href="{{ $qHref }}" class="dash-hero-pill"><i class="bi {{ $qIcon }}"></i>{{ $qLabel }}@if ($qBadge === 'notices')<span class="badge rounded-pill text-bg-warning" data-notice-count @if (! $noticeUnread) hidden @endif>{{ $noticeUnread }}</span>@elseif ($qBadge)<span class="badge rounded-pill text-bg-warning">{{ $qBadge }}</span>@endif</a>
                     @endforeach
                 </nav>
             </div>

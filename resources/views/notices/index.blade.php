@@ -9,7 +9,7 @@
         @unless (auth()->user()->isStateAdmin())
             @if ($canIssue)
                 <ul class="nav nav-pills gap-2 mb-3">
-                    <li class="nav-item"><a class="nav-link {{ $tab === 'inbox' ? 'active' : 'bg-white border' }}" href="{{ route('notices.index') }}"><i class="bi bi-inbox me-1"></i>Inbox @if ($unread)<span class="badge text-bg-warning ms-1">{{ $unread }}</span>@endif</a></li>
+                    <li class="nav-item"><a class="nav-link {{ $tab === 'inbox' ? 'active' : 'bg-white border' }}" href="{{ route('notices.index') }}"><i class="bi bi-inbox me-1"></i>Inbox <span class="badge text-bg-warning ms-1" data-notice-count @if (! $unread) hidden @endif>{{ $unread }}</span></a></li>
                     <li class="nav-item"><a class="nav-link {{ $tab === 'sent' ? 'active' : 'bg-white border' }}" href="{{ route('notices.index', ['tab' => 'sent']) }}"><i class="bi bi-send me-1"></i>Sent</a></li>
                 </ul>
             @endif
@@ -35,13 +35,13 @@
                 <div class="list-group list-group-flush notice-list">
                     @foreach ($items as $n)
                         @php $unreadRow = $tab === 'inbox' && ! $n->reads->first()?->read_at; @endphp
-                        <a href="{{ route('notices.show', $n) }}" class="list-group-item list-group-item-action d-flex gap-3 align-items-start {{ $unreadRow ? 'is-unread' : '' }} {{ $n->isWithdrawn() ? 'text-secondary' : '' }}">
+                        <a href="{{ route('notices.show', $n) }}" class="list-group-item list-group-item-action d-flex gap-3 align-items-start {{ $unreadRow ? 'is-unread' : '' }} {{ $n->isWithdrawn() ? 'text-secondary' : '' }}" @if ($unreadRow) data-notice-unread @endif>
                             <span class="notice-icon" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
                             <span class="flex-grow-1 min-w-0">
                                 <span class="d-flex flex-wrap gap-2 align-items-center">
                                     <span class="notice-type" style="--nt: {{ $n->typeColor() }}">{{ $n->typeLabel() }}</span>
                                     @if ($n->ref_no)<span class="text-xs text-secondary">No. {{ $n->ref_no }}</span>@endif
-                                    @if ($unreadRow)<span class="badge text-bg-warning">New</span>@endif
+                                    @if ($unreadRow)<span class="badge text-bg-warning" data-notice-new>New</span>@endif
                                     @if ($n->isWithdrawn())<span class="badge text-bg-secondary">Withdrawn</span>@elseif ($n->isExpired())<span class="badge text-bg-light">Expired</span>@endif
                                     @if ($n->attachment_path)<i class="bi bi-paperclip text-secondary" title="Has an attachment"></i>@endif
                                 </span>

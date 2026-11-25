@@ -16,7 +16,8 @@
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body>
+{{-- 25-11-2026: notice-badge.js keeps the unread counters live (not for the State Admin, who has none) --}}
+<body @if (auth()->user() && ! auth()->user()->isStateAdmin()) data-notice-count-url="{{ route('notices.unread-count') }}" @endif>
 <x-page-loader />
 @php
     $u = auth()->user();
@@ -58,7 +59,8 @@
     ]));
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
-    $navBadge = ['notices.index' => $noticeCount ? '<span class="badge rounded-pill text-bg-warning">'.$noticeCount.'</span>' : ''];
+    // 25-11-2026: always rendered (hidden at 0) so notice-badge.js can update it live
+    $navBadge = ['notices.index' => '<span class="badge rounded-pill text-bg-warning" data-notice-count'.($noticeCount ? '' : ' hidden').'>'.$noticeCount.'</span>'];
 @endphp
 
 <aside class="app-sidebar" aria-label="Main navigation">
@@ -110,11 +112,11 @@
         <h1 class="page-title flex-grow-1">{{ $title ?? 'Dashboard' }}</h1>
         {{ $actions ?? '' }}
         <div class="topbar-right">
-            @if ($noticeCount)
-                <a href="{{ route('notices.index', ['unread' => 1]) }}" class="topbar-icon" title="{{ $noticeCount }} unread notice{{ $noticeCount > 1 ? 's' : '' }}" aria-label="Unread notices">
-                    <i class="bi bi-megaphone"></i><span class="dot">{{ $noticeCount > 9 ? '9+' : $noticeCount }}</span>
+            @unless ($u->isStateAdmin())
+                <a href="{{ route('notices.index', ['unread' => 1]) }}" class="topbar-icon" title="Unread notices" aria-label="Unread notices" data-notice-count-wrap @if (! $noticeCount) hidden @endif>
+                    <i class="bi bi-megaphone"></i><span class="dot" data-notice-count data-max="9">{{ $noticeCount > 9 ? '9+' : $noticeCount }}</span>
                 </a>
-            @endif
+            @endunless
             @if ($pendingCount)
                 <a href="{{ route('admin.approvals.index') }}" class="topbar-icon" title="{{ $pendingCount }} pending approval{{ $pendingCount > 1 ? 's' : '' }}" aria-label="Pending approvals">
                     <i class="bi bi-bell"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>

@@ -2,12 +2,12 @@
 <div class="dash-panel tone-warning">
     <div class="dash-panel-head">
         <h3><i class="bi bi-megaphone"></i>{{ $noticesSent ? 'Notices & orders sent' : 'Notices & orders' }}
-            @if (! $noticesSent && $noticeUnread)<span class="dash-count" title="{{ $noticeUnread }} unread">{{ $noticeUnread }}</span>@endif</h3>
+            @unless ($noticesSent)<span class="dash-count" title="Unread" data-notice-count @if (! $noticeUnread) hidden @endif>{{ $noticeUnread }}</span>@endunless</h3>
         <a href="{{ route('notices.index', $noticesSent ? ['tab' => 'sent'] : []) }}">View all <i class="bi bi-arrow-right"></i></a>
     </div>
     @forelse ($notices as $n)
         @php $new = ! $noticesSent && ! $n->reads->first()?->read_at; @endphp
-        <a href="{{ route('notices.show', $n) }}" class="dash-row">
+        <a href="{{ route('notices.show', $n) }}" class="dash-row" @if ($new) data-notice-unread @endif>
             <span class="notice-icon" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i></span>
             <span class="flex-grow-1 min-w-0">
                 <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $n->title }}</span>
@@ -15,7 +15,7 @@
             </span>
             <span class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
                 <span class="text-xs text-secondary text-nowrap">{{ \Carbon\Carbon::parse($n->notice_date)->format('d M') }}</span>
-                @if ($new)<span class="badge text-bg-warning">New</span>@endif
+                @if ($new)<span class="badge text-bg-warning" data-notice-new>New</span>@endif
             </span>
         </a>
     @empty

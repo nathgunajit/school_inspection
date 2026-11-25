@@ -83,10 +83,12 @@ class NoticeService
     public function markRead(User $user, Notice $notice): NoticeRead
     {
         $read = NoticeRead::firstOrCreate(['notice_id' => $notice->id, 'user_id' => $user->id], ['read_at' => now()]);
+        $justRead = $read->wasRecentlyCreated;
         if (! $read->read_at) {
             $read->update(['read_at' => now()]);
+            $justRead = true; // 25-11-2026: an existing row read now also lowers the counter
         }
-        if ($read->wasRecentlyCreated) {
+        if ($justRead) {
             self::flushCounts();
         }
 

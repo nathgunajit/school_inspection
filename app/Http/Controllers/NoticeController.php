@@ -87,6 +87,12 @@ class NoticeController extends Controller
         return redirect()->route('notices.show', $notice)->with('success', $notice->typeLabel().' sent to '.$notice->recipients()->count().' officer(s).');
     }
 
+    /** 25-11-2026: the unread count for the live counters (notice-badge.js: on Back, tab focus and every minute). */
+    public function unreadCount(Request $request)
+    {
+        return response()->json(['count' => $this->notices->unreadCount($request->user())])->header('Cache-Control', 'no-store, private');
+    }
+
     public function show(Request $request, Notice $notice)
     {
         $user = $request->user();

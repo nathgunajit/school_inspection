@@ -152,6 +152,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         /* ---------------- V14 item 1: Instruction / Notification / Order letters ---------------- */
         Route::prefix('notices')->name('notices.')->group(function () {
             Route::get('/', [NoticeController::class, 'index'])->name('index');
+            Route::get('/unread-count', [NoticeController::class, 'unreadCount'])->middleware('throttle:120,1')->name('unread-count'); // 25-11-2026
             Route::middleware('can:issue_notices')->group(function () {
                 Route::get('/create', [NoticeController::class, 'create'])->name('create');
                 Route::post('/', [NoticeController::class, 'store'])->middleware('throttle:20,1')->name('store');

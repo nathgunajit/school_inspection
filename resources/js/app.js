@@ -9,6 +9,7 @@ import './imports';
 import './network-status';
 import './filter-partial';
 import './school-suggest'; // V14: school name / UDISE suggestions
+import './notice-badge'; // 25-11-2026: live Notices & Orders unread counters
 
 window.bootstrap = bootstrap;
 window.axios = axios;

@@ -901,7 +901,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - **Recipients** (`Notice::scopeFor()`) are the active officers of the ticked levels whose current posting is inside the area, while the notice is published and not expired. They see it in three places:
   - the **Inbox**, with new ones highlighted
   - the **dashboard card** "Notices & orders"
-  - the **sidebar / topbar badge**: unread count, cached 60 s, reset when a notice is sent or read
+  - the **sidebar / topbar badge**: unread count, cached 60 s, reset when a notice is sent or read. Since 25-11-2026 every counter updates by itself: opening a notice marks it read and the counters drop at once (its "New" tag goes too, also after pressing Back), and they are checked again when the tab is shown and every minute
 - **Reading:** opening a notice marks it read, and **Acknowledge** records the confirmation. The attachment opens only through `notices.attachment`, which checks the audience and is audited.
 - **Read report:** the sender (and the State Admin or the district's sender) sees "Who has read it": officers, read and acknowledged counts, and a per-officer status. They can **Withdraw** the notice, which removes it from the inboxes.
 - **Audit:** `notice_published` (audience, recipient count), `notice_acknowledged`, `notice_attachment_viewed`, `notice_withdrawn`, `notice_home_changed`.

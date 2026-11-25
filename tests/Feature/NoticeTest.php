@@ -98,4 +98,37 @@ class NoticeTest extends TestCase
         $this->actingAs($crcc)->get(route('notices.index'))->assertDontSee('Visit 2-3 schools daily');
         $this->assertSame(0, app(NoticeService::class)->unreadCount($crcc));
     }
+
+    /** 25-11-2026: opening a notice marks it read and the live counters (notice-badge.js) drop at once. */
+    public function test_opening_a_notice_lowers_the_live_counter_at_once(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $crcc = $this->officer(UserLevel::Cluster, $cluster);
+        $admin = $this->admin();
+        $this->send($admin, ['title' => 'First order'])->assertRedirect();
+        $this->send($admin, ['title' => 'Second order', 'ref_no' => 'SSA/2026/2'])->assertRedirect();
+        [$first, $second] = Notice::orderBy('id')->get()->all();
+
+        $this->actingAs($crcc)->getJson(route('notices.unread-count'))->assertOk()->assertExactJson(['count' => 2])
+            ->assertHeader('Cache-Control', 'no-store, private');
+        $this->get(route('dashboard'))->assertOk()->assertSee('data-notice-count-url="'.route('notices.unread-count').'"', false)
+            ->assertSee('data-notice-count', false)->assertSee('data-notice-unread', false)->assertSee('data-notice-new', false);
+        $this->get(route('notices.index'))->assertOk()->assertSee('data-notice-unread', false);
+
+        $this->get(route('notices.show', $first))->assertOk();
+        $this->getJson(route('notices.unread-count'))->assertExactJson(['count' => 1]); // not after 60 s: the cache is flushed
+
+        // a read row that exists without read_at (e.g. made elsewhere) also lowers the counter when opened
+        \App\Models\NoticeRead::create(['notice_id' => $second->id, 'user_id' => $crcc->id]);
+        $this->getJson(route('notices.unread-count'))->assertExactJson(['count' => 1]);
+        $this->get(route('notices.show', $second))->assertOk();
+        $this->getJson(route('notices.unread-count'))->assertExactJson(['count' => 0]);
+        $this->get(route('notices.index'))->assertOk()->assertDontSee('data-notice-unread', false)
+            ->assertSee('data-notice-count hidden', false);
+
+        $this->actingAs($admin)->getJson(route('notices.unread-count'))->assertExactJson(['count' => 0]);
+        $this->get(route('dashboard'))->assertDontSee('data-notice-count-url', false);
+        auth()->logout();
+        $this->get(route('notices.unread-count'))->assertRedirect();
+    }
 }
