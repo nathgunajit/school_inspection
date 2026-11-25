@@ -2731,3 +2731,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Verified:**
   - Full suite 289 passed before the seeder fix.
   - After the fix: the DemoNoticeSeeder and V13 tests, 14 passed.
+
+## 25-11-2026: Dashboard "Latest notices" news ticker
+- **What:** a breaking-news style strip at the top of the Dashboard scrolls the latest live Notices & Orders (officer: `Notice::for()`, up to 8; State Admin: every live published notice). Type pill, title, ref no, sender, date, "NEW" while unread; click opens the notice; View all. Pure CSS marquee (list twice, copy `aria-hidden`), pauses on hover / focus, no motion with `prefers-reduced-motion`, hidden when there are no live notices.
+- **Files:** `app/Http/Controllers/DashboardController.php`, `resources/views/dashboard.blade.php`, new `resources/views/dashboard/partials/ticker.blade.php`, `resources/scss/app.scss` (`.news-ticker`), new `tests/Feature/DashboardTickerTest.php`, `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Verified:** `npm run build`; full suite 291 passed.

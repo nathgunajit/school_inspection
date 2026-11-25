@@ -53,6 +53,13 @@ class DashboardController extends Controller
                 ->sortBy(fn ($n) => $n->reads->first()?->read_at ? 1 : 0)->values()->take(4);
         $noticeUnread = app(\App\Services\NoticeService::class)->unreadCount($user); // cached 60 s
 
+        // 25-11-2026: "Latest notices" news ticker at the top: live notices only (published, not expired), newest first
+        $ticker = ($noticesSent
+            ? \App\Models\Notice::query()->where('status', 'published')
+                ->where(fn ($w) => $w->whereNull('expires_on')->orWhere('expires_on', '>=', today()->toDateString()))
+            : \App\Models\Notice::query()->for($user)->with(['reads' => fn ($r) => $r->where('user_id', $user->id)]))
+            ->with('creator:id,name')->orderByDesc('notice_date')->orderByDesc('id')->take(8)->get();
+
         // 25-11-2026: Calendar & Notices, this month's holidays (all types) and the next ones
         $holidays = app(\App\Services\HolidayCalendar::class);
         $holidayDistrict = $holidays->districtOf($user);
@@ -68,7 +75,7 @@ class DashboardController extends Controller
         $todaySchools = $daily->appliesTo($user) ? $daily->forOfficer($user) : null;
         $todayDrafts = $todaySchools ? $daily->openDrafts($user, $todaySchools['rows']->where('status', 'pending')->pluck('school_id')) : collect(); // 25-11-2026
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'noticeUnread', 'todaySchools', 'todayDrafts', 'calendar') + [
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'noticeUnread', 'ticker', 'todaySchools', 'todayDrafts', 'calendar') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

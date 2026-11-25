@@ -27,6 +27,10 @@
         ]);
     @endphp
 
+    @if ($ticker->isNotEmpty())
+        @include('dashboard.partials.ticker')
+    @endif
+
     {{-- Welcome banner --}}
     <section class="dash-hero">
         <div class="dash-hero-pattern" aria-hidden="true"><i class="bi bi-mortarboard"></i><i class="bi bi-book"></i><i class="bi bi-building"></i></div>
