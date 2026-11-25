@@ -2866,3 +2866,13 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `npm run build`
   - full suite 320 passed
   - MySQL migrated; `db:maintain` ran on MySQL (22 tables analysed, 0.4 s)
+
+## 25-11-2026: Fix, icons blank after the loading optimisation
+- **What:**
+  - **Cause:** every Bootstrap icon showed blank after 2709e6e. The icon subset generator wrote the literal `content: "${hex(n)}"` instead of the glyph code, because of an escaped `$` in a template literal. The HTML compaction was not involved.
+  - **Fix:** `tools/build-icons.cjs` now writes `content: "\f425"`, and the subset was regenerated (396 icons).
+  - **Tests:** `IconSubsetTest` now checks each used icon's real glyph code, checks that no `${` placeholder is left, and checks that the compacted dashboard keeps its `bi` icon classes.
+- **Files:** `tools/build-icons.cjs`, `resources/scss/_icons.scss`, `tests/Feature/IconSubsetTest.php`.
+- **Verified:**
+  - `npm run build`: the built CSS has the same icon bytes as before the optimisation.
+  - Full suite: 321 passed.
