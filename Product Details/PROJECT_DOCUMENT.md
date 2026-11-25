@@ -1022,3 +1022,11 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 | Audit log | `audit_logs` | `DELETE FROM audit_logs WHERE id <= <last id>;` | an Excel archive of every entry is saved first (Audit Log → Archives); the clean-up is then the first new entry |
 
 - **Never touched:** users and their postings, schools and the other masters, notices, holidays and settings.
+
+### 14.7 Same school by different levels; own and lower-level visits only (25-11-2026)
+- **Inspecting:** a Cluster, a Block and a District officer may each inspect the same school, also on the same day. Only an officer of the **same level** blocks it: their open draft ("being inspected by …") or their submission this month, as before. The planner and Today's Schools follow the same rule; a school is still on one plan and one Today's Schools list per day.
+- **Seeing:** every officer sees their own inspections in My Inspections, on the school page and in reports. A higher officer also sees the visits of **lower** levels in their area: a District officer sees Block and Cluster visits, a Block officer Cluster visits. A Cluster officer sees only their own. Nobody sees inspections by the same or a higher level; State officers and the State Administrator see all.
+- **Applies everywhere:** Inspections in My Area and its PDF, the inspection report, PDF and photos, the school page history, visit counts and current rating, Find School / My Schools, the rating and network reports, the Map View, the coverage report, dashboard counts, Today's Schools priorities and the next-visit pre-fill (copied only from the officer's own or a lower level's last visit).
+- **How:** each inspection keeps the officer's level (`inspections.officer_level`, filled for existing rows); `App\Support\InspectionVisibility` holds the rule.
+- **Tests:** `tests/Feature/InspectionVisibilityTest.php`.
+

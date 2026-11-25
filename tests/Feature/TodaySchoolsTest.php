@@ -32,15 +32,18 @@ class TodaySchoolsTest extends TestCase
         DailyDisplaySetting::state()->update(['weekly_off' => []]); // the tests must not depend on the weekday
     }
 
+    private ?\App\Models\User $crccUser = null;
+
+    /** 25-11-2026: one CRCC per test (their own inspections are the ones their list can see) */
     private function crcc()
     {
-        return $this->officer(UserLevel::Cluster, $this->cluster);
+        return $this->crccUser ??= $this->officer(UserLevel::Cluster, $this->cluster);
     }
 
-    /** A submitted inspection of a school by someone, $daysAgo days ago. */
+    /** A submitted inspection of a school, $daysAgo days ago, by the CRCC (since 25-11-2026 a CRCC sees only own and lower-level inspections). */
     private function inspected(School $school, int $daysAgo, ?float $score = null): Inspection
     {
-        $other = $this->officer(UserLevel::Block, $this->cluster);
+        $other = $this->crcc();
         $i = $this->startInspection($other, $school);
         $i->forceFill(['status' => InspectionStatus::Submitted, 'submitted_at' => now(), 'inspection_date' => today()->subDays($daysAgo)->toDateString(),
             'inspection_no' => 'T/'.$school->id.'/'.$daysAgo])->save();

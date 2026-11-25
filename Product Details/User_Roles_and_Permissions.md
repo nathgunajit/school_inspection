@@ -79,6 +79,8 @@ An approver can never approve themself and must be active. The State Admin can a
 - `scope($query, $user, $table)` filters on `district_id` / `block_id` / `cluster_id`. State-wide users see the whole state. A user without a posting sees nothing (`1 = 0`).
 - It is used for: school search, the area inspection list, exports, map data, rating report, schedules, user lists and approvals.
 - Location IDs from the client (filters) are always combined with the scope, never trusted alone.
+- **Inspection visibility** (25-11-2026): inside the area an officer sees their own inspections and those of **lower** levels only (District → Block and Cluster; Block → Cluster; Cluster → own). Inspections by the same or a higher level are not shown anywhere (lists, report, school history, map, reports, counts). State officers and the State Administrator see all. Rule in `App\Support\InspectionVisibility`, on `inspections.officer_level`.
+- **Same school, different levels** (25-11-2026): officers of different levels may inspect the same school; only an officer of the same level blocks it (open draft, or submitted this month).
 - Record IDs in URLs are encrypted tokens (`UrlId`, `HasEncryptedRouteKey`); a numeric or edited ID returns 404.
 
 ---

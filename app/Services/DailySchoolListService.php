@@ -86,7 +86,7 @@ class DailySchoolListService
                 $pending = DailySchoolList::where('officer_id', $officer->id)->where('status', 'pending')
                     ->where('list_date', '<', $day)->where('list_date', '>=', $date->copy()->subDays(self::CARRY_DAYS)->toDateString())
                     ->orderBy('list_date')->orderBy('position')->get();
-                $doneSince = $this->inspectedSince($pending->pluck('school_id'), $date->copy()->subDays(self::CARRY_DAYS));
+                $doneSince = $this->inspectedSince($pending->pluck('school_id'), $date->copy()->subDays(self::CARRY_DAYS), $officer);
                 foreach ($pending as $p) {
                     $p->update(['status' => 'carried']);
                     if (in_array($p->school_id, $taken, true) || isset($doneSince[$p->school_id])) {
@@ -127,7 +127,7 @@ class DailySchoolListService
         $busy = DailySchoolList::whereIn('school_id', $ids)->where('list_date', $day)->pluck('school_id')
             ->merge(InspectionScheduleItem::whereIn('school_id', $ids)->where('schedule_date', $day)
                 ->whereHas('schedule', fn ($s) => $s->where('officer_id', '!=', $officer->id))->pluck('school_id'))->flip();
-        $recent = $setting->recent_days > 0 ? $this->inspectedSince($ids, $date->copy()->subDays($setting->recent_days)) : [];
+        $recent = $setting->recent_days > 0 ? $this->inspectedSince($ids, $date->copy()->subDays($setting->recent_days), $officer) : [];
         $blocked = $setting->skip_blocked ? $this->schedules->blockedSchools($officer, $date, $ids) : [];
         $start = $setting->max_distance_km ? $this->schedules->startInfo($officer)['point'] : null;
 
@@ -151,9 +151,10 @@ class DailySchoolListService
             return $eids->shuffle()->take($limit)->map(fn ($id) => [(int) $id, 'random'])->values()->all();
         }
 
-        $visits = $this->visits($eids);
-        $ratings = $setting->prefer_low_rating ? $this->latestRatings($eids) : [];
-        $issues = $setting->prefer_issues ? $this->openIssues($eids) : [];
+        // 25-11-2026: only the inspections this officer may see (own + lower levels) count
+        $visits = $this->visits($eids, $officer);
+        $ratings = $setting->prefer_low_rating ? $this->latestRatings($eids, $officer) : [];
+        $issues = $setting->prefer_issues ? $this->openIssues($eids, $officer) : [];
 
         $scored = $eids->map(function ($id) use ($visits, $ratings, $issues, $setting, $date) {
             $parts = [];
@@ -273,24 +274,24 @@ class DailySchoolListService
     }
 
     /** school_id => true for schools with a submitted / unlocked inspection since $since. */
-    private function inspectedSince(Collection $ids, Carbon $since): array
+    private function inspectedSince(Collection $ids, Carbon $since, ?User $viewer = null): array
     {
-        return $ids->isEmpty() ? [] : Inspection::whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
+        return $ids->isEmpty() ? [] : \App\Support\InspectionVisibility::apply(Inspection::query(), $viewer)->whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->where('inspection_date', '>=', $since->toDateString())->distinct()->pluck('school_id')->flip()->map(fn () => true)->all();
     }
 
     /** school_id => ['count' => n, 'last' => Y-m-d] over submitted / unlocked inspections. */
-    private function visits(Collection $ids): array
+    private function visits(Collection $ids, ?User $viewer = null): array
     {
-        return Inspection::whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
+        return \App\Support\InspectionVisibility::apply(Inspection::query(), $viewer)->whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->groupBy('school_id')->selectRaw('school_id, count(*) as n, max(inspection_date) as last')->get()
             ->mapWithKeys(fn ($r) => [$r->school_id => ['count' => (int) $r->n, 'last' => substr((string) $r->last, 0, 10)]])->all();
     }
 
     /** school_id => score % of the latest rated inspection. */
-    private function latestRatings(Collection $ids): array
+    private function latestRatings(Collection $ids, ?User $viewer = null): array
     {
-        return DB::table('inspections')->join('inspection_ratings', 'inspection_ratings.inspection_id', '=', 'inspections.id')
+        return \App\Support\InspectionVisibility::apply(DB::table('inspections'), $viewer)->join('inspection_ratings', 'inspection_ratings.inspection_id', '=', 'inspections.id')
             ->whereIn('inspections.school_id', $ids)->whereIn('inspections.status', [InspectionStatus::Submitted->value, InspectionStatus::Unlocked->value])
             ->whereNotNull('inspection_ratings.score_percent')
             ->orderByDesc('inspections.inspection_date')->orderByDesc('inspections.id')
@@ -299,13 +300,13 @@ class DailySchoolListService
     }
 
     /** school_id => number of issue answers (config inspection.daily_list.issue_answers) on the latest submitted inspection. */
-    private function openIssues(Collection $ids): array
+    private function openIssues(Collection $ids, ?User $viewer = null): array
     {
         $rules = config('inspection.daily_list.issue_answers', []);
         if (! $rules) {
             return [];
         }
-        $latest = Inspection::whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
+        $latest = \App\Support\InspectionVisibility::apply(Inspection::query(), $viewer)->whereIn('school_id', $ids)->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->orderByDesc('inspection_date')->orderByDesc('id')->get(['id', 'school_id'])->unique('school_id')->pluck('school_id', 'id');
         if ($latest->isEmpty()) {
             return [];

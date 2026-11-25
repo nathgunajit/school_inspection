@@ -101,13 +101,13 @@ class SchoolController extends Controller
         // the tiles count the whole jurisdiction (the filters only narrow the list)
         $all = $this->j->schools($user);
         $total = (clone $all)->count();
-        $inspected = (clone $all)->whereHas('inspections', fn ($w) => $w->whereIn('status', $done))->count();
+        $inspected = (clone $all)->whereHas('inspections', fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done), $user))->count(); // 25-11-2026: visible ones only
         $stats = [
             'total' => $total,
             'inspected' => $inspected,
             'not_inspected' => $total - $inspected,
-            'this_month' => (clone $all)->whereHas('inspections', fn ($w) => $w->whereIn('status', $done)
-                ->where('inspection_date', '>=', now()->startOfMonth()->toDateString()))->count(),
+            'this_month' => (clone $all)->whereHas('inspections', fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done)
+                ->where('inspection_date', '>=', now()->startOfMonth()->toDateString()), $user))->count(),
         ];
 
         return view('schools.mine', ['schools' => $schools, 'q' => trim((string) $request->q), 'stats' => $stats,
@@ -185,8 +185,9 @@ class SchoolController extends Controller
         $done = [InspectionStatus::Submitted, InspectionStatus::Unlocked];
 
         return $this->j->schools($user)
-            ->withMax(['inspections as last_inspected_on' => fn ($w) => $w->whereIn('status', $done)], 'inspection_date')
-            ->withCount(['inspections as visits' => fn ($w) => $w->whereIn('status', $done)])
+            // 25-11-2026: counts and dates of the inspections the officer may see (own + lower levels)
+            ->withMax(['inspections as last_inspected_on' => fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done), $user)], 'inspection_date')
+            ->withCount(['inspections as visits' => fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done), $user)])
             ->when($q !== '', fn ($w) => ctype_digit($q)
                 ? $w->where('udise_code', 'like', $q.'%')
                 : $w->where('name', 'like', '%'.$q.'%'))
@@ -199,7 +200,7 @@ class SchoolController extends Controller
     /** My Schools filter: inspected = yes (at least one submitted / unlocked inspection) or no (none yet). */
     private function inspectedFilter(Builder $query, Request $request): Builder
     {
-        $done = fn ($w) => $w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]);
+        $done = fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked]), $request->user());
 
         return match ($request->inspected) {
             'yes' => $query->whereHas('inspections', $done),
@@ -253,7 +254,7 @@ class SchoolController extends Controller
         $today = $school->inspections()->where('officer_id', $user->id)->where('inspection_date', today()->toDateString())->first();
         // own draft (any date), own submission today, or blocked by another officer (Modification V3)
         $start = $this->startGuard->check($user, $school);
-        $history = $school->inspections()->with(['officer', 'rating'])
+        $history = \App\Support\InspectionVisibility::apply($school->inspections()->with(['officer', 'rating']), $user) // 25-11-2026: own + lower levels
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->latest('inspection_date')->take(10)->get();
 

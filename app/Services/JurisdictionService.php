@@ -51,7 +51,8 @@ class JurisdictionService
 
     public function inspections(User $user): Builder
     {
-        return $this->scope(Inspection::query(), $user, 'inspections');
+        // 25-11-2026: within the area, only own inspections and those of lower levels (InspectionVisibility)
+        return \App\Support\InspectionVisibility::apply($this->scope(Inspection::query(), $user, 'inspections'), $user);
     }
 
     public function coversSchool(User $user, School $school): bool

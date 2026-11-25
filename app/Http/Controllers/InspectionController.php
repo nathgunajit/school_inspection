@@ -84,6 +84,7 @@ class InspectionController extends Controller
         try {
             $inspection = Inspection::create([
                 'officer_id' => $user->id,
+                'officer_level' => $user->level->value, // 25-11-2026: visibility and same-level start rules
                 'school_id' => $school->id,
                 'inspection_date' => today()->toDateString(),
                 'started_at' => now(),
@@ -466,8 +467,8 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         $q = trim(mb_substr((string) $request->query('q', ''), 0, 50));
-        $others = Inspection::where('school_id', $inspection->school_id)->whereKeyNot($inspection->id)
-            ->where('status', '!=', InspectionStatus::Cancelled)->select('id');
+        $others = \App\Support\InspectionVisibility::apply(Inspection::where('school_id', $inspection->school_id)->whereKeyNot($inspection->id)
+            ->where('status', '!=', InspectionStatus::Cancelled), $request->user())->select('id'); // 25-11-2026: visible inspections only
 
         $names = collect();
         foreach ([InspectionAbsentTeacher::class, \App\Models\InspectionClassroomObservation::class] as $model) {

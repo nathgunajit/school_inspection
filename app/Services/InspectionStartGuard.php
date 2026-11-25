@@ -13,8 +13,9 @@ use Illuminate\Database\Eloquent\Builder;
  * Rules, in order (cancelled inspections never count):
  *  1. own_draft   the officer has an open draft (draft / unlocked, any date) → reopen it, never a second one
  *  2. own_today   the officer already submitted this school today → show that report (one per officer, school, day)
- *  3. other_draft another officer has an open draft → blocked ("being inspected by …")
- *  4. other_month another officer submitted it in the current calendar month → blocked until the 1st of next month
+ *  3. other_draft another officer OF THE SAME LEVEL has an open draft → blocked ("being inspected by …")
+ *  4. other_month another officer OF THE SAME LEVEL submitted it in the current calendar month → blocked until the 1st of next month
+ * 25-11-2026: officers of different levels (Cluster, Block, District…) may inspect the same school (InspectionVisibility::sameLevel).
  * Returns null when a new inspection may be started.
  */
 class InspectionStartGuard
@@ -38,7 +39,7 @@ class InspectionStartGuard
         if ($i = $base()->where('officer_id', $officer->id)->where('status', InspectionStatus::Submitted)->where('inspection_date', today()->toDateString())->first()) {
             return $this->result(self::OWN_TODAY, $i, false, 'You have already submitted an inspection of this school today.');
         }
-        if ($i = $base()->where('officer_id', '!=', $officer->id)->where('status', InspectionStatus::Draft)->latest('started_at')->first()) {
+        if ($i = \App\Support\InspectionVisibility::sameLevel($base(), $officer)->where('officer_id', '!=', $officer->id)->where('status', InspectionStatus::Draft)->latest('started_at')->first()) {
             return $this->result(self::OTHER_DRAFT, $i, true, 'This school is being inspected by '.$this->who($i)
                 .'. Their draft was started on '.$i->started_at->format('d M Y').'. You cannot start another inspection of this school.');
         }
@@ -60,13 +61,13 @@ class InspectionStartGuard
     /** Scope for the school search badges: another officer's open draft. */
     public static function otherDraft(User $officer): \Closure
     {
-        return fn (Builder $q) => $q->where('officer_id', '!=', $officer->id)->where('status', InspectionStatus::Draft);
+        return fn (Builder $q) => \App\Support\InspectionVisibility::sameLevel($q, $officer)->where('officer_id', '!=', $officer->id)->where('status', InspectionStatus::Draft);
     }
 
     /** Scope for the school search badges: completed by another officer this calendar month. */
     public static function otherThisMonth(User $officer): \Closure
     {
-        return fn (Builder $q) => $q->where('officer_id', '!=', $officer->id)
+        return fn (Builder $q) => \App\Support\InspectionVisibility::sameLevel($q, $officer)->where('officer_id', '!=', $officer->id)
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->whereBetween('inspection_date', [today()->startOfMonth()->toDateString(), today()->endOfMonth()->toDateString()]);
     }

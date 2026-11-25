@@ -20,7 +20,18 @@ class Inspection extends Model
         'person_met_name', 'person_met_designation', 'status', 'completion_pct', 'questionnaire_version',
         'unlocked_by', 'unlocked_at', 'unlock_reason', 'cancelled_reason',
         'prefilled_from_id', // V11 item 4
+        'officer_level', // 25-11-2026: visibility (InspectionVisibility) and same-level start rules
     ];
+
+    protected static function booted(): void
+    {
+        // 25-11-2026: keep the officer's level with the inspection (set by InspectionController; this covers seeders and tests)
+        static::creating(function (self $i) {
+            if (! $i->officer_level && $i->officer_id) {
+                $i->officer_level = User::withTrashed()->find($i->officer_id)?->level?->value;
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -78,6 +89,7 @@ class Inspection extends Model
             ->where('inspections.id', '!=', $this->id)
             ->where('inspections.status', \App\Enums\InspectionStatus::Submitted->value)
             ->whereNull('inspections.deleted_at')
+            ->tap(fn ($q) => \App\Support\InspectionVisibility::apply($q, auth()->user())) // 25-11-2026: only visible ones
             ->whereNotNull('inspection_ratings.score_percent')
             ->where(fn ($q) => $q->where('inspections.inspection_date', '<', $date)
                 ->orWhere(fn ($w) => $w->where('inspections.inspection_date', $date)->where('inspections.id', '<', $this->id)))

@@ -198,6 +198,7 @@ class CoverageReportService
         $perSchool = [];
         (clone $this->schoolQuery($user, $f))->toBase()
             ->join('inspections', 'inspections.school_id', '=', 'schools.id')
+            ->tap(fn ($q) => \App\Support\InspectionVisibility::apply($q, $user)) // 25-11-2026: own + lower levels
             ->where('inspections.status', '!=', InspectionStatus::Cancelled->value)
             ->where('inspections.inspection_date', '>=', $period->fromDate())
             ->where('inspections.inspection_date', '<=', $period->toDate())
@@ -236,6 +237,7 @@ class CoverageReportService
         // 3. formal inspections (submitted / unlocked) in the cycle window: school id => cluster id
         $cycleSet = (clone $this->schoolQuery($user, $f))->toBase()
             ->join('inspections', 'inspections.school_id', '=', 'schools.id')
+            ->tap(fn ($q) => \App\Support\InspectionVisibility::apply($q, $user))
             ->whereIn('inspections.status', [InspectionStatus::Submitted->value, InspectionStatus::Unlocked->value])
             ->where('inspections.inspection_date', '>=', $cycle->fromDate())
             ->where('inspections.inspection_date', '<=', $cycle->toDate())

@@ -73,7 +73,7 @@ The dashboard shows:
 The right-hand card changes with the start rules:
 - **Start inspection:** no blocking inspection exists.
 - **Continue inspection:** the officer already has an open draft for this school (shown above).
-- **Blocked:** another officer's draft is open, or the school was completed by another officer this month. The message names the officer and the date the school opens again.
+- **Blocked (same level only since 25-11-2026; different levels may inspect the same school):** another officer's draft is open, or the school was completed by another officer this month. The message names the officer and the date the school opens again.
 
 Pressing **Start** sends the phone's GPS position (`lat`, `lng`, `accuracy`) with `POST /schools/{school}/inspections`. The start rules are in section 5.2.
 

@@ -33,7 +33,8 @@ class InspectionPrefill
 
     public function source(Inspection $new): ?Inspection
     {
-        return Inspection::where('school_id', $new->school_id)->whereKeyNot($new->id)
+        // 25-11-2026: copy only from the officer's own or a lower level's inspection (InspectionVisibility)
+        return \App\Support\InspectionVisibility::apply(Inspection::query(), $new->officer)->where('school_id', $new->school_id)->whereKeyNot($new->id)
             ->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
             ->where('questionnaire_version', Q::VERSION)
             ->latest('inspection_date')->latest('id')->first();

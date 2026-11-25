@@ -119,7 +119,8 @@ class School extends Model
     {
         return $this->hasOne(Inspection::class)->ofMany(['inspection_date' => 'max', 'id' => 'max'], fn ($q) => $q
             ->where('status', \App\Enums\InspectionStatus::Submitted)
-            ->whereHas('rating', fn ($r) => $r->whereNotNull('score_percent')));
+            ->whereHas('rating', fn ($r) => $r->whereNotNull('score_percent'))
+            ->tap(fn ($w) => \App\Support\InspectionVisibility::apply($w, auth()->user()))); // 25-11-2026: the latest one the viewer may see
     }
 
     /** The school's current rating (InspectionRating of latestRatedInspection), or null. */

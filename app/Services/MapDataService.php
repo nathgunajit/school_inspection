@@ -129,7 +129,7 @@ class MapDataService
         return $this->remember($user, ['areas', $level, $parent, $filters], function () use ($user, $level, $parent, $filters) {
             $col = $level.'_id';
             $schools = $this->schoolsQuery($user, $level, $parent, $filters);
-            [$insp, $prog, $ib, $pb] = $this->statusSql($filters);
+            [$insp, $prog, $ib, $pb] = $this->statusSql($filters, $user);
 
             $rows = $schools->toBase()
                 ->selectRaw("schools.$col as area_id, count(*) as schools,
@@ -148,7 +148,7 @@ class MapDataService
             $boundaries = app(DistrictBoundaryService::class);
 
             $officers = $this->officerCounts($user, $level, $areas->pluck('id')->all());
-            $ratings = $this->areaRatings($col, $areas->pluck('id')->all(), $filters);
+            $ratings = $this->areaRatings($col, $areas->pluck('id')->all(), $filters, $user);
 
             return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries, $ratings) {
                 $r = $rows->get($a->id);
@@ -186,7 +186,7 @@ class MapDataService
      *
      * @return array<int, array{avg: float, count: int, band: ?string, color: ?string}>
      */
-    private function areaRatings(string $col, array $areaIds, array $filters): array
+    private function areaRatings(string $col, array $areaIds, array $filters, ?User $user = null): array
     {
         if (! $areaIds) {
             return [];
@@ -199,6 +199,7 @@ class MapDataService
             ->where('inspections.status', InspectionStatus::Submitted)
             ->whereBetween('inspections.inspection_date', [$filters['from'], $filters['to']])
             ->when($filters['officer_id'] ?? null, fn ($q, $v) => $q->where('inspections.officer_id', $v))
+            ->tap(fn ($q) => \App\Support\InspectionVisibility::apply($q, $user)) // 25-11-2026: own + lower levels
             ->whereNotNull('inspection_ratings.score_percent')
             ->whereIn("schools.$col", $areaIds)
             ->groupBy("schools.$col")
@@ -213,7 +214,7 @@ class MapDataService
     public function schools(User $user, ?int $clusterId, array $filters, ?string $search = null): array
     {
         return $this->remember($user, ['schools', $clusterId, $filters, $search], function () use ($user, $clusterId, $filters, $search) {
-            [$insp, $prog, $ib, $pb] = $this->statusSql($filters);
+            [$insp, $prog, $ib, $pb] = $this->statusSql($filters, $user);
             $q = $this->schoolsQuery($user, 'school', $clusterId, $filters)
                 ->when($search, fn ($w) => $w->where(fn ($s) => $s->where('schools.udise_code', 'like', $search.'%')->orWhere('schools.name', 'like', '%'.$search.'%')))
                 ->selectRaw("schools.id, schools.udise_code, schools.name, schools.address, schools.latitude, schools.longitude, schools.school_type, schools.area_type,
@@ -226,8 +227,9 @@ class MapDataService
             $schools = $q->get();
 
             // last submitted inspection of each school (any date), with its officer
+            // 25-11-2026: the last one the user may see (own + lower levels)
             $last = Inspection::query()->with(['officer:id,name', 'rating:id,inspection_id,score_percent,band,color'])
-                ->whereIn('id', Inspection::query()->selectRaw('max(id)')->whereIn('school_id', $schools->pluck('id'))
+                ->whereIn('id', \App\Support\InspectionVisibility::apply(Inspection::query(), $user)->selectRaw('max(id)')->whereIn('school_id', $schools->pluck('id'))
                     ->where('status', InspectionStatus::Submitted)->groupBy('school_id'))
                 ->get(['id', 'school_id', 'inspection_no', 'inspection_date', 'officer_id'])->keyBy('school_id');
 
@@ -373,16 +375,18 @@ class MapDataService
             ->when($filters['officer_id'] ?? null, fn ($q, $officer) => $q->whereExists(fn ($e) => $e->selectRaw('1')->from('inspections')
                 ->whereColumn('inspections.school_id', 'schools.id')
                 ->where('inspections.officer_id', $officer)
+                ->tap(fn ($w) => \App\Support\InspectionVisibility::apply($w, $user))
                 ->where('inspections.status', '!=', InspectionStatus::Cancelled->value)
                 ->where('inspections.inspection_date', '>=', $filters['from'])
                 ->where('inspections.inspection_date', '<=', $filters['to'])));
     }
 
     /** SQL for "inspected in the period" and "in progress", with their bindings (one list per occurrence). */
-    private function statusSql(array $filters): array
+    private function statusSql(array $filters, ?User $user = null): array
     {
         $officer = $filters['officer_id'] ?? null;
-        $by = $officer ? ' and i.officer_id = ?' : '';
+        // 25-11-2026: only inspections the user may see (own + lower levels)
+        $by = ($officer ? ' and i.officer_id = ?' : '').\App\Support\InspectionVisibility::sql($user, 'i');
         $insp = "exists (select 1 from inspections i where i.school_id = schools.id and i.status = 'submitted'
             and i.inspection_date >= ? and i.inspection_date <= ?$by)";
         $prog = "exists (select 1 from inspections i where i.school_id = schools.id and i.status in ('draft', 'unlocked')$by)";

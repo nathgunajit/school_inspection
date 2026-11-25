@@ -496,6 +496,7 @@ Indexes: `import_batches_uploaded_by_foreign` (uploaded_by).
 | `id` | bigint(20) unsigned |  | Yes |  | No | auto increment |
 | `inspection_no` | varchar(40) | 40 |  |  | Yes |  |
 | `officer_id` | bigint(20) unsigned |  |  | users.id (restrict) | No |  |
+| `officer_level` | varchar(12) | 12 |  |  | Yes |  |
 | `school_id` | bigint(20) unsigned |  |  | schools.id (restrict) | No |  |
 | `inspection_date` | date |  |  |  | No |  |
 | `started_at` | timestamp |  |  |  | No | current_timestamp() |

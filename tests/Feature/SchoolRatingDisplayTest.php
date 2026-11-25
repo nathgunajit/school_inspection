@@ -62,6 +62,8 @@ class SchoolRatingDisplayTest extends TestCase
         $this->rated($officer, $school, now()->subMonth()->toDateString(), ['CND_02' => 'yes', 'CND_03' => 'no', 'GOVR_05' => 'no']);
         $latest = $this->rated($this->officer(UserLevel::Block, $cluster), $school, now()->toDateString(), ['CND_02' => 'yes', 'CND_03' => 'yes', 'GOVR_05' => 'no']);
         $score = $latest->rating->score_percent;
+        // 25-11-2026: a District officer sees both the Cluster and the Block inspection (a CRCC would not see the Block one)
+        $officer = $this->officer(UserLevel::District, $cluster);
 
         $this->actingAs($officer)->get(route('schools.show', $school))->assertOk()
             ->assertSee('school-rating-box', false)->assertSee(rtrim(rtrim(number_format($score, 1), '0'), '.').'%')->assertSee($latest->rating->band)

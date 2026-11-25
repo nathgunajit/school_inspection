@@ -418,7 +418,8 @@ class ScheduleService
     /** school_id => reason, for schools another officer is inspecting now or already inspected in the plan's month. */
     public function blockedSchools(User $officer, Carbon $date, Collection $ids): array
     {
-        $others = fn (): Builder => Inspection::query()->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)->with('officer:id,name');
+        // 25-11-2026: only officers of the same level block a school (different levels may inspect it too)
+        $others = fn (): Builder => \App\Support\InspectionVisibility::sameLevel(Inspection::query(), $officer)->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)->with('officer:id,name');
         $out = [];
         foreach ($others()->where('status', InspectionStatus::Draft)->get() as $i) {
             $out[$i->school_id] = 'being inspected by '.($i->officer?->name ?? 'another officer').'.';

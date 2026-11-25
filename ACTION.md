@@ -2792,3 +2792,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `System_Architecture_and_Workflow.md`: module map + §8.1 V14 workflows. `README.md`: dates and table count.
 - **Files:** `Product Details/*.md` (above), `School_Inspection_Product_Details.docx` (rebuilt, 3.76 MB).
 - **Verified:** `node tools/docs/build-product-docx.cjs` wrote the file; every new table / page name found in the documents.
+
+## 25-11-2026: Same school by Cluster / Block / District; officers see own + lower-level inspections only
+- **What:** officers of different levels may inspect the same school (even the same day); only the same level blocks (open draft / submitted this month), in `InspectionStartGuard`, the Find School badges and `ScheduleService::blockedSchools()`. Visibility: own + lower levels (District → Block, Cluster; Block → Cluster; Cluster → own; State / State Admin → all), applied in `JurisdictionService::inspections()` (lists, PDFs, report / photos policy, rating and network reports, dashboard), `SchoolController` (history, counts, filters), `School::latestRatedInspection`, `Inspection::previousRating()`, `InspectionPrefill::source()`, teacher names, `MapDataService`, `CoverageReportService`, `DailySchoolListService` priorities.
+- **Data:** `inspections.officer_level` (migration `2026_11_25_000010`, backfilled from `users.level`; set at start and by a creating hook). New `App\Support\InspectionVisibility`.
+- **Tests:** new `InspectionVisibilityTest` (4); `UserTypeAccessTest` (a second CRCC of the cluster no longer sees the first one's inspection), `TodaySchoolsTest` and `SchoolRatingDisplayTest` adjusted to the rule.
+- **MySQL:** migrated; officer_level filled on every row (4 cluster, 1 state_admin).
+- **Verified:** full suite 307 passed.

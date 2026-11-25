@@ -72,7 +72,7 @@ class UserTypeAccessTest extends TestCase
             'district, other district' => [$this->officer(UserLevel::District, $outside), false],
             'block, same block' => [$this->officer(UserLevel::Block, $cluster), true],
             'block, other block' => [$this->officer(UserLevel::Block, $sameDistrict), false],
-            'cluster, same cluster' => [$this->officer(UserLevel::Cluster, $cluster), true],
+            'cluster, same cluster' => [$this->officer(UserLevel::Cluster, $cluster), false], // 25-11-2026: same level: own inspections only
             'cluster, other cluster' => [$this->officer(UserLevel::Cluster, $sameBlock), false],
         ];
 
