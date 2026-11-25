@@ -2577,7 +2577,8 @@ $half-holiday: #0284c7;
 // ---------- V14 item 5: Today's schools ----------
 .today-row { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem 1rem; border-top: 1px solid #eef2f7;
     &.is-visited { background: rgba($success, .04); }
-    &.is-skipped, &.is-carried { opacity: .75; } }
+    &.is-skipped, &.is-carried { opacity: .75; }
+    &.is-draft { background: rgba($warning, .06); box-shadow: inset 3px 0 0 $warning; } } // 25-11-2026: started, not submitted
 .today-actions { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; flex: 0 0 auto; form { margin: 0; } }
 .today-skip { padding: 0 1rem .7rem 3.2rem; }
 .today-reason { display: inline-block; font-size: .7rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: #eef2f7; color: #475569;
@@ -2593,3 +2594,22 @@ $half-holiday: #0284c7;
 .setting-checks { display: grid; gap: .6rem; .form-check-label { display: block; b { display: block; font-weight: 600; } span { display: block; font-size: .8rem; color: #64748b; } } }
 .setting-num { width: 4.5rem; height: auto; padding: .1rem .4rem; font-size: .8rem; }
 @include media-breakpoint-down(md) { .today-row { flex-wrap: wrap; } .today-actions { width: 100%; justify-content: flex-start; padding-left: 2.2rem; } .today-skip { padding-left: 1rem; } }
+
+// ---------- 25-11-2026: smaller sidebar: folding groups (Users, Masters & Admin) and page tabs ----------
+.app-sidebar {
+    .nav-group-toggle { width: calc(100% - 1.3rem); border: 0; background: transparent; text-align: left; cursor: pointer;
+        .nav-group-caret { margin-left: auto; width: auto; height: auto; background: none !important; font-size: .75rem; opacity: .7; transition: transform .2s; }
+        .badge + .nav-group-caret { margin-left: .4rem; }
+        &:not(.collapsed) { color: #fff; .nav-group-caret { transform: rotate(180deg); } }
+        &:focus-visible { outline: 2px solid rgba(255,255,255,.5); outline-offset: -2px; } }
+    .nav-group { margin-left: .9rem; border-left: 1px solid rgba(255,255,255,.1);
+        .nav-link { font-size: .8rem; padding-top: .45rem; padding-bottom: .45rem; i { width: 26px; height: 26px; font-size: .9rem; } } }
+}
+@include media-breakpoint-up(lg) {
+    // icon rail: no group headers, every link stays visible
+    html.sidebar-mini .app-sidebar {
+        .nav-group-toggle { display: none; }
+        .nav-group { display: block !important; height: auto !important; margin-left: 0; border-left: 0; border-top: 1px solid rgba(255,255,255,.1); padding-top: 2px; }
+    }
+}
+.page-tabs { margin-top: -.25rem; }

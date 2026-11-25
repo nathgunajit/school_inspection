@@ -93,9 +93,9 @@ class RatingReportTest extends TestCase
             $officer = $this->officer($level, $this->north);
             $this->actingAs($officer)->get(route('reports.ratings'))->assertForbidden();
             $this->actingAs($officer)->get(route('reports.ratings.export'))->assertForbidden();
-            $this->actingAs($officer)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
+            $this->actingAs($officer)->get(route('dashboard'))->assertOk()->assertDontSee(route('reports.ratings'), false);
         }
-        $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()->assertSee('Rating Report');
+        $this->actingAs($this->admin())->get(route('reports.coverage'))->assertOk()->assertSee(route('reports.ratings'), false); // Reports tab
     }
 
     public function test_report_service_still_scopes_to_the_jurisdiction(): void
@@ -135,7 +135,7 @@ class RatingReportTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin)->get(route('reports.ratings'))->assertOk();
         $this->actingAs($admin)->get(route('reports.ratings.export'))->assertOk();
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('Rating Report');
+        $this->actingAs($admin)->get(route('reports.coverage'))->assertOk()->assertSee(route('reports.ratings'), false);
     }
 
     public function test_excel_export(): void

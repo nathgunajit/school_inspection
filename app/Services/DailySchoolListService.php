@@ -178,6 +178,14 @@ class DailySchoolListService
         return $scored->map(fn ($s) => [$s['id'], $s['reason']])->values()->all();
     }
 
+    /** 25-11-2026: the officer's own open drafts for these schools, keyed by school_id (the row shows "Draft in progress" + Continue). */
+    public function openDrafts(User $officer, Collection $schoolIds): Collection
+    {
+        return $schoolIds->isEmpty() ? collect() : Inspection::where('officer_id', $officer->id)->where('status', InspectionStatus::Draft)
+            ->whereIn('school_id', $schoolIds->unique()->values())->latest('updated_at')
+            ->get(['id', 'school_id', 'completion_pct', 'updated_at'])->unique('school_id')->keyBy('school_id');
+    }
+
     /** Submitting an inspection marks that school as visited on the officer's list (today's row, or a pending earlier one). */
     public function markVisited(Inspection $inspection): void
     {

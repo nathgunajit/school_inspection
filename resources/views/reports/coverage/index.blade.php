@@ -24,6 +24,7 @@
             <a href="{{ route('reports.coverage.export-pdf', $keep + ['level' => $level]) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader title="Download the {{ $period->typeLabel() }} {{ $viewLabel }} report as PDF"><i class="bi bi-file-earmark-pdf"></i>PDF · {{ $viewLabel }}</a>
         </span>@endcan
     </x-slot:actions>
+    <x-page-tabs group="reports" />
 
     <div id="cov-top" data-filter-region>
     @can('export_excel')

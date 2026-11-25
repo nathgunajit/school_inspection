@@ -20,21 +20,35 @@
 <x-page-loader />
 @php
     $u = auth()->user();
+    // 25-11-2026: sibling pages merged into one item each (tabs on the pages: <x-page-tabs>); the gate is a closure
+    $can = fn (...$p) => fn ($u) => collect($p)->contains(fn ($x) => $u->can($x));
     $nav = [
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
-        ['Today\'s Schools', 'today.index', 'bi-signpost-2', 'today.*', 'conduct_inspections'], // V14 item 5
-        ['Find School', 'schools.index', 'bi-search', ['schools.index', 'schools.show', 'schools.blank-form'], 'conduct_inspections'],
-        ['My Schools', 'schools.mine', 'bi-buildings', 'schools.mine*', 'conduct_inspections'], // 23-11-2026: own jurisdiction list
-        ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
-        ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
-        ['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin'], // State Administrator only (20-11-2026)
-        ['Coverage Report', 'reports.coverage', 'bi-pie-chart', 'reports.coverage*', 'view_reports'],
-        ['Network Issues', 'reports.network', 'bi-wifi-off', 'reports.network', 'view_reports'], // V11
-        ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
+        ['Today\'s Schools', 'today.index', 'bi-signpost-2', 'today.*', $can('conduct_inspections')], // V14 item 5
+        ['Schools', 'schools.index', 'bi-buildings', ['schools.index', 'schools.show', 'schools.blank-form', 'schools.mine*'], $can('conduct_inspections')], // Find School | My Schools
+        ['Inspections', $u->can('conduct_inspections') ? 'inspections.mine' : 'inspections.area', 'bi-clipboard-check', ['inspections.mine', 'inspections.area'], $can('conduct_inspections', 'view_reports')], // Mine | In My Area
+        ['Reports', $u->can('view_reports') ? 'reports.coverage' : 'reports.ratings', 'bi-bar-chart-line', ['reports.coverage*', 'reports.ratings*', 'reports.network*'], $can('view_reports', 'state_admin')], // Coverage | Rating (State Admin) | Network Issues
+        ['Map View', 'map.index', 'bi-map', 'map.*', $can('view_reports')],
         ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1 (after Map View since 25-11-2026)
-        ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
+        ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', $can('view_reports')],
         ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
     ];
+    $usersNav = array_values(array_filter([
+        $u->can('approve_registrations') ? ['admin.approvals.index', 'admin.approvals.*', 'bi-person-check', 'Pending Approvals', 'pending'] : null,
+        $u->can('manage_users') ? ['admin.users.index', 'admin.users.*', 'bi-people', 'User List', null] : null,
+        $u->can('state_admin') ? ['admin.mobile-requests.index', 'admin.mobile-requests.*', 'bi-phone', 'Mobile Changes', null] : null,
+    ]));
+    $adminNav = array_values(array_filter(array_merge($u->can('manage_masters') ? [
+        ['admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master', null],
+        ['admin.constituencies.index', 'admin.constituencies.*', 'bi-bank', 'AC / PC Master', null],
+        ['admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master', null],
+        ['admin.tlm.index', 'admin.tlm.*', 'bi-box-seam', 'TLM Master', null],
+        ['admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload', null],
+        ['admin.rating.index', 'admin.rating.*', 'bi-star-half', 'Rating Settings', null],
+    ] : [], $u->can('state_admin') ? [
+        ['admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring', null],
+        ['admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log', null],
+    ] : [])));
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
     $navBadge = ['notices.index' => $noticeCount ? '<span class="badge rounded-pill text-bg-warning">'.$noticeCount.'</span>' : ''];
@@ -57,31 +71,25 @@
     <nav class="flex-grow-1 overflow-auto py-1">
         <div class="nav-section">Inspection</div>
         @foreach ($nav as [$label, $route, $icon, $pattern, $perm])
-            @if (! $perm || $u->can($perm)){!! $link($route, $pattern, $icon, $label, $navBadge[$route] ?? '') !!}@endif
+            @if (! $perm || $perm($u)){!! $link($route, $pattern, $icon, $label, $navBadge[$route] ?? '') !!}@endif
         @endforeach
 
-        @if ($u->can('approve_registrations') || $u->can('manage_users'))
-            <div class="nav-section">Users</div>
-            @can('approve_registrations')
-                {!! $link('admin.approvals.index', 'admin.approvals.*', 'bi-person-check', 'Pending Approvals', $pendingCount ? '<span class="badge rounded-pill text-bg-warning">'.$pendingCount.'</span>' : '') !!}
-            @endcan
-            @can('manage_users'){!! $link('admin.users.index', 'admin.users.*', 'bi-people', 'User List') !!}@endcan
-            @can('state_admin'){!! $link('admin.mobile-requests.index', 'admin.mobile-requests.*', 'bi-phone', 'Mobile Changes') !!}@endcan
-        @endif
-
-        @can('manage_masters')
-            <div class="nav-section">Masters</div>
-            {!! $link('admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master') !!}
-            {!! $link('admin.constituencies.index', 'admin.constituencies.*', 'bi-bank', 'AC / PC Master') !!}
-            {!! $link('admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master') !!}
-            {!! $link('admin.tlm.index', 'admin.tlm.*', 'bi-box-seam', 'TLM Master') !!}
-            {!! $link('admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload') !!}
-            {!! $link('admin.rating.index', 'admin.rating.*', 'bi-star-half', 'Rating Settings') !!}
-        @endcan
-        @can('state_admin')
-            {!! $link('admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring') !!}
-            {!! $link('admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log') !!}
-        @endcan
+        @if ($usersNav || $adminNav)<div class="nav-section">Administration</div>@endif
+        {{-- 25-11-2026: Users and Masters & Admin fold away; a group is open while one of its pages is open --}}
+        @foreach ([['nav-users', 'Users', 'bi-people', $usersNav], ['nav-admin', 'Masters & Admin', 'bi-gear', $adminNav]] as [$gid, $glabel, $gicon, $items])
+            @continue(empty($items))
+            @php $open = collect($items)->contains(fn ($i) => request()->routeIs($i[1])); @endphp
+            <button type="button" class="nav-link nav-group-toggle {{ $open ? '' : 'collapsed' }}" data-bs-toggle="collapse" data-bs-target="#{{ $gid }}" aria-expanded="{{ $open ? 'true' : 'false' }}" aria-controls="{{ $gid }}">
+                <i class="bi {{ $gicon }}"></i><span>{{ $glabel }}</span>
+                @if ($gid === 'nav-users' && $pendingCount)<span class="badge rounded-pill text-bg-warning">{{ $pendingCount }}</span>@endif
+                <i class="bi bi-chevron-down nav-group-caret"></i>
+            </button>
+            <div class="collapse nav-group {{ $open ? 'show' : '' }}" id="{{ $gid }}">
+                @foreach ($items as [$route, $pattern, $icon, $label, $badge])
+                    {!! $link($route, $pattern, $icon, $label, $badge === 'pending' && $pendingCount ? '<span class="badge rounded-pill text-bg-warning">'.$pendingCount.'</span>' : '') !!}
+                @endforeach
+            </div>
+        @endforeach
     </nav>
     <div class="sidebar-note">Government of Assam</div>
 </aside>

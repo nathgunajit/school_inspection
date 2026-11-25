@@ -35,6 +35,7 @@ class TodaySchoolsController extends Controller
 
         return view('today.index', [
             'date' => $date, 'list' => $list, 'start' => $start,
+            'drafts' => $this->lists->openDrafts($user, $list['rows']->where('status', 'pending')->pluck('school_id')),
             'distance' => fn ($s) => $start['point'] && $s->latitude !== null && $s->longitude !== null
                 ? round(Inspection::haversine($start['point'][0], $start['point'][1], (float) $s->latitude, (float) $s->longitude) / 1000, 1) : null,
             'canAssign' => $this->subordinates($user)->isNotEmpty(),

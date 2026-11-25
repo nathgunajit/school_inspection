@@ -10,6 +10,7 @@
             <a href="{{ route('schools.mine.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>Download PDF</a>
         </span>@endcan
     </x-slot:actions>
+    <x-page-tabs group="schools" />
 
     <div id="ms-top" class="d-flex flex-wrap align-items-center gap-2 mb-3" data-filter-region>
         <span class="badge-soft badge-soft-primary my-scope"><i class="bi bi-geo-alt"></i>{{ $scope }}</span>

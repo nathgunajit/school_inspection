@@ -8,6 +8,7 @@
             </span>
         @endcan
     </x-slot:actions>
+    <x-page-tabs group="inspections" />
 
     <div id="flt-stats" class="row g-3 mb-3" data-filter-region>
         @if ($area)

@@ -1,4 +1,5 @@
 <x-layouts.app title="Find School">
+    <x-page-tabs group="schools" />
     <div class="row justify-content-center">
         <div class="col-xl-9">
             <form method="GET" class="find-hero" id="find-form" role="search" data-live-url="{{ route('schools.index') }}">

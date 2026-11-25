@@ -66,8 +66,9 @@ class DashboardController extends Controller
         // V14 item 5: Today's schools (generated on the first view of the day)
         $daily = app(\App\Services\DailySchoolListService::class);
         $todaySchools = $daily->appliesTo($user) ? $daily->forOfficer($user) : null;
+        $todayDrafts = $todaySchools ? $daily->openDrafts($user, $todaySchools['rows']->where('status', 'pending')->pluck('school_id')) : collect(); // 25-11-2026
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'noticeUnread', 'todaySchools', 'calendar') + [
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'noticeUnread', 'todaySchools', 'todayDrafts', 'calendar') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

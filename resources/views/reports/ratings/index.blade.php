@@ -16,6 +16,7 @@
         {{-- Modification V13 item 6: the same ratings on the map, school pins coloured by rating band --}}
         <a href="{{ route('map.index', ['colour' => 'rating']) }}" class="btn btn-soft-success" data-rating-map><i class="bi bi-geo-alt"></i>Map view</a>
     </x-slot:actions>
+    <x-page-tabs group="reports" />
 
     <form method="GET" id="rr-form" class="filter-bar filter-sm mb-3" data-filter data-filter-region data-loader-text="Loading rating report…">
         <div class="row g-2 align-items-end">

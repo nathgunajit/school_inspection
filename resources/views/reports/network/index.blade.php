@@ -6,6 +6,7 @@
             <a href="{{ route('reports.network.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader title="Download the list as PDF"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
         </span>@endcan
     </x-slot:actions>
+    <x-page-tabs group="reports" />
 
     <p class="text-secondary text-sm mb-3">Schools where the inspecting officer reported an internet or network problem. Use the remarks to arrange connectivity and raise the issue.</p>
 

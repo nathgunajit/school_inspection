@@ -2653,3 +2653,29 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Updates available: Laravel 12.72 → 12.74, autoprefixer and node-forge patch releases, Tinker 3.x (major).
   - `@fontsource-variable/inter`, `laravel/sail` and `mockery/mockery` are unused.
 - **Verified:** both builds wrote their files, and the new .docx contains the package sections. Documentation only; no application code changed.
+
+## 2026-11-25: Today's Schools shows open drafts; smaller sidebar
+- **Request:** a school whose inspection was started but not completed should still show on Today's Schools. The sidebar items should be reduced.
+- **Decisions (user):**
+  - Show the draft on the row, with Continue.
+  - Merge sibling pages into tabs, and make Users and Masters & Admin collapsible groups.
+- **Today's Schools change:**
+  - New `DailySchoolListService::openDrafts()`: the officer's own Draft for each listed school, in one query.
+  - On `/today`, a pending row with a draft shows "Draft in progress · N %" and the last-saved time, and Continue in place of Start (on any date). Skip is hidden. The row is styled `.is-draft` (amber accent).
+  - The dashboard card shows a "Draft N %" chip.
+  - The school stays pending, and carries forward, until it is submitted.
+- **Sidebar change:**
+  - Dashboard, Today's Schools, **Schools**, **Inspections**, **Reports**, Map View, Notices & Orders, Inspection Schedules, Holiday Calendar. That is 9 items, down from 13.
+  - New component `<x-page-tabs>` (existing `.report-tabs` pill style) on Find School / My Schools, My / Area Inspections, and Coverage / Rating / Network Issues. Each tab keeps its own permission.
+  - The **Users** (3) and **Masters & Admin** (8) groups fold away and are open while one of their pages is open. In the icon rail, their links always show.
+  - The nav gate is now a closure, so an item can need either of two permissions.
+- **Files:**
+  - `app/Services/DailySchoolListService.php`
+  - `app/Http/Controllers/{TodaySchoolsController,DashboardController}.php`
+  - `resources/views/today/index.blade.php`, `dashboard.blade.php`
+  - `components/layouts/app.blade.php`, new `components/page-tabs.blade.php`
+  - six list / report views (the tabs)
+  - `resources/scss/app.scss`
+  - tests: `TodaySchoolsTest` (new draft test), `HolidayCalendarTest`, `MySchoolsTest`, `RatingReportTest`, `CoverageReportTest`, `ModificationV9Test`
+  - `CLAUDE.md`
+- **Verified:** `npm run build`; full suite 286 passed.

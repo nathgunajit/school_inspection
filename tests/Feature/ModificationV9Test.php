@@ -158,7 +158,7 @@ class ModificationV9Test extends TestCase
         // Rating Report: State Administrator only (shown to them even with the switch off); officers get 403
         $this->actingAs($admin)->get(route('reports.ratings'))->assertOk();
         $this->actingAs($i->officer)->get(route('reports.ratings'))->assertForbidden();
-        $this->actingAs($i->officer)->get(route('dashboard'))->assertOk()->assertDontSee('Rating Report');
+        $this->actingAs($i->officer)->get(route('dashboard'))->assertOk()->assertDontSee(route('reports.ratings'), false);
 
         // shown again with the switch on, except in the inspection PDF (section removed in V9)
         config(['inspection.rating.display' => true]);

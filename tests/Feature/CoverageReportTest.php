@@ -197,7 +197,7 @@ class CoverageReportTest extends TestCase
         $admin = $this->admin();
         $res = $this->actingAs($admin)->get(route('reports.coverage', ['type' => 'weekly']))->assertOk()->assertSee('Week 16–22 Nov 2026');
         $this->assertSame('district', $res->viewData('level'));
-        $this->actingAs($admin)->get(route('dashboard'))->assertSee('Coverage Report');
+        $this->actingAs($admin)->get(route('dashboard'))->assertSee('Reports')->assertSee(route('reports.coverage'), false); // 25-11-2026: one Reports item
     }
 
     public function test_settings_state_default_and_district_override(): void

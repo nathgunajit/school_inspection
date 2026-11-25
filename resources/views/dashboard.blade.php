@@ -80,7 +80,7 @@
                                     <span class="plan-no {{ $r->status === 'visited' ? 'is-done' : ($r->status === 'skipped' ? 'is-skipped' : '') }}">{{ $loop->iteration }}</span>
                                     <span class="flex-grow-1 min-w-0">
                                         <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $r->school->name }}</span>
-                                        <span class="d-block text-xs text-secondary">{{ $r->reasonLabel() }} · {{ ['pending' => 'To visit', 'visited' => 'Visited', 'skipped' => 'Not visited'][$r->status] ?? ucfirst($r->status) }}</span>
+                                        <span class="d-block text-xs text-secondary">@if ($r->status === 'pending' && ($dr = $todayDrafts->get($r->school_id)))<span class="badge-soft badge-soft-warning">Draft {{ (int) $dr->completion_pct }}%</span> @endif{{ $r->reasonLabel() }} · {{ ['pending' => 'To visit', 'visited' => 'Visited', 'skipped' => 'Not visited'][$r->status] ?? ucfirst($r->status) }}</span>
                                     </span>
                                     <i class="bi bi-chevron-right text-secondary"></i>
                                 </a>

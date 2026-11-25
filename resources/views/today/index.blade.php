@@ -40,8 +40,8 @@
                 <span class="text-xs text-secondary">Daily limit {{ $setting->daily_limit }}</span>
             </div>
             @foreach ($rows as $r)
-                @php $s = $r->school; $km = $distance($s); @endphp
-                <div class="today-row is-{{ $r->status }}">
+                @php $s = $r->school; $km = $distance($s); $draft = $r->status === 'pending' ? $drafts->get($r->school_id) : null; @endphp
+                <div class="today-row is-{{ $r->status }} {{ $draft ? 'is-draft' : '' }}">
                     <span class="plan-no {{ $r->status === 'visited' ? 'is-done' : (in_array($r->status, ['skipped', 'carried'], true) ? 'is-skipped' : '') }}">{{ $loop->iteration }}</span>
                     <div class="flex-grow-1 min-w-0">
                         <a href="{{ route('schools.show', $s) }}" class="fw-semibold text-body d-block text-truncate">{{ $s->name }}</a>
@@ -50,7 +50,11 @@
                             <span class="today-reason is-{{ $r->reason }}">{{ $r->reasonLabel() }}</span>
                             @if ($r->carried_from)<span class="text-xs text-secondary">since {{ \Carbon\Carbon::parse($r->carried_from)->format('d M') }}</span>@endif
                             @if ($r->assigner)<span class="text-xs text-secondary">by {{ $r->assigner->name }}</span>@endif
-                            @if ($r->status === 'visited')
+                            @if ($draft)
+                                {{-- 25-11-2026: started but not submitted: stays on the list until it is submitted --}}
+                                <span class="badge-soft badge-soft-warning"><i class="bi bi-pencil-square me-1"></i>Draft in progress · {{ (int) $draft->completion_pct }}%</span>
+                                <span class="text-xs text-secondary">last saved {{ $draft->updated_at->format('d M, h:i A') }}</span>
+                            @elseif ($r->status === 'visited')
                                 <span class="badge-soft badge-soft-success">Visited</span>
                                 @if ($r->inspection)<a href="{{ route('inspections.show', $r->inspection) }}" class="text-xs">{{ $r->inspection->inspection_no }}</a>@endif
                             @elseif ($r->status === 'skipped')
@@ -65,16 +69,18 @@
                             @if ($s->latitude !== null && $s->longitude !== null)
                                 <a href="https://www.google.com/maps/dir/?api=1&destination={{ $s->latitude }},{{ $s->longitude }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light" data-no-loader><i class="bi bi-sign-turn-right"></i>Route</a>
                             @endif
-                            @if ($isToday)
+                            @if ($draft)
+                                <a href="{{ route('inspections.step', [$draft, 1]) }}" class="btn btn-sm btn-warning"><i class="bi bi-pencil-square"></i>Continue</a>
+                            @elseif ($isToday)
                                 <form method="POST" action="{{ route('inspections.start', $s) }}" data-geo-start>@csrf
                                     <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
                                     <button class="btn btn-sm btn-primary"><i class="bi bi-play-fill"></i>Start</button></form>
                             @endif
-                            <button type="button" class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#skip{{ $r->id }}" aria-label="Not visited">Skip</button>
+                            @unless ($draft)<button type="button" class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#skip{{ $r->id }}" aria-label="Not visited">Skip</button>@endunless
                         </div>
                     @endif
                 </div>
-                @if ($r->status === 'pending')
+                @if ($r->status === 'pending' && ! $draft)
                     <form method="POST" action="{{ route('today.skip', $r) }}" class="collapse today-skip" id="skip{{ $r->id }}">@csrf
                         <div class="input-group input-group-sm"><input name="reason" class="form-control" maxlength="200" placeholder="Why can the school not be visited?" required>
                             <button class="btn btn-outline-secondary">Save</button></div>
@@ -82,6 +88,6 @@
                 @endif
             @endforeach
         </div>
-        @if ($setting->carry_forward)<p class="text-xs text-secondary mt-2"><i class="bi bi-info-circle me-1"></i>Schools not visited move to your next working day's list. Submitting an inspection marks the school as visited.</p>@endif
+        @if ($setting->carry_forward)<p class="text-xs text-secondary mt-2"><i class="bi bi-info-circle me-1"></i>Schools not visited move to your next working day's list. A started inspection stays on the list as a draft until it is submitted, which marks the school as visited.</p>@endif
     @endif
 </x-layouts.app>

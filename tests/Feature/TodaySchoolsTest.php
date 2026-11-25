@@ -218,6 +218,26 @@ class TodaySchoolsTest extends TestCase
         $this->assertSame(['district'], DailyDisplaySetting::forDistrict($districtId)->levels);
     }
 
+    public function test_open_draft_shows_continue_on_the_row_until_submitted(): void
+    {
+        $crcc = $this->crcc();
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk();
+        $row = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->orderBy('position')->firstOrFail();
+
+        $draft = $this->startInspection($crcc, $row->school);
+        $draft->forceFill(['completion_pct' => 40])->save();
+        $this->assertSame(InspectionStatus::Draft, $draft->fresh()->status);
+
+        $html = $this->get(route('today.index'))->assertOk()->assertSee('Draft in progress · 40%')
+            ->assertSee(route('inspections.step', [$draft, 1]), false)->assertSee('is-draft', false)->getContent();
+        $this->assertStringNotContainsString(route('today.skip', $row), $html, 'no Skip while a draft is open');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Draft 40%');
+        $this->assertSame('pending', $row->fresh()->status, 'the school stays on the list');
+
+        app(DailySchoolListService::class)->markVisited($draft->fresh());
+        $this->get(route('today.index'))->assertOk()->assertSee('Visited')->assertDontSee('Draft in progress');
+    }
+
     public function test_open_issues_raise_the_priority(): void
     {
         $schools = School::where('cluster_id', $this->cluster->id)->where('status', 'active')->orderBy('id')->get();

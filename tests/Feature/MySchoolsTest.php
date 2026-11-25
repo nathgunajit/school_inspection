@@ -136,7 +136,9 @@ class MySchoolsTest extends TestCase
     public function test_sidebar_links_my_schools(): void
     {
         $html = $this->actingAs($this->officer(UserLevel::Block))->get(route('schools.mine'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('/href="[^"]*my-schools" class="nav-link active"/', $html);
-        $this->assertDoesNotMatchRegularExpression('/href="[^"]*\/schools" class="nav-link active"/', $html, 'Find School is not lit on My Schools');
+        // 25-11-2026: one "Schools" item (lit on My Schools too); the page tabs pick Find School | My Schools
+        $this->assertMatchesRegularExpression('/href="[^"]*\/schools" class="nav-link active"/', $html);
+        $this->assertMatchesRegularExpression('/class="nav-link active"\s+aria-current="page"\s+href="[^"]*my-schools"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/class="nav-link active"\s+aria-current="page"\s+href="[^"]*\/schools"/', $html, 'the Find School tab is not lit on My Schools');
     }
 }

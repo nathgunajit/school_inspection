@@ -153,9 +153,21 @@ class HolidayCalendarTest extends TestCase
     {
         $u = $this->officer(UserLevel::District, Cluster::orderBy('id')->first());
         $this->actingAs($u)->get(route('dashboard'))->assertOk()
-            ->assertSeeInOrder(['Map View', 'Notices &amp; Orders', 'Inspection Schedules'], false)
+            ->assertSeeInOrder(['Schools', 'Inspections', 'Reports', 'Map View', 'Notices &amp; Orders', 'Inspection Schedules'], false)
             ->assertSee('Upcoming holidays')->assertSee('Notices &amp; orders', false)->assertSee('dash-hero-pill', false);
-        $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()->assertSeeInOrder(['Inspections in Area', 'Rating Report', 'Coverage Report'], false);
+
+        // 25-11-2026: merged items switch through tabs; Users / Masters & Admin fold away
+        $admin = $this->admin();
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('nav-group-toggle', false)->assertSee('Masters &amp; Admin', false)
+            ->assertDontSee('collapse nav-group show', false);
+        $this->get(route('admin.audit.index'))->assertOk()->assertSee('collapse nav-group show', false);
+        $this->get(route('reports.coverage'))->assertOk()->assertSee('page-tabs', false)
+            ->assertSeeInOrder([route('reports.coverage'), route('reports.ratings'), route('reports.network')], false);
+
+        $crcc = $this->officer(UserLevel::Cluster, Cluster::orderBy('id')->first());
+        $this->actingAs($crcc)->get(route('schools.index'))->assertOk()->assertSee('page-tabs', false)->assertSee(route('schools.mine'), false);
+        $this->get(route('inspections.mine'))->assertOk()->assertSeeInOrder(['page-tabs', 'My Inspections', 'In My Area'], false);
+        $this->get(route('reports.coverage'))->assertOk()->assertDontSee(route('reports.ratings'), false); // no Rating tab for officers
     }
 
     public function test_import_reads_the_type_column_and_templates_download(): void
