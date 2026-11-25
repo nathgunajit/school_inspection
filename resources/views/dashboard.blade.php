@@ -1,4 +1,10 @@
 <x-layouts.app title="Dashboard">
+    {{-- 25-11-2026: Map view button (opens the Map View at the map) --}}
+    @can('view_reports')
+        <x-slot:actions>
+            <a href="{{ route('map.index') }}#mapCard" class="btn btn-primary" data-map-view><i class="bi bi-map"></i><span>Map view</span></a>
+        </x-slot:actions>
+    @endcan
     @php
         $hour = now()->hour;
         $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
@@ -21,7 +27,6 @@
         $quick = array_filter([
             $user->can('conduct_inspections') ? ["Today's schools", route('today.index'), 'bi-signpost-2', null] : null,
             $user->can('view_reports') ? ['Plan inspections', route('schedules.index'), 'bi-calendar-week', null] : null,
-            $user->can('view_reports') ? ['Map', route('map.index'), 'bi-map', null] : null,
             ['Notices', route('notices.index'), 'bi-megaphone', 'notices'], // 25-11-2026: live counter (notice-badge.js)
             ['Holidays', route('holidays.index'), 'bi-calendar-heart', null],
         ]);

@@ -138,8 +138,8 @@ class HolidayCalendarTest extends TestCase
         $this->get(route('holidays.index', ['month' => substr($date, 0, 7)]))->assertOk()->assertSee('Uruka of Magh Bihu')->assertSee('is-restricted', false);
         $this->get(route('holidays.index', ['month' => substr($date, 0, 7), 'restricted' => '0']))->assertOk()->assertDontSee('Uruka of Magh Bihu')->assertSee('Lakshmi Puja');
 
-        // the dashboard shows the calendar and the upcoming holidays
-        $this->get(route('dashboard'))->assertOk()->assertSee('Upcoming holidays')->assertSee('Uruka of Magh Bihu')->assertSee('Restricted');
+        // the dashboard shows the month calendar; the Upcoming holidays list is hidden since 25-11-2026
+        $this->get(route('dashboard'))->assertOk()->assertDontSee('Upcoming holidays')->assertSee('mini-cal', false)->assertSee('Restricted');
 
         // the admin sets the type
         $this->actingAs($this->admin())->post(route('holidays.store'), ['date' => $date, 'name' => 'Deuri Bihu', 'type' => 'restricted'])->assertRedirect();
@@ -154,7 +154,7 @@ class HolidayCalendarTest extends TestCase
         $u = $this->officer(UserLevel::District, Cluster::orderBy('id')->first());
         $this->actingAs($u)->get(route('dashboard'))->assertOk()
             ->assertSeeInOrder(['Schools', 'Inspections', 'Reports', 'Map View', 'Notices &amp; Orders', 'Inspection Schedules'], false)
-            ->assertSee('Upcoming holidays')->assertSee('Notices &amp; orders', false)->assertSee('dash-hero-pill', false);
+            ->assertDontSee('Upcoming holidays')->assertSee('Notices &amp; orders', false)->assertSee('dash-hero-pill', false);
 
         // 25-11-2026: merged items switch through tabs; Users / Masters & Admin fold away
         $admin = $this->admin();
@@ -271,5 +271,16 @@ class HolidayCalendarTest extends TestCase
         $this->post(route('holidays.store'), ['_day' => 1, 'date' => $day, 'name' => 'State try'])->assertSessionHasErrors('district_id');
         $this->get(route('holidays.index'))->assertSee('data-reopen', false)->assertSee('value="State try"', false);
         $this->assertTrue($state->exists);
+    }
+
+    /** 25-11-2026: the dashboard has a Map view button (for officers who can open the map); no Upcoming holidays list. */
+    public function test_dashboard_map_view_button(): void
+    {
+        $block = $this->officer(UserLevel::Block, Cluster::orderBy('id')->first());
+        $this->actingAs($block)->get(route('dashboard'))->assertOk()
+            ->assertSee('href="'.route('map.index').'#mapCard" class="btn btn-primary" data-map-view', false)->assertSee('Map view')
+            ->assertDontSee('Upcoming holidays');
+        $this->get(route('map.index'))->assertOk()->assertSee('id="mapCard"', false);
+
     }
 }

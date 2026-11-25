@@ -115,7 +115,7 @@
 - **Footer:** there is no global footer; the sidebar note acts as one.
 - **Session:** an idle warning before the 20-minute expiry, with "Stay signed in".
 - **Flash messages:** `partials/flash` (success, info, warning, error).
-- **Dashboard (V14):** a **Latest Notice** strip above the banner slowly scrolls the newest notice ticked for the homepage (pauses on hover, still with reduced motion); the right rail has the month calendar (click a date for its holidays) and the Notices & orders card.
+- **Dashboard (V14):** a **Latest Notice** strip above the banner slowly scrolls the newest notice ticked for the homepage (pauses on hover, still with reduced motion); the right rail has the month calendar (click a date for its holidays; no Upcoming holidays list since 25-11-2026) and the Notices & orders card; a **Map view** button in the top bar opens `/map#mapCard`.
 - **Live counters (V14):** the unread notice counts (sidebar, topbar, Inbox tab, dashboard card, banner pill) drop at once when a notice is opened and are checked again on Back, tab focus and every minute (`notice-badge.js`).
 - **Masters / Admin Settings (25-11-2026):** Masters = Location, AC / PC, School, TLM, Notice Types, Excel Upload; Admin Settings = Rating, Coverage, Today's Schools Settings, Login Monitoring, Audit Log, and Clean Test Data on a local server.
 

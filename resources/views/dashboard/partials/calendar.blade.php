@@ -1,4 +1,4 @@
-{{-- 25-11-2026: dashboard calendar card (right rail). $calendar from DashboardController (month, byDate, upcoming, weeklyOff). --}}
+{{-- 25-11-2026: dashboard calendar card (right rail). $calendar from DashboardController (month, byDate, weeklyOff, day popup data). --}}
 @php
     $m = $calendar['month'];
     $from = $m->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
@@ -37,23 +37,6 @@
         <span><span class="mini-dot is-half"></span>Half day</span>
     </div>
 
-    <div class="dash-subhead">Upcoming holidays</div>
-    @forelse ($calendar['upcoming'] as $h)
-        @php
-            $hd = \Carbon\Carbon::parse($h->date);
-            $days = (int) today()->diffInDays($hd, false);
-            $when = $days === 0 ? 'today' : ($days === 1 ? 'tomorrow' : 'in '.$days.' days');
-        @endphp
-        <div class="dash-row">
-            <span class="holiday-date"><b>{{ $hd->format('d') }}</b>{{ $hd->format('M') }}</span>
-            <span class="flex-grow-1 min-w-0">
-                <span class="d-block fw-semibold text-sm text-truncate text-body" title="{{ $h->name }}">{{ $h->name }}</span>
-                <span class="d-block text-xs text-secondary">{{ $hd->format('l') }} · {{ $when }}</span>
-            </span>
-            <span class="holiday-chip {{ $h->chipClass() }} d-inline-block text-nowrap">{{ $h->isOff() ? ($h->isState() ? 'Holiday' : 'Local') : ($h->type === 'half' ? 'Half day' : 'Restricted') }}</span>
-        </div>
-    @empty
-        <div class="dash-empty"><i class="bi bi-calendar-x"></i>No holidays added for the coming days.</div>
-    @endforelse
+    {{-- 25-11-2026: the Upcoming holidays list is hidden; every holiday is on the month (click a date) and the Holiday Calendar --}}
 </div>
 @include('holidays.partials.day-modal', ['canManage' => $calendar['canManage'], 'editableDistricts' => $calendar['editableDistricts'], 'back' => 'dashboard'])

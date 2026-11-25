@@ -67,7 +67,6 @@ class DashboardController extends Controller
         $calendar = [
             'month' => today()->startOfMonth(),
             'byDate' => $holidays->between(today()->startOfMonth(), today()->endOfMonth(), $holidayDistrict)->groupBy('date'),
-            'upcoming' => $holidays->upcoming($holidayDistrict, 4),
             'weeklyOff' => $holidays->weeklyOff(app(\App\Services\DailySchoolListService::class)->settingFor($user)->weekly_off),
             // 25-11-2026: day popup (see a date's holidays; holiday managers add / remove there)
             'service' => $holidays,
