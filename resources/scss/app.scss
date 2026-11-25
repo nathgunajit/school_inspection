@@ -2515,3 +2515,20 @@ $office-block: #00838f;
 .holiday-date { flex: 0 0 auto; display: grid; place-items: center; width: 2.75rem; line-height: 1.1; padding: .3rem 0; border-radius: .5rem; background: #eef4fc; color: $primary;
     font-size: .7rem; text-transform: uppercase; b { font-size: 1.05rem; } }
 .sched-holiday { display: block; font-size: .7rem; font-weight: 600; color: $danger; margin-bottom: .2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+// ---------- V14 item 1: notices / orders ----------
+.notice-list .list-group-item { padding: .8rem 1rem;
+    &.is-unread { background: rgba($primary, .04); border-left: 3px solid $primary; } }
+.notice-icon { flex: 0 0 auto; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .6rem; font-size: 1.1rem;
+    &.is-instruction { background: rgba($primary, .1); color: $primary; }
+    &.is-notification { background: rgba($accent, .12); color: $accent; }
+    &.is-order { background: rgba($warning, .15); color: darken($warning, 15%); } }
+.notice-type { display: inline-flex; align-items: center; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .15rem .5rem; border-radius: 999px;
+    &.is-instruction { background: rgba($primary, .1); color: $primary; }
+    &.is-notification { background: rgba($accent, .12); color: darken($accent, 5%); }
+    &.is-order { background: rgba($warning, .15); color: darken($warning, 18%); } }
+.notice-body { white-space: normal; line-height: 1.6; }
+.notice-attach { display: flex; align-items: center; gap: .5rem; padding: .6rem .8rem; border: 1px dashed #cbd5e1; border-radius: .5rem; background: #f8fafc; }
+.notice-stat { padding: .5rem; border-radius: .5rem; background: #f1f5f9; b { display: block; font-size: 1.25rem; } span { font-size: .72rem; color: #64748b; }
+    &.is-read b { color: $primary; } &.is-ack b { color: $success; } }
+.notice-readers { max-height: 60vh; overflow: auto; }

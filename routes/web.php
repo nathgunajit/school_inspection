@@ -13,6 +13,7 @@ use App\Http\Controllers\MapController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CoverageReportController;
 use App\Http\Controllers\NetworkIssueController;
+use App\Http\Controllers\NoticeController;
 use App\Http\Controllers\RatingReportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
@@ -134,6 +135,19 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::put('/{holiday}', [HolidayController::class, 'update'])->name('update');
                 Route::delete('/{holiday}', [HolidayController::class, 'destroy'])->name('destroy');
             });
+        });
+
+        /* ---------------- V14 item 1: Instruction / Notification / Order letters ---------------- */
+        Route::prefix('notices')->name('notices.')->group(function () {
+            Route::get('/', [NoticeController::class, 'index'])->name('index');
+            Route::middleware('can:issue_notices')->group(function () {
+                Route::get('/create', [NoticeController::class, 'create'])->name('create');
+                Route::post('/', [NoticeController::class, 'store'])->middleware('throttle:20,1')->name('store');
+                Route::post('/{notice}/withdraw', [NoticeController::class, 'withdraw'])->name('withdraw');
+            });
+            Route::get('/{notice}', [NoticeController::class, 'show'])->name('show');
+            Route::post('/{notice}/acknowledge', [NoticeController::class, 'acknowledge'])->name('acknowledge');
+            Route::get('/{notice}/attachment', [NoticeController::class, 'attachment'])->name('attachment');
         });
 
         /* ---------------- Inspection schedules (New Module 2) ---------------- */

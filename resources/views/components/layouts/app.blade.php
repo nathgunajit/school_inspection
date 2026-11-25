@@ -22,6 +22,7 @@
     $u = auth()->user();
     $nav = [
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
+        ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1
         ['Find School', 'schools.index', 'bi-search', ['schools.index', 'schools.show', 'schools.blank-form'], 'conduct_inspections'],
         ['My Schools', 'schools.mine', 'bi-buildings', 'schools.mine*', 'conduct_inspections'], // 23-11-2026: own jurisdiction list
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
@@ -33,8 +34,10 @@
         ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
     ];
     // Rating Report: State Administrator only (20-11-2026)
-    array_splice($nav, 5, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
+    array_splice($nav, 6, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
+    $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
+    $navBadge = ['notices.index' => $noticeCount ? '<span class="badge rounded-pill text-bg-warning">'.$noticeCount.'</span>' : ''];
 @endphp
 
 <aside class="app-sidebar" aria-label="Main navigation">
@@ -54,7 +57,7 @@
     <nav class="flex-grow-1 overflow-auto py-1">
         <div class="nav-section">Inspection</div>
         @foreach ($nav as [$label, $route, $icon, $pattern, $perm])
-            @if (! $perm || $u->can($perm)){!! $link($route, $pattern, $icon, $label) !!}@endif
+            @if (! $perm || $u->can($perm)){!! $link($route, $pattern, $icon, $label, $navBadge[$route] ?? '') !!}@endif
         @endforeach
 
         @if ($u->can('approve_registrations') || $u->can('manage_users'))
@@ -92,6 +95,11 @@
         <h1 class="page-title flex-grow-1">{{ $title ?? 'Dashboard' }}</h1>
         {{ $actions ?? '' }}
         <div class="topbar-right">
+            @if ($noticeCount)
+                <a href="{{ route('notices.index', ['unread' => 1]) }}" class="topbar-icon" title="{{ $noticeCount }} unread notice{{ $noticeCount > 1 ? 's' : '' }}" aria-label="Unread notices">
+                    <i class="bi bi-megaphone"></i><span class="dot">{{ $noticeCount > 9 ? '9+' : $noticeCount }}</span>
+                </a>
+            @endif
             @if ($pendingCount)
                 <a href="{{ route('admin.approvals.index') }}" class="topbar-icon" title="{{ $pendingCount }} pending approval{{ $pendingCount > 1 ? 's' : '' }}" aria-label="Pending approvals">
                     <i class="bi bi-bell"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>

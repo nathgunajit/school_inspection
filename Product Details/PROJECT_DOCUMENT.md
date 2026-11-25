@@ -886,3 +886,25 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - `App\Services\HolidayCalendar` (`holiday()`, `isWorkingDay()`, `offReason()`, `previousWorkingDay()` / `nextWorkingDay()`, `canManage()`; cached per year with a version key)
   - `HolidayController`, view `holidays/index`
 - **Tests:** `tests/Feature/HolidayCalendarTest.php`.
+
+### 14.2 Notices & Orders (item 1)
+- **Sending:** the State Admin, or a District officer with Manage users (gate `issue_notices`), sends an **Instruction**, **Notification** or **Order** letter from **Notices & Orders → New notice**. Fields:
+  - type, letter / order number, date, subject, message
+  - an optional attachment: PDF, Word or image up to 5 MB, stored on the private disk under `notices/`
+  - "show until" (optional)
+  - the audience: officer levels below the sender (Cluster = CRCC), plus a district, block or cluster
+- **District senders** are kept to their own district. A cluster sets its block and district automatically.
+- **Recipients** (`Notice::scopeFor()`) are the active officers of the ticked levels whose current posting is inside the area, while the notice is published and not expired. They see it in three places:
+  - the **Inbox**, with new ones highlighted
+  - the **dashboard card** "Notices & orders"
+  - the **sidebar / topbar badge**: unread count, cached 60 s, reset when a notice is sent or read
+- **Reading:** opening a notice marks it read, and **Acknowledge** records the confirmation. The attachment opens only through `notices.attachment`, which checks the audience and is audited.
+- **Read report:** the sender (and the State Admin or the district's sender) sees "Who has read it": officers, read and acknowledged counts, and a per-officer status. They can **Withdraw** the notice, which removes it from the inboxes.
+- **Audit:** `notice_published` (audience, recipient count), `notice_acknowledged`, `notice_attachment_viewed`, `notice_withdrawn`.
+- **Not included:** SMS and email (Phase 1 has no SMS gateway). Notices are in-app.
+- **Code:**
+  - tables `notices`, `notice_reads`
+  - `App\Models\Notice` / `NoticeRead`
+  - `App\Services\NoticeService`
+  - `NoticeController`, views `notices/index|create|show`
+- **Tests:** `tests/Feature/NoticeTest.php`.

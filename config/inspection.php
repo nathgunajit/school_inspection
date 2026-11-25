@@ -95,6 +95,12 @@ return [
         'import_max_kb' => 2048,
     ],
 
+    // V14 item 1: Instruction / Notification / Order letter attachments (private disk, notices/)
+    'notice' => [
+        'max_kb' => (int) env('NOTICE_MAX_KB', 5120),
+        'mimes' => ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+    ],
+
     // V6 Module 5: passwords are RSA-encrypted in the browser before submit (App\Services\PasswordCrypto)
     'security' => [
         'encrypt_passwords' => (bool) env('PASSWORD_ENCRYPTION', true),

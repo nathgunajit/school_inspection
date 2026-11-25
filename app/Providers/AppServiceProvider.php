@@ -53,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
             || ($user->level === \App\Enums\UserLevel::District && app(PermissionService::class)->has($user, Permission::MANAGE_USERS))));
         // V14 (25-11-2026): holiday calendar and Today's schools settings, the same rule (a district manages its own rows only)
         Gate::define('manage_holidays', fn (User $user) => Gate::forUser($user)->allows('configure_coverage'));
+        // V14 item 1: Instruction / Notification / Order letters, sent by the same people
+        Gate::define('issue_notices', fn (User $user) => Gate::forUser($user)->allows('configure_coverage'));
 
         RateLimiter::for('login', fn (Request $r) => config('inspection.loadtest') && ! app()->isProduction()
             ? Limit::none() // load test from one machine (Product Details/LOAD_TEST.md); never in production

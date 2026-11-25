@@ -42,7 +42,13 @@ class DashboardController extends Controller
         $todayPlan = \App\Models\InspectionSchedule::query()->where('officer_id', $user->id)->where('schedule_date', today()->toDateString())
             ->whereIn('status', [\App\Enums\ScheduleStatus::Published, \App\Enums\ScheduleStatus::Completed])->with('items.school:id,name')->first();
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan') + [
+        // V14 item 1: the latest notices addressed to the officer (unread first)
+        $notices = $user->isStateAdmin() ? collect() : \App\Models\Notice::query()->for($user)
+            ->with(['reads' => fn ($r) => $r->where('user_id', $user->id), 'creator:id,name'])
+            ->orderByDesc('notice_date')->orderByDesc('id')->take(5)->get()
+            ->sortBy(fn ($n) => $n->reads->first()?->read_at ? 1 : 0)->values()->take(3);
+
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

@@ -2520,3 +2520,22 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Migrated on MySQL.
   - New tests (4): state and district rights, officers see only their district, the import checks all rows, no plan on a holiday while another district is not blocked.
   - Full suite: 267 passed.
+
+## 2026-11-25: V14 updated document, Module B: Notices & Orders (Instruction / Notification / Order letters)
+- **Sidebar "Notices & Orders"** (everyone):
+  - **Inbox:** notices addressed to the officer's level and area, with unread ones highlighted. Filters: type, search, unread only.
+  - **Sent tab:** for senders, showing read and acknowledged counts.
+  - **New notice** (gate `issue_notices`: the State Admin, or a District officer with Manage users in their own district): type, letter no., date, subject, message, an optional attachment (PDF / Word / image ≤ 5 MB, private disk), show until, and the audience (levels below the sender, plus district / block / cluster).
+- **Notice page:**
+  - Opening it marks it read, and the Acknowledge button records the confirmation. The attachment opens and downloads through a checked, audited route.
+  - Senders see "Who has read it" (officers / read / acknowledged and a per-officer list) and can Withdraw the notice.
+- **Where officers see notices:** the dashboard card "Notices & orders" (latest 3, unread first), and an unread badge in the sidebar and on the topbar megaphone (cached 60 s).
+- **Audit:** `notice_published`, `notice_acknowledged`, `notice_attachment_viewed`, `notice_withdrawn`.
+- **Files:**
+  - new: migration `2026_11_25_000003_create_notices`, `app/Models/Notice.php`, `NoticeRead.php`, `app/Services/NoticeService.php`, `app/Http/Controllers/NoticeController.php`, views `notices/index`, `create`, `show`, `tests/Feature/NoticeTest.php`
+  - changed: `AppServiceProvider` (gate), `config/inspection.php` (`notice`), `routes/web.php`, the sidebar / topbar layout, `DashboardController` + `dashboard` view, `app.scss`
+  - docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md` §14.2
+- **Verified:**
+  - `npm run build`, and migrated on MySQL (the JSON level filter works there).
+  - New tests (3): audience by level and area, read and acknowledge counts, attachment access, withdraw, a district sender kept to their own district, a cluster-only notice, and an expired notice hidden.
+  - Full suite: 270 passed.

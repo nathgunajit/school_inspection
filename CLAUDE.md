@@ -202,6 +202,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - Excel import: `date`, `name`, `district_code`. All rows are checked first; existing rows are skipped.
     - Weekly off: `config('inspection.holidays.weekly_off')` (Sunday).
     - `ScheduleService::checkDate()` refuses a plan on a holiday of the officer's district, and the schedule calendar shows the holiday.
+  - **Notices & Orders** (item 1):
+    - Tables `notices` (type instruction / notification / order, ref_no, attachment on the private disk `notices/`, `levels` JSON, district / block / cluster, expires_on, status published / withdrawn) and `notice_reads` (read_at, acknowledged_at).
+    - `Notice::scopeFor($user)` gives the audience, `recipients()` the officers.
+    - `NoticeService`: `publish()` (the area is checked against the sender's district), `unreadCount()` (cached 60 s with a version key), `canView()` / `canManage()`, `report()`.
+    - `NoticeController` (`/notices`): Inbox / Sent, compose (gate `issue_notices` = `configure_coverage`, levels below the sender only), the show page (marks read; Acknowledge; read report; Withdraw), and the audited attachment route.
+    - Shown in the sidebar and topbar badge and the dashboard card. No SMS or email.
 - **Linked dates** (25-11-2026, `date-picker.js`): From / To boxes (`from`/`to`, `custom_from`/`custom_to`, map `fFrom`/`fTo`) limit each other: To cannot be before From, From cannot be after To.
 - **Filter bars** (23-11-2026): every filter form ends with `<x-filter-buttons />` (Apply + Reset, `.btn-filter` fixed 40 px / 44 px on phones, min width 112 px; props `reset`, `label`, `icon`). Don't add page-specific Apply buttons.
 - **Section loading** (23-11-2026, `resources/js/filter-partial.js`): a GET `form[data-filter]` and same-page links (pagination, sort, drill-down) inside a `[data-filter-region]` fetch the page and swap every `[data-filter-region][id]` (filter form, header download buttons, results) with the response's; only `[data-filter-results]` boxes show the spinner overlay (`.section-loader`, text from `data-loader-text`). The URL is pushed (Back works); errors and redirects fall back to a normal load. No server change: the full page is returned. `[data-autosubmit]` (with `data-clears="a,b"`) and `form[data-confirm]` are delegated in `app.js`, so swapped content keeps working. Used on Inspections (mine / area), Coverage, Ratings, Network issues, My Schools, School Master, Users, Audit Log, Login report and Daily report; don't put `data-loader="heavy"` on these filter forms.
