@@ -55,7 +55,7 @@ class DemoNoticeSeeder extends Seeder
                 'notice_date' => $day(1), 'levels' => $all], [], true],
             [$admin, ['type' => 'instruction', 'ref_no' => 'SSA/INSP/2026/098', 'title' => 'Use the in-app camera for geo-tagged photographs',
                 'body' => "Photographs of the school building, classrooms, toilets and drinking water facility must be taken with the in-app camera, so that the location and time are stamped on them.\n\nGallery photos are accepted only when the camera cannot be used, and are marked \"From gallery\" in the report.",
-                'notice_date' => $day(4), 'levels' => ['district', 'block', 'cluster']], [], false],
+                'notice_date' => $day(4), 'levels' => ['district', 'block', 'cluster'], 'show_on_home' => false], [], false],
             [$admin, ['type' => 'notification', 'ref_no' => 'SSA/GEN/2026/045', 'title' => 'Holiday list 2026 published in the Holiday Calendar',
                 'body' => "The Government of Assam holiday list for 2026, with restricted holidays and the half holiday, is now available in the Holiday Calendar.\n\nNo inspection can be planned on a gazetted holiday, and Today's Schools shows no list on those days.",
                 'notice_date' => $day(6), 'expires_on' => today()->addDays(30)->toDateString(), 'levels' => $all], [], false],

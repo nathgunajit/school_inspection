@@ -22,9 +22,9 @@ class Notice extends Model
     public const TYPE_ICONS = ['instruction' => 'bi-list-check', 'notification' => 'bi-megaphone', 'order' => 'bi-file-earmark-text'];
 
     protected $fillable = ['type', 'ref_no', 'title', 'body', 'notice_date', 'attachment_path', 'attachment_name', 'attachment_mime',
-        'levels', 'district_id', 'block_id', 'cluster_id', 'expires_on', 'status', 'created_by', 'withdrawn_at'];
+        'levels', 'district_id', 'block_id', 'cluster_id', 'expires_on', 'show_on_home', 'status', 'created_by', 'withdrawn_at'];
 
-    protected $casts = ['levels' => 'array', 'withdrawn_at' => 'datetime'];
+    protected $casts = ['levels' => 'array', 'withdrawn_at' => 'datetime', 'show_on_home' => 'boolean'];
 
     protected static function booted(): void
     {

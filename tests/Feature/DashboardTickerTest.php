@@ -53,6 +53,46 @@ class DashboardTickerTest extends TestCase
         $this->assertStringNotContainsString('NEW', $this->ticker($crcc));
     }
 
+    public function test_only_notices_ticked_for_the_homepage_scroll(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $crcc = $this->officer(UserLevel::Cluster, $cluster);
+        $admin = $this->admin();
+        $this->notice($admin, 'Ticked older order', ['notice_date' => today()->subDays(2)->toDateString()]);
+        $this->notice($admin, 'Newest but not on homepage', ['show_on_home' => false]);
+
+        $strip = $this->ticker($crcc);
+        $this->assertStringContainsString('Ticked older order', $strip);
+        $this->assertStringNotContainsString('Newest but not on homepage', $strip);
+
+        Notice::query()->update(['show_on_home' => false]);
+        $this->actingAs($crcc)->get(route('dashboard'))->assertOk()->assertDontSee('news-ticker', false)
+            ->assertSee('Newest but not on homepage'); // still in the Notices card and the inbox
+    }
+
+    public function test_sender_sets_the_homepage_tick_when_writing_and_later(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $crcc = $this->officer(UserLevel::Cluster, $cluster);
+        $admin = $this->admin();
+        $post = fn (array $over) => $this->actingAs($admin)->post(route('notices.store'), $over + [
+            'type' => 'order', 'title' => 'Order '.count($over), 'body' => 'Body of the order.', 'notice_date' => today()->toDateString(), 'levels' => ['cluster'],
+        ])->assertRedirect();
+        $post(['show_on_home' => '0']);
+        $this->assertFalse(Notice::latest('id')->first()->show_on_home);
+        $post(['show_on_home' => '1', 'ref_no' => 'X/1']);
+        $notice = Notice::latest('id')->first();
+        $this->assertTrue($notice->show_on_home);
+
+        $this->actingAs($admin)->get(route('notices.show', $notice))->assertOk()->assertSee('Remove from homepage');
+        $this->actingAs($admin)->post(route('notices.home', $notice), ['show_on_home' => '0'])->assertRedirect();
+        $this->assertFalse($notice->fresh()->show_on_home);
+        $this->assertTrue(\App\Models\AuditLog::where('action', 'notice_home_changed')->exists());
+
+        $this->actingAs($crcc)->post(route('notices.home', $notice), ['show_on_home' => '1'])->assertForbidden();
+        $this->assertFalse($notice->fresh()->show_on_home);
+    }
+
     public function test_no_strip_without_notices_and_state_admin_sees_live_ones(): void
     {
         $admin = $this->admin();

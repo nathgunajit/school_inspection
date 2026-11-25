@@ -2746,3 +2746,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** the ticker is now a rounded gradient pill (white → light blue → light orange, soft blue shadow) with a red → orange "Latest Notice" label and a pulsing white megaphone badge, bordered type chip, bold title, meta with # ref / person / calendar icons, a gold "NEW" pill, blue diamond separators and a white "View all" pill whose arrow moves on hover. Phones: icon-only label, no meta. Behaviour unchanged (newest notice only, 40 s, pause on hover / focus, reduced motion).
 - **Files:** `resources/scss/app.scss` (`.news-ticker*`), `resources/views/dashboard/partials/ticker.blade.php`, `CLAUDE.md`.
 - **Verified:** `npm run build`; full suite 291 passed.
+
+## 25-11-2026: Notices & Orders, homepage (Latest Notice) setting per notice
+- **What:** `notices.show_on_home` (default true). The New notice form has the switch "Show in Latest Notice on the homepage" (ticked by default); the notice page has Show on / Remove from homepage for whoever can manage the notice (`POST notices/{notice}/home`, `NoticeController::home()`, audited `notice_home_changed`). The Dashboard ticker shows only the newest live **ticked** notice. Fix on the way: `NoticeService::checkAudience()` rebuilds the data from a fixed key list, so it now passes `show_on_home` through.
+- **Demo:** `SSA/INSP/2026/098` (camera instruction) is off the homepage.
+- **Files:** migration `2026_11_25_000008_add_show_on_home_to_notices`, `app/Models/Notice.php`, `app/Services/NoticeService.php`, `app/Http/Controllers/{NoticeController,DashboardController}.php`, `routes/web.php`, `resources/views/notices/{create,show}.blade.php`, `database/seeders/DemoNoticeSeeder.php`, `tests/Feature/DashboardTickerTest.php` (+2 tests), `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Run on MySQL:** `migrate` (done), `db:seed --class=DemoNoticeSeeder` (098 now off).
+- **Verified:** full suite 293 passed.

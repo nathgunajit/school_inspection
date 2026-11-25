@@ -53,7 +53,7 @@ class NoticeService
     /**
      * Create and publish a notice.
      *
-     * @param  array{type:string, ref_no:?string, title:string, body:string, notice_date:string, levels:array, district_id:?int, block_id:?int, cluster_id:?int, expires_on:?string}  $data
+     * @param  array{type:string, ref_no:?string, title:string, body:string, notice_date:string, levels:array, district_id:?int, block_id:?int, cluster_id:?int, expires_on:?string, show_on_home?:bool}  $data
      */
     public function publish(User $sender, array $data, ?UploadedFile $file): Notice
     {
@@ -164,6 +164,7 @@ class NoticeService
             'type' => $data['type'], 'ref_no' => $data['ref_no'] ?? null, 'title' => trim($data['title']), 'body' => trim($data['body']),
             'notice_date' => $data['notice_date'], 'expires_on' => $data['expires_on'] ?? null, 'levels' => $levels,
             'district_id' => $districtId ? (int) $districtId : null, 'block_id' => $blockId ? (int) $blockId : null, 'cluster_id' => $clusterId ? (int) $clusterId : null,
+            'show_on_home' => (bool) ($data['show_on_home'] ?? true), // 25-11-2026: homepage Latest Notice
         ];
     }
 

@@ -156,6 +156,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/create', [NoticeController::class, 'create'])->name('create');
                 Route::post('/', [NoticeController::class, 'store'])->middleware('throttle:20,1')->name('store');
                 Route::post('/{notice}/withdraw', [NoticeController::class, 'withdraw'])->name('withdraw');
+                Route::post('/{notice}/home', [NoticeController::class, 'home'])->name('home'); // 25-11-2026: homepage Latest Notice
             });
             Route::get('/{notice}', [NoticeController::class, 'show'])->name('show');
             Route::post('/{notice}/acknowledge', [NoticeController::class, 'acknowledge'])->name('acknowledge');

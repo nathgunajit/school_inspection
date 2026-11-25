@@ -26,6 +26,11 @@
                         <div class="col-sm-5"><label class="form-label" for="n-exp">Show until <span class="opt">optional</span></label>
                             <input id="n-exp" type="date" name="expires_on" value="{{ old('expires_on') }}" class="form-control @error('expires_on') is-invalid @enderror">
                             @error('expires_on')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                        {{-- 25-11-2026: homepage (Dashboard) Latest Notice ticker --}}
+                        <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="show_on_home" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="show_on_home" value="1" id="n-home" @checked(old('show_on_home', '1') === '1')>
+                            <label class="form-check-label fw-semibold" for="n-home"><i class="bi bi-broadcast me-1 text-danger"></i>Show in Latest Notice on the homepage</label></div>
+                            <div class="form-text">The newest ticked notice scrolls at the top of the Dashboard of everyone who receives it.</div></div>
                     </div>
                 </div>
             </div>

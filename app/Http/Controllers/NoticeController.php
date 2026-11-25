@@ -81,6 +81,7 @@ class NoticeController extends Controller
         ], ['levels.required' => 'Pick who should receive it.', 'attachment.mimes' => 'Attach a PDF, Word or image file.',
             'attachment.max' => 'The attachment can be at most '.\App\Support\FileSize::human((int) config('inspection.notice.max_kb')).'.']);
 
+        $data['show_on_home'] = $request->boolean('show_on_home'); // 25-11-2026: homepage Latest Notice ticker
         $notice = $this->notices->publish($request->user(), $data, $request->file('attachment'));
 
         return redirect()->route('notices.show', $notice)->with('success', $notice->typeLabel().' sent to '.$notice->recipients()->count().' officer(s).');
@@ -113,6 +114,19 @@ class NoticeController extends Controller
         }
 
         return back()->with('success', 'The '.strtolower($notice->typeLabel()).' is withdrawn. Officers no longer see it in their inbox.');
+    }
+
+    /** 25-11-2026: show the notice in the Dashboard "Latest Notice" ticker, or take it off. */
+    public function home(Request $request, Notice $notice)
+    {
+        abort_unless($this->notices->canManage($request->user(), $notice), 403);
+        $on = $request->boolean('show_on_home');
+        if ($notice->show_on_home !== $on) {
+            $notice->update(['show_on_home' => $on]);
+            AuditLogger::log('notice_home_changed', $notice, ['title' => $notice->title, 'show_on_home' => $on]);
+        }
+
+        return back()->with('success', $on ? 'Shown in Latest Notice on the homepage.' : 'Removed from the homepage Latest Notice.');
     }
 
     public function attachment(Request $request, Notice $notice)

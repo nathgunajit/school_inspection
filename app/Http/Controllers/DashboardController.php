@@ -58,6 +58,7 @@ class DashboardController extends Controller
             ? \App\Models\Notice::query()->where('status', 'published')
                 ->where(fn ($w) => $w->whereNull('expires_on')->orWhere('expires_on', '>=', today()->toDateString()))
             : \App\Models\Notice::query()->for($user)->with(['reads' => fn ($r) => $r->where('user_id', $user->id)]))
+            ->where('show_on_home', true) // ticked "Show in Latest Notice on the homepage"
             ->with('creator:id,name')->orderByDesc('notice_date')->orderByDesc('id')->take(1)->get();
 
         // 25-11-2026: Calendar & Notices, this month's holidays (all types) and the next ones

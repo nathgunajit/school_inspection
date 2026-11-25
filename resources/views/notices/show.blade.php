@@ -21,7 +21,8 @@
                     @endif
                     <div class="text-sm text-secondary mt-4 border-top pt-3">
                         From <b class="text-body">{{ $notice->creator->name }}</b>, {{ $notice->creator->designation_label ?? $notice->creator->level->label() }}
-                        <div class="text-xs">To: {{ $notice->audienceLabel() }}@if ($notice->expires_on) · shown until {{ \Carbon\Carbon::parse($notice->expires_on)->format('d M Y') }}@endif</div>
+                        <div class="text-xs">To: {{ $notice->audienceLabel() }}@if ($notice->expires_on) · shown until {{ \Carbon\Carbon::parse($notice->expires_on)->format('d M Y') }}@endif
+                            @if ($notice->show_on_home && ! $notice->isWithdrawn()) · <span class="text-danger"><i class="bi bi-broadcast"></i> on the homepage Latest Notice</span>@endif</div>
                     </div>
                 </div>
                 @if ($read && ! $notice->isWithdrawn())
@@ -36,9 +37,16 @@
                 @endif
             </div>
             @if ($manage && ! $notice->isWithdrawn())
-                <form method="POST" action="{{ route('notices.withdraw', $notice) }}" class="mt-3" data-confirm="Withdraw this {{ strtolower($notice->typeLabel()) }}? Officers will no longer see it in their inbox.">
-                    @csrf<button class="btn btn-outline-danger"><i class="bi bi-slash-circle"></i>Withdraw</button>
-                </form>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    {{-- 25-11-2026: homepage Latest Notice on / off --}}
+                    <form method="POST" action="{{ route('notices.home', $notice) }}">@csrf
+                        <input type="hidden" name="show_on_home" value="{{ $notice->show_on_home ? 0 : 1 }}">
+                        <button class="btn {{ $notice->show_on_home ? 'btn-outline-secondary' : 'btn-outline-primary' }}"><i class="bi bi-broadcast"></i>{{ $notice->show_on_home ? 'Remove from homepage' : 'Show on homepage' }}</button>
+                    </form>
+                    <form method="POST" action="{{ route('notices.withdraw', $notice) }}" data-confirm="Withdraw this {{ strtolower($notice->typeLabel()) }}? Officers will no longer see it in their inbox.">
+                        @csrf<button class="btn btn-outline-danger"><i class="bi bi-slash-circle"></i>Withdraw</button>
+                    </form>
+                </div>
             @endif
         </div>
 
