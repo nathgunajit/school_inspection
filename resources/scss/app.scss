@@ -670,16 +670,8 @@ $ticker-red: #e53935;
         b { font-weight: 600; letter-spacing: .005em; transition: color .15s; }
         &:hover b, &:focus-visible b { color: $primary; } } }
 .news-ticker-sep { display: inline-grid; place-items: center; margin: 0 1.75rem; color: $primary; opacity: .45; font-size: .5rem; }
-.news-ticker-type { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; font-weight: 600; letter-spacing: .02em;
-    padding: .2rem .6rem; border-radius: 999px; border: 1px solid transparent;
-    /* 25-11-2026: the colour comes from the Notice Types master (style="--nt: #hex") */
-    --nt: #{$primary};
-    background: color-mix(in srgb, var(--nt) 10%, #fff); color: color-mix(in srgb, var(--nt) 85%, #000);
-    border-color: color-mix(in srgb, var(--nt) 25%, transparent); }
-.news-ticker-new { font-size: .62rem; font-weight: 700; letter-spacing: .05em; padding: .15rem .45rem; border-radius: 999px; color: #fff;
-    background: linear-gradient(120deg, #ffb300, $warning); box-shadow: 0 0 0 3px rgba($warning, .15), 0 4px 10px -4px rgba($warning, .9); }
-.news-ticker-meta { display: inline-flex; align-items: center; gap: .85rem; color: $secondary; font-size: .78rem;
-    i { margin-right: .25rem; opacity: .7; } }
+.news-ticker-date { display: inline-flex; align-items: center; color: $secondary; font-size: .78rem; /* 25-11-2026: the strip shows the title and date only */
+    i { margin-right: .3rem; opacity: .7; } }
 .news-ticker-all { flex: 0 0 auto; display: inline-flex; align-items: center; gap: .35rem; height: 100%; padding: 0 1rem; border-radius: 999px;
     background: #fff; border: 1px solid rgba($primary, .2); color: $primary; font-weight: 500; white-space: nowrap; transition: background .15s, border-color .15s;
     i { transition: transform .15s; }
@@ -693,7 +685,7 @@ $ticker-red: #e53935;
 @include media-breakpoint-down(md) {
     .news-ticker { height: 46px; padding: 5px; }
     .news-ticker-label { padding: 0 .2rem; }
-    .news-ticker-label-text, .news-ticker-meta { display: none; }
+    .news-ticker-label-text { display: none; }
     .news-ticker-badge { width: 28px; height: 28px; }
     .news-ticker-all { padding: 0 .8rem; }
     .news-ticker-sep { margin: 0 1.25rem; }

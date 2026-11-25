@@ -1,7 +1,5 @@
 <x-layouts.app title="Map View">
     <x-slot:actions>
-        {{-- 25-11-2026: jump straight to the map (it sits below the stat cards, and below the filters on phones) --}}
-        <a href="#mapCard" class="btn btn-primary" data-map-jump><i class="bi bi-map"></i><span>Map view</span></a>
         <button type="button" class="btn btn-soft-primary d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mapFilters" aria-controls="mapFilters"><i class="bi bi-funnel"></i>Filters</button>
     </x-slot:actions>
 
@@ -89,7 +87,7 @@
         </div>
 
         <div class="col-lg-9">
-            <div class="card map-card" id="mapCard">
+            <div class="card map-card" id="mapCard">{{-- the dashboard's Map view button links to /map#mapCard --}}
                 <div class="card-body p-2 p-md-3">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <nav aria-label="Map level" class="flex-grow-1 min-w-0"><ol class="breadcrumb mb-0 map-crumbs" id="mapCrumbs"></ol></nav>

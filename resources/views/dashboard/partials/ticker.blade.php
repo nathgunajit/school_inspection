@@ -15,14 +15,9 @@
                             @php $new = ! $noticesSent && ! $n->reads->first()?->read_at; $repeat = $copy || $r > 0; @endphp
                             <li @if ($repeat) class="is-repeat" aria-hidden="true" @endif>
                                 <a href="{{ route('notices.show', $n) }}" @if ($repeat) tabindex="-1" @endif @if ($new) data-notice-unread @endif>
-                                    <span class="news-ticker-type" style="--nt: {{ $n->typeColor() }}"><i class="bi {{ $n->typeIcon() }}"></i>{{ $n->typeLabel() }}</span>
-                                    @if ($new)<span class="news-ticker-new" data-notice-new>NEW</span>@endif
+                                    {{-- 25-11-2026: only the text and the date --}}
                                     <b>{{ $n->title }}</b>
-                                    <span class="news-ticker-meta">
-                                        @if ($n->ref_no)<span><i class="bi bi-hash"></i>{{ $n->ref_no }}</span>@endif
-                                        @if ($n->creator)<span><i class="bi bi-person"></i>{{ $n->creator->name }}</span>@endif
-                                        <span><i class="bi bi-calendar3"></i>{{ \Carbon\Carbon::parse($n->notice_date)->format('d M Y') }}</span>
-                                    </span>
+                                    <span class="news-ticker-date"><i class="bi bi-calendar3"></i>{{ \Carbon\Carbon::parse($n->notice_date)->format('d M Y') }}</span>
                                 </a>
                                 <span class="news-ticker-sep" aria-hidden="true"><i class="bi bi-diamond-fill"></i></span>
                             </li>

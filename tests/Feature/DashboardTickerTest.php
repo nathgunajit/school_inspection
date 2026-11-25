@@ -42,7 +42,12 @@ class DashboardTickerTest extends TestCase
 
         $strip = $this->ticker($crcc);
         $this->assertStringContainsString('Monthly inspection drive', $strip);
-        $this->assertStringContainsString('NEW', $strip);
+        // 25-11-2026: the strip shows only the text and the date
+        $this->assertStringContainsString(today()->format('d M Y'), $strip);
+        $this->assertStringContainsString('data-notice-unread', $strip, 'unread: opening it lowers the counters');
+        foreach (['news-ticker-type', 'NEW', $live->ref_no, $admin->name] as $gone) {
+            $this->assertStringNotContainsString($gone, $strip);
+        }
         $this->assertStringContainsString('aria-hidden="true"', $strip, 'the list is doubled for a seamless loop');
         $this->assertSame(5, substr_count($strip, 'tabindex="-1"'), 'one notice, 6 copies, only the first focusable');
         foreach (['Older camera instruction', 'Old expired training', 'Withdrawn format', 'Other district order'] as $t) {
@@ -50,7 +55,7 @@ class DashboardTickerTest extends TestCase
         }
 
         NoticeRead::create(['notice_id' => $live->id, 'user_id' => $crcc->id, 'read_at' => now()]);
-        $this->assertStringNotContainsString('NEW', $this->ticker($crcc));
+        $this->assertStringNotContainsString('data-notice-unread', $this->ticker($crcc));
     }
 
     public function test_only_notices_ticked_for_the_homepage_scroll(): void

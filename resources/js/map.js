@@ -15,17 +15,12 @@ if (el) {
     const start = JSON.parse(el.dataset.start);
     const map = createMap(el, cfg);
 
-    // 25-11-2026: the "Map view" button at the top of the page (also /map#mapCard) brings the map into view
+    // 25-11-2026: /map#mapCard (the dashboard's Map view button) opens with the map in view
     const showMap = (smooth = true) => {
         window.bootstrap?.Offcanvas.getInstance(document.getElementById('mapFilters'))?.hide();
         document.getElementById('mapCard')?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
         setTimeout(() => { map.invalidateSize(); el.focus({ preventScroll: true }); }, smooth ? 450 : 50);
     };
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('[data-map-jump]')) return;
-        e.preventDefault();
-        showMap();
-    });
     if (location.hash === '#mapCard') showMap(false);
     const areaLayer = L.layerGroup().addTo(map);
     // 23-11-2026: zoomed out, grouped schools show a school icon with the count (coloured by the main status / average rating)

@@ -25,8 +25,8 @@ class MapViewTest extends TestCase
                 // Modification V8 items 2 and 4: colour key on top of the map, compact filter fields
                 ->assertSee('map-keybar', false)->assertSee('data-key="inspected"', false)->assertSee('Not inspected')
                 ->assertSee('form-select form-select-sm', false)->assertSee('map-filters', false)
-                // 25-11-2026: "Map view" button at the top jumps to the map card
-                ->assertSee('href="#mapCard" class="btn btn-primary" data-map-jump', false)->assertSee('id="mapCard"', false);
+                // 25-11-2026: no Map view button on this page; #mapCard is the dashboard button's target
+                ->assertDontSee('data-map-jump', false)->assertSee('id="mapCard"', false);
         }
     }
 

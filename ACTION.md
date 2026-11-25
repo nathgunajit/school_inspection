@@ -2809,3 +2809,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** the dashboard calendar card no longer lists the upcoming holidays (the month grid with dots and the date popup stay; `DashboardController` no longer queries `upcoming()`). A primary **Map view** button in the dashboard top bar (`view_reports`) opens `/map#mapCard`, landing on the map; the banner's Map pill is removed (no duplicate link).
 - **Files:** `resources/views/dashboard.blade.php`, `resources/views/dashboard/partials/calendar.blade.php`, `app/Http/Controllers/DashboardController.php`, `tests/Feature/HolidayCalendarTest.php` (+1 test), `CLAUDE.md`, `Product Details/{PROJECT_DOCUMENT,UI_Pages_and_Application_Modules}.md`, rebuilt Word file.
 - **Verified:** full suite 308 passed.
+
+## 25-11-2026: Latest Notice shows title and date only; Map View page button removed
+- **What:** the dashboard Latest Notice strip now shows only the notice title and its date (no type chip, NEW pill, ref no or sender; the date shows on phones too). The **Map view** button at the top of `/map` is removed; `#mapCard` stays so the dashboard's Map view button (`/map#mapCard`) still lands on the map.
+- **Files:** `resources/views/dashboard/partials/ticker.blade.php`, `resources/views/map/index.blade.php`, `resources/js/map.js`, `resources/scss/app.scss`, `tests/Feature/{DashboardTickerTest,MapViewTest}.php`, `CLAUDE.md`, `Product Details/{PROJECT_DOCUMENT,UI_Pages_and_Application_Modules}.md`, rebuilt Word file.
+- **Verified:** `npm run build`; full suite 308 passed.
