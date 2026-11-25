@@ -105,13 +105,15 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
         // Modification V11 item 2: network / internet problems reported at schools
         Route::get('/reports/network-issues', [NetworkIssueController::class, 'index'])->middleware('can:view_reports')->name('reports.network');
+        Route::get('/reports/network-issues/export-pdf', [NetworkIssueController::class, 'exportPdf'])
+            ->middleware(['can:view_reports', 'can:export_excel', 'throttle:6,1'])->name('reports.network.export-pdf'); // 25-11-2026
         // V6 Module 10: rating report
         Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
             Route::get('/', [RatingReportController::class, 'index'])->name('');
             Route::get('/export', [RatingReportController::class, 'export'])->name('.export');
             Route::get('/export-pdf', [RatingReportController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('.export-pdf');
         });
-        Route::get('/export/{mode}', [ReportController::class, 'export'])->middleware('can:export_excel')->name('inspections.export');
+        // 25-11-2026: the Inspections Excel download is gone (My Inspections in V14, My Area now); the PDF stays
         Route::get('/export-pdf/{mode}', [ReportController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('inspections.export-pdf');
 
         /* ---------------- Map View (New Module 1) ---------------- */

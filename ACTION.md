@@ -2457,3 +2457,26 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Run on MySQL: all 35 districts set, one audit entry.
 - Check against the KML boundaries (`DistrictBoundaryService::locate()`): no point is in a wrong area. Seven differences are explained: names differ (Sivasagar, Karimganj, Udalgiri, South Salmara), Tamulpur lies inside the older Baksa outline, and Kamrup-Rural (Amingaon) and Tinsukia sit at the edge of the outline next door.
 - Tests: `MapOffices|Schedule` 16 passed. Docs: CLAUDE.md.
+
+## 2026-11-25: Linked date filters, no Excel on Inspections in My Area, period named on Coverage downloads, Network Issues PDF, District HQ / Block office icons
+- **Date filters** (`resources/js/date-picker.js`): From / To pairs (`from`/`to`, `custom_from`/`custom_to`, map `fFrom`/`fTo`) are linked. Once From is picked (e.g. Today), the To calendar greys out the earlier days, and To limits From the same way, within each box's own `min` / `max`. Clear removes the limit, and the map reset (`fp-sync`) drops the old limit before setting the new value. This prevents the "to must be on or after from" error.
+- **Inspections in My Area**: the Excel buttons (header and phone) are removed. `ReportController::export()` and the `inspections.export` route are deleted, so both lists download as PDF only.
+- **Coverage Report**: the downloads already held the period picked on screen; now they name it.
+  - New `CoveragePeriod::typeLabel()`.
+  - PDF title "Inspection Coverage Report · Monthly" / "· Daily", with a period chip "Monthly · November 2026 (01-11-2026 to 30-11-2026)".
+  - The Summary sheet / section starts with "Report period type".
+  - File names are `coverage-{daily|weekly|monthly|quarterly|custom-range}-{view}-{from}-to-{to}`, the audit meta has `type`, and the button tooltips name the period.
+- **Network Issues PDF**: new route `reports.network.export-pdf` (`NetworkIssueController::exportPdf()`, `view_reports` + `export_excel`, throttle 6/min).
+  - It uses the same filters and jurisdiction scope as the page (shared `filters()` / `query()`).
+  - Columns: Sl, Date, UDISE, School, Block, District, Officer, Status, Problem reported.
+  - Chips show the district, dates, counts and who downloaded it. At most `master_pdf_max_rows` rows. Audited `network_issues_exported`.
+  - PDF button in the header (filter region `#nw-actions`) and on phones.
+- **Offices on the maps**:
+  - The District HQ office is purple `#6a1b9a` with a government-building icon (`bi-bank2`) and an "HQ" badge.
+  - The Block office is teal `#00838f` with a house icon (`bi-house-door-fill`) and a "B" badge. Both colours are apart from the school status / rating colours.
+  - A shared `OFFICE` table in `map-common.js` feeds the pins, tooltips, popups, the school-popup distance rows and the legend.
+  - The **Plan Inspections map** now draws the planned officer's offices (`ScheduleController::plannerOffices()` → cfg `offices`, from `MapDataService::offices()` scoped to that officer), with a popup and Google Maps directions. A Cluster officer sees their District HQ and Block office.
+- Files: `resources/js/date-picker.js`, `map-common.js`, `map.js`, `schedule-planner.js`, `resources/scss/app.scss`, `app/Http/Controllers/ReportController.php`, `CoverageReportController.php`, `NetworkIssueController.php`, `ScheduleController.php`, `app/Services/CoverageReportService.php`, `app/Support/CoveragePeriod.php`, `routes/web.php`, views `inspections/index`, `reports/coverage/index`, `reports/network/index`, `map/index`, tests `CoverageReportTest`, `ModificationV11Test`, `ModificationV14FollowUpTest`, `InspectionFlowTest`, `MapOfficesTest`, `CLAUDE.md`.
+- Verified: `npm run build`. On MySQL (read-only), demo Cluster officer Arjun Saikia gets the KOKRAJHAR (1801) HQ office; no block office has a location yet. The route `reports.network.export-pdf` is registered.
+  - New tests: Coverage daily / monthly downloads (dates, Summary, file names, audit), Network PDF (scoped, audited), Cluster officer offices on the map and planner, and the area list without Excel.
+  - Full suite: 261 passed (3155 assertions).

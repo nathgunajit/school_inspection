@@ -611,10 +611,11 @@ class InspectionFlowTest extends TestCase
         $this->assertSame(InspectionStatus::Cancelled, $i->fresh()->status);
     }
 
-    public function test_excel_export_respects_jurisdiction(): void
+    public function test_area_pdf_export_downloads(): void
     {
+        // 25-11-2026: the area list downloads as PDF only (the Excel export was removed)
         $officer = $this->officer(UserLevel::Block);
-        $this->actingAs($officer)->get(route('inspections.export', 'area'))->assertOk()
-            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->actingAs($officer)->get(route('inspections.export-pdf', 'area'))->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
     }
 }

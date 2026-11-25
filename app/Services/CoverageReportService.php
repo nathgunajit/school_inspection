@@ -508,6 +508,7 @@ class CoverageReportService
         $pct = fn ($v) => $v === null ? '' : $v;
 
         return [
+            ['Report period type', $period->typeLabel()], // 25-11-2026: the period picked on screen
             ['Area', $this->areaTitle($f)],
             ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')'],
             ['Configured period type', $setting->periodLabel().($setting->district_id ? ' (district setting)' : ' (state default)')],

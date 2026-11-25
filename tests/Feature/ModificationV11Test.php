@@ -107,6 +107,25 @@ class ModificationV11Test extends TestCase
         $this->actingAs($outside)->get(route('reports.network'))->assertOk()->assertDontSee('No mobile signal in the school campus');
     }
 
+    /** 25-11-2026: the network issues list downloads as PDF, scoped like the page and audited. */
+    public function test_network_issues_pdf_is_scoped_and_audited(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $i = $this->startInspection($officer, $this->schoolIn($cluster));
+        $this->answer($i, 'NET_01', 'yes', 'No mobile signal in the school campus');
+
+        $district = $this->officer(UserLevel::District, $cluster);
+        $this->actingAs($district)->get(route('reports.network'))->assertOk()->assertSee(route('reports.network.export-pdf'), false);
+        $this->get(route('reports.network.export-pdf'))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $log = \App\Models\AuditLog::where('action', 'network_issues_exported')->latest('id')->first();
+        $this->assertSame(1, $log->meta['rows']);
+
+        $outside = $this->officer(UserLevel::District, $this->otherCluster($cluster));
+        $this->actingAs($outside)->get(route('reports.network.export-pdf'))->assertOk();
+        $this->assertSame(0, \App\Models\AuditLog::where('action', 'network_issues_exported')->latest('id')->first()->meta['rows']);
+    }
+
     public function test_teacher_names_come_from_earlier_inspections_of_the_same_school(): void
     {
         $officer = $this->officer(UserLevel::Cluster);

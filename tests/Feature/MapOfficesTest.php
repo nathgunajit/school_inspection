@@ -70,6 +70,25 @@ class MapOfficesTest extends TestCase
         $this->assertSame(['district:'.$block->district_id], $this->types($this->getJson(route('map.areas', 'district'))->json('offices')));
     }
 
+    /** 25-11-2026: a Cluster officer sees their District HQ and Block office on the map and on the Plan Inspections map. */
+    public function test_cluster_officer_sees_district_hq_and_block_office_on_the_map_and_planner(): void
+    {
+        $cluster = Cluster::orderBy('id')->firstOrFail();
+        $block = $cluster->block;
+        $block->update(['latitude' => 26.45, 'longitude' => 90.3]);
+        $block->district->update(['latitude' => 26.4, 'longitude' => 90.27]);
+        District::whereKeyNot($block->district_id)->update(['latitude' => 26.1, 'longitude' => 91.7]);
+        Block::whereKeyNot($block->id)->update(['latitude' => 26.2, 'longitude' => 91.2]);
+        $own = $this->types([['type' => 'block', 'id' => $block->id], ['type' => 'district', 'id' => $block->district_id]]);
+
+        $officer = $this->officer(UserLevel::Cluster, $cluster);
+        $offices = $this->actingAs($officer)->getJson(route('map.schools', ['cluster' => $cluster->id]))->assertOk()->json('offices');
+        $this->assertSame($own, $this->types($offices));
+
+        $cfg = $this->get(route('schedules.plan'))->assertOk()->viewData('config');
+        $this->assertSame($own, $this->types($cfg['offices']), 'only the officer\'s own offices, not other districts or blocks');
+    }
+
     public function test_office_address_is_saved_in_the_location_master(): void
     {
         $district = District::orderBy('id')->firstOrFail();

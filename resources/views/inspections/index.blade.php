@@ -3,8 +3,7 @@
     <x-slot:actions>
         @can('export_excel')
             <span id="flt-actions" class="d-contents" data-filter-region>
-            {{-- 23-11-2026 (V14): My Inspections has no Excel download, only the PDF --}}
-            @if ($area)<a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>@endif
+            {{-- 25-11-2026: no Excel on My Inspections (V14) or Inspections in My Area, only the PDF --}}
             <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
             </span>
         @endcan
@@ -49,7 +48,6 @@
     <div id="flt-results" data-filter-region data-filter-results>
     @can('export_excel')
         <div class="d-flex gap-2 mb-3 d-sm-none">
-            @if ($area)<a href="{{ route('inspections.export', [$mode] + request()->query()) }}" class="btn btn-soft-primary flex-fill" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>@endif
             <a href="{{ route('inspections.export-pdf', [$mode] + request()->except('page')) }}" class="btn btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
         </div>
     @endcan

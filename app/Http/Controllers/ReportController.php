@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\InspectionStatus;
-use App\Exports\ArrayExport;
 use App\Models\Block;
 use App\Models\Cluster;
 use App\Models\District;
@@ -19,9 +18,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
 
-/** Inspection lists, single report view, PDF and Excel export (PRD 11). */
+/** Inspection lists, single report view and PDF downloads (PRD 11; the Excel export was removed on 25-11-2026). */
 class ReportController extends Controller
 {
     public function __construct(private JurisdictionService $j) {}
@@ -109,58 +107,9 @@ class ReportController extends Controller
         ]);
     }
 
-    public function export(Request $request, string $mode)
-    {
-        $user = $request->user();
-        abort_unless($user->can('export_excel'), 403);
-        abort_unless($mode === 'area', 404); // 23-11-2026 (V14): My Inspections has no Excel download, only the PDF
-
-        $rows =$this->exportQuery($request, $mode)
-            ->with(['school.category', 'officer.designation', 'district', 'block', 'cluster', 'answers', 'absentTeachers', 'classroomObservations', 'fundPositions', 'photos', 'rating'])
-            ->orderBy('inspection_date')->limit(20000)->get();
-
-        // All questionnaire answers (steps 1, 2, 6) in definition order, except the person-met fields shown separately
-        $codes = array_values(array_filter(array_keys(Q::all()), fn ($c) => ! str_starts_with($c, 'BAS_')));
-        $headings = ['Inspection ID', 'Status', 'Questionnaire', 'Date', 'Submitted at', 'District', 'Block', 'Cluster', 'UDISE Code', 'School', 'Category',
-            'Officer', 'Designation', 'Person met', 'Absentee entries', 'Unauthorised leave', 'Classrooms observed',
-            'Fund years', 'Fund received (lakh)', 'Fund expenditure (lakh)', 'Photos', 'Photos from gallery', 'Rating score (%)', 'Rating'];
-        foreach ($codes as $c) {
-            $headings[] = Q::find($c)['label'];
-        }
-
-        $data = $rows->map(function (Inspection $i) use ($codes) {
-            $a = $i->answerMap();
-            $row = [
-                $i->inspection_no ?? '—', $i->status->label(), 'v'.$i->questionnaire_version, $i->inspection_date->format('d-m-Y'), $i->submitted_at?->format('d-m-Y H:i'),
-                $i->district?->label, $i->block?->label, $i->cluster?->label, $i->school->udise_code, $i->school->name, $i->school->category?->label,
-                $i->officer->name, $i->officer->designation_label, trim($i->person_met_name.' ('.$i->person_met_designation.')', ' ()'),
-                $i->absentTeachers->count(), $i->absentTeachers->where('reason', 'UL')->count(), $i->classroomObservations->count(),
-                $i->fundPositions->pluck('financial_year')->implode(', '),
-                round($i->fundPositions->sum(fn ($f) => $f->totalReceived()), 2), round($i->fundPositions->sum(fn ($f) => $f->totalExpenditure()), 2),
-                $i->photos->count(), $i->photos->where('source', 'gallery')->count(),
-                $i->rating?->score_percent, $i->rating?->band ?? '—',
-            ];
-            foreach ($codes as $c) {
-                $row[] = Q::optionLabel($c, $a[$c] ?? null);
-            }
-
-            return $row;
-        })->all();
-
-        if (! config('inspection.rating.display')) { // Modification V9: rating columns left out unless RATING_DISPLAY=true
-            $drop = array_keys(array_intersect($headings, ['Rating score (%)', 'Rating']));
-            $headings = array_values(array_diff_key($headings, array_flip($drop)));
-            $data = array_map(fn ($r) => array_values(array_diff_key($r, array_flip($drop))), $data);
-        }
-
-        AuditLogger::log('inspections_exported', null, ['mode' => $mode, 'format' => 'excel', 'rows' => count($data), 'filters' => $request->query()]);
-
-        return Excel::download(new ArrayExport($headings, $data), 'inspections-'.$mode.'-'.now()->format('Ymd-His').'.xlsx');
-    }
-
     /**
-     * 23-11-2026: Inspections / My Inspections as a PDF list, one row per inspection (the full answers stay in Excel).
-     * Same scope and filters as the Excel export, at most config('inspection.master_pdf_max_rows') rows.
+     * 23-11-2026: Inspections / My Inspections as a PDF list, one row per inspection (the full answers are in each report).
+     * Same scope and filters as the list, at most config('inspection.master_pdf_max_rows') rows.
      */
     public function exportPdf(Request $request, string $mode)
     {

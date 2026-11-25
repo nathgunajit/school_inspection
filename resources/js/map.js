@@ -7,7 +7,7 @@ import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
-import { createMap, schoolIcon, officeIcon, haversineKm, fmtKm, directionsUrl, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline, createDirections, directionsPanelHtml, bindDirectionsPanel } from './map-common';
+import { createMap, schoolIcon, officeIcon, OFFICE, haversineKm, fmtKm, directionsUrl, esc, coverageClass, coverageColors, fitTo, drawDistrictOutline, createDirections, directionsPanelHtml, bindDirectionsPanel } from './map-common';
 
 const el = document.getElementById('map');
 if (el) {
@@ -243,7 +243,7 @@ if (el) {
     }
 
     /* ---- 23-11-2026: District / Block offices ---- */
-    const officeName = (o) => (o.type === 'district' ? 'District office' : 'Block office');
+    const officeName = (o) => OFFICE[o.type].name;
     const schoolPts = () => (current.level === 'school' ? lastRows.filter((s) => s.lat !== null && s.lng !== null) : []);
 
     function officePopup(o) {
@@ -253,7 +253,7 @@ if (el) {
             ? `<div class="mp-row"><i class="bi bi-rulers"></i><span>${fmt(pts.length)} school(s) shown · nearest <b>${fmtKm(pts[0].km)}</b>, farthest <b>${fmtKm(pts[pts.length - 1].km)}</b> <span class="text-muted">(approx.)</span></span></div>`
             : '';
         return `<div class="map-pop map-pop-office office-${o.type}">
-            <div class="mp-head"><div class="mp-icon"><i class="bi bi-building-fill"></i></div>
+            <div class="mp-head"><div class="mp-icon"><i class="bi ${OFFICE[o.type].icon}"></i></div>
                 <div class="min-w-0"><div class="mp-title">${esc(officeName(o))}</div><div class="mp-sub">${esc(o.label)}</div></div></div>
             <div class="mp-body">
                 ${o.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(o.address)}</span></div>` : ''}
@@ -274,7 +274,7 @@ if (el) {
         if (!on) return;
         offices.forEach((o) => {
             L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
-                .bindTooltip(`${o.type === 'district' ? 'District' : 'Block'} office · ${esc(o.name)}`, { permanent: offices.length <= 40, direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
+                .bindTooltip(`${OFFICE[o.type].short} · ${esc(o.name)}`, { permanent: offices.length <= 40, direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
                 .bindPopup(officePopup(o))
                 .addTo(officeLayer);
         });
@@ -285,10 +285,10 @@ if (el) {
         if (s.lat === null || s.lng === null) return '';
         const row = (type, id) => {
             const o = officeOf(type, id);
-            const name = type === 'district' ? 'District office' : 'Block office';
+            const name = OFFICE[type].name;
             if (!o) return ''; // V14: an office without a location is not shown
             const km = haversineKm([o.lat, o.lng], [s.lat, s.lng]);
-            return `<div class="mp-row"><i class="bi bi-building-fill office-ink-${type}"></i><span class="min-w-0">${name} · ${esc(o.name)}</span>
+            return `<div class="mp-row"><i class="bi ${OFFICE[type].icon} office-ink-${type}"></i><span class="min-w-0">${name} · ${esc(o.name)}</span>
                 <b class="ms-auto text-nowrap">${fmtKm(km)}</b>
                 <a class="mp-office-go" href="${directionsUrl([s.lat, s.lng], [o.lat, o.lng])}" target="_blank" rel="noopener noreferrer" title="Route from the ${name.toLowerCase()} (Google Maps)" aria-label="Route from the ${name.toLowerCase()}"><i class="bi bi-sign-turn-right"></i></a></div>`;
         };

@@ -2480,13 +2480,14 @@ body.bars-hidden {
 @keyframes slSpin { to { transform: rotate(360deg); } }
 .d-contents { display: contents; }
 
-// 23-11-2026: District (blue, D) / Block (green, B) offices on the Map View
-$office-district: #1565c0;
-$office-block: #1e9b4b;
+// 23-11-2026: District / Block offices on the Map View. 25-11-2026: District HQ purple (bank icon, "HQ"), Block teal (house, "B"),
+// apart from the school status / rating colours
+$office-district: #6a1b9a;
+$office-block: #00838f;
 .si-office { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #fff; font-size: 1rem;
     border: 2px solid #fff; box-shadow: 0 4px 12px -2px rgba(15, 23, 42, .45);
     &::after { content: ''; position: absolute; left: 50%; bottom: -7px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: inherit; }
-    b { position: absolute; top: -8px; right: -8px; min-width: 17px; height: 17px; border-radius: 9px; background: #fff; font-size: .62rem; line-height: 17px; text-align: center; font-weight: 800; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); }
+    b { position: absolute; top: -8px; right: -8px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; background: #fff; font-size: .62rem; line-height: 17px; text-align: center; font-weight: 800; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); }
     &.office-district { background: $office-district; border-top-color: $office-district; b { color: $office-district; } &::after { border-top-color: $office-district; } }
     &.office-block { background: $office-block; b { color: $office-block; } &::after { border-top-color: $office-block; } } }
 .office-dot { display: inline-grid; place-items: center; width: 1.05rem; height: 1.05rem; border-radius: .3rem; color: #fff; font-size: .6rem; font-weight: 800; margin-right: .4rem; vertical-align: -2px;

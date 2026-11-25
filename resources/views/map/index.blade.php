@@ -71,8 +71,8 @@
                                         <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="fOffices" checked>
                                             <label class="form-check-label text-xs" for="fOffices">Show</label></div>
                                     </div>
-                                    <div><span class="office-dot office-district">D</span>District office</div>
-                                    <div><span class="office-dot office-block">B</span>Block office</div>
+                                    <div><span class="office-dot office-district"><i class="bi bi-bank2"></i></span>District HQ office</div>
+                                    <div><span class="office-dot office-block"><i class="bi bi-house-door-fill"></i></span>Block office</div>
                                     <div class="text-xs text-muted" id="officeNote"></div>
                                 </div>
                                 <div class="fw-semibold text-xs text-uppercase text-muted mt-2 mb-1">Area coverage</div>
@@ -104,7 +104,7 @@
                             @foreach ($bands as $b)<span class="key"><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }}</span>@endforeach
                             <span class="key"><span class="dot rt-none"></span>Not rated</span>
                         </div>
-                        <span class="key d-none" data-office-key><span class="office-dot office-district">D</span>District <span class="office-dot office-block ms-1">B</span>Block office</span>
+                        <span class="key d-none" data-office-key><span class="office-dot office-district"><i class="bi bi-bank2"></i></span>District HQ <span class="office-dot office-block ms-1"><i class="bi bi-house-door-fill"></i></span>Block office</span>
                         <span class="map-keybar-period text-xs text-secondary" id="mapKeyPeriod"></span>
                     </div>
                     <div id="map" class="si-map" role="region" aria-label="Inspection coverage map"

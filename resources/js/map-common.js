@@ -86,11 +86,20 @@ export async function drawDistrictOutline(map, url, { mask = true, fit = false, 
  * only when the officer presses "Show route"; "Google Maps" opens turn-by-turn directions in a new tab.
  * ------------------------------------------------------------------ */
 
-/** 23-11-2026: District (D, blue) / Block (B, green) office pin. */
+/**
+ * 25-11-2026: District HQ office (purple, government building, "HQ") and Block office (teal, house, "B"),
+ * coloured apart from the school status / rating colours. Used by the Map View and the Plan Inspections map.
+ */
+export const OFFICE = {
+    district: { name: 'District HQ office', short: 'District HQ', icon: 'bi-bank2', badge: 'HQ' },
+    block: { name: 'Block office', short: 'Block office', icon: 'bi-house-door-fill', badge: 'B' },
+};
+
 export function officeIcon(type) {
+    const o = OFFICE[type] || OFFICE.block;
     return L.divIcon({
         className: '',
-        html: `<span class="si-office office-${type}" title="${type === 'district' ? 'District office' : 'Block office'}"><i class="bi bi-building-fill"></i><b>${type === 'district' ? 'D' : 'B'}</b></span>`,
+        html: `<span class="si-office office-${type}" title="${o.name}"><i class="bi ${o.icon}"></i><b>${o.badge}</b></span>`,
         iconSize: [34, 40],
         iconAnchor: [17, 38],
         popupAnchor: [0, -34],

@@ -236,6 +236,38 @@ class CoverageReportTest extends TestCase
         $this->actingAs($this->officer(UserLevel::Block, $this->north))->get(route('reports.coverage.settings'))->assertForbidden();
     }
 
+    /** 25-11-2026: the Excel and PDF hold the period picked on screen and name it (title, Summary, file name). */
+    public function test_downloads_hold_and_name_the_selected_period(): void
+    {
+        [$s1, $s2] = $this->schools();
+        $o = $this->officer(UserLevel::Cluster, $this->north);
+        $this->visit($s1, $o, '2026-11-10');
+        $this->visit($s2, $o, '2026-11-03');
+        $admin = $this->admin();
+        $svc = app(CoverageReportService::class);
+        $summary = function (array $q) use ($svc, $admin) {
+            $rows = $svc->export($admin, $this->filters($admin, $q))->sheets()[0]->array();
+
+            return array_column($rows, 1, 0);
+        };
+
+        $daily = $summary(['type' => 'daily', 'ref' => '2026-11-10']);
+        $this->assertSame('Daily', $daily['Report period type']);
+        $this->assertStringContainsString('10-11-2026 to 10-11-2026', $daily['Coverage period']);
+        $this->assertSame(1, $daily['Unique schools visited (verified)'], 'only the visit of that day');
+
+        $monthly = $summary(['type' => 'monthly', 'ref' => '2026-11-10']);
+        $this->assertSame('Monthly', $monthly['Report period type']);
+        $this->assertStringContainsString('01-11-2026 to 30-11-2026', $monthly['Coverage period']);
+        $this->assertSame(2, $monthly['Unique schools visited (verified)']);
+
+        $xlsx = $this->actingAs($admin)->get(route('reports.coverage.export', ['type' => 'daily', 'ref' => '2026-11-10']))->assertOk();
+        $this->assertStringContainsString('coverage-daily-district-wise-2026-11-10-to-2026-11-10.xlsx', $xlsx->headers->get('content-disposition'));
+        $this->assertSame('daily', AuditLog::where('action', 'coverage_report_exported')->latest('id')->first()->meta['type']);
+        $pdf = $this->get(route('reports.coverage.export-pdf', ['type' => 'monthly', 'ref' => '2026-11-10']))->assertOk();
+        $this->assertStringContainsString('coverage-monthly-district-wise-2026-11-01-to-2026-11-30.pdf', $pdf->headers->get('content-disposition'));
+    }
+
     public function test_excel_export_and_permissions(): void
     {
         $o = $this->officer(UserLevel::Cluster, $this->north);

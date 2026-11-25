@@ -88,6 +88,8 @@ class ScheduleController extends Controller
                 'needsBlock' => $blocks->isNotEmpty(),
                 // V6 Module 7: the officer's district outline from the KML
                 'outline' => app(DistrictBoundaryService::class)->urlForId($jur?->district_id),
+                // 25-11-2026: the officer's District HQ / Block offices with a location, drawn like the Map View
+                'offices' => $this->plannerOffices($officer, $jur),
                 'urls' => ['schools' => route('schedules.schools'), 'store' => route('schedules.store')],
                 'officer' => $officer->id,
                 'date' => $date->toDateString(),
@@ -97,6 +99,23 @@ class ScheduleController extends Controller
                 ])->values() : [],
             ],
         ]);
+    }
+
+    /**
+     * 25-11-2026: offices for the planner map, from the planned officer's own posting (MapDataService::offices
+     * scopes them to it): a Cluster officer gets their block and district office, a Block officer the same,
+     * a District officer their district and its blocks, a State officer every district office.
+     */
+    private function plannerOffices(User $officer, $jur): array
+    {
+        $maps = app(\App\Services\MapDataService::class);
+
+        return match (true) {
+            (bool) $jur?->cluster_id => $maps->offices($officer, 'school', $jur->cluster_id),
+            (bool) $jur?->block_id => $maps->offices($officer, 'cluster', $jur->block_id),
+            (bool) $jur?->district_id => $maps->offices($officer, 'block', $jur->district_id),
+            default => $maps->offices($officer, 'district', null),
+        };
     }
 
     /** Schools for the planner (JSON). */

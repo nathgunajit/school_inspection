@@ -1,5 +1,12 @@
 {{-- Modification V11 item 2: internet / network problems reported during inspections (NET_01 = Yes) --}}
 <x-layouts.app title="Network Issues at Schools">
+    {{-- 25-11-2026: the filtered list as PDF; the region follows the filters --}}
+    <x-slot:actions>
+        @can('export_excel')<span id="nw-actions" class="d-contents" data-filter-region>
+            <a href="{{ route('reports.network.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger d-none d-sm-inline-flex" data-no-loader title="Download the list as PDF"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </span>@endcan
+    </x-slot:actions>
+
     <p class="text-secondary text-sm mb-3">Schools where the inspecting officer reported an internet or network problem. Use the remarks to arrange connectivity and raise the issue.</p>
 
     <div id="nw-stats" class="row g-3 mb-3" data-filter-region>
@@ -21,6 +28,11 @@
     </form>
 
     <div id="nw-results" data-filter-region data-filter-results>
+    @can('export_excel')
+        <div class="d-flex gap-2 mb-3 d-sm-none">
+            <a href="{{ route('reports.network.export-pdf', request()->except('page')) }}" class="btn btn-soft-danger flex-fill" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        </div>
+    @endcan
 
     <div class="card">
         <div class="table-responsive">

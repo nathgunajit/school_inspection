@@ -8,7 +8,7 @@
 import L from './leaflet-global';
 import 'leaflet/dist/leaflet.css';
 import Sortable from 'sortablejs';
-import { createMap, schoolIcon, esc, fitTo, drawDistrictOutline, directionsUrl } from './map-common';
+import { createMap, schoolIcon, officeIcon, OFFICE, esc, fitTo, drawDistrictOutline, directionsUrl } from './map-common';
 
 const root = document.getElementById('planner');
 if (root) {
@@ -18,6 +18,22 @@ if (root) {
     // V6 Module 7: the officer's district outline; it frames the map until schools are drawn
     drawDistrictOutline(map, cfg.outline, { fit: !cfg.planned.length }).then((o) => o?.layer.bringToBack());
     const layer = L.layerGroup().addTo(map);
+    // 25-11-2026: the officer's District HQ / Block offices (Location Master office location), above the schools
+    map.createPane('offices').style.zIndex = 640;
+    (cfg.offices || []).forEach((o) => {
+        const t = OFFICE[o.type] || OFFICE.block;
+        L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${t.name} · ${o.label}` })
+            .bindTooltip(`${t.short} · ${esc(o.name)}`, { direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
+            .bindPopup(`<div class="map-pop map-pop-office office-${o.type}">
+                <div class="mp-head"><div class="mp-icon"><i class="bi ${t.icon}"></i></div>
+                    <div class="min-w-0"><div class="mp-title">${esc(t.name)}</div><div class="mp-sub">${esc(o.label)}</div></div></div>
+                <div class="mp-body">
+                    ${o.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(o.address)}</span></div>` : ''}
+                    <div class="mp-row"><i class="bi bi-geo-alt"></i><span class="font-monospace text-xs">${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}</span></div>
+                    <div class="mp-actions"><a class="btn btn-soft-primary btn-sm" href="${directionsUrl([o.lat, o.lng])}" target="_blank" rel="noopener noreferrer"><i class="bi bi-sign-turn-right"></i>Directions</a></div>
+                </div></div>`)
+            .addTo(map);
+    });
     const routeLine = L.polyline([], { color: '#1565c0', weight: 3, opacity: 0.8, dashArray: '6 6' }).addTo(map);
     let start = cfg.start; // [lat, lng] or null
     // 23-11-2026 (V14): where the route starts (office, centre of the schools when no office location is set, or my location)

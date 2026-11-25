@@ -21,13 +21,17 @@ class ModificationV14FollowUpTest extends TestCase
     {
         $officer = $this->officer(UserLevel::Cluster);
         $this->actingAs($officer)->get(route('inspections.mine'))->assertOk()
-            ->assertDontSee(route('inspections.export', 'mine'), false)
+            ->assertDontSee('bi-file-earmark-excel', false)
             ->assertSee(route('inspections.export-pdf', 'mine'), false);
-        $this->get(route('inspections.export', 'mine'))->assertNotFound();
+        $this->get('/export/mine')->assertNotFound();
 
+        // 25-11-2026: Inspections in My Area has no Excel either, only the PDF
         $state = $this->officer(UserLevel::State);
-        $this->actingAs($state)->get(route('inspections.area'))->assertOk()->assertSee(route('inspections.export', 'area'), false);
-        $this->get(route('inspections.export', 'area'))->assertOk();
+        $this->actingAs($state)->get(route('inspections.area'))->assertOk()
+            ->assertDontSee('bi-file-earmark-excel', false)
+            ->assertSee(route('inspections.export-pdf', 'area'), false);
+        $this->get('/export/area')->assertNotFound();
+        $this->get(route('inspections.export-pdf', 'area'))->assertOk()->assertHeader('content-type', 'application/pdf');
     }
 
     public function test_coverage_excel_holds_only_the_selected_view(): void
@@ -48,7 +52,7 @@ class ModificationV14FollowUpTest extends TestCase
         $this->actingAs($state)->get(route('reports.coverage', ['district_id' => $district->id, 'level' => 'cluster']))->assertOk()
             ->assertSee('Excel · Cluster-wise')->assertSee('PDF · Cluster-wise');
         $xlsx = $this->get(route('reports.coverage.export', ['district_id' => $district->id, 'level' => 'cluster']))->assertOk();
-        $this->assertStringContainsString('coverage-cluster-wise-', $xlsx->headers->get('content-disposition'));
+        $this->assertStringContainsString('coverage-monthly-cluster-wise-', $xlsx->headers->get('content-disposition'));
         $this->assertSame('cluster', \App\Models\AuditLog::where('action', 'coverage_report_exported')->latest('id')->first()->meta['level']);
     }
 

@@ -114,4 +114,13 @@ final class CoveragePeriod
             default => $f->isSameDay($t) ? $f->format('d M Y') : $f->format('d M Y').' – '.$t->format('d M Y'),
         };
     }
+
+    /** 25-11-2026: the period type as the downloads name it: Daily, Weekly, Monthly, Quarterly or Custom range. */
+    public function typeLabel(): string
+    {
+        return match ($this->type) {
+            'daily' => 'Daily', 'weekly' => 'Weekly', 'quarterly' => 'Quarterly', 'custom' => 'Custom range',
+            default => 'Monthly',
+        };
+    }
 }
