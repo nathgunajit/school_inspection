@@ -18,8 +18,14 @@
                 $types = $list->pluck('type')->unique()->values();
                 $tip = $list->map(fn ($h) => $h->name.($h->isOff() ? '' : ' ('.strtolower($h->typeLabel()).')'))->implode(', ');
             @endphp
-            <div class="mini-cal-day {{ $out ? 'is-out' : '' }} {{ $d->isToday() ? 'is-today' : '' }} {{ $list->contains(fn ($h) => $h->isOff()) ? 'is-holiday' : '' }} {{ in_array((int) $d->dayOfWeek, $calendar['weeklyOff'], true) ? 'is-off' : '' }}"
-                @if ($tip && ! $out) title="{{ $d->format('d M') }}: {{ $tip }}" @endif>
+            @php
+                $weekOff = in_array((int) $d->dayOfWeek, $calendar['weeklyOff'], true);
+                $clickable = ! $out && ($calendar['canManage'] || $list->isNotEmpty()); // 25-11-2026: day popup
+            @endphp
+            <div class="mini-cal-day {{ $out ? 'is-out' : '' }} {{ $d->isToday() ? 'is-today' : '' }} {{ $list->contains(fn ($h) => $h->isOff()) ? 'is-holiday' : '' }} {{ $weekOff ? 'is-off' : '' }} {{ $clickable ? 'is-clickable' : '' }}"
+                @if ($tip && ! $out) title="{{ $d->format('d M') }}: {{ $tip }}" @endif
+                @if ($clickable) data-holiday-day="{{ json_encode($calendar['service']->dayData(auth()->user(), $d, $list, $weekOff)) }}" role="button" tabindex="0"
+                    aria-label="{{ $d->format('j M') }}: {{ $list->isEmpty() ? 'add a holiday' : ($tip ?: 'holiday') }}" @endif>
                 {{ $d->format('j') }}
                 @if (! $out && $types->isNotEmpty())<span class="mini-dots">@foreach ($types as $t)<span class="mini-dot is-{{ $t }}"></span>@endforeach</span>@endif
             </div>
@@ -50,3 +56,4 @@
         <div class="dash-empty"><i class="bi bi-calendar-x"></i>No holidays added for the coming days.</div>
     @endforelse
 </div>
+@include('holidays.partials.day-modal', ['canManage' => $calendar['canManage'], 'editableDistricts' => $calendar['editableDistricts'], 'back' => 'dashboard'])

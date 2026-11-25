@@ -2579,6 +2579,15 @@ $office-block: #00838f;
 .sched-grid .sched-day {
     &.is-off { background: #f8fafc; }
     &.is-holiday { background: rgba($danger, .05); border-color: rgba($danger, .35); } }
+/* 25-11-2026: clickable calendar dates (day popup, holiday-day.js) */
+.sched-day.is-clickable, .mini-cal-day.is-clickable { cursor: pointer; transition: background-color .15s, box-shadow .15s;
+    &:hover { box-shadow: 0 0 0 2px rgba($primary, .25); }
+    &:focus-visible { outline: 2px solid $primary; outline-offset: 2px; } }
+.sched-day.is-clickable:hover { background-color: rgba($primary, .04); }
+.sched-add-hint { color: $primary; opacity: 0; transition: opacity .15s; font-size: .85rem; }
+.sched-day.is-clickable:hover .sched-add-hint, .sched-day.is-clickable:focus-visible .sched-add-hint { opacity: .8; }
+.holiday-day-row { display: flex; align-items: center; gap: .65rem; padding: .55rem 0; border-bottom: 1px solid $border-color;
+    &:last-child { border-bottom: 0; } .holiday-chip { flex: 0 0 auto; } }
 $half-holiday: #0284c7;
 .holiday-chip { display: block; padding: .2rem .45rem; border-radius: .35rem; margin-bottom: .25rem; font-size: .75rem; font-weight: 600; border-left: 3px solid;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

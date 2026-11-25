@@ -69,6 +69,10 @@ class DashboardController extends Controller
             'byDate' => $holidays->between(today()->startOfMonth(), today()->endOfMonth(), $holidayDistrict)->groupBy('date'),
             'upcoming' => $holidays->upcoming($holidayDistrict, 4),
             'weeklyOff' => $holidays->weeklyOff(app(\App\Services\DailySchoolListService::class)->settingFor($user)->weekly_off),
+            // 25-11-2026: day popup (see a date's holidays; holiday managers add / remove there)
+            'service' => $holidays,
+            'canManage' => $user->can('manage_holidays'),
+            'editableDistricts' => $user->can('manage_holidays') ? $holidays->editableDistricts($user) : collect(),
         ];
 
         // V14 item 5: Today's schools (generated on the first view of the day)

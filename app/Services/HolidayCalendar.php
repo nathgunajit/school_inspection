@@ -150,4 +150,33 @@ class HolidayCalendar
 
         return $districtId !== null && $user->level === UserLevel::District && $this->districtOf($user) === $districtId;
     }
+
+    /** 25-11-2026: districts this user may add local holidays for (State Admin: all active; a District manager: their own). */
+    public function editableDistricts(User $user)
+    {
+        if ($user->isStateAdmin()) {
+            return \App\Models\District::where('is_active', true)->orderBy('code')->get(['id', 'name', 'code']);
+        }
+        $own = $this->districtOf($user);
+
+        return $own && $user->can('manage_holidays') ? \App\Models\District::whereKey($own)->get(['id', 'name', 'code']) : collect();
+    }
+
+    /**
+     * 25-11-2026: the day popup data for a calendar cell (holidays/partials/day-modal, holiday-day.js).
+     *
+     * @param  iterable<Holiday>  $holidays
+     */
+    public function dayData(User $user, CarbonInterface $day, iterable $holidays, bool $weeklyOff): array
+    {
+        return [
+            'date' => $day->toDateString(),
+            'label' => $day->format('l, j F Y'),
+            'off' => $weeklyOff,
+            'holidays' => collect($holidays)->map(fn (Holiday $h) => [
+                'name' => $h->name, 'type' => $h->typeLabel(), 'chip' => $h->chipClass(), 'area' => $h->areaLabel(),
+                'remove' => $this->canManage($user, $h->district_id) ? route('holidays.destroy', $h) : null,
+            ])->values()->all(),
+        ];
+    }
 }

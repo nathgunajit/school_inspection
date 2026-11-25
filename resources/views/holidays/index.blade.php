@@ -3,7 +3,7 @@
     $to = $month->copy()->endOfMonth()->endOfWeek(\Carbon\Carbon::SUNDAY);
     $keep = request()->only('district', 'restricted');
     $q = fn ($over) => route('holidays.index', array_merge($keep, $over));
-    $isOld = fn () => ! old('_edit');
+    $isOld = fn () => ! old('_edit') && ! old('_day'); // the day popup has its own old input
     $dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 @endphp
 <x-layouts.app title="Holiday Calendar">
@@ -64,10 +64,14 @@
                     @if ($out)
                         <div class="sched-day is-out d-none d-md-block"></div>
                     @else
-                        <div class="sched-day {{ $d->isToday() ? 'is-today' : '' }} {{ $isOffDay ? 'is-holiday' : '' }} {{ $off ? 'is-off' : '' }} {{ $list->isEmpty() && ! $off ? 'd-none d-md-block' : '' }}">
+                        {{-- 25-11-2026: click a date: its holidays in a popup; managers add / remove there --}}
+                        @php $clickable = $canManage || $list->isNotEmpty(); @endphp
+                        <div class="sched-day {{ $d->isToday() ? 'is-today' : '' }} {{ $isOffDay ? 'is-holiday' : '' }} {{ $off ? 'is-off' : '' }} {{ $list->isEmpty() && ! $off ? 'd-none d-md-block' : '' }} {{ $clickable ? 'is-clickable' : '' }}"
+                            @if ($clickable) data-holiday-day="{{ json_encode($calendar->dayData(auth()->user(), $d, $list, $off)) }}" role="button" tabindex="0"
+                                aria-label="{{ $d->format('j M') }}: {{ $list->isEmpty() ? ($canManage ? 'add a holiday' : 'no holiday') : $list->count().' holiday'.($list->count() > 1 ? 's' : '') }}" @endif>
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="sched-date"><span class="d-md-none">{{ $d->format('D') }} </span>{{ $d->format('j') }}</span>
-                                @if ($off)<span class="text-xs text-secondary">Off</span>@endif
+                                @if ($off)<span class="text-xs text-secondary">Off</span>@elseif ($canManage)<i class="bi bi-plus-circle sched-add-hint" aria-hidden="true"></i>@endif
                             </div>
                             @foreach ($list as $h)
                                 <span class="holiday-chip {{ $h->chipClass() }}" title="{{ $h->typeLabel() }} · {{ $h->areaLabel() }}">{{ $h->name }}</span>
@@ -212,4 +216,5 @@
             </div>
         </div>
     @endif
+    @include('holidays.partials.day-modal', ['back' => ''])
 </x-layouts.app>

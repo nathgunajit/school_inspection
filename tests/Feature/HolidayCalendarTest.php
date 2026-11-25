@@ -214,4 +214,62 @@ class HolidayCalendarTest extends TestCase
         (new \Database\Seeders\AssamHolidaySeeder)->run();
         $this->assertFalse($calendar->isWorkingDay('2026-02-18', $d->id, []));
     }
+
+    /** 25-11-2026: the data-holiday-day cells of a page, by date. */
+    private function dayCells(string $html): array
+    {
+        preg_match_all('~data-holiday-day="([^"]*)"~', $html, $m);
+
+        return collect($m[1])->map(fn ($j) => json_decode(html_entity_decode($j, ENT_QUOTES), true))->keyBy('date')->all();
+    }
+
+    /** 25-11-2026: click a date: its holidays in a popup; the State Admin adds / removes there (Holiday Calendar and dashboard). */
+    public function test_calendar_day_popup_shows_holidays_and_lets_managers_add_and_remove(): void
+    {
+        $day = today()->startOfMonth()->addDays(9);
+        $empty = today()->startOfMonth()->addDays(11);
+        $h = Holiday::create(['date' => $day->toDateString(), 'name' => 'Test Bihu', 'district_id' => null]);
+        $admin = $this->admin();
+
+        $page = $this->actingAs($admin)->get(route('holidays.index'))->assertOk()->assertSee('id="holiday-day"', false)
+            ->assertSee('Add a holiday on this date')->assertSee('Whole state (state holiday)')->getContent();
+        $cells = $this->dayCells($page);
+        $this->assertSame('Test Bihu', $cells[$day->toDateString()]['holidays'][0]['name']);
+        $this->assertSame(route('holidays.destroy', $h), $cells[$day->toDateString()]['holidays'][0]['remove']);
+        $this->assertArrayHasKey($empty->toDateString(), $cells, 'an empty day is clickable for a manager');
+
+        // dashboard: the same popup; adding there returns to the dashboard
+        $dash = $this->get(route('dashboard'))->assertOk()->assertSee('id="holiday-day"', false)->getContent();
+        $this->assertSame('Test Bihu', $this->dayCells($dash)[$day->toDateString()]['holidays'][0]['name']);
+        $this->post(route('holidays.store'), ['_day' => 1, 'back' => 'dashboard', 'date' => $empty->toDateString(), 'name' => 'Dashboard Day', 'type' => 'gazetted'])
+            ->assertRedirect(route('dashboard'));
+        $this->assertTrue(Holiday::where('name', 'Dashboard Day')->exists());
+        $this->delete($cells[$day->toDateString()]['holidays'][0]['remove'])->assertRedirect();
+        $this->assertNull(Holiday::find($h->id));
+
+        // an officer only views: holiday days only, no remove, no add form
+        $crcc = $this->officer(UserLevel::Cluster, Cluster::orderBy('id')->first());
+        $page = $this->actingAs($crcc)->get(route('holidays.index'))->assertOk()->assertDontSee('Add a holiday on this date')->getContent();
+        $cells = $this->dayCells($page);
+        $this->assertSame([$empty->toDateString()], array_keys($cells));
+        $this->assertNull($cells[$empty->toDateString()]['holidays'][0]['remove']);
+        $this->assertSame([$empty->toDateString()], array_keys($this->dayCells($this->get(route('dashboard'))->getContent())));
+    }
+
+    public function test_day_popup_remove_only_for_the_district_managers_own_holidays(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $u = $this->districtAdmin($cluster);
+        $day = today()->startOfMonth()->addDays(14)->toDateString();
+        $state = Holiday::create(['date' => $day, 'name' => 'State Day', 'district_id' => null]);
+        $local = Holiday::create(['date' => $day, 'name' => 'Local Day', 'district_id' => $cluster->block->district_id]);
+
+        $hs = collect($this->dayCells($this->actingAs($u)->get(route('holidays.index'))->getContent())[$day]['holidays'])->keyBy('name');
+        $this->assertNull($hs['State Day']['remove']);
+        $this->assertSame(route('holidays.destroy', $local), $hs['Local Day']['remove']);
+        // errors from the popup reopen it with the typed values
+        $this->post(route('holidays.store'), ['_day' => 1, 'date' => $day, 'name' => 'State try'])->assertSessionHasErrors('district_id');
+        $this->get(route('holidays.index'))->assertSee('data-reopen', false)->assertSee('value="State try"', false);
+        $this->assertTrue($state->exists);
+    }
 }

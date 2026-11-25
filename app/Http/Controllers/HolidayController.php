@@ -42,9 +42,7 @@ class HolidayController extends Controller
                 ->when(! $district && $user->isStateAdmin() && $request->query('district') === 'all', fn ($w) => $w->orWhereNotNull('district_id')))
             ->orderBy('date')->orderByRaw('district_id is not null')->orderBy('name')->get();
 
-        $editableDistricts = $user->isStateAdmin()
-            ? District::where('is_active', true)->orderBy('code')->get(['id', 'name', 'code'])
-            : ($own && $user->can('manage_holidays') ? District::whereKey($own)->get(['id', 'name', 'code']) : collect());
+        $editableDistricts = $this->calendar->editableDistricts($user);
 
         return view('holidays.index', [
             'month' => $month,
@@ -67,9 +65,14 @@ class HolidayController extends Controller
         $data = $this->validated($request);
         $holiday = Holiday::create($data + ['created_by' => $request->user()->id]);
         AuditLogger::log('holiday_created', $holiday, $this->meta($holiday));
+        $msg = 'Added '.$holiday->name.' on '.Carbon::parse($holiday->date)->format('d M Y').'.';
 
-        return redirect()->route('holidays.index', ['month' => substr($holiday->date, 0, 7)] + $this->keepDistrict($holiday))
-            ->with('success', 'Added '.$holiday->name.' on '.Carbon::parse($holiday->date)->format('d M Y').'.');
+        // 25-11-2026: added from the dashboard calendar's day popup: go back there
+        if ($request->input('back') === 'dashboard') {
+            return redirect()->route('dashboard')->with('success', $msg);
+        }
+
+        return redirect()->route('holidays.index', ['month' => substr($holiday->date, 0, 7)] + $this->keepDistrict($holiday))->with('success', $msg);
     }
 
     public function update(Request $request, Holiday $holiday)
