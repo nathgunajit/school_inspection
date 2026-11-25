@@ -133,7 +133,7 @@ class TodaySchoolsController extends Controller
         $data = $request->validate([
             'enabled' => ['nullable', 'boolean'],
             'levels' => ['nullable', 'array'],
-            'levels.*' => [Rule::in(['state', 'district', 'block', 'cluster'])],
+            'levels.*' => ['string'], // limited below: a district chooses only Cluster / Block
             'daily_limit' => ['required', 'integer', 'min:1', 'max:10'],
             'selection' => ['required', Rule::in(array_keys(DailyDisplaySetting::SELECTIONS))],
             'low_rating_below' => ['required', 'integer', 'min:1', 'max:100'],
@@ -145,13 +145,15 @@ class TodaySchoolsController extends Controller
         foreach (['enabled', 'prefer_not_inspected', 'prefer_low_rating', 'prefer_issues', 'prefer_less_visited', 'carry_forward', 'skip_blocked'] as $flag) {
             $data[$flag] = $request->boolean($flag);
         }
-        // 25-11-2026: only the State Admin chooses the officer levels; a District user's row follows the State (null)
-        $data['levels'] = $user->isStateAdmin() ? array_values($data['levels'] ?? []) : null;
+        // 25-11-2026: the state default sets every level; a district (whoever saves it) only its Cluster / Block officers,
+        // District / State officers there follow the state default (DailyDisplaySetting::forDistrict())
+        $allowed = $districtId ? DailyDisplaySetting::DISTRICT_LEVELS : ['cluster', 'block', 'district', 'state'];
+        $data['levels'] = array_values(array_intersect($allowed, $data['levels'] ?? []));
         $data['weekly_off'] = array_values(array_map('intval', $data['weekly_off'] ?? []));
         $data['max_distance_km'] = $data['max_distance_km'] ?? null;
 
         $row = DailyDisplaySetting::updateOrCreate(['district_id' => $districtId], $data + ['updated_by' => $user->id]);
-        AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId, 'levels' => $data['levels'] ?? 'state'] + $data);
+        AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId] + $data);
 
         return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. They apply from the next day\'s list.');
     }

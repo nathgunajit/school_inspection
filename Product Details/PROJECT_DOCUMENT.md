@@ -948,7 +948,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
        - Ties are random. The chip shows the strongest reason; "Low rating" reads "Needs support" while ratings are hidden.
 - **Admin settings** (**Today's Schools → Settings**, gate `manage_holidays`): the State Admin sets the state default and any district's own setting; a District officer with Manage users sets their district's (or goes back to the state default). The options:
   - on / off
-  - which officer levels get the list (default Cluster). Since 25-11-2026 this is the **State's choice**: a District officer sees the State's levels ticked and locked ("Set by the State Administrator"), and their district follows any later State change; only the State Admin can give one district its own levels
+  - which officer levels get the list (default Cluster). Since 25-11-2026 a **district setting chooses only Block and Cluster officers** (ticked from the State default at first, then the district's own choice); **District and State officers** in every district always follow the State default, set by the State Administrator
   - daily limit
   - selection (priority / random)
   - the four priorities with the low-rating threshold

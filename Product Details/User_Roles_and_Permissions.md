@@ -129,7 +129,7 @@ Since 25-11-2026 related pages share one menu item and switch with tabs on the p
 |---|---|---|---|---|---|---|---|
 | New inspection (button) | `schools.index` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Dashboard | `dashboard` | always | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Today's Schools | `today.index` | `conduct_inspections` (list only for the levels the State chose) | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Today's Schools | `today.index` | `conduct_inspections` (list only for the chosen levels: Block / Cluster per district, District / State by the State) | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Schools (Find School, My Schools) | `schools.index`, `schools.mine` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Inspections (My Inspections) | `inspections.mine` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Inspections (In My Area) | `inspections.area` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |

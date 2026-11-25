@@ -188,34 +188,43 @@ class TodaySchoolsTest extends TestCase
         $this->actingAs($this->crcc())->get(route('today.settings'))->assertForbidden();
     }
 
-    /** 25-11-2026: "Officers who get the list" is the State's choice; a District user sees it ticked and locked. */
-    public function test_district_user_cannot_change_the_officer_levels(): void
+    /** 25-11-2026: a District user chooses only the Cluster / Block officers; District / State officers follow the State. */
+    public function test_district_user_chooses_block_and_cluster_only(): void
     {
         $payload = ['enabled' => 1, 'daily_limit' => 2, 'selection' => 'priority', 'low_rating_below' => 50, 'recent_days' => 30, 'weekly_off' => [0]];
         $admin = $this->admin();
-        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'state', 'levels' => ['cluster', 'block']] + $payload)->assertRedirect();
+        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'state', 'levels' => ['cluster', 'district']] + $payload)->assertRedirect();
 
         $districtId = $this->cluster->block->district_id;
         $d = $this->officer(UserLevel::District, $this->cluster);
         $this->grant($d, Permission::MANAGE_USERS);
-        $this->actingAs($d->fresh())->get(route('today.settings'))->assertOk()
-            ->assertSee('Set by the State Administrator')
-            ->assertSee('value="block" id="lv0block" disabled checked', false)
-            ->assertSee('value="state" id="lv0state" disabled >', false);
-        $this->put(route('today.settings.update'), ['levels' => ['state']] + array_merge($payload, ['daily_limit' => 1]))->assertRedirect();
+        // untouched district: the State's levels exactly
+        $this->assertSame(['cluster', 'district'], DailyDisplaySetting::forDistrict($districtId)->levels);
 
+        $html = $this->actingAs($d->fresh())->get(route('today.settings'))->assertOk()
+            ->assertSee('District and State officers follow the State default')
+            ->assertSee('name="levels[]" value="cluster" id="lv0cluster" checked', false)
+            ->assertSee('name="levels[]" value="block" id="lv0block"', false)->getContent();
+        $this->assertStringNotContainsString('value="district" id="lv0district"', $html);
+        $this->assertStringNotContainsString('value="state" id="lv0state"', $html);
+
+        // a crafted "state" is dropped; their Block choice is kept, District officers come from the State
+        $this->put(route('today.settings.update'), ['levels' => ['block', 'state']] + array_merge($payload, ['daily_limit' => 1]))->assertRedirect();
         $row = DailyDisplaySetting::where('district_id', $districtId)->firstOrFail();
-        $this->assertNull($row->getRawOriginal('levels'));
-        $this->assertTrue($row->followsStateLevels());
-        $this->assertSame([1, ['cluster', 'block']], [DailyDisplaySetting::forDistrict($districtId)->daily_limit, DailyDisplaySetting::forDistrict($districtId)->levels]);
+        $this->assertSame(['block'], $row->levels);
+        $this->assertSame(['block', 'district'], DailyDisplaySetting::forDistrict($districtId)->levels);
 
-        // the district follows a later State change
-        DailyDisplaySetting::state()->update(['levels' => ['cluster']]);
-        $this->assertSame(['cluster'], DailyDisplaySetting::forDistrict($districtId)->levels);
+        $svc = app(DailySchoolListService::class);
+        $this->assertTrue($svc->appliesTo($this->officer(UserLevel::Block, $this->cluster)));
+        $this->assertFalse($svc->appliesTo($this->crcc()));
 
-        // the State Admin may still give a district its own levels
-        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'district', 'district_id' => $districtId, 'levels' => ['district']] + $payload)->assertRedirect();
-        $this->assertSame(['district'], DailyDisplaySetting::forDistrict($districtId)->levels);
+        // a later State change of the upper levels reaches the district; its own Block choice stays
+        DailyDisplaySetting::state()->update(['levels' => ['cluster', 'state']]);
+        $this->assertSame(['block', 'state'], DailyDisplaySetting::forDistrict($districtId)->levels);
+
+        // the State Admin's district form follows the same rule
+        $this->actingAs($admin)->put(route('today.settings.update'), ['scope' => 'district', 'district_id' => $districtId, 'levels' => ['cluster', 'district']] + $payload)->assertRedirect();
+        $this->assertSame(['cluster'], $row->fresh()->levels);
     }
 
     public function test_open_draft_shows_continue_on_the_row_until_submitted(): void

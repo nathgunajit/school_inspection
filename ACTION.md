@@ -2691,3 +2691,20 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `User_Roles_and_Permissions.md`: §5 navigation table, rebuilt for the merged items, tabs and groups, adding Today's Schools, Notices, Holidays and the State Admin-only Rating tab.
   - Rebuilt `Product Details/School_Inspection_Product_Details.docx`.
 - **Verified:** the build wrote the file (3.7 MB), and the new sections are in `word/document.xml`.
+
+## 2026-11-25: Today's Schools Settings, District users choose Block / Cluster officers only
+- **Request:** on Today's Schools Settings, a District user's "Officers who get the list" should offer only Block and Cluster.
+- **Decision (user):** editable for their district, starting from the State's ticks. District and State officers follow the State default.
+- **Change:**
+  - New constants `DailyDisplaySetting::DISTRICT_LEVELS` (cluster, block) and `STATE_ONLY_LEVELS` (district, state).
+  - `forDistrict()` now merges the district's own Cluster / Block choice with the State's District / State choice. A null row still follows the State for every level.
+  - `TodaySchoolsController::updateSettings()` keeps only Cluster / Block for any district save, so a crafted level is dropped. The state default keeps all four.
+  - `today/settings.blade.php`: every district form (the District user's, and the State Admin's "Set a district of its own") shows only editable Cluster (CRCC) and Block boxes, with "District and State officers follow the State default". The lock from 636149d is removed.
+- **Files:**
+  - `app/Models/DailyDisplaySetting.php`, `app/Http/Controllers/TodaySchoolsController.php`
+  - `resources/views/today/settings.blade.php`
+  - `tests/Feature/TodaySchoolsTest.php`: `test_district_user_chooses_block_and_cluster_only` replaces the locked test
+  - `CLAUDE.md`, `Product Details/{PROJECT_DOCUMENT,User_Roles_and_Permissions}.md`, rebuilt `School_Inspection_Product_Details.docx`
+- **Verified:**
+  - Full suite 286 passed.
+  - On MySQL the State default is Cluster only. KOKRAJHAR's own row (all four, saved by the State Admin) now gives Cluster + Block: its District / State officers follow the State, which does not tick them.

@@ -10,7 +10,11 @@ use Illuminate\Database\Eloquent\Model;
  */
 class DailyDisplaySetting extends Model
 {
-    public const SELECTIONS = ['priority' => 'By priority (the options below)', 'random' => 'Random from the eligible schools'];
+    /** Officer levels a district setting may choose; the others come from the state default (25-11-2026). */
+    public const DISTRICT_LEVELS = ['cluster', 'block'];
+    public const STATE_ONLY_LEVELS = ['district', 'state'];
+
+    public const SELECTIONS =['priority' => 'By priority (the options below)', 'random' => 'Random from the eligible schools'];
 
     protected $fillable = ['district_id', 'enabled', 'levels', 'daily_limit', 'selection', 'prefer_not_inspected', 'prefer_low_rating', 'low_rating_below',
         'prefer_issues', 'prefer_less_visited', 'carry_forward', 'recent_days', 'weekly_off', 'skip_blocked', 'max_distance_km', 'updated_by'];
@@ -40,10 +44,12 @@ class DailyDisplaySetting extends Model
         if (! $row) {
             return static::state();
         }
-        // 25-11-2026: null levels = the district follows the State's levels (filled in memory, never saved)
-        if ($row->getRawOriginal('levels') === null) {
-            $row->levels = static::state()->levels;
-        }
+        // 25-11-2026: a district chooses only its Cluster / Block officers; District / State officers always follow the State.
+        // Null levels = no own choice yet, so Cluster / Block follow the State too. Filled in memory, never saved.
+        $state = static::state()->levels ?? [];
+        $raw = $row->getRawOriginal('levels');
+        $own = array_intersect($raw === null ? $state : ($row->levels ?? []), self::DISTRICT_LEVELS);
+        $row->levels = array_values(array_unique([...$own, ...array_intersect($state, self::STATE_ONLY_LEVELS)]));
 
         return $row;
     }
