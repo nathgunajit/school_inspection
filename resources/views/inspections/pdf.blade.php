@@ -119,8 +119,9 @@
     /* Photos */
     .photos td { width: 50%; padding: 1.6mm; vertical-align: top; }
     .frame { border: .6px solid #dbe3ef; border-radius: 1.6mm; padding: 1.6mm; background: #fff; }
-    .frame img { width: 100%; max-height: 60mm; }
-    .cap { font-size: 7.4pt; color: #334155; margin-top: 1.2mm; line-height: 1.4; }
+    /* 25-11-2026: every photo is a 4:3 image (PdfPhoto), so a full-width image is the same size in every card */
+    .frame img { width: 100%; height: auto; display: block; }
+    .cap { font-size: 7.4pt; color: #334155; margin-top: 1.2mm; line-height: 1.4; min-height: 15mm; }
     .cap b { color: #0f172a; }
     .muted { color: #64748b; }
     .note { padding: 2mm 3mm; background: #f8fafc; border: .6px dashed #cbd5e1; border-radius: 1.4mm; color: #475569; }

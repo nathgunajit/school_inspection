@@ -78,13 +78,14 @@ class ReportController extends Controller
         $this->authorize('view', $inspection);
         $data = $this->reportData($inspection);
 
-        // Embed photographs as data URIs so DomPDF needs no remote access
+        // Embed photographs as data URIs so DomPDF needs no remote access; since 25-11-2026 each is fitted
+        // into the same 4:3 box (PdfPhoto), so every photo prints at the same size
         $data['images'] = $data['inspection']->evidence
             ->filter(fn ($e) => $e->kind === 'photo' && $e->status === \App\Enums\EvidenceStatus::Uploaded)
             ->mapWithKeys(function ($p) {
             $disk = Storage::disk(EvidenceStorage::DISK);
 
-            return [$p->id => $disk->exists($p->storage_path) ? 'data:'.$p->mime.';base64,'.base64_encode($disk->get($p->storage_path)) : null];
+            return [$p->id => $disk->exists($p->storage_path) ? \App\Support\PdfPhoto::dataUri($disk->get($p->storage_path), $p->mime ?: 'image/jpeg') : null];
         });
 
         // Official header logos (Modification V4), embedded so DomPDF needs no file or remote access

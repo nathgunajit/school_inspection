@@ -86,7 +86,7 @@ class ModificationV11Test extends TestCase
         $this->assertMatchesRegularExpression('/<table class="h newpage"><tr><td class="n">\d+<\/td><td class="t">Fund Received/', $html);
     }
 
-    public function test_network_issue_is_optional_needs_a_remark_and_is_listed_for_the_area(): void
+    public function test_network_issue_and_its_remark_are_optional_and_listed_for_the_area(): void
     {
         $officer = $this->officer(UserLevel::Cluster);
         $cluster = $officer->currentJurisdiction->cluster;
@@ -95,7 +95,8 @@ class ModificationV11Test extends TestCase
         $this->assertNotContains('NET_01', $codes()); // optional
 
         $this->answer($i, 'NET_01', 'yes');
-        $this->assertContains('NET_01', $codes()); // Yes needs a remark
+        $this->assertNotContains('NET_01', $codes()); // 25-11-2026: the remark is optional on Yes
+        $this->get(route('inspections.step', [$i, 1]))->assertOk()->assertSee('Describe the problem (optional)');
         $this->answer($i, 'NET_01', 'yes', 'No mobile signal in the school campus');
         $this->assertNotContains('NET_01', $codes());
 

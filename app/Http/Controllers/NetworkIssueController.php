@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * Modification V11 item 2: inspections where the officer reported an internet / network problem
- * at the school (NET_01 = yes, with a remark), so the administration can arrange and raise it.
+ * at the school (NET_01 = yes; the remark is optional since 25-11-2026), so the administration can arrange and raise it.
  * Scoped through JurisdictionService; drafts are included (the problem is often met mid-inspection).
  * 25-11-2026: the filtered list also downloads as PDF.
  */

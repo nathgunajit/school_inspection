@@ -15,7 +15,7 @@
         @if (in_array($q['type'], ['radio', 'select', 'multi'], true))
             @include('inspections.partials.blank-opts', ['opts' => $q['options']])
             @if ($q['type'] === 'multi')<div class="multi">Tick all that apply</div>@endif
-            @if (! empty($q['remarks_if']))<div class="rmk">Remarks (if {{ $optLabels($q, $q['remarks_if']) }}):<div class="txt"></div></div>@endif
+            @if (! empty($q['remarks_if']))<div class="rmk">Remarks ({{ ! empty($q['remarks_optional']) ? 'optional, ' : '' }}if {{ $optLabels($q, $q['remarks_if']) }}):<div class="txt"></div></div>@endif
         @elseif ($q['type'] === 'number')<table class="nb"><tr><td class="nbx"></td></tr></table>
         @else<div class="txt"></div><div class="txt"></div>@endif
     </td>

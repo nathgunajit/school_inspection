@@ -87,9 +87,16 @@ class InspectionValidator
         return false;
     }
 
-    public static function remarksRequired(array $q, mixed $value): bool
+    /** The remarks box is shown for this answer. */
+    public static function remarksShown(array $q, mixed $value): bool
     {
         return ! empty($q['remarks_if']) && self::matches($value, $q['remarks_if']);
+    }
+
+    /** The remark must be filled (not for remarks_optional questions such as NET_01, since 25-11-2026). */
+    public static function remarksRequired(array $q, mixed $value): bool
+    {
+        return empty($q['remarks_optional']) && self::remarksShown($q, $value);
     }
 
     public static function photoRequired(array $q, mixed $value): bool

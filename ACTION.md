@@ -2480,3 +2480,18 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Verified: `npm run build`. On MySQL (read-only), demo Cluster officer Arjun Saikia gets the KOKRAJHAR (1801) HQ office; no block office has a location yet. The route `reports.network.export-pdf` is registered.
   - New tests: Coverage daily / monthly downloads (dates, Summary, file names, audit), Network PDF (scoped, audited), Cluster officer offices on the map and planner, and the area list without Excel.
   - Full suite: 261 passed (3155 assertions).
+
+## 2026-11-25: Network remark optional, photos the same size in the inspection PDF
+- **Network question** (`NET_01`, step 1): Yes still opens the remarks box, but the remark is no longer mandatory.
+  - New flag `'remarks_optional' => true` in `QuestionnaireDefinition`.
+  - `InspectionValidator::remarksShown()` decides when the box shows; `remarksRequired()` is false for optional remarks.
+  - The wizard label reads "Remarks (optional)" with no red star, and the paper form prints "Remarks (optional, if Yes)".
+  - The Network Issues list and PDF already show "No remark" when it is empty.
+- **Inspection PDF photos**: new `App\Support\PdfPhoto` fits every photo, uncropped (the stamp strip stays whole), into one 1200 × 900 (4:3) light canvas as JPEG. `ReportController::pdf()` embeds that.
+  - `pdf.blade.php`: `.frame img` is full width with automatic height, so portrait, landscape and gallery photos all print at the same size. The caption has a minimum height so the cards in a row line up.
+  - If GD is missing or the image cannot be read, the original is used.
+- Files: `app/Questionnaire/QuestionnaireDefinition.php`, `InspectionValidator.php`, `app/Support/PdfPhoto.php` (new), `app/Http/Controllers/ReportController.php`, `NetworkIssueController.php` (comment), views `inspections/partials/question`, `blank-question`, `inspections/pdf`, tests `ModificationV11Test`, `tests/Unit/PdfPhotoTest.php` (new), `CLAUDE.md`, `Product Details/INSPECTION_FORM_DOCUMENT.md`.
+- Verified: full suite 263 passed. New tests:
+  - A network Yes without a remark is not missing, and the step shows the optional box.
+  - Portrait, landscape and large photos all come out as 1200 × 900 JPEG.
+  - Unreadable bytes are kept as they are.

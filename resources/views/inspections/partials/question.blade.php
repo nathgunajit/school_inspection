@@ -8,7 +8,8 @@
     $visible = V::visible($q, $answers);
     $enabled = V::enabled($q, $answers);
     $required = V::required($q, $answers);
-    $remarksOn = V::isFilled($val) && V::remarksRequired($q, $val);
+    $remarksOn = V::isFilled($val) && V::remarksShown($q, $val);
+    $remarksOptional = ! empty($q['remarks_optional']);
     $photoRule = $q['photo'] ?? null;
     $photoOn = $photoRule === 'required' || $photoRule === 'optional' || (V::isFilled($val) && V::photoRequired($q, $val));
     $photoRequired = V::isFilled($val) && V::photoRequired($q, $val);
@@ -70,11 +71,11 @@
         @endswitch
     </fieldset>
 
-    {{-- Remarks (mandatory for some answers) --}}
+    {{-- Remarks (mandatory for some answers, optional when remarks_optional) --}}
     @if (! empty($q['remarks_if']))
         <div class="q-extra q-remarks {{ $remarksOn ? '' : 'd-none' }}">
-            <label class="form-label text-sm mb-1" for="{{ $code }}__remarks">Remarks <span class="text-danger">*</span></label>
-            <textarea id="{{ $code }}__remarks" rows="2" maxlength="2000" class="form-control" data-remarks="{{ $code }}" placeholder="Describe the problem">{{ $remarks[$code] ?? '' }}</textarea>
+            <label class="form-label text-sm mb-1" for="{{ $code }}__remarks">Remarks @if ($remarksOptional)<span class="text-secondary fw-normal">(optional)</span>@else<span class="text-danger">*</span>@endif</label>
+            <textarea id="{{ $code }}__remarks" rows="2" maxlength="2000" class="form-control" data-remarks="{{ $code }}" placeholder="{{ $remarksOptional ? 'Describe the problem (optional)' : 'Describe the problem' }}">{{ $remarks[$code] ?? '' }}</textarea>
         </div>
     @endif
 

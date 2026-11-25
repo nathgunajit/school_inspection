@@ -110,7 +110,7 @@ Every step page has the same frame:
 - **Dependent questions:**
   - **Greyed out** (`enable_if`): `CND_18` "Internet is Functional" is enabled only when `CND_17` = Yes, and `CND_20` only when `CND_19` = Yes. They stay on screen but greyed. When the parent changes to No, the saved child answer is **cleared on the server**.
   - **Hidden** (`show_if`): `CND_25` (agency) and `CND_26` (Tinkering lab functional) appear only when `CND_24` = Yes.
-- **Network at the school (Modification V11):** `NET_01` "Internet / network problem at the school during this inspection" (Yes / No, optional). **Yes** needs a remark describing the problem. The inspections that report it are listed under **Reports → Network Issues** (`/reports/network-issues`, jurisdiction-scoped, drafts included), so the administration can arrange connectivity and raise the issue.
+- **Network at the school (Modification V11):** `NET_01` "Internet / network problem at the school during this inspection" (Yes / No, optional). **Yes** opens a remarks box to describe the problem; since 25-11-2026 the remark is optional. The inspections that report it are listed under **Reports → Network Issues** (`/reports/network-issues`, jurisdiction-scoped, drafts included), so the administration can arrange connectivity and raise the issue.
 - A tick next to a question means it is saved. A red star means it is required.
 
 ### Step 2: Teacher's & Student's Information

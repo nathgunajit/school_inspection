@@ -13,7 +13,7 @@ namespace App\Questionnaire;
  *  code, label, type (radio|multi|select|text|textarea|number|date),
  *  options [value => label], required (bool),
  *  show_if [code, [values]], enable_if [code, [values]] (shown but disabled otherwise), required_if [code, [values]], required_unless [code, [values]],
- *  remarks_if [values], photo 'required'|'optional'|['required_if' => [values]], photo_category
+ *  remarks_if [values] (remarks box shown; required unless remarks_optional), photo 'required'|'optional'|['required_if' => [values]], photo_category
  *
  * Steps 3–5 and 7 are repeating sections / evidence handled outside the question list.
  */
@@ -89,9 +89,11 @@ class QuestionnaireDefinition
                 ['code' => 'CND_26', 'label' => 'Tinkering Lab is Functional', 'type' => 'radio',
                     'options' => ['yes' => 'Yes', 'no' => 'No', 'na' => 'Not Applicable'],
                     'show_if' => ['CND_24', ['yes']], 'required_if' => ['CND_24', ['yes']]],
-                // Modification V11 item 2: optional; Yes needs a remark so the admin can arrange and raise the issue (reports.network). Never pre-filled.
+                // Modification V11 item 2: optional; Yes opens a remarks box (reports.network). Never pre-filled.
+                // 25-11-2026: the remark is optional too (remarks_optional).
                 ['code' => 'NET_01', 'label' => 'Internet / network problem at the school during this inspection', 'type' => 'radio', 'required' => false,
-                    'options' => self::YN, 'remarks_if' => ['yes'], 'hint' => 'Optional · if Yes, describe the problem (no signal, slow data, …)'],
+                    'options' => self::YN, 'remarks_if' => ['yes'], 'remarks_optional' => true,
+                    'hint' => 'Optional · if Yes, you may describe the problem (no signal, slow data, …)'],
             ],
 
             2 => [
