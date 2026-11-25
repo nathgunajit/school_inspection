@@ -920,3 +920,44 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - The calendar status filter has **Pending visits (day passed)**.
   - Inspected visits are marked **Inspected** at submit, as before.
 - **Tests:** `tests/Feature/ScheduleOrderTest.php`.
+
+### 14.4 Today's Schools: daily school display with admin settings (item 5)
+- **What officers see:** each working day a CRCC finds **Today's Schools** (sidebar and dashboard card), the schools to visit that day. Each row has:
+  - a reason chip
+  - the distance from the office (route start point) and a Google Maps **Route**
+  - **Start** (captures the location, like the planner)
+  - **Skip** with a reason
+- **When the list is made:** on the officer's first view of the day, once, and it stays the same all day (no cron). Submitting an inspection marks the school **Visited**.
+- **No list** on a holiday (Holiday Calendar) or a weekly off day, which shows "Holiday: …" or "Weekly off".
+- **Order of the list:**
+  1. **Manual selection:** schools a higher officer assigned for the day (Today's Schools → Assign schools; only officers below them in their area; working days only).
+  2. **Pending school list:** schools still pending from earlier days (up to 30) move to the next working day. They show "Pending from earlier · since …", and the old row reads "Moved to the next working day".
+  3. **Automatic picks** up to the **daily display limit** (default 2):
+     - **Eligible schools:** active, in the officer's area, not on another officer's list or plan that day, and not inspected within the **recently visited restriction** (30 days).
+     - Optionally, schools *being inspected / already inspected this month by another officer* are skipped, and schools beyond a **maximum distance** are left out.
+     - **Random selection:** a random choice among the eligible schools.
+     - **Priority**, the score of each enabled option:
+       - **Not yet inspected** +100
+       - **Low-rated** (latest rating below the threshold, default 50 %) +40 + the gap
+       - **Issue-based** +50 (+5 per issue): open issues on the latest submitted inspection, from `config('inspection.daily_list.issue_answers')`: no girls' or boys' toilet, no safe drinking water, no electricity, too few classrooms, a network problem
+       - **Less frequently visited**: up to +60 by days since the last visit
+       - Ties are random. The chip shows the strongest reason; "Low rating" reads "Needs support" while ratings are hidden.
+- **Admin settings** (**Today's Schools → Settings**, gate `manage_holidays`): the State Admin sets the state default and any district's own setting; a District officer with Manage users sets their district's (or goes back to the state default). The options:
+  - on / off
+  - which officer levels get the list (default Cluster)
+  - daily limit
+  - selection (priority / random)
+  - the four priorities with the low-rating threshold
+  - carry forward
+  - skip schools taken by another officer
+  - recently visited days
+  - maximum distance (km)
+  - weekly off days
+- **Extra options proposed beyond the document:** levels, weekly off days, maximum distance, skip taken schools, and the on / off switch per district.
+- **Audit:** `daily_list_generated`, `daily_list_assigned`, `daily_list_removed`, `daily_list_skipped`, `daily_settings_updated` / `daily_settings_reset`.
+- **Code:**
+  - tables `daily_display_settings`, `daily_school_list_days` (generated-day marker), `daily_school_lists`
+  - `App\Models\DailyDisplaySetting` / `DailySchoolList`
+  - `App\Services\DailySchoolListService` (`forOfficer()`, `generate()`, `pick()`, `markVisited()` called at submit, `assign()`, `skip()`, `remove()`)
+  - `TodaySchoolsController` (`/today`, `/today/assign`, `/today/settings`)
+- **Tests:** `tests/Feature/TodaySchoolsTest.php`.

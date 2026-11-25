@@ -23,6 +23,7 @@
     $nav = [
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
         ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1
+        ['Today\'s Schools', 'today.index', 'bi-signpost-2', 'today.*', 'conduct_inspections'], // V14 item 5
         ['Find School', 'schools.index', 'bi-search', ['schools.index', 'schools.show', 'schools.blank-form'], 'conduct_inspections'],
         ['My Schools', 'schools.mine', 'bi-buildings', 'schools.mine*', 'conduct_inspections'], // 23-11-2026: own jurisdiction list
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
@@ -34,7 +35,7 @@
         ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
     ];
     // Rating Report: State Administrator only (20-11-2026)
-    array_splice($nav, 6, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
+    array_splice($nav, 7, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
     $navBadge = ['notices.index' => $noticeCount ? '<span class="badge rounded-pill text-bg-warning">'.$noticeCount.'</span>' : ''];

@@ -212,6 +212,18 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - `inspection_schedules.order_ref` / `attachment_*` (private `schedule-orders/`), set by `ScheduleService::attachOrder()` from `store` (the planner posts `FormData`).
     - Served by `schedules.attachment` (`canView`, audited). Shown by the partial `schedules/partials/order` (plan page, dashboard).
     - Item 2 (self-planned visits): a past `planned` stop is **Pending** (`InspectionScheduleItem::isPending()`, calendar filter `status=pending`).
+  - **Today's Schools** (item 5, `/today`, `TodaySchoolsController`, `DailySchoolListService`):
+    - **Tables:**
+      - `daily_display_settings` (null district = state default, a district override like `CoverageSetting`; gate `manage_holidays`)
+      - `daily_school_list_days` (the generated-day marker: `insertOrIgnore` = generate once)
+      - `daily_school_lists` (source auto / carried / manual, status pending / visited / skipped / carried; unique (school, day) and (officer, day, school))
+    - **Generation:** lazy on the first view (dashboard or `/today`), in the order manual → carried (pending < 30 days) → `pick()` up to `daily_limit`.
+    - **`pick()` eligibility:** jurisdiction schools, active; not on another officer's list or plan that day; not inspected within `recent_days`; `blockedSchools` when `skip_blocked`; `max_distance_km` from `startInfo()`.
+    - **`pick()` scoring:** never inspected 100, low rating 40 + gap, issues 50 + 5 each (`config('inspection.daily_list.issue_answers')`), less visited ≤ 60, random tie-break; or `selection = random`.
+    - No list on holidays or `weekly_off` (`HolidayCalendar::offReason`).
+    - `markVisited()` runs at submit (try/catch).
+    - `assign()` / `remove()` are for superiors only (`ScheduleService::isSuperior`).
+    - The geo-capturing Start form (`form[data-geo-start]`) is delegated in `app.js`.
 - **Linked dates** (25-11-2026, `date-picker.js`): From / To boxes (`from`/`to`, `custom_from`/`custom_to`, map `fFrom`/`fTo`) limit each other: To cannot be before From, From cannot be after To.
 - **Filter bars** (23-11-2026): every filter form ends with `<x-filter-buttons />` (Apply + Reset, `.btn-filter` fixed 40 px / 44 px on phones, min width 112 px; props `reset`, `label`, `icon`). Don't add page-specific Apply buttons.
 - **Section loading** (23-11-2026, `resources/js/filter-partial.js`): a GET `form[data-filter]` and same-page links (pagination, sort, drill-down) inside a `[data-filter-region]` fetch the page and swap every `[data-filter-region][id]` (filter form, header download buttons, results) with the response's; only `[data-filter-results]` boxes show the spinner overlay (`.section-loader`, text from `data-loader-text`). The URL is pushed (Back works); errors and redirects fall back to a normal load. No server change: the full page is returned. `[data-autosubmit]` (with `data-clears="a,b"`) and `form[data-confirm]` are delegated in `app.js`, so swapped content keeps working. Used on Inspections (mine / area), Coverage, Ratings, Network issues, My Schools, School Master, Users, Audit Log, Login report and Daily report; don't put `data-loader="heavy"` on these filter forms.

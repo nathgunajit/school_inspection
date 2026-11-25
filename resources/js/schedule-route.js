@@ -33,17 +33,5 @@ if (el) {
     fitTo(map, pts, cfg, 14);
 }
 
-// "Start inspection" from a published plan: capture the location first, like the school page
-document.querySelectorAll('form[data-geo-start]').forEach((f) => f.addEventListener('submit', (e) => {
-    if (f.dataset.located) return;
-    e.preventDefault();
-    const btn = f.querySelector('button');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…';
-    const go = () => { f.dataset.located = 1; f.submit(); };
-    if (!navigator.geolocation) return go();
-    navigator.geolocation.getCurrentPosition((p) => {
-        f.lat.value = p.coords.latitude; f.lng.value = p.coords.longitude; f.accuracy.value = Math.round(p.coords.accuracy);
-        go();
-    }, go, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
-}));
+// "Start inspection" (form[data-geo-start]) is handled in app.js since V14, so Today's schools uses it too
+

@@ -416,7 +416,7 @@ class ScheduleService
     }
 
     /** school_id => reason, for schools another officer is inspecting now or already inspected in the plan's month. */
-    private function blockedSchools(User $officer, Carbon $date, Collection $ids): array
+    public function blockedSchools(User $officer, Carbon $date, Collection $ids): array
     {
         $others = fn (): Builder => Inspection::query()->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)->with('officer:id,name');
         $out = [];

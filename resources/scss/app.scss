@@ -2532,3 +2532,23 @@ $office-block: #00838f;
 .notice-stat { padding: .5rem; border-radius: .5rem; background: #f1f5f9; b { display: block; font-size: 1.25rem; } span { font-size: .72rem; color: #64748b; }
     &.is-read b { color: $primary; } &.is-ack b { color: $success; } }
 .notice-readers { max-height: 60vh; overflow: auto; }
+
+// ---------- V14 item 5: Today's schools ----------
+.today-row { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem 1rem; border-top: 1px solid #eef2f7;
+    &.is-visited { background: rgba($success, .04); }
+    &.is-skipped, &.is-carried { opacity: .75; } }
+.today-actions { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; flex: 0 0 auto; form { margin: 0; } }
+.today-skip { padding: 0 1rem .7rem 3.2rem; }
+.today-reason { display: inline-block; font-size: .7rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: #eef2f7; color: #475569;
+    &.is-not_inspected { background: rgba($primary, .1); color: $primary; }
+    &.is-low_rating { background: rgba($danger, .08); color: darken($danger, 10%); }
+    &.is-issue { background: rgba($warning, .15); color: darken($warning, 18%); }
+    &.is-less_visited { background: rgba($info, .12); color: darken($info, 20%); }
+    &.is-carried { background: rgba($warning, .12); color: darken($warning, 22%); }
+    &.is-manual { background: rgba($success, .12); color: darken($success, 5%); } }
+.today-off { display: flex; gap: 1rem; align-items: center; padding: 1.25rem; border-radius: .75rem; background: rgba($danger, .05); border: 1px solid rgba($danger, .2);
+    > i { font-size: 2rem; color: $danger; } b { display: block; } span { font-size: .85rem; color: #64748b; } }
+.assign-list { max-height: 65vh; overflow: auto; }
+.setting-checks { display: grid; gap: .6rem; .form-check-label { display: block; b { display: block; font-weight: 600; } span { display: block; font-size: .8rem; color: #64748b; } } }
+.setting-num { width: 4.5rem; height: auto; padding: .1rem .4rem; font-size: .8rem; }
+@include media-breakpoint-down(md) { .today-row { flex-wrap: wrap; } .today-actions { width: 100%; justify-content: flex-start; padding-left: 2.2rem; } .today-skip { padding-left: 1rem; } }

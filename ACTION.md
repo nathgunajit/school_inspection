@@ -2555,3 +2555,38 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `npm run build`, and migrated on MySQL.
   - New tests (3): an order assigned by the Block officer opens for the CRCC but not for an outsider, a bad file type is refused, JSON without a file still works, Pending shows on the plan page and in the filter, and every level plans for itself.
   - Full suite: 273 passed.
+
+## 2026-11-25: V14 updated document, Module D: Today's Schools (daily school display) with admin settings
+- **Today's Schools** (sidebar, dashboard card, `/today`):
+  - The CRCC's schools for the day, each with a reason, the distance from the office, Route, Start (geo-captured) and Skip with a reason.
+  - The list is made once on the first view of a working day and stays the same all day.
+  - Submitting an inspection marks the school Visited.
+  - No list on holidays or weekly off days. The last 30 days can be looked back on.
+- **All 10 settings from the document's table are done:**
+  - holidays
+  - daily limit (default 2)
+  - random selection
+  - not yet inspected first
+  - low-rated schools (threshold %)
+  - issue-based priority (configured bad answers on the latest inspection)
+  - pending school list (carry forward to the next working day)
+  - less frequently visited
+  - recently visited restriction (days)
+  - manual school selection (Assign schools for higher officers, with remove)
+- **More options proposed and built:**
+  - which officer levels get the list
+  - weekly off days
+  - maximum distance from the office
+  - skip schools being inspected / already done this month by another officer
+  - an on / off switch per district
+- **Settings screen** (`/today/settings`): the State Admin sets the state default plus district settings (a list with reset); a District officer with Manage users sets their own district or uses the state default. Audited.
+- **The "Start inspection" geo capture** (`form[data-geo-start]`) moved from `schedule-route.js` into `app.js` (delegated), so the plan page and Today's Schools share it.
+- **Files:**
+  - new: migration `2026_11_25_000005_create_daily_school_lists`, `app/Models/DailyDisplaySetting.php`, `DailySchoolList.php`, `app/Services/DailySchoolListService.php`, `app/Http/Controllers/TodaySchoolsController.php`, views `today/index`, `assign`, `settings`, `tests/Feature/TodaySchoolsTest.php`
+  - changed: `InspectionController::submit` (`markVisited`), `ScheduleService::blockedSchools()` (now public), `config/inspection.php` (`daily_list.issue_answers`), `DashboardController` + `dashboard` view, `routes/web.php`, the sidebar, `resources/js/app.js`, `schedule-route.js`, `app.scss`
+  - docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md` §14.4
+- **Verified:**
+  - `npm run build`, and migrated on MySQL.
+  - On MySQL (read-only `pick()`), Arjun Saikia (GOSSAINICHINA) gets 2 never-inspected schools in 0.07 s.
+  - New tests (7): the limit of 2, made once, the dashboard, level switch off; priority order (never inspected, then low rating, then less visited) with recent schools left out, and random mode; issue priority; carry forward, visited at submit and skip; holiday / weekly off; manual assignment (scope, remove, fills the limit); settings (state, district override, reset, rights).
+  - Full suite: 280 passed.

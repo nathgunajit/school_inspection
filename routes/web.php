@@ -18,6 +18,7 @@ use App\Http\Controllers\RatingReportController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\TodaySchoolsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
@@ -135,6 +136,17 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::put('/{holiday}', [HolidayController::class, 'update'])->name('update');
                 Route::delete('/{holiday}', [HolidayController::class, 'destroy'])->name('destroy');
             });
+        });
+
+        /* ---------------- V14 item 5: Today's schools (daily school display) ---------------- */
+        Route::prefix('today')->name('today.')->group(function () {
+            Route::get('/', [TodaySchoolsController::class, 'index'])->middleware('can:conduct_inspections')->name('index');
+            Route::post('/rows/{row}/skip', [TodaySchoolsController::class, 'skip'])->name('skip');
+            Route::delete('/rows/{row}', [TodaySchoolsController::class, 'remove'])->name('remove');
+            Route::get('/assign', [TodaySchoolsController::class, 'assign'])->middleware('can:view_reports')->name('assign');
+            Route::post('/assign', [TodaySchoolsController::class, 'storeAssign'])->middleware(['can:view_reports', 'throttle:30,1'])->name('assign.store');
+            Route::get('/settings', [TodaySchoolsController::class, 'settings'])->middleware('can:manage_holidays')->name('settings');
+            Route::put('/settings', [TodaySchoolsController::class, 'updateSettings'])->middleware('can:manage_holidays')->name('settings.update');
         });
 
         /* ---------------- V14 item 1: Instruction / Notification / Order letters ---------------- */

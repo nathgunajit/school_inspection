@@ -95,6 +95,19 @@ return [
         'import_max_kb' => 2048,
     ],
 
+    // V14 item 5: Today's schools. The settings (limit, priorities, …) are in the daily_display_settings table (admin screen);
+    // these answers on a school's latest submitted inspection count as open issues ("Issue-based priority").
+    'daily_list' => [
+        'issue_answers' => [
+            'CND_03' => ['no'], // Functional Toilet for Girls
+            'CND_05' => ['no'], // Functional Toilet for Boys
+            'CND_07' => ['no'], // Safe Drinking Water Facility
+            'CND_08' => ['no'], // Electricity
+            'CND_11' => ['no'], // Adequate Number of Classrooms
+            'NET_01' => ['yes'], // Internet / network problem
+        ],
+    ],
+
     // V14 item 1: Instruction / Notification / Order letter attachments (private disk, notices/)
     'notice' => [
         'max_kb' => (int) env('NOTICE_MAX_KB', 5120),

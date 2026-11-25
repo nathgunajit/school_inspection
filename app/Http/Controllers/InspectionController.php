@@ -529,6 +529,11 @@ class InspectionController extends Controller
         AuditLogger::log($wasUnlocked ? 'inspection_resubmitted' : 'inspection_submitted', $inspection, ['inspection_no' => $inspection->inspection_no]);
         app(\App\Services\ScheduleService::class)->markInspected($inspection); // New Module 2: the visit on today's published plan is done
         try {
+            app(\App\Services\DailySchoolListService::class)->markVisited($inspection); // V14 item 5: Today's schools
+        } catch (\Throwable $e) {
+            report($e);
+        }
+        try {
             app(\App\Services\RatingService::class)->rate($inspection); // New Module 3: rating on submit and on resubmit after unlock
         } catch (\Throwable $e) {
             report($e); // never block a submission; `php artisan ratings:recalculate` rates it later

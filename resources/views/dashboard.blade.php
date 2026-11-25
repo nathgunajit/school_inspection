@@ -47,6 +47,33 @@
         @endforeach
     </div>
 
+    {{-- V14 item 5: Today's schools --}}
+    @if ($todaySchools)
+        @php $tsRows = $todaySchools['rows']->whereIn('status', ['pending', 'visited', 'skipped']); @endphp
+        <div class="dash-panel mb-4">
+            <div class="dash-panel-head">
+                <h3><i class="bi bi-signpost-2"></i>Today's schools @if ($todaySchools['state'] === 'list')· {{ $tsRows->where('status', 'visited')->count() }} of {{ $tsRows->count() }} visited @endif</h3>
+                <a href="{{ route('today.index') }}">Open <i class="bi bi-arrow-right"></i></a>
+            </div>
+            @if ($todaySchools['state'] === 'off')
+                <div class="dash-empty"><i class="bi bi-calendar-heart"></i>{{ $todaySchools['reason'] }}. No schools today.</div>
+            @else
+                @forelse ($tsRows as $r)
+                    <a href="{{ route('today.index') }}" class="dash-row">
+                        <span class="plan-no {{ $r->status === 'visited' ? 'is-done' : ($r->status === 'skipped' ? 'is-skipped' : '') }}">{{ $loop->iteration }}</span>
+                        <span class="flex-grow-1 min-w-0">
+                            <span class="d-block fw-semibold text-sm text-truncate text-body">{{ $r->school->name }}</span>
+                            <span class="d-block text-xs text-secondary">{{ $r->reasonLabel() }} · {{ ['pending' => 'To visit', 'visited' => 'Visited', 'skipped' => 'Not visited'][$r->status] ?? ucfirst($r->status) }}</span>
+                        </span>
+                        <i class="bi bi-chevron-right text-secondary"></i>
+                    </a>
+                @empty
+                    <div class="dash-empty"><i class="bi bi-check2-all"></i>No schools listed for today.</div>
+                @endforelse
+            @endif
+        </div>
+    @endif
+
     {{-- V14 item 1: latest instructions / notifications / orders --}}
     @if ($notices->isNotEmpty())
         <div class="dash-panel mb-4">

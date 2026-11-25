@@ -432,3 +432,18 @@ document.querySelectorAll('[data-enhance-selects] select.form-select').forEach(e
     };
     window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
 })();
+
+// "Start inspection" from a plan or from Today's schools (V14): capture the location first, like the school page
+document.addEventListener('submit', (e) => {
+    const f = e.target.closest?.('form[data-geo-start]');
+    if (!f || f.dataset.located) return;
+    e.preventDefault();
+    const btn = f.querySelector('button');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Getting location…'; }
+    const go = () => { f.dataset.located = 1; f.submit(); };
+    if (!navigator.geolocation) { go(); return; }
+    navigator.geolocation.getCurrentPosition((p) => {
+        f.lat.value = p.coords.latitude; f.lng.value = p.coords.longitude; f.accuracy.value = Math.round(p.coords.accuracy);
+        go();
+    }, go, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
+});
