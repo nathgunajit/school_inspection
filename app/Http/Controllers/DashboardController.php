@@ -51,6 +51,7 @@ class DashboardController extends Controller
                 ->with(['reads' => fn ($r) => $r->where('user_id', $user->id), 'creator:id,name'])
                 ->orderByDesc('notice_date')->orderByDesc('id')->take(6)->get()
                 ->sortBy(fn ($n) => $n->reads->first()?->read_at ? 1 : 0)->values()->take(4);
+        $noticeUnread = app(\App\Services\NoticeService::class)->unreadCount($user); // cached 60 s
 
         // 25-11-2026: Calendar & Notices, this month's holidays (all types) and the next ones
         $holidays = app(\App\Services\HolidayCalendar::class);
@@ -58,7 +59,7 @@ class DashboardController extends Controller
         $calendar = [
             'month' => today()->startOfMonth(),
             'byDate' => $holidays->between(today()->startOfMonth(), today()->endOfMonth(), $holidayDistrict)->groupBy('date'),
-            'upcoming' => $holidays->upcoming($holidayDistrict, 6),
+            'upcoming' => $holidays->upcoming($holidayDistrict, 4),
             'weeklyOff' => $holidays->weeklyOff(app(\App\Services\DailySchoolListService::class)->settingFor($user)->weekly_off),
         ];
 
@@ -66,7 +67,7 @@ class DashboardController extends Controller
         $daily = app(\App\Services\DailySchoolListService::class);
         $todaySchools = $daily->appliesTo($user) ? $daily->forOfficer($user) : null;
 
-        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'todaySchools', 'calendar') + [
+        return view('dashboard', compact('user', 'stats', 'drafts', 'recent', 'pending', 'todayPlan', 'notices', 'noticesSent', 'noticeUnread', 'todaySchools', 'calendar') + [
             'jurisdiction' => $j->current($user)?->loadMissing('state', 'district', 'block', 'cluster'),
         ]);
     }

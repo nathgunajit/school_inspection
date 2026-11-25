@@ -148,6 +148,16 @@ class HolidayCalendarTest extends TestCase
         $this->get(route('dashboard'))->assertOk()->assertSee('Notices &amp; orders sent', false);
     }
 
+    /** 25-11-2026: Notices & Orders sits after Map View in the menu; the dashboard has the calendar and notices rail. */
+    public function test_sidebar_lists_notices_after_map_view(): void
+    {
+        $u = $this->officer(UserLevel::District, Cluster::orderBy('id')->first());
+        $this->actingAs($u)->get(route('dashboard'))->assertOk()
+            ->assertSeeInOrder(['Map View', 'Notices &amp; Orders', 'Inspection Schedules'], false)
+            ->assertSee('Upcoming holidays')->assertSee('Notices &amp; orders', false)->assertSee('dash-hero-pill', false);
+        $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()->assertSeeInOrder(['Inspections in Area', 'Rating Report', 'Coverage Report'], false);
+    }
+
     public function test_import_reads_the_type_column_and_templates_download(): void
     {
         $y = now()->year + 1;

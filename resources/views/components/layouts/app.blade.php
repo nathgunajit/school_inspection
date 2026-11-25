@@ -22,20 +22,19 @@
     $u = auth()->user();
     $nav = [
         ['Dashboard', 'dashboard', 'bi-grid-1x2', 'dashboard', null],
-        ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1
         ['Today\'s Schools', 'today.index', 'bi-signpost-2', 'today.*', 'conduct_inspections'], // V14 item 5
         ['Find School', 'schools.index', 'bi-search', ['schools.index', 'schools.show', 'schools.blank-form'], 'conduct_inspections'],
         ['My Schools', 'schools.mine', 'bi-buildings', 'schools.mine*', 'conduct_inspections'], // 23-11-2026: own jurisdiction list
         ['My Inspections', 'inspections.mine', 'bi-clipboard-check', 'inspections.mine', 'conduct_inspections'],
         ['Inspections in Area', 'inspections.area', 'bi-list-check', 'inspections.area', 'view_reports'],
+        ['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin'], // State Administrator only (20-11-2026)
         ['Coverage Report', 'reports.coverage', 'bi-pie-chart', 'reports.coverage*', 'view_reports'],
         ['Network Issues', 'reports.network', 'bi-wifi-off', 'reports.network', 'view_reports'], // V11
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
+        ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1 (after Map View since 25-11-2026)
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
         ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
     ];
-    // Rating Report: State Administrator only (20-11-2026)
-    array_splice($nav, 7, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
     $navBadge = ['notices.index' => $noticeCount ? '<span class="badge rounded-pill text-bg-warning">'.$noticeCount.'</span>' : ''];

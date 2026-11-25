@@ -2601,3 +2601,18 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Dashboard Calendar & Notices** (`dashboard/partials/calendar.blade.php`, every user): mini month calendar (today ringed, weekly off grey, holiday red, dots per type, names on hover), Upcoming holidays (next 6, with type chip), and the Notices & orders list beside it; the State Admin now sees the latest notices **sent** with read counts (was hidden).
 - **Files:** migration `2026_11_25_000006_add_type_to_holidays`, `app/Models/Holiday.php`, `app/Services/HolidayCalendar.php`, `app/Http/Controllers/HolidayController.php`, `DashboardController.php`, `app/Exports/HolidayTemplateExport.php`, `HolidaySheet.php`, `database/data/assam_holidays_2026.php`, `database/seeders/AssamHolidaySeeder.php`, `DatabaseSeeder.php`, views `holidays/index`, `dashboard`, `dashboard/partials/calendar`, `app.scss`, `tests/Feature/HolidayCalendarTest.php`, docs `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md` §14.1.
 - **Verified:** `npm run build`; new tests (3): restricted / half not blocking but shown (page, filter, dashboard, admin type, sent notices), import type column + both template downloads, seeder counts / re-run / district rows; full suite 283 passed. MySQL: 18-02-2026 is off for LAKHIMPUR and a working day for KOKRAJHAR; 15-04-2026 is off (Bohag Bihu).
+
+## 2026-11-25: Menu order, Restricted holidays in green, cleaner dashboard
+- **Request:** move Notices & Orders after Map View; show Restricted holidays in green; make the dashboard more attractive and clean.
+- **Sidebar:** Notices & Orders now comes right after Map View (before Inspection Schedules). The Rating Report row is written inline after Inspections in Area (gate `state_admin`) instead of the old `array_splice` at a fixed index.
+- **Colours:** `.holiday-chip.is-restricted` and `.mini-dot.is-restricted` are green (`$success`); the half holiday moved from teal to sky blue (`$half-holiday` #0284c7) so the two don't look alike. Applies to the Holiday Calendar page and the dashboard.
+- **Dashboard:**
+  - Quick-link pills in the welcome banner (Today's schools, Plan inspections, Map, Notices with the unread count, Holidays; by permission).
+  - KPI cards have a colour top bar.
+  - The body has two columns: work on the left (Today's schools, Today's plan, Recent submissions + drafts) and a right rail (`col-xl-4`) with the Calendar card and the Notices card stacked.
+  - The cards are split into the partials `dashboard/partials/calendar` and `dashboard/partials/notices`.
+  - Panels have a soft shadow, a divided header with a tinted icon square and a pill link, and hairline row dividers.
+  - In the mini calendar, today is a filled blue circle.
+  - Upcoming holidays shows the next 4 with "today / tomorrow / in N days".
+- **Files:** `resources/views/components/layouts/app.blade.php`, `resources/views/dashboard.blade.php`, `dashboard/partials/calendar.blade.php`, new `dashboard/partials/notices.blade.php`, `DashboardController.php` (`$noticeUnread`, 4 upcoming), `resources/scss/app.scss`, `tests/Feature/HolidayCalendarTest.php`, `CLAUDE.md`.
+- **Verified:** `npm run build`; new test (menu order, Rating Report position, dashboard rail); full suite 284 passed.
