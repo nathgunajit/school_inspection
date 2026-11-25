@@ -10,6 +10,14 @@ class UserJurisdiction extends Model
 
     protected $casts = ['start_date' => 'date', 'end_date' => 'date'];
 
+    /** 25-11-2026: JurisdictionService::current() remembers postings for the request; a change forgets them. */
+    protected static function booted(): void
+    {
+        $forget = fn () => \App\Support\RequestMemo::forget('posting.');
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
     public function user() { return $this->belongsTo(User::class); }
     public function state() { return $this->belongsTo(State::class); }
     public function district() { return $this->belongsTo(District::class); }

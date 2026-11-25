@@ -28,9 +28,11 @@ Route::get('/locations/{type}', LocationLookupController::class)->whereIn('type'
     ->middleware('throttle:120,1')->name('locations');
 
 /* ---------------- Guest ---------------- */
+// 25-11-2026, one user per browser: the sign-in page is open while signed in too; it then shows who is signed in
+Route::get('/login', [LoginController::class, 'show'])->name('login');
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+Route::post('/login/switch', [LoginController::class, 'switchUser'])->middleware('auth')->name('login.switch');
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
     Route::get('/login/math-captcha', [LoginController::class, 'mathCaptcha'])->middleware('throttle:60,1')->name('login.math-captcha');
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:register');

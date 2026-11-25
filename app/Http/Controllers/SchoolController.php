@@ -184,10 +184,15 @@ class SchoolController extends Controller
         $q = trim((string) $request->q);
         $done = [InspectionStatus::Submitted, InspectionStatus::Unlocked];
 
+        // 25-11-2026: counts and dates of the inspections the officer may see (own + lower levels).
+        // One grouped table joined once instead of two sub-queries per school: the state-wide list
+        // (44,000 schools) went from about 940 ms to the time of one sort (DB_INDEXING.md section 9).
+        $visits = \App\Support\InspectionVisibility::apply(\App\Models\Inspection::query()->whereIn('status', $done), $user)
+            ->selectRaw('school_id, count(*) as visits, max(inspection_date) as last_inspected_on')->groupBy('school_id');
+
         return $this->j->schools($user)
-            // 25-11-2026: counts and dates of the inspections the officer may see (own + lower levels)
-            ->withMax(['inspections as last_inspected_on' => fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done), $user)], 'inspection_date')
-            ->withCount(['inspections as visits' => fn ($w) => \App\Support\InspectionVisibility::apply($w->whereIn('status', $done), $user)])
+            ->leftJoinSub($visits, 'sv', 'sv.school_id', '=', 'schools.id')
+            ->select('schools.*', 'sv.last_inspected_on')->selectRaw('coalesce(sv.visits, 0) as visits')
             ->when($q !== '', fn ($w) => ctype_digit($q)
                 ? $w->where('udise_code', 'like', $q.'%')
                 : $w->where('name', 'like', '%'.$q.'%'))

@@ -8,8 +8,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1565c0">
     @include('partials.password-key')
+    @include('partials.page-user')
     <title>{{ $title }} · {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
+    {{-- 25-11-2026, faster loading: the icon font starts downloading with the page --}}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="{{ \Illuminate\Support\Facades\Vite::asset('node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2') }}">
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
 </head>
 <body class="reg-page">
@@ -17,11 +20,11 @@
     {{-- Official header strip --}}
     <header class="reg-topbar">
         <div class="container-xl d-flex align-items-center gap-3">
-            <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam" class="reg-logo-govt">
+            <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam" class="reg-logo-govt" decoding="async">
             <div class="reg-topbar-title">
                 <div class="t0 d-none d-sm-block">Government of Assam · Samagra Shiksha, Assam</div>
                 <div class="t1"><i class="bi bi-clipboard2-check"></i>School Inspection <span class="d-none d-sm-inline">Management System</span></div>            </div>
-            <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" class="reg-logo-ss ms-auto">
+            <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" class="reg-logo-ss ms-auto" decoding="async">
         </div>
     </header>
 

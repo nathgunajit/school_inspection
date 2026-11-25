@@ -89,6 +89,8 @@ Re-run the check on the server after the pilot with: `EXPLAIN select … from in
 | 9 | Remove the unused `answers_question_code_idx` (migration `2026_11_18_000007`) | Done; applied locally |
 | 10 | Server: run `php artisan migrate` (adds `000006`, removes the unused index in `000007`), then `ANALYZE TABLE inspections, inspection_answers, schools` | To do at deployment |
 | 11 | Set `innodb_buffer_pool_size` to 1–2 GB. At 650,000 answers the answer table plus its indexes are already about 67 MB, four times the XAMPP default of 16 MB (LOAD_TEST.md finding 4) | To do at deployment |
+| 13 | V14 / real School Master review: school indexes, grouped visit join, request memo, `db:maintain`, slow query log (section 9) | Done (25-11-2026) |
+| 14 | Server: `php artisan migrate` (adds `000012`) and schedule `db:maintain` (in `schedule:run`) | To do at deployment |
 | 12 | Phase 2 question-wise totals: join through `inspections` (district/block/cluster + status + date indexes), then group by `question_code`. Do not filter answers by question alone | Phase 2 |
 
 ## 8. Volume check (18-11-2026, after the load test)
@@ -136,3 +138,41 @@ Re-run the check on the server after the pilot with: `EXPLAIN select … from in
 - My inspections list: about 40 rows per officer to sort, so an index on the sort order is not needed. One officer makes about 300 inspections a year.
 - Name search (contains): 5 ms at 5,000 schools, an estimated 50 ms at 50,000. FULLTEXT stays the next step only if needed.
 - Sessions: read by primary key.
+
+## 9. V14 tables and the real School Master (25-11-2026)
+**Setup:** MySQL `schoolinspection` with the real UDISE+ School Master (44,197 schools), 19 users, 11 notices and the V14 tables (notices, holidays, Today's Schools). The main pages were loaded in-process for a State Admin, a District, a Block and a Cluster officer (inside a rolled-back transaction). Every query was captured and `EXPLAIN`ed. The tables were analysed first.
+
+**Found:**
+| Query (screen) | Before | Problem |
+|---|---|---|
+| Active schools count (dashboard, Inspections in My Area) | 116 ms | full scan of `schools` (no index starts with `status`) |
+| State-wide school suggestions (`status = active`, name contains, first 10 by name) | 88 ms | full scan + sort |
+| Coverage: active schools per district / block / cluster | 94 ms | full scan + temporary table |
+| My Schools / Find School, state-wide | 940 ms | two correlated sub-queries per school (count and last date of visits) for all 44,197 rows |
+| Current posting of the user (`user_jurisdictions`) | 7–11 times per dashboard | the same look-up repeated per page |
+| Coverage setting (`coverage_settings`) | 7–9 times per coverage page | the same look-up repeated |
+
+**Done:**
+- **Indexes** (migration `2026_11_25_000012_add_v14_performance_indexes`, skips existing ones):
+  - `schools_status_deleted_name_idx (status, deleted_at, name)`: the counts read the index only; the suggestions walk the index in name order and stop after 10 matches.
+  - `schools_status_deleted_area_idx (status, deleted_at, district_id, block_id, cluster_id)`: the coverage per-area counts read the index only.
+- **One grouped join:** `SchoolController::listQuery()` joins one grouped table of visible visits (`school_id, count, max(date)`) instead of two sub-queries per school.
+- **Request memo:** `App\Support\RequestMemo` keeps the current posting and the coverage setting for the rest of the request. The `UserJurisdiction` / `CoverageSetting` saved and deleted events forget them.
+- **Maintenance:** `php artisan db:maintain` runs monthly (1st, 02:30, after `audit:purge` / `cache:purge`). It runs `ANALYZE TABLE` on 22 main tables, so the optimiser keeps choosing the right index as they grow, and `OPTIMIZE TABLE` on `audit_logs`, `user_login_logs` and `cache*`, which lose rows every month. About 0.4 s locally.
+- **Slow query log:** a query slower than `SLOW_QUERY_MS` (default 1000 ms) is written to the Laravel log with the page path.
+
+**After (same data):**
+| Query (screen) | Before | After |
+|---|---|---|
+| Active schools count | 116 ms | 51 ms (index only) |
+| School suggestions, state-wide | 88 ms | 19 ms |
+| Coverage per area, state | 94 ms | 63 ms |
+| My Schools, state-wide (first page) | 940 ms | 550 ms |
+| Queries per dashboard (State Admin / officers) | 32 / 41–51 | 25 / 30–40 |
+| Queries per coverage page | 19–23 | 13–16 |
+
+**Checked and left as is:**
+- Notices, notice reads, holidays, Today's Schools and schedule items are already served by their unique keys (`(school_id, list_date)`, `(officer_id, list_date, school_id)`, `(school_id, schedule_date)`, `(notice_id, user_id)`, `(user_id, notice_id)`) and are small. Re-check them after a year of use.
+- `inspections.officer_level` (visibility) is filtered after the `(district|block|cluster)_id, status, inspection_date` index range; no extra index is needed.
+- **The state-wide My Schools sort (44,000 rows):** this is the one query still above 0.5 s, and only for State-level users. A deferred join (sorting ids only) is the next step if it becomes a problem.
+- **Name contains search:** still a scan (section 6); FULLTEXT only if needed.

@@ -16,6 +16,29 @@
         </div>
     </x-slot:hero>
 
+    @isset($signedIn)
+        {{-- 25-11-2026, one user per browser: someone is already signed in on this browser --}}
+        <div class="reg-card login-card login-signed-in mx-auto" data-si-signed-in>
+            <div class="reg-block-head mb-3">
+                <span class="reg-icon tone-warning"><i class="bi bi-person-lock"></i></span>
+                <div><h2>Already signed in</h2><p>Only one user can be signed in at a time in one browser.</p></div>
+            </div>
+            <div class="lsi-user">
+                <x-user-avatar :user="$signedIn" size="lg" />
+                <div class="min-w-0">
+                    <div class="lsi-name text-truncate">{{ $signedIn->name }}</div>
+                    <div class="lsi-role text-truncate">{{ $signedIn->designation_label ?? "Officer" }} · {{ $signedIn->level->label() }}</div>
+                    <div class="lsi-note"><i class="bi bi-info-circle"></i>is already signed in on this browser.</div>
+                </div>
+            </div>
+            <div class="d-grid gap-2 mt-3">
+                <a href="{{ route("dashboard") }}" class="btn btn-primary"><i class="bi bi-arrow-right-circle"></i>Continue as {{ \Illuminate\Support\Str::of($signedIn->name)->explode(" ")->first() }}</a>
+                <form method="POST" action="{{ route("login.switch") }}" data-si-signout>@csrf
+                    <button class="btn btn-soft-danger w-100" type="submit" data-loading-text="Signing out…"><i class="bi bi-box-arrow-right"></i>Sign out and sign in as another user</button>
+                </form>
+            </div>
+        </div>
+    @else
     <div class="login-grid">
         {{-- Sign-in card --}}
         <div class="reg-card login-card">
@@ -73,6 +96,8 @@
             <div class="login-help"><i class="bi bi-headset"></i>Need help? Contact your Block or District office, or the State Administrator.</div>
         </div>
     </div>
+
+    @endisset
 
     {{-- Demo accounts (non-production only, see LoginController::demoUsers) --}}
     @if ($demoUsers->isNotEmpty())

@@ -1,7 +1,7 @@
 // Review & Submit page: expand / collapse all steps, photo viewer, confirm + submit with location.
 // Loaded as a Vite module (after app.js has set window.bootstrap). Inline scripts ran before
 // bootstrap was available, which broke "Expand all" whenever photos were present (Modification V3 item 8).
-import { Collapse, Modal } from 'bootstrap';
+import { Collapse, Modal } from './bootstrap-lite';
 import { offlineStore, syncAll } from './offline-queue';
 
 /* ---------------- Expand / collapse all steps ---------------- */

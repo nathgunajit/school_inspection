@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#1565c0">
     @include('partials.password-key')
+    @include('partials.page-user')
     {{-- Idle sign-out warning (Modification V3): minutes of inactivity before the session ends --}}
     <meta name="session-lifetime" content="{{ (int) config('session.lifetime') }}">
     <meta name="session-ping" content="{{ route('session.ping') }}">
@@ -13,6 +14,8 @@
     <title>{{ $title ?? 'Dashboard' }} · {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('logo/SSA LOGO.png') }}">
     <script>try { if (localStorage.getItem('si-sidebar') !== 'full') document.documentElement.classList.add('sidebar-mini'); } catch (e) { document.documentElement.classList.add('sidebar-mini'); }</script>
+    {{-- 25-11-2026, faster loading: the icon font starts downloading with the page --}}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="{{ \Illuminate\Support\Facades\Vite::asset('node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2') }}">
     @vite(['resources/scss/app.scss', 'resources/js/app.js'])
     @stack('head')
 </head>
@@ -65,7 +68,7 @@
 
 <aside class="app-sidebar" aria-label="Main navigation">
     <div class="brand">
-        <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha, Assam"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha"></a>
+        <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha, Assam"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" decoding="async"></a>
         <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha, Assam</small></a>
         <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini data-mini-tip title="Collapse menu" aria-label="Collapse menu" aria-expanded="true"><i class="bi bi-chevron-double-left"></i></button>
     </div>
@@ -155,7 +158,7 @@
                     <div class="account-links">
                         <a class="account-link" href="{{ route('profile') }}"><span class="al-icon"><i class="bi bi-person-circle"></i></span><span><b>My Profile</b><small>Photo, details and postings</small></span></a>
                         <a class="account-link" href="{{ route('password.change') }}"><span class="al-icon"><i class="bi bi-key"></i></span><span><b>Change Password</b><small>Keep your account secure</small></span></a>
-                        <form method="POST" action="{{ route('logout') }}">@csrf
+                        <form method="POST" action="{{ route('logout') }}" data-si-signout>@csrf
                             <button class="account-link is-danger"><span class="al-icon"><i class="bi bi-box-arrow-right"></i></span><span><b>Sign out</b><small>End this session</small></span></button></form>
                     </div>
                     <div class="account-foot"><i class="bi bi-clock-history"></i>Signed in {{ $u->last_login_at?->format('d M Y, h:i A') ?? '—' }}</div>

@@ -16,9 +16,12 @@ class JurisdictionService
 {
     public function current(User $user): ?UserJurisdiction
     {
-        return $user->relationLoaded('currentJurisdiction')
-            ? $user->currentJurisdiction
-            : $user->currentJurisdiction()->first();
+        if ($user->relationLoaded('currentJurisdiction')) {
+            return $user->currentJurisdiction;
+        }
+
+        // 25-11-2026: one query per user and request (a page asked up to 11 times); UserJurisdiction events forget it
+        return \App\Support\RequestMemo::remember('posting.'.$user->getKey(), fn () => $user->currentJurisdiction()->first());
     }
 
     /**

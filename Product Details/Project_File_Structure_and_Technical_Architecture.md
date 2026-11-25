@@ -179,6 +179,8 @@ flowchart TB
 |---|---|---|
 | `DecryptPasswordFields` | global web | Decrypts RSA-encrypted `password*` fields; refuses plain text unless config allows it |
 | `TouchLastSeen` | global web | Updates the login log `last_seen_at` at most once a minute |
+| `EnsurePageUser` | global web | 25-11-2026, one user per browser: refuses a save sent from a page of another user (`_si_user` / `X-SI-User` token): 409 JSON or a redirect with a warning |
+| `CompactHtml` | global web | 25-11-2026: strips line indentation from full HTML pages (not in pre / textarea / script / style) |
 | `EnsureUserIsActive` (`active`) | authenticated group | Logs out users who are not active |
 | `ForcePasswordChange` (`password.fresh`) | most authenticated routes | Redirects to Change Password while `must_change_password` is set |
 | `can:<permission>` | route groups | Permission gates |
@@ -215,6 +217,7 @@ The full page list is in `UI_Pages_and_Application_Modules.md`.
 | `security:keys` | Generate the RSA key pair in `storage/app/private/keys` | manual (once per server) |
 | `audit:purge [--days=]` | Archive audit entries older than the retention period to Excel, then delete them | monthly, 1st 02:00 |
 | `cache:purge` | Clear the cache, compiled views and kept registration files | monthly, 1st 02:15 |
+| `db:maintain` | ANALYZE the main tables and OPTIMIZE the purged ones (MySQL / MariaDB only), audited | monthly, 1st 02:30 |
 | `users:reset-demo --force` | Keep only the State Administrator and seed the demo officers and notices (refused in production) | manual |
 | `data:clean-test {inspections\|schedules\|login_logs\|audit_logs\|all}` (alias `inspections:clean-test-data`) | Clean test data by group; local server only (`TEST_DATA_CLEANUP`, never production) | manual |
 | `locations:renumber --force` | Renumber districts, blocks and clusters in code order | manual |
@@ -226,6 +229,8 @@ The scheduler requires a cron or Windows Task Scheduler entry for `php artisan s
 ## 5. Frontend architecture
 
 - **Server-rendered** Blade pages. JavaScript adds behaviour per page; Vite has 10 entry points (`vite.config.js`).
+- **Loading** (25-11-2026): Bootstrap SCSS part by part and Bootstrap JS from `bootstrap-lite.js` (only the plugins used); icons from the generated `resources/scss/_icons.scss` (`tools/build-icons.cjs`, run by `npm run build`), woff2 preloaded; `CompactHtml` trims the HTML; `public/.htaccess` gzip + long cache for `/build/assets`.
+- **One user per browser** (`session-guard.js`, 25-11-2026): sends the page's user token with every save and shows the other tabs a sign-in message when another user signs in.
 - `app.js` is loaded on every page. It imports Bootstrap, axios, `password-encrypt.js` and `mobile-input.js`, and handles the sidebar collapse (`localStorage` `si-sidebar`) and the idle-session warning and ping.
 - The **wizard** (`wizard.js`) autosaves each answer through AJAX. It shows and hides conditional questions using the same rules as the server, adds and edits rows, and shows the live teacher totals box. Each save is queued through `offline-queue.js`, so it is replayed when the network returns.
 - **Camera** (`camera.js`): `getUserMedia` or the gallery → canvas resize → stamp (date, time, GPS, school) → JPEG → SHA-256 → upload with `evidence_uid`.

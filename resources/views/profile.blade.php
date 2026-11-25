@@ -46,7 +46,7 @@
             <div class="pf-actions">
                 <a href="{{ route('password.change') }}" class="btn btn-light"><i class="bi bi-key"></i>Change password</a>
                 <a href="#mobile-change" class="btn btn-light"><i class="bi bi-phone"></i>Change mobile</a>
-                <form method="POST" action="{{ route('logout') }}" class="d-lg-none">@csrf<button class="btn btn-light text-danger w-100"><i class="bi bi-box-arrow-right"></i>Sign out</button></form>
+                <form method="POST" action="{{ route('logout') }}" class="d-lg-none" data-si-signout>@csrf<button class="btn btn-light text-danger w-100"><i class="bi bi-box-arrow-right"></i>Sign out</button></form>
             </div>
         </div>
 

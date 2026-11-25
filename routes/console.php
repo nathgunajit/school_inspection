@@ -99,8 +99,21 @@ Artisan::command('cache:purge', function () {
     $this->info("Cache cleared ({$r['expired_rows']} expired cache row(s), {$r['register_files']} kept registration file(s) removed).");
 })->purpose('Clear the application cache and stale cache files');
 
+/* 25-11-2026, database optimisation: index statistics refreshed, purged tables rebuilt (MySQL / MariaDB). */
+Artisan::command('db:maintain', function () {
+    $r = app(\App\Services\HousekeepingService::class)->maintainDatabase();
+    if (! $r['analyzed']) {
+        $this->info("Nothing to do on {$r['driver']} (MySQL / MariaDB only).");
+
+        return 0;
+    }
+    $this->info('Analyzed '.count($r['analyzed']).' table(s), optimized '.implode(', ', $r['optimized'])." in {$r['ms']} ms.");
+
+    return 0;
+})->purpose('Refresh MySQL index statistics and rebuild purged tables');
 Schedule::command('audit:purge')->monthlyOn(1, '02:00');
 Schedule::command('cache:purge')->monthlyOn(1, '02:15');
+Schedule::command('db:maintain')->monthlyOn(1, '02:30'); // 25-11-2026, after the purges
 
 /* Location IDs 1…n in Location Master code order (district 1801 → 1); every link moves with them. */
 Artisan::command('locations:renumber {--force : Do not ask for confirmation}', function () {

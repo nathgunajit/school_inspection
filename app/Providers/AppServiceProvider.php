@@ -62,6 +62,15 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', fn (Request $r) => Limit::perHour(10)->by($r->ip()));
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(60)->by($r->user()?->id ?: $r->ip()));
 
+        // 25-11-2026, database optimisation: slow queries are logged, so missing indexes show up on the server
+        if (($slowMs = (int) config('inspection.slow_query_ms')) > 0) {
+            \Illuminate\Support\Facades\DB::listen(function (\Illuminate\Database\Events\QueryExecuted $q) use ($slowMs) {
+                if ($q->time >= $slowMs) {
+                    \Illuminate\Support\Facades\Log::warning('Slow query ('.round($q->time).' ms)', ['sql' => $q->sql, 'url' => app()->runningInConsole() ? 'console' : request()->path()]);
+                }
+            });
+        }
+
         Event::listen(Logout::class, function (Logout $e) {
             if ($e->user) {
                 AuditLogger::log('logout', $e->user, [], $e->user);

@@ -91,4 +91,45 @@ class HousekeepingService
             ->map(fn ($p) => ['name' => basename($p), 'size' => $disk->size($p), 'time' => Carbon::createFromTimestamp($disk->lastModified($p))])
             ->sortByDesc('time')->values()->all();
     }
+    /** 25-11-2026: tables whose index statistics are refreshed every month (db:maintain). */
+    public const ANALYZE_TABLES = ['inspections', 'inspection_answers', 'inspection_absent_teachers', 'inspection_classroom_observations', 'inspection_classroom_tlm',
+        'inspection_evidence', 'inspection_fund_positions', 'inspection_remarks', 'inspection_ratings', 'inspection_schedules', 'inspection_schedule_items',
+        'schools', 'users', 'user_jurisdictions', 'registration_requests', 'notices', 'notice_reads', 'holidays', 'daily_school_lists', 'daily_school_list_days',
+        'user_login_logs', 'audit_logs'];
+
+    /** Tables that lose many rows (audit:purge, cache:purge, old sign-ins): rebuilt to give the space back. */
+    public const OPTIMIZE_TABLES = ['audit_logs', 'user_login_logs', 'cache', 'cache_locks'];
+
+    /**
+     * 25-11-2026, database optimisation (db:maintain, monthly after audit:purge / cache:purge):
+     * ANALYZE TABLE keeps MySQL's index statistics current, so it keeps choosing the right index as
+     * the tables grow; OPTIMIZE TABLE rebuilds the purged tables. MySQL / MariaDB only.
+     *
+     * @return array{driver: string, analyzed: list<string>, optimized: list<string>, ms: int}
+     */
+    public function maintainDatabase(): array
+    {
+        $start = microtime(true);
+        $driver = DB::connection()->getDriverName();
+        $done = ['driver' => $driver, 'analyzed' => [], 'optimized' => [], 'ms' => 0];
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return $done; // SQLite (tests) has nothing to maintain
+        }
+        foreach (self::ANALYZE_TABLES as $t) {
+            if (Schema::hasTable($t)) {
+                DB::select("ANALYZE TABLE `{$t}`");
+                $done['analyzed'][] = $t;
+            }
+        }
+        foreach (self::OPTIMIZE_TABLES as $t) {
+            if (Schema::hasTable($t)) {
+                DB::select("OPTIMIZE TABLE `{$t}`");
+                $done['optimized'][] = $t;
+            }
+        }
+        $done['ms'] = (int) round((microtime(true) - $start) * 1000);
+        AuditLogger::log('db_maintained', null, ['analyzed' => count($done['analyzed']), 'optimized' => $done['optimized'], 'ms' => $done['ms']]);
+
+        return $done;
+    }
 }

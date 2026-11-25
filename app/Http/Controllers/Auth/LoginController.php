@@ -24,6 +24,10 @@ class LoginController extends Controller
 
     public function show(Request $request)
     {
+        // 25-11-2026, one user per browser: someone is already signed in here, so say who instead of a login form
+        if ($signedIn = $request->user()) {
+            return view('auth.login', ['signedIn' => $signedIn, 'needsCaptcha' => false, 'mathCaptcha' => false, 'demoUsers' => collect()]);
+        }
         if ($request->boolean('expired')) {
             $request->session()->now('warning', 'You were signed out after '.config('session.lifetime').' minutes without activity. Please sign in again.');
         }
@@ -66,6 +70,9 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        if ($current = $request->user()) { // 25-11-2026: a second user cannot sign in over the first one
+            return redirect()->route('login')->with('warning', $current->name.' is already signed in on this browser. Sign them out first to sign in as another user.');
+        }
         $cfg = config('inspection.login');
         $rules = [
             'mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/'],
@@ -147,6 +154,19 @@ class LoginController extends Controller
         $name = (string) $route->getName();
 
         return $name === '' || Str::is($deny, $name) ? $home : $url;
+    }
+
+    /** 25-11-2026, one user per browser: "Sign out and sign in as another user" on the sign-in page. */
+    public function switchUser(Request $request)
+    {
+        $user = $request->user();
+        AuditLogger::log('browser_user_switched', $user, ['name' => $user->name], $user);
+        $this->monitor->logout($request, 'switched');
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('status', $user->name.' has been signed out. You can now sign in.');
     }
 
     public function logout(Request $request)

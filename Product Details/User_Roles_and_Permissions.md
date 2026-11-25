@@ -120,6 +120,7 @@ sequenceDiagram
 | Remember me | Not offered |
 | Forgot password | Email link only if the user has an email; otherwise ask the State Admin |
 | Logout | `POST /logout` (CSRF), audited, logged in `user_login_logs` |
+| One user per browser (25-11-2026) | `/login` while signed in shows **Already signed in** (Continue as … / Sign out and sign in as another user, `login.switch`, audited `browser_user_switched`); a second sign-in over the first is refused. Pages carry the user's token (`si-user`); `EnsurePageUser` refuses saves sent from a page of another user (409 / redirect), and `session-guard.js` shows the other tabs "Another user has signed in on this browser" and sends them to sign-in |
 
 ---
 

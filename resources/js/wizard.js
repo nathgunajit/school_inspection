@@ -15,6 +15,11 @@ SI.missingNow = (SI.missing || {})[SI.step] || [];
 let redirecting = false;
 export function handleAuthError(err) {
     const code = err?.response?.status;
+    if (code === 409 && err.response?.data?.user_changed) { // 25-11-2026: another user signed in on this browser (session-guard.js)
+        redirecting = true;
+        window.siUserChanged?.(err.response.data.message);
+        return true;
+    }
     if ((code === 401 || code === 419) && !redirecting) {
         redirecting = true;
         window.toast('Your session has expired. Your answers are saved. Please sign in again.', 'warning');

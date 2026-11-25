@@ -1,4 +1,5 @@
-import * as bootstrap from 'bootstrap';
+// 25-11-2026, faster loading: only the Bootstrap plugins the app uses (bootstrap-lite.js)
+import { Alert, Button, Collapse, Dropdown, Modal, Offcanvas, Tab, Toast, Tooltip } from './bootstrap-lite';
 import axios from 'axios';
 import './button-busy';
 import './password-encrypt';
@@ -10,8 +11,10 @@ import './network-status';
 import './filter-partial';
 import './school-suggest'; // V14: school name / UDISE suggestions
 import './notice-badge'; // 25-11-2026: live Notices & Orders unread counters
-import './holiday-day'; // 25-11-2026: calendar day popup (see / add / remove holidays)
+import './holiday-day';
+import './session-guard'; // 25-11-2026: one user per browser // 25-11-2026: calendar day popup (see / add / remove holidays)
 
+const bootstrap = { Alert, Button, Collapse, Dropdown, Modal, Offcanvas, Tab, Toast, Tooltip };
 window.bootstrap = bootstrap;
 window.axios = axios;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';

@@ -19,6 +19,13 @@ class CoverageSetting extends Model
 
     protected $casts = ['custom_from' => 'date', 'custom_to' => 'date', 'verify_radius_m' => 'integer'];
 
+    protected static function booted(): void
+    {
+        $forget = fn () => \App\Support\RequestMemo::forget('coverage.');
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
     public function district()
     {
         return $this->belongsTo(District::class);
@@ -43,7 +50,8 @@ class CoverageSetting extends Model
     /** The setting that applies to a district: its own row, else the state default. */
     public static function forDistrict(?int $districtId): self
     {
-        return ($districtId ? static::where('district_id', $districtId)->first() : null) ?? static::state();
+        // 25-11-2026: one query per district and request (the coverage page asked up to 9 times)
+        return \App\Support\RequestMemo::remember('coverage.'.($districtId ?: 0), fn () => ($districtId ? static::where('district_id', $districtId)->first() : null) ?? static::state());
     }
 
     public function periodLabel(): string

@@ -126,7 +126,7 @@ export function syncAll(insp, { evidenceUrl, hooks = {} } = {}) {
                 } catch (err) {
                     const code = err.response?.status;
                     if (!err.response) return { done, left: true };                    // still offline
-                    if (code === 401 || code === 419) { hooks.onAuth?.(err); return { done, left: true }; }
+                    if (code === 401 || code === 419 || code === 409) { hooks.onAuth?.(err); return { done, left: true }; }
                     if (code >= 500 || code === 429) return { done, left: true };      // try again later
                     // 422 / 403 / 404: the change can no longer be applied (invalid, inspection locked or removed)
                     await offlineStore.removeOp(op.id);
@@ -144,7 +144,7 @@ export function syncAll(insp, { evidenceUrl, hooks = {} } = {}) {
                     } catch (err) {
                         const code = err.response?.status;
                         if (!err.response || code >= 500 || code === 429) return { done, left: true };
-                        if (code === 401 || code === 419) { hooks.onAuth?.(err); return { done, left: true }; }
+                        if (code === 401 || code === 419 || code === 409) { hooks.onAuth?.(err); return { done, left: true }; }
                         await offlineStore.removePhoto(insp, rec.evidence_uid);
                         hooks.onInvalid?.({ photo: rec }, err);
                     }

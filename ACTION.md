@@ -2824,3 +2824,45 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** the dashboard Latest Notice strip no longer scrolls: one panel with the title (one line, "…" when long, full title as tooltip) and a date pill on the same centre line (marquee track, copies and separators removed). Every PDF button's icon is slightly larger (1.2em) and the red soft PDF buttons have a thin clean outline (CSS only).
 - **Files:** `resources/views/dashboard/partials/ticker.blade.php`, `resources/scss/app.scss`, `tests/Feature/DashboardTickerTest.php`, `CLAUDE.md`, `Product Details/{PROJECT_DOCUMENT,UI_Pages_and_Application_Modules,Project_File_Structure_and_Technical_Architecture}.md`, rebuilt Word file.
 - **Verified:** `npm run build`; full suite passed.
+
+## 25-11-2026: One user per browser; database optimisation; faster HTML / CSS loading
+- **What:**
+  - **One user per browser:**
+    - `/login` while signed in shows an "Already signed in" card: Continue as … / Sign out and sign in as another user (`login.switch`, audited `browser_user_switched`).
+    - A second sign-in over the first is refused.
+    - Every signed-in page carries the user's token (`App\Support\PageUser`, `partials/page-user`). `session-guard.js` sends it with every save and shows the other tabs "Another user has signed in on this browser" when another user signs in or out.
+    - `EnsurePageUser` refuses saves from a page of another user (409 JSON / redirect). The wizard and the offline queue keep the answers.
+  - **Database:**
+    - EXPLAIN review of the main pages on MySQL with the 44,197-school master.
+    - Indexes `schools_status_deleted_name_idx` / `schools_status_deleted_area_idx`.
+    - One grouped visit join in `SchoolController::listQuery()` (state-wide My Schools 940 → 550 ms, suggestions 88 → 19 ms).
+    - `RequestMemo` for the current posting and the coverage setting (dashboard 32–51 → 25–40 queries).
+    - `db:maintain` (monthly ANALYZE / OPTIMIZE) and the slow query log (`SLOW_QUERY_MS`).
+  - **Loading:**
+    - `CompactHtml` middleware (pages 14–22 % smaller).
+    - Bootstrap SCSS part by part, no dark mode.
+    - `bootstrap-lite.js` (JS 82 → 70 KB).
+    - Generated icon subset (`tools/build-icons.cjs`, 398 of 2,078 icons; CSS 534 → 447 KB, gzip 88 → 73 KB).
+    - woff2 preload, `decoding="async"` images.
+    - `.htaccess` gzip + a year's immutable cache for `/build/assets` (Cache-Control checked on local Apache; mod_deflate is not loaded in XAMPP, see the `.env.example` checklist).
+- **Files:**
+  - `app/Support/{PageUser,RequestMemo}.php`
+  - `app/Http/Middleware/{EnsurePageUser,CompactHtml}.php`
+  - `bootstrap/app.php`, `routes/{web,console}.php`
+  - `app/Http/Controllers/{Auth/LoginController,SchoolController}.php`
+  - `app/Services/{JurisdictionService,HousekeepingService}.php`
+  - `app/Models/{CoverageSetting,UserJurisdiction}.php`
+  - `app/Providers/AppServiceProvider.php`, `config/inspection.php`
+  - migration `2026_11_25_000012_add_v14_performance_indexes`
+  - `resources/views/{auth/login,partials/page-user,profile,components/layouts/{app,portal},components/user-avatar}.blade.php`
+  - `resources/js/{session-guard,bootstrap-lite,app,holiday-day,review,wizard,offline-queue}.js`
+  - `resources/scss/{app,_icons}.scss`, `tools/build-icons.cjs`, `package.json`
+  - `public/.htaccess`, `.env.example`
+  - tests `OneUserPerBrowserTest`, `DatabaseOptimisationTest`, `IconSubsetTest`
+  - `CLAUDE.md`
+  - `Product Details/{DB_INDEXING,PROJECT_DOCUMENT,User_Roles_and_Permissions,Project_File_Structure_and_Technical_Architecture}.md`
+  - rebuilt Word file
+- **Verified:**
+  - `npm run build`
+  - full suite 320 passed
+  - MySQL migrated; `db:maintain` ran on MySQL (22 tables analysed, 0.4 s)

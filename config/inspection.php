@@ -156,4 +156,6 @@ return [
     // Modification V13 item 4: audit entries older than this are archived to Excel and deleted (monthly, or by the State Admin)
     'audit_retention_days' => (int) env('AUDIT_RETENTION_DAYS', 30),
     'retention_years' => 5,
+    // 25-11-2026: a database query slower than this (ms) is written to the log as a warning (0 = off)
+    'slow_query_ms' => (int) env('SLOW_QUERY_MS', 1000),
 ];

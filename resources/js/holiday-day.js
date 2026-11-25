@@ -3,7 +3,7 @@
  * (holidays/partials/day-modal): the day's holidays, a Remove button for those the user may manage, and the
  * "Add a holiday on this date" form for holiday managers. Used by the Holiday Calendar and the dashboard calendar.
  */
-import * as bootstrap from 'bootstrap';
+import { Modal } from './bootstrap-lite';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -43,7 +43,7 @@ function open(cell) {
         }
         date.value = day.date;
     }
-    bootstrap.Modal.getOrCreateInstance(modal).show();
+    Modal.getOrCreateInstance(modal).show();
 }
 
 document.addEventListener('click', (e) => {

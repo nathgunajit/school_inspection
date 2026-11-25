@@ -1032,3 +1032,21 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - **How:** each inspection keeps the officer's level (`inspections.officer_level`, filled for existing rows); `App\Support\InspectionVisibility` holds the rule.
 - **Tests:** `tests/Feature/InspectionVisibilityTest.php`.
 
+### 14.8 One user per browser, database and loading speed (25-11-2026)
+- **One user per browser:**
+  - All tabs of a browser share one sign-in. If an officer is signed in and someone opens the sign-in page in the same browser, the page says **"… is already signed in on this browser"** with **Continue as …** and **Sign out and sign in as another user**. A second user cannot sign in over the first.
+  - When a different user signs in, the earlier user's open tabs show **"Another user has signed in on this browser. You have been signed out of this page."** with a Go to sign-in button.
+  - Anything those old tabs try to save is refused, so nothing is saved under the wrong name. Wizard answers waiting on the device are kept.
+  - Signing out in one tab tells the other tabs as well.
+- **Database:**
+  - Two indexes on the School Master serve the counts, suggestions and coverage.
+  - The school lists count visits with one grouped join.
+  - The same look-ups are no longer repeated within one page.
+  - A monthly `db:maintain` refreshes the index statistics and compacts the purged tables.
+  - Slow queries are written to the log.
+  - Details and timings: DB_INDEXING.md section 9.
+- **Loading speed:**
+  - Pages are sent without indentation (14–22 % smaller).
+  - Only the Bootstrap parts and icons the app uses are bundled: CSS 534 → 447 KB, 73 KB gzipped.
+  - The icon font is preloaded.
+  - With the Apache modules on, files are compressed and the build files are cached for a year.
