@@ -158,9 +158,14 @@ class HolidayCalendarTest extends TestCase
 
         // 25-11-2026: merged items switch through tabs; Users / Masters & Admin fold away
         $admin = $this->admin();
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('nav-group-toggle', false)->assertSee('Masters &amp; Admin', false)
+        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertSee('nav-group-toggle', false)
+            ->assertSeeInOrder(['data-bs-target="#nav-users"', 'data-bs-target="#nav-masters"', 'data-bs-target="#nav-settings"'], false)
+            ->assertSeeInOrder(['Users', 'Masters', 'Admin Settings'])->assertDontSee('Masters &amp; Admin', false)
             ->assertDontSee('collapse nav-group show', false);
-        $this->get(route('admin.audit.index'))->assertOk()->assertSee('collapse nav-group show', false);
+        $this->get(route('admin.audit.index'))->assertOk()->assertSee('collapse nav-group show" id="nav-settings"', false);
+        $this->get(route('admin.locations.index'))->assertOk()->assertSee('collapse nav-group show" id="nav-masters"', false);
+        $settings = $this->get(route('today.settings'))->assertOk()->assertSee('collapse nav-group show" id="nav-settings"', false)->getContent();
+        $this->assertDoesNotMatchRegularExpression('~href="'.preg_quote(route('today.index'), '~').'" class="nav-link active"~', $settings, 'Today\'s Schools is not highlighted on its settings page');
         $this->get(route('reports.coverage'))->assertOk()->assertSee('page-tabs', false)
             ->assertSeeInOrder([route('reports.coverage'), route('reports.ratings'), route('reports.network')], false);
 
@@ -168,6 +173,13 @@ class HolidayCalendarTest extends TestCase
         $this->actingAs($crcc)->get(route('schools.index'))->assertOk()->assertSee('page-tabs', false)->assertSee(route('schools.mine'), false);
         $this->get(route('inspections.mine'))->assertOk()->assertSeeInOrder(['page-tabs', 'My Inspections', 'In My Area'], false);
         $this->get(route('reports.coverage'))->assertOk()->assertDontSee(route('reports.ratings'), false); // no Rating tab for officers
+
+        // a District officer with Manage users: Admin Settings with their own settings pages, no Masters
+        $dpo = $this->officer(UserLevel::District, Cluster::orderBy('id')->first());
+        $this->grant($dpo, 'manage_users');
+        $this->actingAs($dpo)->get(route('dashboard'))->assertOk()->assertSee('id="nav-settings"', false)
+            ->assertSee(route('reports.coverage.settings'), false)->assertSee(route('today.settings'), false)
+            ->assertDontSee('id="nav-masters"', false)->assertDontSee(route('admin.audit.index'), false);
     }
 
     public function test_import_reads_the_type_column_and_templates_download(): void

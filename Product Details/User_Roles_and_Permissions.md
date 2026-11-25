@@ -142,8 +142,10 @@ Since 25-11-2026 related pages share one menu item and switch with tabs on the p
 | Users group: Pending Approvals (with count) | `admin.approvals.index` | `approve_registrations` | ✔ | grant | grant | grant | — |
 | Users group: User List | `admin.users.index` | `manage_users` | ✔ | — | grant | — | — |
 | Users group: Mobile Changes | `admin.mobile-requests.index` | `state_admin` | ✔ | — | — | — | — |
-| Masters & Admin group: Location, AC / PC, School, TLM Masters, Excel Upload, Rating Settings | `admin.locations/constituencies/schools/tlm/imports/rating.index` | `manage_masters` | ✔ | — | — | — | — |
-| Masters & Admin group: Login Monitoring, Audit Log | `admin.login-report.index`, `admin.audit.index` | `state_admin` | ✔ | — | — | — | — |
+| Masters group: Location, AC / PC, School, TLM Masters, Excel Upload | `admin.locations/constituencies/schools/tlm/imports.index` | `manage_masters` | ✔ | — | — | — | — |
+| Admin Settings group: Rating Settings | `admin.rating.index` | `manage_masters` | ✔ | — | — | — | — |
+| Admin Settings group: Coverage Settings, Today's Schools Settings | `reports.coverage.settings`, `today.settings` | `configure_coverage` / `manage_holidays` | ✔ | — | own district (with Manage users) | — | — |
+| Admin Settings group: Login Monitoring, Audit Log | `admin.login-report.index`, `admin.audit.index` | `state_admin` | ✔ | — | — | — | — |
 | Account menu: My Profile, Change Password, Sign out | | always | ✔ | ✔ | ✔ | ✔ | ✔ |
 
 **Bottom navigation (phones):** Home, My Visits, a central "+" (new inspection), Area (`view_reports`), Profile.

@@ -94,7 +94,7 @@
   - SSA logo and "School Inspection · Samagra Shiksha, Assam".
   - A green "New inspection" button.
   - Since 25-11-2026 a **smaller menu** of 9 items: Dashboard, Today's Schools, Schools (tabs Find School | My Schools), Inspections (tabs My Inspections | In My Area), Reports (tabs Coverage | Rating | Network Issues), Map View, Notices & Orders (unread count), Inspection Schedules, Holiday Calendar. The tabs are the component `<x-page-tabs>` at the top of those pages.
-  - Under *Administration*, the folding groups **Users** and **Masters & Admin** (Bootstrap collapse, open while one of their pages is open). Everything is filtered by permission.
+  - Under *Administration*, the folding groups **Users**, **Masters** and **Admin Settings** (Bootstrap collapse, open while one of their pages is open). Everything is filtered by permission.
   - The note "Government of Assam".
   - Since 23-11-2026 it opens as an icon rail by default (the highlighted white Expand button opens it, and `localStorage` `si-sidebar = full` keeps it open). Hovering a rail icon shows a styled name popup (`.si-nav-tip`, with the badge count where there is one). On phones it is an off-canvas drawer.
 - **Top bar:** menu button (mobile), a back button where a page sets one, the page title, a pending approvals bell with count, and the account dropdown. The dropdown shows the avatar, designation, level, jurisdiction, My Profile, Change Password and Sign out.

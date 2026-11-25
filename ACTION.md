@@ -2753,3 +2753,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Files:** migration `2026_11_25_000008_add_show_on_home_to_notices`, `app/Models/Notice.php`, `app/Services/NoticeService.php`, `app/Http/Controllers/{NoticeController,DashboardController}.php`, `routes/web.php`, `resources/views/notices/{create,show}.blade.php`, `database/seeders/DemoNoticeSeeder.php`, `tests/Feature/DashboardTickerTest.php` (+2 tests), `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
 - **Run on MySQL:** `migrate` (done), `db:seed --class=DemoNoticeSeeder` (098 now off).
 - **Verified:** full suite 293 passed.
+
+## 25-11-2026: Sidebar, Masters and Admin Settings separated
+- **What:** the folding group "Masters & Admin" is split into **Masters** (Location, AC / PC, School, TLM Masters, Excel Upload) and **Admin Settings** (Rating Settings, plus the Coverage Settings and Today's Schools Settings pages that were not in the sidebar before, Login Monitoring, Audit Log). Each link keeps its own gate: a District officer with Manage users sees Admin Settings with only Coverage / Today's Schools Settings. The Reports and Today's Schools items no longer light up on those settings pages.
+- **Files:** `resources/views/components/layouts/app.blade.php`, `tests/Feature/HolidayCalendarTest.php`, `CLAUDE.md`, `Product Details/{PROJECT_DOCUMENT,UI_Pages_and_Application_Modules,User_Roles_and_Permissions}.md`, rebuilt Word file.
+- **Verified:** full suite 293 passed.

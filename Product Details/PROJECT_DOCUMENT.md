@@ -979,5 +979,5 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 | Inspections | My Inspections · In My Area |
 | Reports | Coverage · Rating (State Administrator only) · Network Issues |
 
-- **Folding groups** under *Administration*: **Users** (Pending Approvals with its count, User List, Mobile Changes) and **Masters & Admin** (Location, AC / PC, School and TLM Masters, Excel Upload, Rating Settings, Login Monitoring, Audit Log). A group is closed unless one of its pages is open. In the icon rail every link stays visible.
+- **Folding groups** under *Administration*: **Users** (Pending Approvals with its count, User List, Mobile Changes), **Masters** (Location, AC / PC, School and TLM Masters, Excel Upload) and **Admin Settings** (Rating Settings, Coverage Settings, Today's Schools Settings, Login Monitoring, Audit Log). Masters and Admin Settings were one group until 25-11-2026. Each settings link has its own permission, so a District officer with Manage users sees Admin Settings with only Coverage and Today's Schools Settings. A group is closed unless one of its pages is open. In the icon rail every link stays visible.
 - Page addresses, permissions and the phone bottom navigation are unchanged.
