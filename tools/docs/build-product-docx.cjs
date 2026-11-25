@@ -10,10 +10,14 @@ const {
   AlignmentType, LevelFormat, PageBreak, TableOfContents, ImageRun, Footer, Header, PageNumber, BorderStyle,
 } = D;
 
-const ROOT = process.argv[2] || path.resolve(__dirname, '..', '..');
+// Single-document mode: --only=<file.md> --out=<path.docx> --title="..." (25-11-2026)
+const ARGS = Object.fromEntries(process.argv.slice(2).filter(a => a.startsWith('--')).map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=')]; }));
+const ROOT = process.argv.slice(2).find(a => !a.startsWith('--')) || path.resolve(__dirname, '..', '..');
 const DOCDIR = path.join(ROOT, 'Product Details');
-const OUT = path.join(DOCDIR, 'School_Inspection_Product_Details.docx');
-const PARTS = [
+const ONLY = ARGS.only || null;
+const DOC_TITLE = ARGS.title || 'Product Details';
+const OUT = ARGS.out ? path.resolve(ROOT, ARGS.out) : path.join(DOCDIR, ONLY ? ONLY.replace(/\.md$/i, '.docx') : 'School_Inspection_Product_Details.docx');
+const ALL_PARTS = [
   { key: 'A', title: 'Part A: Technical Documentation', intro: 'Prepared from a read-only review of the source code, the live database schema and the UI.', files: [
     'Database_Architecture_and_Schema.md', 'Project_File_Structure_and_Technical_Architecture.md', 'School_Inspection_Mechanism.md',
     'User_Roles_and_Permissions.md', 'UI_Pages_and_Application_Modules.md', 'System_Architecture_and_Workflow.md',
@@ -21,6 +25,7 @@ const PARTS = [
   { key: 'B', title: 'Part B: Project Documents', intro: 'Functional and operational documents kept up to date with each modification of the application.', files: [
     'PROJECT_DOCUMENT.md', 'INSPECTION_FORM_DOCUMENT.md', 'NEW_MODULES_PLAN.md', 'DB_INDEXING.md', 'LOAD_TEST.md', 'BROWSER_SUPPORT.md'] },
 ];
+const PARTS = ONLY ? [{ key: '', title: null, files: [ONLY] }] : ALL_PARTS;
 const CURRENT_MD_DIR = path.join(ROOT, 'Product Details');
 const BLUE = '1565C0', GREEN = '1E9B4B', ORANGE = 'F39223', GREY = '64748B';
 const FONT = 'Calibri', MONO = 'Consolas';
@@ -157,7 +162,7 @@ function convert(md, label, fileName) {
     if (t.type === 'heading') {
       if (t.depth === 1) {
         if (!first) { blocks.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun({ text: decode(t.text) })] })); continue; }
-        blocks.push(new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new TextRun({ text: `${label}. ${decode(t.text)}` })] }));
+        blocks.push(new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new TextRun({ text: label ? `${label}. ${decode(t.text)}` : decode(t.text) })] }));
         blocks.push(new Paragraph({ children: [new TextRun({ text: `Source file: Product Details/${fileName}`, size: 16, color: GREY, font: FONT })], spacing: { after: 120 } }));
         first = false; continue;
       }
@@ -202,10 +207,10 @@ const children = [];
 // title page
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 1200 }, children: fs.existsSync(path.join(ROOT, 'public/logo/SSA LOGO.png')) ? [new ImageRun({ type: 'png', data: fs.readFileSync(path.join(ROOT, 'public/logo/SSA LOGO.png')), transformation: (() => { const b = fs.readFileSync(path.join(ROOT, 'public/logo/SSA LOGO.png')); const { w, h } = pngSize(b); const s = 140 / h; return { width: Math.round(w * s), height: 140 }; })() })] : [] }));
 children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400, after: 120 }, children: [new TextRun({ text: 'School Inspection Management System', bold: true, size: 48, color: BLUE, font: FONT })] }));
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: 'Product Details', size: 30, color: GREEN, font: FONT })] }));
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [new TextRun({ text: 'Samagra Shiksha, Assam · Phase 1 with New Modules (Modification V1–V7)', size: 22, color: GREY, font: FONT })] }));
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Technical documentation · Project documents · Gaps and roadmap · Requirements index', size: 20, font: FONT })] }));
-children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: 'Status labels: Implemented · Partial · Not implemented', size: 20, italics: true, color: ORANGE, font: FONT })] }));
+children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 120 }, children: [new TextRun({ text: DOC_TITLE, size: 30, color: GREEN, font: FONT })] }));
+children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [new TextRun({ text: ONLY ? 'Samagra Shiksha, Assam · ' + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Samagra Shiksha, Assam · Phase 1 with New Modules (Modification V1–V7)', size: 22, color: GREY, font: FONT })] }));
+if (!ONLY) children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: 'Technical documentation · Project documents · Gaps and roadmap · Requirements index', size: 20, font: FONT })] }));
+if (!ONLY) children.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200 }, children: [new TextRun({ text: 'Status labels: Implemented · Partial · Not implemented', size: 20, italics: true, color: ORANGE, font: FONT })] }));
 children.push(new Paragraph({ children: [new PageBreak()] }));
 children.push(new Paragraph({ children: [new TextRun({ text: 'Contents', bold: true, size: 32, color: BLUE, font: FONT })], spacing: { after: 200 } }));
 children.push(new TableOfContents('Contents', { hyperlink: true, headingStyleRange: '1-2' }));
@@ -213,9 +218,9 @@ children.push(new Paragraph({ children: [new TextRun({ text: 'Right-click the ta
 children.push(new Paragraph({ children: [new PageBreak()] }));
 
 for (const part of PARTS) {
-  children.push(new Paragraph({ pageBreakBefore: true, alignment: AlignmentType.CENTER, spacing: { before: 3000, after: 200 }, children: [new TextRun({ text: part.title, bold: true, size: 44, color: BLUE, font: FONT })] }));
-  children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: part.intro, size: 22, color: GREY, font: FONT })] }));
-  part.files.forEach((f, i) => children.push(...convert(fs.readFileSync(path.join(DOCDIR, f), 'utf8'), part.key + (i + 1), f)));
+  if (part.title) children.push(new Paragraph({ pageBreakBefore: true, alignment: AlignmentType.CENTER, spacing: { before: 3000, after: 200 }, children: [new TextRun({ text: part.title, bold: true, size: 44, color: BLUE, font: FONT })] }));
+  if (part.title) children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: part.intro, size: 22, color: GREY, font: FONT })] }));
+  part.files.forEach((f, i) => children.push(...convert(fs.readFileSync(path.join(DOCDIR, f), 'utf8'), part.key ? part.key + (i + 1) : '', f)));
 }
 const REQ = path.join(DOCDIR, 'Requirements');
 const desc = f => /PRD/.test(f) ? 'Product Requirements Document v3.0 (cited in code as "PRD x.y")'
@@ -225,16 +230,18 @@ const desc = f => /PRD/.test(f) ? 'Product Requirements Document v3.0 (cited in 
   : /^Documentation/.test(f) ? 'Brief for the technical documentation (Part A)'
   : /^Document\./.test(f) ? 'Earlier requirements note'
   : /\.png$/i.test(f) ? 'Paper inspection form: ' + f.replace(/\.png$/i, '') : '';
-const reqFiles = fs.existsSync(REQ) ? fs.readdirSync(REQ).filter(f => !f.startsWith('~$')).sort() : [];
+const reqFiles = !ONLY && fs.existsSync(REQ) ? fs.readdirSync(REQ).filter(f => !f.startsWith('~$')).sort() : [];
 const cell = x => ({ text: x, tokens: [{ type: 'text', text: x }] });
+if (!ONLY) {
 children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new TextRun({ text: 'Part C: Requirements (appendix)' })] }));
 children.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: 'The source requirement documents are kept as separate files in Product Details/Requirements/ (copies of Documents/, which remains the master copy). They are listed here; open each file for its full text and images.', size: 20, font: FONT })] }));
 children.push(buildTable({ header: ['Sl', 'File', 'Description', 'Size'].map(cell),
   rows: reqFiles.map((f, i) => [String(i + 1), f, desc(f), Math.round(fs.statSync(path.join(REQ, f)).size / 1024) + ' KB'].map(cell)) }));
+}
 
 const heading = (size, color, before, after) => ({ run: { font: FONT, size, bold: true, color }, paragraph: { spacing: { before, after }, keepNext: true, keepLines: true } });
 const doc = new Document({
-  creator: 'School Inspection project', title: 'School Inspection Management System: Product Details',
+  creator: 'School Inspection project', title: 'School Inspection Management System: ' + DOC_TITLE,
   styles: {
     default: { document: { run: { font: FONT, size: 20 } } },
     paragraphStyles: [
@@ -254,7 +261,7 @@ const doc = new Document({
   features: { updateFields: true },
   sections: [{
     properties: { page: { size: { width: PAGE_W, height: 16838 }, margin: { top: 1000, bottom: 1000, left: MARGIN, right: MARGIN } } },
-    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'School Inspection Management System · Product Details', size: 16, color: GREY, font: FONT })] })] }) },
+    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'School Inspection Management System · ' + DOC_TITLE, size: 16, color: GREY, font: FONT })] })] }) },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: ['Page ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], size: 16, color: GREY, font: FONT })] })] }) },
     children,
   }],

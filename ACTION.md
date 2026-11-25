@@ -2630,3 +2630,26 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Migrated on MySQL: the column is nullable, and the one district row (KOKRAJHAR) was set by the State Admin, so it keeps its own levels.
   - New test: locked boxes, a crafted post ignored, the district follows a later State change, the State Admin's district override kept.
   - Full suite: 285 passed.
+
+## 2026-11-25: Installed Packages & Libraries report as a Word document
+- **Request:** a report of the installed packages and libraries and what each is used for, as a Word document.
+- **Change:**
+  - `Product Details/Installed_Packages_and_Libraries.md` was rewritten from the installed state (`composer.lock`, `package-lock.json`, `composer audit` / `npm audit` / `outdated`, a code search for each use). It covers:
+    - Summary
+    - Runtime and PHP extensions
+    - Composer production, development and key dependencies
+    - npm bundled packages (now with `flatpickr`) and build tools
+    - The docs builder
+    - Browser APIs
+    - External services
+    - A use case → package map
+    - Recommendations
+  - The current PDF and Excel uses are listed, and the removed inspection Excel export is gone.
+  - New Word file `Product Details/Installed_Packages_and_Libraries.docx`.
+  - `tools/docs/build-product-docx.cjs` has a single-document mode: `--only=<file.md> [--out=] [--title=]`. With no flags it builds the combined document as before.
+  - Rebuilt `School_Inspection_Product_Details.docx`.
+- **Findings:**
+  - 129 PHP packages (94 production / 35 development), 158 npm packages; no known vulnerabilities.
+  - Updates available: Laravel 12.72 → 12.74, autoprefixer and node-forge patch releases, Tinker 3.x (major).
+  - `@fontsource-variable/inter`, `laravel/sail` and `mockery/mockery` are unused.
+- **Verified:** both builds wrote their files, and the new .docx contains the package sections. Documentation only; no application code changed.
