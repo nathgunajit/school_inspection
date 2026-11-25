@@ -2495,3 +2495,28 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - A network Yes without a remark is not missing, and the step shows the optional box.
   - Portrait, landscape and large photos all come out as 1200 × 900 JPEG.
   - Unreadable bytes are kept as they are.
+
+## 2026-11-25: V14 updated document, Module A: Holiday calendar
+- Reviewed the updated `Documents/Modification of the ApplicationV14.docx`. It has five items:
+  1. Orders / notices
+  2. Self-planned visits
+  3. Holiday calendar
+  4. Admin-assigned visits with an order
+  5. Today's schools with 10 admin settings
+
+  Agreed plan: build them module by module (A holidays, B notices, C assigned visits, D Today's schools), each with an ACTION entry, a commit and a push.
+- **Holiday calendar** (`/holidays`, sidebar "Holiday Calendar" for everyone):
+  - Month grid plus the year's list. State holidays are red; local (district) holidays are orange.
+  - The State Admin adds state holidays and any district's local holidays. A District officer with Manage users adds, edits and deletes their own district's (gate `manage_holidays`).
+  - The Excel import (`date`, `name`, `district_code`) checks every row before saving and skips holidays already in the calendar. A template can be downloaded.
+  - Audited: `holiday_created` / `_updated` / `_deleted`, `holidays_imported`.
+- **Planner:** a plan cannot be saved on a holiday of the officer's district ("… is a holiday: name"). The schedule calendar shows the holiday and hides "Plan this day".
+- Files:
+  - new: migration `2026_11_25_000002_create_holidays`, `app/Models/Holiday.php`, `app/Services/HolidayCalendar.php`, `app/Http/Controllers/HolidayController.php`, `resources/views/holidays/index.blade.php`, `tests/Feature/HolidayCalendarTest.php`
+  - changed: `AppServiceProvider` (gate), `config/inspection.php` (`holidays`), `ScheduleService::checkDate()`, `ScheduleController::index()` + `schedules/index` view, `routes/web.php`, sidebar layout, `app.scss`
+  - docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md` §14.1; the V14 docx copied to `Product Details/Requirements/`
+- Verified:
+  - `npm run build`.
+  - Migrated on MySQL.
+  - New tests (4): state and district rights, officers see only their district, the import checks all rows, no plan on a holiday while another district is not blocked.
+  - Full suite: 267 passed.

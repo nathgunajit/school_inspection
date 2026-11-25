@@ -46,7 +46,25 @@ class ScheduleController extends Controller
             'view' => $view, 'date' => $date, 'from' => $from, 'to' => $to, 'plans' => $plans,
             'officers' => $officers, 'officerId' => $officerId,
             'pendingCount' => $this->approvalQueue($user)->count(),
+            'holidays' => $this->holidaysBetween($user, $from, $to), // V14 item 3
         ]);
+    }
+
+    /** Y-m-d => holiday name for the user's district (state holidays included). */
+    private function holidaysBetween(\App\Models\User $user, Carbon $from, Carbon $to): array
+    {
+        $calendar = app(\App\Services\HolidayCalendar::class);
+        $district = $calendar->districtOf($user);
+        $out = [];
+        foreach (range($from->year, $to->year) as $y) {
+            foreach ($calendar->year($y, $district) as $date => $names) {
+                if ($date >= $from->toDateString() && $date <= $to->toDateString()) {
+                    $out[$date] = implode(', ', $names);
+                }
+            }
+        }
+
+        return $out;
     }
 
     /** The drag-and-drop planner for one officer and day. */

@@ -1,0 +1,127 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\UserLevel;
+use App\Models\Holiday;
+use App\Models\User;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\Cache;
+
+/**
+ * V14 item 3: state and district (local) holidays plus the weekly off days.
+ * A district sees the state holidays and its own; the State sees state holidays only.
+ * Lookups are cached per year and district, with a version key bumped whenever a holiday is saved or deleted.
+ */
+class HolidayCalendar
+{
+    private const VERSION_KEY = 'holidays:version';
+
+    /** Bump the cache version (called from the Holiday model events). */
+    public static function flush(): void
+    {
+        Cache::forever(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 0) + 1);
+    }
+
+    /** The district an officer's holidays follow (null for state-wide officers). */
+    public function districtOf(User $user): ?int
+    {
+        if ($user->level->isStateWide()) {
+            return null;
+        }
+        $j = app(JurisdictionService::class)->current($user);
+
+        return $j?->district_id ? (int) $j->district_id : null;
+    }
+
+    /** Y-m-d => holiday names, for one year and district (state holidays included). */
+    public function year(int $year, ?int $districtId): array
+    {
+        $key = 'holidays:'.Cache::get(self::VERSION_KEY, 0).":$year:".($districtId ?? 'state');
+
+        return Cache::remember($key, 3600, fn () => Holiday::query()
+            ->whereBetween('date', ["$year-01-01", "$year-12-31"])
+            ->where(fn ($q) => $q->whereNull('district_id')->when($districtId, fn ($w) => $w->orWhere('district_id', $districtId)))
+            ->orderBy('date')->orderByRaw('district_id is not null')->get(['date', 'name'])
+            ->groupBy('date')->map(fn ($g) => $g->pluck('name')->all())->all());
+    }
+
+    /** The holiday name(s) on a date, or null. */
+    public function holiday(CarbonInterface|string $date, ?int $districtId): ?string
+    {
+        $d = $date instanceof CarbonInterface ? $date : Carbon::parse($date);
+        $names = $this->year((int) $d->year, $districtId)[$d->toDateString()] ?? null;
+
+        return $names ? implode(', ', $names) : null;
+    }
+
+    public function isHoliday(CarbonInterface|string $date, ?int $districtId): bool
+    {
+        return $this->holiday($date, $districtId) !== null;
+    }
+
+    /** Weekly off days (0 = Sunday … 6 = Saturday). */
+    public function weeklyOff(?array $override = null): array
+    {
+        return array_map('intval', $override ?? config('inspection.holidays.weekly_off', [0]));
+    }
+
+    public function isWorkingDay(CarbonInterface|string $date, ?int $districtId, ?array $weeklyOff = null): bool
+    {
+        $d = $date instanceof CarbonInterface ? $date : Carbon::parse($date);
+
+        return ! in_array((int) $d->dayOfWeek, $this->weeklyOff($weeklyOff), true) && ! $this->isHoliday($d, $districtId);
+    }
+
+    /** Why a date is not a working day ("Sunday", "Holiday: Bihu"), or null when it is one. */
+    public function offReason(CarbonInterface|string $date, ?int $districtId, ?array $weeklyOff = null): ?string
+    {
+        $d = $date instanceof CarbonInterface ? $date : Carbon::parse($date);
+        if ($name = $this->holiday($d, $districtId)) {
+            return 'Holiday: '.$name;
+        }
+
+        return in_array((int) $d->dayOfWeek, $this->weeklyOff($weeklyOff), true) ? 'Weekly off ('.$d->format('l').')' : null;
+    }
+
+    /** The last working day before $date (at most 60 days back), or null. */
+    public function previousWorkingDay(CarbonInterface $date, ?int $districtId, ?array $weeklyOff = null): ?Carbon
+    {
+        $d = Carbon::parse($date->toDateString());
+        for ($i = 0; $i < 60; $i++) {
+            $d->subDay();
+            if ($this->isWorkingDay($d, $districtId, $weeklyOff)) {
+                return $d;
+            }
+        }
+
+        return null;
+    }
+
+    public function nextWorkingDay(CarbonInterface $date, ?int $districtId, ?array $weeklyOff = null): ?Carbon
+    {
+        $d = Carbon::parse($date->toDateString());
+        for ($i = 0; $i < 60; $i++) {
+            $d->addDay();
+            if ($this->isWorkingDay($d, $districtId, $weeklyOff)) {
+                return $d;
+            }
+        }
+
+        return null;
+    }
+
+    /** May this user add / change / delete this holiday? State rows: State Admin only; district rows: State Admin or that district. */
+    public function canManage(User $user, ?int $districtId): bool
+    {
+        if (! $user->can('manage_holidays')) {
+            return false;
+        }
+        if ($user->isStateAdmin()) {
+            return true;
+        }
+
+        return $districtId !== null && $user->level === UserLevel::District && $this->districtOf($user) === $districtId;
+    }
+}

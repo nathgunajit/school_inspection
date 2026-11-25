@@ -62,6 +62,7 @@
 
     @if ($view === 'day')
         @php $dayPlans = $plans->get($date->toDateString(), collect()); @endphp
+        @isset($holidays[$date->toDateString()])<div class="alert alert-warning py-2 text-sm"><i class="bi bi-calendar-heart me-1"></i>Holiday: {{ $holidays[$date->toDateString()] }}</div>@endisset
         @forelse ($dayPlans as $p)
             <div class="card mb-2">
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center">
@@ -84,10 +85,11 @@
                 <div class="sched-day {{ $d->isToday() ? 'is-today' : '' }} {{ $out ? 'is-out' : '' }}">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="sched-date"><span class="d-md-none">{{ $d->format('D') }} </span>{{ $d->format($view === 'month' ? 'j' : 'd M') }}</span>
-                        @if ($d->gte(today()))
+                        @if ($d->gte(today()) && ! isset($holidays[$key]))
                             <a href="{{ route('schedules.plan', ['date' => $key] + ($officerId ? ['officer' => $officerId] : [])) }}" class="sched-add" title="Plan this day" aria-label="Plan {{ $d->format('d M') }}"><i class="bi bi-plus-lg"></i></a>
                         @endif
                     </div>
+                    @isset($holidays[$key])<span class="sched-holiday" title="Holiday"><i class="bi bi-calendar-heart me-1"></i>{{ $holidays[$key] }}</span>@endisset
                     @foreach ($plans->get($key, collect()) as $p){!! $card($p) !!}@endforeach
                 </div>
             @endfor

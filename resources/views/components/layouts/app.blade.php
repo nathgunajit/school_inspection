@@ -30,6 +30,7 @@
         ['Network Issues', 'reports.network', 'bi-wifi-off', 'reports.network', 'view_reports'], // V11
         ['Map View', 'map.index', 'bi-map', 'map.*', 'view_reports'],
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', 'view_reports'],
+        ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
     ];
     // Rating Report: State Administrator only (20-11-2026)
     array_splice($nav, 5, 0, [['Rating Report', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin']]);

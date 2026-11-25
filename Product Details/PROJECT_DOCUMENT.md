@@ -860,3 +860,29 @@ A cluster can have only **one active officer**. `App\Services\AreaOfficerGuard` 
 Existing duplicates are not changed automatically. Deactivate or transfer the extra accounts from User Management.
 
 Tests: `tests/Feature/OneOfficerPerClusterTest.php`.
+
+## 14. Modification V14, updated document (25-11-2026)
+
+The updated `Documents/Modification of the ApplicationV14.docx` adds five items. They are built module by module.
+
+### 14.1 Holiday calendar (item 3)
+- **Who sees it:** every officer opens **Holiday Calendar** (`/holidays`). It shows a month grid and the year's list: the state holidays plus their own district's local holidays. State-wide users can pick a district to see its local holidays too.
+- **Who manages it** (gate `manage_holidays`, the same rule as the Coverage settings):
+  - The **State Admin** adds state holidays (whole state) and local holidays for any district.
+  - A **District officer with Manage users** adds, edits and deletes the local holidays of their own district only.
+- **Import:**
+  - The Excel template has the columns `date`, `name` and `district_code`; a blank district code means a state holiday.
+  - Every row is checked before anything is saved: the date, the name, a district code that exists, and the uploader's right to that district.
+  - Holidays already in the calendar are skipped.
+- **Weekly off days:** `config('inspection.holidays.weekly_off')`, default Sunday.
+- **Effects:**
+  - No inspection plan can be saved for a holiday of the officer's district (`ScheduleService::checkDate()`).
+  - The schedule calendar shows the holiday name and hides "Plan this day".
+  - Today's schools (item 5) shows no schools on a holiday.
+- **Audit:** `holiday_created`, `holiday_updated`, `holiday_deleted`, `holidays_imported`.
+- **Code:**
+  - table `holidays` (date, name, district_id null = state)
+  - `App\Models\Holiday`
+  - `App\Services\HolidayCalendar` (`holiday()`, `isWorkingDay()`, `offReason()`, `previousWorkingDay()` / `nextWorkingDay()`, `canManage()`; cached per year with a version key)
+  - `HolidayController`, view `holidays/index`
+- **Tests:** `tests/Feature/HolidayCalendarTest.php`.

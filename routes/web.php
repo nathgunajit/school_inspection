@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\MapController;
@@ -121,6 +122,18 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [MapController::class, 'index'])->name('index');
             Route::get('/areas/{level}', [MapController::class, 'areas'])->middleware('throttle:120,1')->name('areas');
             Route::get('/schools', [MapController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
+        });
+
+        /* ---------------- V14 (25-11-2026): holiday calendar ---------------- */
+        Route::prefix('holidays')->name('holidays.')->group(function () {
+            Route::get('/', [HolidayController::class, 'index'])->name('index');
+            Route::middleware('can:manage_holidays')->group(function () {
+                Route::post('/', [HolidayController::class, 'store'])->name('store');
+                Route::get('/template', [HolidayController::class, 'template'])->name('template');
+                Route::post('/import', [HolidayController::class, 'import'])->middleware('throttle:10,1')->name('import');
+                Route::put('/{holiday}', [HolidayController::class, 'update'])->name('update');
+                Route::delete('/{holiday}', [HolidayController::class, 'destroy'])->name('destroy');
+            });
         });
 
         /* ---------------- Inspection schedules (New Module 2) ---------------- */

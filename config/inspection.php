@@ -89,6 +89,12 @@ return [
         'day_start' => '09:30',         // planned start of the day's visits
     ],
 
+    // V14 (25-11-2026): holiday calendar. Weekly off days: 0 = Sunday … 6 = Saturday (Today's schools settings may override)
+    'holidays' => [
+        'weekly_off' => [0],
+        'import_max_kb' => 2048,
+    ],
+
     // V6 Module 5: passwords are RSA-encrypted in the browser before submit (App\Services\PasswordCrypto)
     'security' => [
         'encrypt_passwords' => (bool) env('PASSWORD_ENCRYPTION', true),

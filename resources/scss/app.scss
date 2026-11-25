@@ -2501,3 +2501,17 @@ $office-block: #00838f;
 .office-ink-block { color: $office-block !important; }
 .mp-office-go { flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: #eef4fc; color: $primary; text-decoration: none;
     &:hover { background: $primary; color: #fff; } }
+
+// ---------- V14 (25-11-2026): holiday calendar ----------
+.sched-grid .sched-day {
+    &.is-off { background: #f8fafc; }
+    &.is-holiday { background: rgba($danger, .05); border-color: rgba($danger, .35); } }
+.holiday-chip { display: block; padding: .2rem .45rem; border-radius: .35rem; margin-bottom: .25rem; font-size: .75rem; font-weight: 600; border-left: 3px solid;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    &.is-state { background: rgba($danger, .08); border-color: $danger; color: darken($danger, 12%); }
+    &.is-local { background: rgba($warning, .12); border-color: $warning; color: darken($warning, 22%); }
+    &.d-inline-block { display: inline-block; margin: 0; padding: .05rem .4rem; font-size: .7rem; } }
+.holiday-list { max-height: 60vh; overflow: auto; }
+.holiday-date { flex: 0 0 auto; display: grid; place-items: center; width: 2.75rem; line-height: 1.1; padding: .3rem 0; border-radius: .5rem; background: #eef4fc; color: $primary;
+    font-size: .7rem; text-transform: uppercase; b { font-size: 1.05rem; } }
+.sched-holiday { display: block; font-size: .7rem; font-weight: 600; color: $danger; margin-bottom: .2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

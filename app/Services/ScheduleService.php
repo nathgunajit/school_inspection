@@ -156,7 +156,7 @@ class ScheduleService
         if (! $this->canManage($actor, $officer)) {
             throw ValidationException::withMessages(['officer_id' => 'You cannot plan inspections for this officer.']);
         }
-        $this->checkDate($date);
+        $this->checkDate($date, $officer);
         $schoolIds = array_values(array_unique(array_map('intval', $schoolIds)));
         $max = (int) config('inspection.schedule.max_per_day', 8);
         if (! $schoolIds) {
@@ -339,8 +339,13 @@ class ScheduleService
         }
     }
 
-    private function checkDate(Carbon $date): void
+    private function checkDate(Carbon $date, ?User $officer = null): void
     {
+        // V14 item 3: no plan on a state holiday or a local holiday of the officer's district
+        $calendar = app(HolidayCalendar::class);
+        if ($officer && ($name = $calendar->holiday($date, $calendar->districtOf($officer)))) {
+            throw ValidationException::withMessages(['date' => $date->format('d M Y')." is a holiday: $name. Pick another date."]);
+        }
         if ($date->lt(today())) {
             throw ValidationException::withMessages(['date' => 'A plan cannot be made for a past date.']);
         }
