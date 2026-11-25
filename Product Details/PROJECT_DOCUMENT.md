@@ -908,3 +908,15 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - `App\Services\NoticeService`
   - `NoticeController`, views `notices/index|create|show`
 - **Tests:** `tests/Feature/NoticeTest.php`.
+
+### 14.3 Assigned visits with an order, and self-planned visits (items 4 and 2)
+- **Order with the plan:** the Plan Inspections planner has an **Order / letter no.** box and an **Attach the order** file (PDF, Word or image, up to 5 MB).
+  - When a higher officer assigns visits to a CRCC, the plan is published at once with the order. An officer may also attach one to their own plan.
+  - A new file replaces the old one.
+  - Files are stored on the private disk under `schedule-orders/` and open only through `schedules.attachment`, for the officer and their higher officers. The route is audited (`schedule_order_viewed`; attaching is `schedule_order_attached`).
+  - The plan page and the dashboard "Today's plan" show "Assigned by {name} · Order {no.} · file". The calendar shows a paperclip.
+- **Self-planned visits:** every officer level that inspects (State, District, Block, Cluster) plans its own days, with distance, route map and directions, as before.
+  - A school still *planned* after its day shows **Pending**.
+  - The calendar status filter has **Pending visits (day passed)**.
+  - Inspected visits are marked **Inspected** at submit, as before.
+- **Tests:** `tests/Feature/ScheduleOrderTest.php`.

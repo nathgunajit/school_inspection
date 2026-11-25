@@ -37,8 +37,11 @@ class ScheduleController extends Controller
         $plans = InspectionSchedule::query()
             ->whereIn('officer_id', $ids)
             ->whereBetween('schedule_date', [$from->toDateString(), $to->toDateString()])
-            ->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))
-            ->with(['officer:id,name,level', 'items.school:id,name,udise_code'])
+            // V14 item 2: "Pending visits" = published plans with a school still planned after its day
+            ->when($request->query('status') === 'pending', fn ($q) => $q->where('status', ScheduleStatus::Published)
+                ->where('schedule_date', '<', today()->toDateString())->whereHas('items', fn ($i) => $i->where('status', InspectionScheduleItem::PLANNED)))
+            ->when($request->query('status') !== 'pending' ? $request->query('status') : null, fn ($q, $s) => $q->where('status', $s))
+            ->with(['officer:id,name,level', 'creator:id,name', 'items.school:id,name,udise_code'])
             ->orderBy('schedule_date')->get()
             ->groupBy(fn ($s) => $s->schedule_date->toDateString());
 
@@ -168,10 +171,15 @@ class ScheduleController extends Controller
             'start_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'start_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'notes' => ['nullable', 'string', 'max:500'],
-        ], ['school_ids.required' => 'Add at least one school to the plan.']);
+            // V14 item 4: the order / document for the visits
+            'order_ref' => ['nullable', 'string', 'max:60'],
+            'attachment' => ['nullable', 'file', 'mimes:'.implode(',', config('inspection.notice.mimes')), 'max:'.(int) config('inspection.notice.max_kb')],
+        ], ['school_ids.required' => 'Add at least one school to the plan.', 'attachment.mimes' => 'Attach the order as a PDF, Word or image file.',
+            'attachment.max' => 'The order can be at most '.\App\Support\FileSize::human((int) config('inspection.notice.max_kb')).'.']);
 
         $schedule = $this->schedules->save($request->user(), User::findOrFail($data['officer_id']), Carbon::parse($data['date']),
             $data['school_ids'], $data['action'], $data);
+        $this->schedules->attachOrder($request->user(), $schedule, $request->file('attachment'), $data['order_ref'] ?? null);
 
         $msg = match ($schedule->status) {
             ScheduleStatus::Submitted => 'Plan submitted for approval.',
@@ -182,6 +190,19 @@ class ScheduleController extends Controller
         return $request->expectsJson()
             ? response()->json(['message' => $msg, 'redirect' => route('schedules.show', $schedule)])
             : redirect()->route('schedules.show', $schedule)->with('success', $msg);
+    }
+
+    /** V14 item 4: the plan's order / document, for the officer and their higher officers. */
+    public function attachment(Request $request, InspectionSchedule $schedule)
+    {
+        abort_unless($schedule->attachment_path && $this->schedules->canView($request->user(), $schedule), 404);
+        $disk = \Illuminate\Support\Facades\Storage::disk('private');
+        abort_unless($disk->exists($schedule->attachment_path), 404);
+        \App\Services\AuditLogger::log('schedule_order_viewed', $schedule, ['file' => $schedule->attachment_name]);
+
+        return $disk->response($schedule->attachment_path, $schedule->attachment_name, [
+            'Content-Type' => $schedule->attachment_mime ?: 'application/octet-stream', 'X-Content-Type-Options' => 'nosniff',
+        ], $request->boolean('download') ? 'attachment' : 'inline');
     }
 
     public function show(Request $request, InspectionSchedule $schedule)

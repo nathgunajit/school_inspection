@@ -42,6 +42,7 @@
             <div class="col-6 col-md-2"><label class="form-label text-xs mb-1">Status</label>
                 <select name="status" class="form-select" data-autosubmit><option value="">All</option>
                     @foreach (\App\Enums\ScheduleStatus::cases() as $s)<option value="{{ $s->value }}" @selected(request('status') === $s->value)>{{ $s->label() }}</option>@endforeach
+                    <option value="pending" @selected(request('status') === 'pending')>Pending visits (day passed)</option>
                 </select></div>
             <div class="col-12 col-md-auto"><x-filter-buttons :reset="route('schedules.index', ['view' => $view])" /></div>
         </form>
@@ -55,7 +56,7 @@
             $done = $p->items->where('status', 'inspected')->count();
 
             return '<a href="'.route('schedules.show', $p).'" class="sched-chip sched-'.$p->status->value.'">'
-                .'<span class="fw-semibold text-truncate">'.e($p->officer->name).'</span>'
+                .'<span class="fw-semibold text-truncate">'.e($p->officer->name).($p->attachment_path || $p->order_ref ? ' <i class="bi bi-paperclip" title="Order attached"></i>' : '').'</span>'
                 .'<span class="text-xs">'.$n.' school'.($n === 1 ? '' : 's').($done ? ' · '.$done.' done' : '').' · '.e($p->status->label()).'</span></a>';
         };
     @endphp

@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
         // New Module 2: the officer's published (or completed) plan for today
         $todayPlan = \App\Models\InspectionSchedule::query()->where('officer_id', $user->id)->where('schedule_date', today()->toDateString())
-            ->whereIn('status', [\App\Enums\ScheduleStatus::Published, \App\Enums\ScheduleStatus::Completed])->with('items.school:id,name')->first();
+            ->whereIn('status', [\App\Enums\ScheduleStatus::Published, \App\Enums\ScheduleStatus::Completed])->with('items.school:id,name', 'creator:id,name')->first();
 
         // V14 item 1: the latest notices addressed to the officer (unread first)
         $notices = $user->isStateAdmin() ? collect() : \App\Models\Notice::query()->for($user)

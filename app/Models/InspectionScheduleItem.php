@@ -28,6 +28,12 @@ class InspectionScheduleItem extends Model
     }
 
 
+    /** V14 item 2: a visit still planned after its day has passed shows as Pending. */
+    public function isPending(): bool
+    {
+        return $this->status === self::PLANNED && $this->schedule_date !== null && $this->schedule_date->lt(today());
+    }
+
     public function schedule() { return $this->belongsTo(InspectionSchedule::class, 'schedule_id'); }
     public function school() { return $this->belongsTo(School::class); }
     public function inspection() { return $this->belongsTo(Inspection::class); }

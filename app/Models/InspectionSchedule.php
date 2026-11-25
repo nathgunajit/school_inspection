@@ -14,6 +14,7 @@ class InspectionSchedule extends Model
     protected $fillable = [
         'officer_id', 'schedule_date', 'status', 'created_by', 'submitted_at', 'reviewed_by', 'reviewed_at', 'review_note',
         'published_at', 'start_lat', 'start_lng', 'total_distance_km', 'total_minutes', 'notes',
+        'order_ref', 'attachment_path', 'attachment_name', 'attachment_mime', // V14 item 4
     ];
 
     protected function casts(): array

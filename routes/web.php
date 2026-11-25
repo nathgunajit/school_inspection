@@ -159,6 +159,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/approvals', [ScheduleController::class, 'approvals'])->name('approvals');
             Route::post('/items/{item}/skip', [ScheduleController::class, 'skip'])->name('skip');
             Route::get('/{schedule}', [ScheduleController::class, 'show'])->name('show');
+            Route::get('/{schedule}/order', [ScheduleController::class, 'attachment'])->name('attachment'); // V14 item 4
             Route::post('/{schedule}/approve', [ScheduleController::class, 'approve'])->name('approve');
             Route::post('/{schedule}/reject', [ScheduleController::class, 'reject'])->name('reject');
             Route::post('/{schedule}/cancel', [ScheduleController::class, 'cancel'])->name('cancel');

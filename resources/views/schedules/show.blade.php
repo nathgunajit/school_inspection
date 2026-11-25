@@ -35,6 +35,7 @@
                 <div class="fw-semibold">{{ $s->officer->name }} <span class="text-muted text-sm">· {{ $s->officer->level->label() }}</span></div>
                 <div class="text-sm text-muted">{{ $s->schedule_date->format('l, d M Y') }} · {{ $s->items->count() }} school(s) · ~{{ number_format($s->total_distance_km, 1) }} km · ~{{ intdiv($s->total_minutes, 60) }} h {{ $s->total_minutes % 60 }} min</div>
                 @if ($s->notes)<div class="text-sm mt-1"><i class="bi bi-sticky me-1"></i>{{ $s->notes }}</div>@endif
+                @include('schedules.partials.order', ['s' => $s])
                 @if ($s->review_note)
                     <div class="text-sm mt-1 {{ $s->status === ScheduleStatus::Rejected ? 'text-danger' : '' }}"><i class="bi bi-chat-left-text me-1"></i>{{ $s->status === ScheduleStatus::Cancelled ? 'Reason' : 'Note' }}: {{ $s->review_note }}</div>
                 @endif
@@ -68,6 +69,8 @@
                                         @if ($i->inspection)<a href="{{ route('inspections.show', $i->inspection) }}" class="text-xs">{{ $i->inspection->inspection_no }}</a>@endif
                                     @elseif ($i->status === 'skipped')
                                         <span class="badge-soft badge-soft-secondary">Skipped</span>
+                                    @elseif ($i->isPending())
+                                        <span class="badge-soft badge-soft-warning">Pending</span>
                                     @elseif ($s->status === ScheduleStatus::Published)
                                         @if ($own && $s->schedule_date->isToday())
                                             <form method="POST" action="{{ route('inspections.start', $i->school) }}" data-geo-start>@csrf

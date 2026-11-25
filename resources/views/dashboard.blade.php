@@ -76,6 +76,7 @@
                 <h3><i class="bi bi-signpost-split"></i>Today's plan · {{ $todayPlan->items->where('status', 'inspected')->count() }} of {{ $todayPlan->items->count() }} done</h3>
                 <a href="{{ route('schedules.show', $todayPlan) }}">Open plan <i class="bi bi-arrow-right"></i></a>
             </div>
+            @include('schedules.partials.order', ['s' => $todayPlan, 'class' => 'text-xs px-3 pb-2 text-secondary'])
             @foreach ($todayPlan->items as $i)
                 <a href="{{ $i->status === 'planned' ? route('schools.show', \App\Models\School::routeKeyFor($i->school_id)) : route('schedules.show', $todayPlan) }}" class="dash-row">
                     <span class="plan-no {{ $i->status === 'inspected' ? 'is-done' : ($i->status === 'skipped' ? 'is-skipped' : '') }}">{{ $i->sequence }}</span>

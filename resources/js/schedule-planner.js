@@ -318,10 +318,15 @@ if (root) {
         if (!plan.length) { errors.textContent = 'Add at least one school to the plan.'; errors.classList.remove('d-none'); return; }
         document.querySelectorAll('[data-action]').forEach((x) => { x.disabled = true; });
         try {
-            const body = {
-                officer_id: cfg.officer, date: cfg.date, school_ids: plan, action: b.dataset.action, notes: $('planNotes').value,
-                ...(start && cfg.start !== start ? { start_lat: start[0], start_lng: start[1] } : {}),
-            };
+            // V14 item 4: multipart, so the order / document can be sent with the plan
+            const body = new FormData();
+            body.append('officer_id', cfg.officer); body.append('date', cfg.date); body.append('action', b.dataset.action);
+            body.append('notes', $('planNotes').value);
+            plan.forEach((id) => body.append('school_ids[]', id));
+            if (start && cfg.start !== start) { body.append('start_lat', start[0]); body.append('start_lng', start[1]); }
+            if ($('planOrderRef')) body.append('order_ref', $('planOrderRef').value);
+            const file = $('planOrder')?.files?.[0];
+            if (file) body.append('attachment', file);
             const r = await window.axios.post(cfg.urls.store, body);
             window.location = r.data.redirect;
         } catch (err) {

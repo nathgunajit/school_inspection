@@ -298,6 +298,34 @@ class ScheduleService
         });
     }
 
+    /**
+     * V14 item 4: attach (or replace) the order / document and order number of a plan. A higher officer assigning
+     * visits to a CRCC attaches the order; the officer may attach one to their own plan. Stored on the private disk.
+     */
+    public function attachOrder(User $actor, InspectionSchedule $schedule, ?\Illuminate\Http\UploadedFile $file, ?string $ref): void
+    {
+        $ref = $ref !== null && trim($ref) !== '' ? mb_substr(trim($ref), 0, 60) : null;
+        if (! $file && $ref === $schedule->order_ref) {
+            return;
+        }
+        $disk = \Illuminate\Support\Facades\Storage::disk('private');
+        $old = $schedule->attachment_path;
+        $attrs = ['order_ref' => $ref];
+        if ($file) {
+            $ext = strtolower($file->extension() ?: $file->getClientOriginalExtension());
+            $attrs += [
+                'attachment_path' => $file->storeAs('schedule-orders', \Illuminate\Support\Str::random(40).'.'.$ext, 'private'),
+                'attachment_name' => mb_substr($file->getClientOriginalName(), 0, 200),
+                'attachment_mime' => $file->getMimeType(),
+            ];
+        }
+        $schedule->update($attrs);
+        if ($file && $old && $old !== $schedule->attachment_path) {
+            $disk->delete($old);
+        }
+        AuditLogger::log('schedule_order_attached', $schedule, ['order_ref' => $ref, 'file' => $attrs['attachment_name'] ?? $schedule->attachment_name]);
+    }
+
     /** Mark a planned school as skipped (by the officer or a higher officer), with a reason. */
     public function skip(User $actor, InspectionScheduleItem $item, string $reason): void
     {

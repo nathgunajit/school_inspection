@@ -63,6 +63,14 @@
                         <button type="button" class="btn btn-light btn-sm" id="btnMyLocation"><i class="bi bi-crosshair"></i>Start from my location</button>
                     </div>
                     <textarea class="form-control form-control-sm mt-2" id="planNotes" rows="2" maxlength="500" placeholder="Notes (optional)" @disabled($readonly)>{{ $schedule?->notes }}</textarea>
+                    {{-- V14 item 4: order / document for the visits (a higher officer assigning them, or the officer's own) --}}
+                    <div class="plan-order mt-2">
+                        <label class="form-label text-xs mb-1" for="planOrderRef"><i class="bi bi-file-earmark-text me-1"></i>Order / letter no. <span class="opt">optional</span></label>
+                        <input class="form-control form-control-sm" id="planOrderRef" maxlength="60" value="{{ $schedule?->order_ref }}" placeholder="e.g. DPO/KKJ/2026/45" @disabled($readonly)>
+                        <label class="form-label text-xs mb-1 mt-2" for="planOrder">Attach the order <span class="opt">optional · PDF, Word or image</span></label>
+                        <input type="file" class="form-control form-control-sm" id="planOrder" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" @disabled($readonly)>
+                        @if ($schedule?->attachment_path)<div class="text-xs mt-1"><i class="bi bi-paperclip"></i><a href="{{ route('schedules.attachment', $schedule) }}" target="_blank" rel="noopener" data-no-loader>{{ $schedule->attachment_name }}</a> · a new file replaces it</div>@endif
+                    </div>
                     <div class="text-danger text-sm mt-2 d-none" id="planErrors"></div>
                     <div class="d-flex flex-wrap gap-2 mt-2 {{ $readonly ? 'd-none' : '' }}">
                         @if ($superior)

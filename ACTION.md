@@ -2539,3 +2539,19 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `npm run build`, and migrated on MySQL (the JSON level filter works there).
   - New tests (3): audience by level and area, read and acknowledge counts, attachment access, withdraw, a district sender kept to their own district, a cluster-only notice, and an expired notice hidden.
   - Full suite: 270 passed.
+
+## 2026-11-25: V14 updated document, Module C: assigned visits with an order, pending visits
+- **Order with the plan (item 4):** the planner has an "Order / letter no." box and an "Attach the order" file (PDF, Word or image ≤ 5 MB, private disk `schedule-orders/`).
+  - The planner now sends the plan as multipart `FormData`. JSON posts still work.
+  - `ScheduleService::attachOrder()` stores or replaces the file and audits `schedule_order_attached`.
+  - `schedules.attachment` serves it to the officer and their higher officers only, audited `schedule_order_viewed`.
+  - The plan page and the dashboard Today's plan show "Assigned by … · Order … · file". The calendar chip shows a paperclip.
+- **Self-planned visits (item 2):** a school still planned after its day shows **Pending** (`InspectionScheduleItem::isPending()`). The calendar status filter has "Pending visits (day passed)". A test confirms that State, District, Block and Cluster officers can each plan their own visits.
+- **Files:**
+  - new: migration `2026_11_25_000004_add_order_to_inspection_schedules`, partial `schedules/partials/order`, `tests/Feature/ScheduleOrderTest.php`
+  - changed: `InspectionSchedule` / `InspectionScheduleItem` models, `ScheduleService`, `ScheduleController` (store, attachment, index filter), `routes/web.php`, `resources/js/schedule-planner.js`, views `schedules/plan`, `show`, `index`, `dashboard`, `DashboardController`
+  - docs: `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md` §14.3
+- **Verified:**
+  - `npm run build`, and migrated on MySQL.
+  - New tests (3): an order assigned by the Block officer opens for the CRCC but not for an outsider, a bad file type is refused, JSON without a file still works, Pending shows on the plan page and in the filter, and every level plans for itself.
+  - Full suite: 273 passed.
