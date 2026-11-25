@@ -1,6 +1,6 @@
 # School Inspection Management System: project document
 
-Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report) and for **Modification V7** (registration form changes and the rating card) and **Modification V8** (map popups and colour key, rating report design, PDF without device location, daily login report). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026.
+Modification of the Application V5, Step 1, updated for the New Modules (Map View, Scheduling, Rating) for **Modification V6** (security, login monitoring, district KML, my location and road route, school rating, rating report) and for **Modification V7** (registration form changes and the rating card) and **Modification V8** (map popups and colour key, rating report design, PDF without device location, daily login report), and since then V9–V14 (latest 25-11-2026, section 14). This document covers the database schema and the functional flow, for developers and for users. Phase 1. Date: 19-11-2026, updated 25-11-2026.
 
 | For | Read |
 |---|---|
@@ -876,7 +876,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - Holidays already in the calendar are skipped.
 - **Holiday types** (25-11-2026): `gazetted` (office closed: the only type that blocks plans and Today's schools), `restricted` (Restricted Holiday, an employee may take 2: shown only) and `half` (half holiday from 1 PM: shown only). The import has a `type` column (blank = gazetted).
 - **Assam list 2026:** `AssamHolidaySeeder` loads the GAD notification of 17-11-2025 (`Documents/HolidayList2026.pdf`): 35 holidays, 1 half holiday, 39 restricted holidays, and Ali-Aye-Ligang as a full holiday in its 11 districts. The page's Template menu gives the blank template and the filled Assam 2026 list (`Documents/HolidayList2026.xlsx`). 2nd / 4th Saturdays are not off days in the app.
-- **Dashboard:** a Calendar & Notices row: the month with holidays marked by type, the next 6 holidays, and the latest notices (the State Admin sees the ones sent, with read counts).
+- **Dashboard:** a Calendar & Notices rail on the right: the month with holidays marked by type (gazetted red, local orange, restricted green, half sky blue; today a filled circle), the next 4 holidays ("today", "tomorrow", "in N days"), and the latest notices with the unread count (the State Admin sees the ones sent, with read counts). The banner has quick-link pills: Today's schools, Plan inspections, Map, Notices, Holidays.
 - **Weekly off days:** `config('inspection.holidays.weekly_off')`, default Sunday.
 - **Effects:**
   - No inspection plan can be saved for a holiday of the officer's district (`ScheduleService::checkDate()`).
@@ -930,6 +930,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - the distance from the office (route start point) and a Google Maps **Route**
   - **Start** (captures the location, like the planner)
   - **Skip** with a reason
+- **Started but not completed** (25-11-2026): when the officer has an open draft for a listed school, the row shows **Draft in progress · N %** with the last-saved time and a **Continue** button in place of Start; Skip is hidden. The school stays on the list, and carries forward, until the inspection is submitted. The dashboard card shows a "Draft N %" chip.
 - **When the list is made:** on the officer's first view of the day, once, and it stays the same all day (no cron). Submitting an inspection marks the school **Visited**.
 - **No list** on a holiday (Holiday Calendar) or a weekly off day, which shows "Holiday: …" or "Weekly off".
 - **Order of the list:**
@@ -947,7 +948,7 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
        - Ties are random. The chip shows the strongest reason; "Low rating" reads "Needs support" while ratings are hidden.
 - **Admin settings** (**Today's Schools → Settings**, gate `manage_holidays`): the State Admin sets the state default and any district's own setting; a District officer with Manage users sets their district's (or goes back to the state default). The options:
   - on / off
-  - which officer levels get the list (default Cluster)
+  - which officer levels get the list (default Cluster). Since 25-11-2026 this is the **State's choice**: a District officer sees the State's levels ticked and locked ("Set by the State Administrator"), and their district follows any later State change; only the State Admin can give one district its own levels
   - daily limit
   - selection (priority / random)
   - the four priorities with the low-rating threshold
@@ -964,3 +965,16 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - `App\Services\DailySchoolListService` (`forOfficer()`, `generate()`, `pick()`, `markVisited()` called at submit, `assign()`, `skip()`, `remove()`)
   - `TodaySchoolsController` (`/today`, `/today/assign`, `/today/settings`)
 - **Tests:** `tests/Feature/TodaySchoolsTest.php`.
+
+### 14.5 Navigation: a smaller sidebar (25-11-2026)
+- **Main menu (9 items):** Dashboard · Today's Schools · **Schools** · **Inspections** · **Reports** · Map View · Notices & Orders · Inspection Schedules · Holiday Calendar.
+- **Merged items with tabs** at the top of the page (`<x-page-tabs>`; each tab keeps its own permission, and the tab row is hidden when only one is allowed):
+
+| Menu item | Tabs |
+|---|---|
+| Schools | Find School · My Schools |
+| Inspections | My Inspections · In My Area |
+| Reports | Coverage · Rating (State Administrator only) · Network Issues |
+
+- **Folding groups** under *Administration*: **Users** (Pending Approvals with its count, User List, Mobile Changes) and **Masters & Admin** (Location, AC / PC, School and TLM Masters, Excel Upload, Rating Settings, Login Monitoring, Audit Log). A group is closed unless one of its pages is open. In the icon rail every link stays visible.
+- Page addresses, permissions and the phone bottom navigation are unchanged.

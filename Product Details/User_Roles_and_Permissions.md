@@ -123,21 +123,27 @@ sequenceDiagram
 
 ## 5. Navigation visibility per role (sidebar `components/layouts/app.blade.php`)
 
-| Menu item | Route | Condition | SA | State | District | Block | Cluster |
+Since 25-11-2026 related pages share one menu item and switch with tabs on the page; each tab keeps the permission shown.
+
+| Menu item (tab) | Route | Condition | SA | State | District | Block | Cluster |
 |---|---|---|---|---|---|---|---|
 | New inspection (button) | `schools.index` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Dashboard | `dashboard` | always | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Find School | `schools.index` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| My Inspections | `inspections.mine` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Inspections in Area | `inspections.area` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Rating Report | `reports.ratings` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Today's Schools | `today.index` | `conduct_inspections` (list only for the levels the State chose) | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Schools (Find School, My Schools) | `schools.index`, `schools.mine` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Inspections (My Inspections) | `inspections.mine` | `conduct_inspections` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Inspections (In My Area) | `inspections.area` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Reports (Coverage, Network Issues) | `reports.coverage`, `reports.network` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Reports (Rating) | `reports.ratings` | `state_admin` | ✔ | — | — | — | — |
 | Map View | `map.index` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Notices & Orders (unread count) | `notices.index` | always (sending: `issue_notices`) | ✔ | ✔ | ✔ | ✔ | ✔ |
 | Inspection Schedules | `schedules.index` | `view_reports` | ✔ | ✔ | ✔ | ✔ | ✔ |
-| Pending Approvals (with count) | `admin.approvals.index` | `approve_registrations` | ✔ | grant | grant | grant | — |
-| User List | `admin.users.index` | `manage_users` | ✔ | — | grant | — | — |
-| Mobile Changes | `admin.mobile-requests.index` | `state_admin` | ✔ | — | — | — | — |
-| Location Master, School Master, Excel Upload, Rating Settings | `admin.locations/schools/imports/rating.index` | `manage_masters` | ✔ | — | — | — | — |
-| Login Monitoring, Audit Log | `admin.login-report.index`, `admin.audit.index` | `state_admin` | ✔ | — | — | — | — |
+| Holiday Calendar | `holidays.index` | always (editing: `manage_holidays`) | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Users group: Pending Approvals (with count) | `admin.approvals.index` | `approve_registrations` | ✔ | grant | grant | grant | — |
+| Users group: User List | `admin.users.index` | `manage_users` | ✔ | — | grant | — | — |
+| Users group: Mobile Changes | `admin.mobile-requests.index` | `state_admin` | ✔ | — | — | — | — |
+| Masters & Admin group: Location, AC / PC, School, TLM Masters, Excel Upload, Rating Settings | `admin.locations/constituencies/schools/tlm/imports/rating.index` | `manage_masters` | ✔ | — | — | — | — |
+| Masters & Admin group: Login Monitoring, Audit Log | `admin.login-report.index`, `admin.audit.index` | `state_admin` | ✔ | — | — | — | — |
 | Account menu: My Profile, Change Password, Sign out | | always | ✔ | ✔ | ✔ | ✔ | ✔ |
 
 **Bottom navigation (phones):** Home, My Visits, a central "+" (new inspection), Area (`view_reports`), Profile.

@@ -2679,3 +2679,15 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - tests: `TodaySchoolsTest` (new draft test), `HolidayCalendarTest`, `MySchoolsTest`, `RatingReportTest`, `CoverageReportTest`, `ModificationV9Test`
   - `CLAUDE.md`
 - **Verified:** `npm run build`; full suite 286 passed.
+
+## 2026-11-25: Product Details Word document updated
+- **Request:** update the Product Details Word document.
+- **Change:**
+  - `PROJECT_DOCUMENT.md` (header now covers V9–V14):
+    - §14.1 has the dashboard Calendar & Notices rail and its holiday colours.
+    - §14.4 has the draft rows (Draft in progress · N %, Continue) and the officer levels as the State's choice, locked for District users.
+    - New §14.5 "Navigation: a smaller sidebar" (9 items, the tabs table, the folding groups).
+  - `UI_Pages_and_Application_Modules.md`: sidebar section.
+  - `User_Roles_and_Permissions.md`: §5 navigation table, rebuilt for the merged items, tabs and groups, adding Today's Schools, Notices, Holidays and the State Admin-only Rating tab.
+  - Rebuilt `Product Details/School_Inspection_Product_Details.docx`.
+- **Verified:** the build wrote the file (3.7 MB), and the new sections are in `word/document.xml`.
