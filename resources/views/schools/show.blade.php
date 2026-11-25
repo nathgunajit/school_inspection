@@ -123,7 +123,7 @@
                         <a @if ($canView) href="{{ route('inspections.show', $h) }}" @endif class="list-item text-decoration-none">
                             <div class="flex-grow-1">
                                 <div class="fw-semibold text-sm">{{ $h->inspection_date->format('d M Y') }}</div>
-                                <div class="text-xs text-secondary">{{ $h->officer->name }} · {{ $h->inspection_no }}</div>
+                                <div class="text-xs text-secondary">{{ $h->officer_id === auth()->id() ? 'You' : $h->officer->name }} · {{ $h->inspection_no }}</div>
                             </div>
                             @php $prev = $history->slice($loop->index + 1)->first(fn ($x) => $x->rating?->score_percent !== null); $diff = $h->rating?->score_percent !== null && $prev ? $h->rating->score_percent - $prev->rating->score_percent : null; @endphp
                             @if (config('inspection.rating.display') && $h->rating?->score_percent !== null)

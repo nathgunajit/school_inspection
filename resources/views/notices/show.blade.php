@@ -22,7 +22,8 @@
                     <div class="text-sm text-secondary mt-4 border-top pt-3">
                         From <b class="text-body">{{ $notice->creator->name }}</b>, {{ $notice->creator->designation_label ?? $notice->creator->level->label() }}
                         <div class="text-xs">To: {{ $notice->audienceLabel() }}@if ($notice->expires_on) · shown until {{ \Carbon\Carbon::parse($notice->expires_on)->format('d M Y') }}@endif
-                            @if ($notice->show_on_home && ! $notice->isWithdrawn()) · <span class="text-danger"><i class="bi bi-broadcast"></i> on the homepage Latest Notice</span>@endif</div>
+                            @if ($notice->isPinned()) · <span class="text-danger fw-semibold"><i class="bi bi-pin-angle-fill"></i> Latest Notification (top of the homepage)</span>
+                            @elseif ($notice->show_on_home && ! $notice->isWithdrawn()) · <span class="text-danger"><i class="bi bi-broadcast"></i> on the homepage Latest Notice</span>@endif</div>
                     </div>
                 </div>
                 @if ($read && ! $notice->isWithdrawn())
@@ -43,6 +44,13 @@
                         <input type="hidden" name="show_on_home" value="{{ $notice->show_on_home ? 0 : 1 }}">
                         <button class="btn {{ $notice->show_on_home ? 'btn-outline-secondary' : 'btn-outline-primary' }}"><i class="bi bi-broadcast"></i>{{ $notice->show_on_home ? 'Remove from homepage' : 'Show on homepage' }}</button>
                     </form>
+                    {{-- 25-11-2026: Latest Notification (one per sender) --}}
+                    @if ($notice->pinned_at || ! $notice->isExpired())
+                        <form method="POST" action="{{ route('notices.pin', $notice) }}">@csrf
+                            <input type="hidden" name="pin" value="{{ $notice->pinned_at ? 0 : 1 }}">
+                            <button class="btn {{ $notice->pinned_at ? 'btn-outline-secondary' : 'btn-danger' }}"><i class="bi {{ $notice->pinned_at ? 'bi-pin-angle' : 'bi-pin-angle-fill' }}"></i>{{ $notice->pinned_at ? 'Remove Latest Notification' : 'Set as Latest Notification' }}</button>
+                        </form>
+                    @endif
                     <form method="POST" action="{{ route('notices.withdraw', $notice) }}" data-confirm="Withdraw this {{ strtolower($notice->typeLabel()) }}? Officers will no longer see it in their inbox.">
                         @csrf<button class="btn btn-outline-danger"><i class="bi bi-slash-circle"></i>Withdraw</button>
                     </form>

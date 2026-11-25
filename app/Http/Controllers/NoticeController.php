@@ -82,6 +82,7 @@ class NoticeController extends Controller
             'attachment.max' => 'The attachment can be at most '.\App\Support\FileSize::human((int) config('inspection.notice.max_kb')).'.']);
 
         $data['show_on_home'] = $request->boolean('show_on_home'); // 25-11-2026: homepage Latest Notice ticker
+        $data['pin_latest'] = $request->boolean('pin_latest');     // 25-11-2026: Latest Notification (top of the homepage)
         $notice = $this->notices->publish($request->user(), $data, $request->file('attachment'));
 
         return redirect()->route('notices.show', $notice)->with('success', $notice->typeLabel().' sent to '.$notice->recipients()->count().' officer(s).');
@@ -128,11 +129,26 @@ class NoticeController extends Controller
         abort_unless($this->notices->canManage($request->user(), $notice), 403);
         $on = $request->boolean('show_on_home');
         if ($notice->show_on_home !== $on) {
-            $notice->update(['show_on_home' => $on]);
+            $notice->update(['show_on_home' => $on] + ($on ? [] : ['pinned_at' => null])); // off the homepage = no longer the Latest Notification
             AuditLogger::log('notice_home_changed', $notice, ['title' => $notice->title, 'show_on_home' => $on]);
         }
 
         return back()->with('success', $on ? 'Shown in Latest Notice on the homepage.' : 'Removed from the homepage Latest Notice.');
+    }
+
+    /** 25-11-2026: set / remove the notice as the sender's Latest Notification (top of the homepage). */
+    public function pin(Request $request, Notice $notice)
+    {
+        abort_unless($this->notices->canManage($request->user(), $notice), 403);
+        $on = $request->boolean('pin');
+        if ($on && ($notice->isWithdrawn() || $notice->isExpired())) {
+            return back()->with('error', 'A withdrawn or expired notice cannot be the Latest Notification.');
+        }
+        if ($on || $notice->pinned_at) {
+            $this->notices->pin($notice, $on);
+        }
+
+        return back()->with('success', $on ? 'Set as the Latest Notification at the top of the homepage.' : 'No longer the Latest Notification.');
     }
 
     public function attachment(Request $request, Notice $notice)

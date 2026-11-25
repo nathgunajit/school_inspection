@@ -76,7 +76,7 @@
                     {{-- ============ STEP 1: info card + condition questions ============ --}}
                     @if ($step === 1)
                         <div class="info-card mt-2 mb-1">
-                            <div><span>Officer</span><strong>{{ $inspection->officer->name }}</strong><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div>
+                            <div><span>Officer</span><strong>{{ $inspection->officer_id === auth()->id() ? 'You' : $inspection->officer->name }}</strong><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div>
                             <div><span>School</span><strong>{{ $inspection->school->name }}</strong><small class="font-monospace">UDISE {{ $inspection->school->udise_code }}</small></div>
                             <div><span>Date &amp; time</span><strong>{{ $inspection->started_at->format('d M Y, h:i A') }}</strong><small>Recorded by server</small></div>
                             <div><span>Location</span>

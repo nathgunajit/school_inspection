@@ -31,6 +31,11 @@
                             <input class="form-check-input" type="checkbox" role="switch" name="show_on_home" value="1" id="n-home" @checked(old('show_on_home', '1') === '1')>
                             <label class="form-check-label fw-semibold" for="n-home"><i class="bi bi-broadcast me-1 text-danger"></i>Show in Latest Notice on the homepage</label></div>
                             <div class="form-text">The newest ticked notice scrolls at the top of the Dashboard of everyone who receives it.</div></div>
+                        {{-- 25-11-2026: Latest Notification (pinned at the top of the homepage, whatever its date) --}}
+                        <div class="col-12"><div class="form-check form-switch"><input type="hidden" name="pin_latest" value="0">
+                            <input class="form-check-input" type="checkbox" role="switch" name="pin_latest" value="1" id="n-pin" @checked(old('pin_latest') === '1')>
+                            <label class="form-check-label fw-semibold" for="n-pin"><i class="bi bi-pin-angle-fill me-1 text-danger"></i>Set as Latest Notification (top of the homepage)</label></div>
+                            <div class="form-text">Stays at the top of the Dashboard until you pin another notice or remove it. Replaces your current Latest Notification.</div></div>
                     </div>
                 </div>
             </div>

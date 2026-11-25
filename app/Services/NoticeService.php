@@ -61,7 +61,16 @@ class NoticeService
         $stored = $file ? $this->store($file) : [];
 
         try {
-            $notice = DB::transaction(fn () => Notice::create($data + $stored + ['status' => 'published', 'created_by' => $sender->id]));
+            $pin = (bool) ($data['pin_latest'] ?? false);
+            unset($data['pin_latest']);
+            $notice = DB::transaction(function () use ($data, $stored, $sender, $pin) {
+                $notice = Notice::create($data + $stored + ['status' => 'published', 'created_by' => $sender->id]);
+                if ($pin) {
+                    $this->pin($notice, true, false);
+                }
+
+                return $notice;
+            });
         } catch (\Throwable $e) {
             if ($stored) {
                 Storage::disk(self::DISK)->delete($stored['attachment_path']);
@@ -69,9 +78,28 @@ class NoticeService
             throw $e;
         }
         AuditLogger::log('notice_published', $notice, ['type' => $notice->type, 'title' => $notice->title, 'audience' => $notice->audienceLabel(),
-            'recipients' => $notice->recipients()->count(), 'attachment' => (bool) $file]);
+            'recipients' => $notice->recipients()->count(), 'attachment' => (bool) $file, 'latest' => $notice->pinned_at !== null]);
 
         return $notice;
+    }
+
+    /**
+     * 25-11-2026: set (or clear) the notice as its sender's Latest Notification. One per sender: pinning clears the
+     * sender's other pins. A pinned notice is always on the homepage. Audited notice_pinned / notice_unpinned.
+     */
+    public function pin(Notice $notice, bool $on, bool $audit = true): void
+    {
+        DB::transaction(function () use ($notice, $on) {
+            if ($on) {
+                Notice::where('created_by', $notice->created_by)->whereKeyNot($notice->id)->whereNotNull('pinned_at')->update(['pinned_at' => null]);
+                $notice->update(['pinned_at' => now(), 'show_on_home' => true]);
+            } else {
+                $notice->update(['pinned_at' => null]);
+            }
+        });
+        if ($audit) {
+            AuditLogger::log($on ? 'notice_pinned' : 'notice_unpinned', $notice, ['title' => $notice->title]);
+        }
     }
 
     public function withdraw(User $actor, Notice $notice): void
@@ -166,7 +194,8 @@ class NoticeService
             'type' => $data['type'], 'ref_no' => $data['ref_no'] ?? null, 'title' => trim($data['title']), 'body' => trim($data['body']),
             'notice_date' => $data['notice_date'], 'expires_on' => $data['expires_on'] ?? null, 'levels' => $levels,
             'district_id' => $districtId ? (int) $districtId : null, 'block_id' => $blockId ? (int) $blockId : null, 'cluster_id' => $clusterId ? (int) $clusterId : null,
-            'show_on_home' => (bool) ($data['show_on_home'] ?? true), // 25-11-2026: homepage Latest Notice
+            'show_on_home' => (bool) ($data['show_on_home'] ?? true) || ! empty($data['pin_latest']), // 25-11-2026: homepage Latest Notice
+            'pin_latest' => ! empty($data['pin_latest']), // 25-11-2026: Latest Notification (top of the homepage)
         ];
     }
 

@@ -842,6 +842,7 @@ CHECK `chk_mcr_new_mobile`: ``new_mobile` regexp '^[6-9][0-9]{9}$'`
 | `cluster_id` | bigint(20) unsigned |  |  | clusters.id (set null) | Yes |  |
 | `expires_on` | date |  |  |  | Yes |  |
 | `show_on_home` | tinyint(1) |  |  |  | No | 1 |
+| `pinned_at` | timestamp |  |  |  | Yes |  |
 | `status` | varchar(12) | 12 |  |  | No | published |
 | `created_by` | bigint(20) unsigned |  |  | users.id (restrict) | No |  |
 | `withdrawn_at` | timestamp |  |  |  | Yes |  |

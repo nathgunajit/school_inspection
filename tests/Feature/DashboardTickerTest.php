@@ -110,4 +110,63 @@ class DashboardTickerTest extends TestCase
         $this->assertStringNotContainsString('Withdrawn format', $strip);
         $this->assertStringNotContainsString('NEW', $strip);
     }
+
+    public function test_pinned_latest_notification_beats_newer_notices_and_one_per_sender(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $crcc = $this->officer(UserLevel::Cluster, $cluster);
+        $admin = $this->admin();
+        $old = $this->notice($admin, 'Pinned older order', ['notice_date' => today()->subDays(4)->toDateString(), 'show_on_home' => false]);
+        $other = $this->notice($admin, 'Second pinned order', ['notice_date' => today()->subDays(3)->toDateString()]);
+        $this->notice($admin, 'Brand new order');
+        $this->assertStringContainsString('Brand new order', $this->ticker($crcc));
+
+        $this->actingAs($admin)->post(route('notices.pin', $old), ['pin' => '1'])->assertRedirect();
+        $old->refresh();
+        $this->assertNotNull($old->pinned_at);
+        $this->assertTrue($old->show_on_home, 'a pinned notice is always on the homepage');
+        $strip = $this->ticker($crcc);
+        $this->assertStringContainsString('Pinned older order', $strip);
+        $this->assertStringNotContainsString('Brand new order', $strip);
+        $this->assertTrue(\App\Models\AuditLog::where('action', 'notice_pinned')->exists());
+        $this->actingAs($admin)->get(route('notices.index'))->assertSee('bi-pin-angle-fill', false)->assertSee('Latest');
+        $this->actingAs($admin)->get(route('notices.show', $old))->assertSee('Remove Latest Notification');
+
+        // pinning another one of the same sender replaces it
+        $this->actingAs($admin)->post(route('notices.pin', $other), ['pin' => '1']);
+        $this->assertNull($old->fresh()->pinned_at);
+        $this->assertStringContainsString('Second pinned order', $this->ticker($crcc));
+
+        // only the sender (or a manager) may pin
+        $this->actingAs($crcc)->post(route('notices.pin', $old), ['pin' => '1'])->assertForbidden();
+
+        // removing it brings back the newest ticked notice; taking a pinned notice off the homepage unpins it
+        $this->actingAs($admin)->post(route('notices.pin', $other), ['pin' => '0']);
+        $this->assertNull($other->fresh()->pinned_at);
+        $this->assertTrue(\App\Models\AuditLog::where('action', 'notice_unpinned')->exists());
+        $this->assertStringContainsString('Brand new order', $this->ticker($crcc));
+        $this->actingAs($admin)->post(route('notices.pin', $other), ['pin' => '1']);
+        $this->actingAs($admin)->post(route('notices.home', $other), ['show_on_home' => '0']);
+        $this->assertNull($other->fresh()->pinned_at);
+    }
+
+    public function test_expired_or_withdrawn_cannot_be_pinned_and_compose_can_pin(): void
+    {
+        $admin = $this->admin();
+        $expired = $this->notice($admin, 'Expired one', ['notice_date' => today()->subDays(5)->toDateString(), 'expires_on' => today()->subDay()->toDateString()]);
+        $withdrawn = $this->notice($admin, 'Withdrawn one', ['status' => 'withdrawn', 'withdrawn_at' => now()]);
+        foreach ([$expired, $withdrawn] as $n) {
+            $this->actingAs($admin)->post(route('notices.pin', $n), ['pin' => '1'])->assertRedirect()->assertSessionHas('error');
+            $this->assertNull($n->fresh()->pinned_at);
+        }
+
+        $first = $this->notice($admin, 'Pinned earlier', ['pinned_at' => now()->subHour()]);
+        $this->actingAs($admin)->post(route('notices.store'), ['type' => 'order', 'title' => 'Composed and pinned', 'body' => 'Body of the order.',
+            'notice_date' => today()->subDays(2)->toDateString(), 'levels' => ['cluster'], 'show_on_home' => '0', 'pin_latest' => '1'])->assertRedirect();
+        $new = Notice::where('title', 'Composed and pinned')->first();
+        $this->assertNotNull($new->pinned_at);
+        $this->assertTrue($new->show_on_home);
+        $this->assertNull($first->fresh()->pinned_at);
+        $this->assertStringContainsString('Composed and pinned', $this->ticker($admin));
+    }
 }

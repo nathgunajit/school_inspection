@@ -42,6 +42,7 @@
                                     <span class="notice-type" style="--nt: {{ $n->typeColor() }}">{{ $n->typeLabel() }}</span>
                                     @if ($n->ref_no)<span class="text-xs text-secondary">No. {{ $n->ref_no }}</span>@endif
                                     @if ($unreadRow)<span class="badge text-bg-warning" data-notice-new>New</span>@endif
+                                    @if ($n->isPinned())<span class="badge text-bg-danger" title="Latest Notification at the top of the homepage"><i class="bi bi-pin-angle-fill me-1"></i>Latest</span>@endif {{-- 25-11-2026 --}}
                                     @if ($n->isWithdrawn())<span class="badge text-bg-secondary">Withdrawn</span>@elseif ($n->isExpired())<span class="badge text-bg-light">Expired</span>@endif
                                     @if ($n->attachment_path)<i class="bi bi-paperclip text-secondary" title="Has an attachment"></i>@endif
                                 </span>

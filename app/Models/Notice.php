@@ -19,9 +19,9 @@ class Notice extends Model
 
     // 25-11-2026: the types are the NoticeType master (Masters → Notice Types); `type` holds its code
     protected $fillable = ['type', 'ref_no', 'title', 'body', 'notice_date', 'attachment_path', 'attachment_name', 'attachment_mime',
-        'levels', 'district_id', 'block_id', 'cluster_id', 'expires_on', 'show_on_home', 'status', 'created_by', 'withdrawn_at'];
+        'levels', 'district_id', 'block_id', 'cluster_id', 'expires_on', 'show_on_home', 'pinned_at', 'status', 'created_by', 'withdrawn_at'];
 
-    protected $casts = ['levels' => 'array', 'withdrawn_at' => 'datetime', 'show_on_home' => 'boolean'];
+    protected $casts = ['levels' => 'array', 'withdrawn_at' => 'datetime', 'show_on_home' => 'boolean', 'pinned_at' => 'datetime'];
 
     protected static function booted(): void
     {
@@ -42,6 +42,9 @@ class Notice extends Model
     public function typeColor(): string { return NoticeType::map()[$this->type]['color'] ?? '#1565c0'; }
     public function isWithdrawn(): bool { return $this->status === 'withdrawn'; }
     public function isExpired(): bool { return $this->expires_on !== null && $this->expires_on < today()->toDateString(); }
+
+    /** 25-11-2026: pinned as the sender's Latest Notification (top of the homepage) and still live. */
+    public function isPinned(): bool { return $this->pinned_at !== null && $this->status === 'published' && ! $this->isExpired(); }
 
     /** "Cluster, Block officers · KOKRAJHAR (1801)" */
     public function audienceLabel(): string

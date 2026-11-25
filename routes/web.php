@@ -158,6 +158,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/', [NoticeController::class, 'store'])->middleware('throttle:20,1')->name('store');
                 Route::post('/{notice}/withdraw', [NoticeController::class, 'withdraw'])->name('withdraw');
                 Route::post('/{notice}/home', [NoticeController::class, 'home'])->name('home'); // 25-11-2026: homepage Latest Notice
+                Route::post('/{notice}/pin', [NoticeController::class, 'pin'])->name('pin'); // 25-11-2026: Latest Notification
             });
             Route::get('/{notice}', [NoticeController::class, 'show'])->name('show');
             Route::post('/{notice}/acknowledge', [NoticeController::class, 'acknowledge'])->name('acknowledge');

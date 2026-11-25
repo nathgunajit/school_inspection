@@ -45,7 +45,7 @@
         </div>
         <div class="rp-stats">
             <div><i class="bi bi-calendar-event"></i><span>Inspection date</span><b>{{ $inspection->inspection_date->format('d M Y') }}</b></div>
-            <div><i class="bi bi-person-badge"></i><span>Inspected by</span><b class="text-truncate">{{ $inspection->officer->name }}</b></div>
+            <div><i class="bi bi-person-badge"></i><span>Inspected by</span><b class="text-truncate">{{ $inspection->officer_id === auth()->id() ? 'You' : $inspection->officer->name }}</b></div>{{-- 25-11-2026: own name hidden on own inspections --}}
             <div><i class="bi bi-camera"></i><span>Photographs</span><b>{{ $photos->count() }} <small>· {{ $requiredDone }}/{{ count($mandatory) }} required</small></b></div>
             <div><i class="bi bi-send-check"></i><span>Submitted</span><b>{{ $inspection->submitted_at?->format('d M Y, h:i A') ?? 'Not yet' }}</b></div>
         </div>
@@ -76,7 +76,7 @@
             <section class="card rp-card mb-4">
                 <div class="rp-card-head"><span class="rp-card-icon"><i class="bi bi-info-circle"></i></span><h3>Inspection details</h3></div>
                 <div class="rp-details">
-                    <div><span class="rp-dt-icon"><i class="bi bi-person-badge"></i></span><div><span>Inspecting officer</span><b>{{ $inspection->officer->name }}</b><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div></div>
+                    <div><span class="rp-dt-icon"><i class="bi bi-person-badge"></i></span><div><span>Inspecting officer</span><b>{{ $inspection->officer_id === auth()->id() ? 'You' : $inspection->officer->name }}</b><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div></div>
                     @if ($inspection->person_met_name) {{-- V9: no longer asked; shown for older inspections --}}
                         <div><span class="rp-dt-icon"><i class="bi bi-people"></i></span><div><span>Person met at the school</span><b>{{ $inspection->person_met_name }}</b><small>{{ $inspection->person_met_designation }}</small></div></div>
                     @endif
