@@ -108,6 +108,17 @@
                     <div class="map-loading d-none" id="mapLoading"><span class="spinner-border spinner-border-sm"></span> Loading…</div>
                 </div>
             </div>
+
+            {{-- District-, block-, cluster- or school-wise table of the current level (26-11-2026: below the map; hidden in Full screen) --}}
+            <div class="card mt-3 map-list">
+                <div class="card-header bg-white fw-semibold" id="mapTableTitle">Areas</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 map-table">
+                        <thead id="mapTableHead"></thead>
+                        <tbody id="mapTableBody"><tr><td class="text-muted p-3">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

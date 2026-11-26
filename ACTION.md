@@ -3154,3 +3154,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `resources/scss/app.scss`: `.map-card-full .si-map` is as tall as the screen; full-screen styles; `.map-chips` / `.map-chip` (area blue, school / officer green, period grey, rating orange; larger × on phones); `.map-stats` removed.
 - **Tests:** `MapViewTest` checks the chips bar, Full screen, `#mapLayout`, and no table or tiles.
 - **Verified:** full suite 360 passed; `npm run build` OK (new icons are in the subset).
+
+## 26-11-2026: Map View: the report list is back below the map, hidden in Full screen
+- **Asked:** "Map View page Below List of the report not Full View Display". The user chose: show the list below the map, and hide it in Full screen.
+- **Done:**
+  - The table card came back below the map card (`.map-list`), with `renderTable()` and its call in `load()` (taken from the version before `b2ae5b6`).
+  - A row click now scrolls to `#mapCard` and opens the marker's popup.
+  - `.map-layout.is-full .map-list { display: none; }`. The count tiles stay removed; the chips, the screen-tall map and Full screen are unchanged.
+- **Files:** `resources/views/map/index.blade.php`, `resources/js/map.js`, `resources/scss/app.scss`, `tests/Feature/MapViewTest.php`, `CLAUDE.md`.
+- **Verified:** full suite 360 passed; `npm run build` OK.

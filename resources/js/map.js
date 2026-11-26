@@ -107,6 +107,7 @@ if (el) {
             renderCrumbs(data.breadcrumb, level);
             level === 'school' ? renderSchools(data.rows, focusSchool) : renderAreas(data.rows, level);
             renderOffices();
+            renderTable(data.rows, level); // 26-11-2026: the report list below the map
             syncSelects(data.breadcrumb, level, data.rows);
             crumbsNow = data.breadcrumb;
             if (focusSchool === null) picked = null; // a school chip only for the school picked in the search
@@ -357,6 +358,39 @@ if (el) {
         }
     }
 
+    function renderTable(rows, level) {
+        $('mapTableTitle').textContent = level === 'school' ? 'Schools in this cluster' : `${levelName[level]}-wise coverage and registered officers`;
+        const head = $('mapTableHead');
+        const body = $('mapTableBody');
+        if (level === 'school') {
+            // 23-11-2026: straight-line distance to the school's Block office, when its location is set
+            const hasBlockOffice = offices.some((o) => o.type === 'block');
+            const blockKm = (s) => {
+                const o = officeOf('block', s.block_id);
+                return o && s.lat !== null && s.lng !== null ? fmtKm(haversineKm([o.lat, o.lng], [s.lat, s.lng])) : '—';
+            };
+            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
+                <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
+                <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
+                ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
+                ${hasBlockOffice ? `<td class="text-end text-nowrap">${blockKm(s)}</td>` : ''}
+                <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
+                : '<tr><td colspan="8" class="text-muted p-3">No schools match the filters.</td></tr>';
+        } else {
+            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
+                <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
+            body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
+                <td><a href="#" data-drill="${r.id}">${esc(r.label ?? r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
+                <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
+                <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
+                ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
+                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
+                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
+                : '<tr><td colspan="11" class="text-muted p-3">No areas with schools here.</td></tr>';
+        }
+    }
+
     /* ---- the District / Block / Cluster selects follow the current drill-down ---- */
     function fill(select, rows, value, placeholder) {
         select.innerHTML = `<option value="">${placeholder}</option>` + rows.map((r) => `<option value="${r.id}">${esc(r.label ?? r.name)}</option>`).join('');
@@ -443,6 +477,16 @@ if (el) {
         e.popup.getElement()?.querySelector('[data-drill]')?.addEventListener('click', (ev) => drill(+ev.currentTarget.dataset.drill));
         bindDirectionsPanel(e.popup.getElement()?.querySelector('.si-dir'), directions);
     });
+    $('mapTableBody').addEventListener('click', (e) => {
+        const a = e.target.closest('[data-drill]');
+        if (a) { e.preventDefault(); drill(+a.dataset.drill); return; }
+        const tr = e.target.closest('[data-row]');
+        const m = tr && markers.get(+tr.dataset.row);
+        if (!m) return;
+        document.getElementById('mapCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); // 26-11-2026: from the list back to the map
+        current.level === 'school' ? schoolLayer.zoomToShowLayer(m, () => m.openPopup()) : m.openPopup();
+    });
+
     /* ---- 26-11-2026: what is selected, as chips above the map; × clears one, Clear all resets ---- */
     let crumbsNow = [];
     let picked = null; // { id, name } of the school picked in the search
