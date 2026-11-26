@@ -38,12 +38,12 @@
                 </div>
                 <div class="reg-block-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-lg-3">
                             <label class="form-label" for="name">Full name <span class="req">*</span></label>
                             <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required minlength="3" maxlength="120" pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*" title="Letters, spaces, dots, apostrophes and hyphens" autocomplete="name" placeholder="e.g. Ananya Sharma">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-lg-3">
                             <label class="form-label" for="gender">Gender <span class="req">*</span></label>
                             <select id="gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
                                 <option value="">Select gender</option>
@@ -51,7 +51,7 @@
                             </select>
                             @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-lg-3">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
                             <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">
                                 <option value="">Select designation</option>
@@ -69,7 +69,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-lg-3">
                             <label class="form-label" for="employee_id">Employee ID <span class="opt">(optional)</span></label>
                             <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -152,7 +152,6 @@
                             <label for="level_{{ $l->value }}">
                                 <i class="bi bi-{{ ['state' => 'globe2', 'district' => 'buildings', 'block' => 'grid-3x3-gap', 'cluster' => 'pin-map'][$l->value] }}"></i>
                                 <span>{{ str_replace(' Level', '', $l->label()) }}</span>
-                                <small>{{ ['state' => 'Directorate', 'district' => 'DEEO / IS', 'block' => 'BEEO / BRP', 'cluster' => 'CRCC'][$l->value] }}</small>
                             </label>
                         @endforeach
                     </div>
@@ -223,7 +222,7 @@
                             <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required maxlength="64" autocomplete="new-password">
                         </div>
                         @if (config('inspection.captcha_enabled'))
-                            <div class="col-md-8 col-lg-6">@include('partials.captcha')</div>
+                            <div class="col-12 col-lg-8">@include('partials.captcha', ['inline' => true])</div>
                         @endif
                     </div>
                 </div>

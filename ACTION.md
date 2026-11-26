@@ -3217,3 +3217,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `schedule:list` shows `today:notify`.
   - On the local Apache site as the State Admin, `/today/settings`, `/today/assign`, `/alerts`, `/alerts/count` and the dashboard all return 200.
   - `today:notify` was not run against the local MySQL data, so the demo officers got no alerts.
+
+## 2026-11-26 · Registration form alignment
+- Employee photo and Identity proof now share one line: Full name, Gender, Designation and Employee ID are `col-md-6 col-lg-3` (four on a line on desktop), so the two upload boxes (`col-md-6`) get their own row.
+- User level pills show only the level name (State / District / Block / Cluster), 1rem text and a larger icon; the small Directorate / DEEO / BEEO / CRCC line was removed.
+- Security check: `partials/captcha` takes `inline` (`captcha-box-inline`), so on registration the CAPTCHA image, refresh and the entry box (64 px, same height) sit on one line, wrapping on narrow phones. The login page is unchanged.
+- Files: `resources/views/auth/register.blade.php`, `resources/views/partials/captcha.blade.php`, `resources/scss/app.scss`.
+- Verified: `npm run build`; registration / captcha / icon tests 34 passed.
