@@ -20,7 +20,7 @@
     @stack('head')
 </head>
 {{-- 25-11-2026: notice-badge.js keeps the unread counters live (not for the State Admin, who has none) --}}
-<body @if (auth()->user() && ! auth()->user()->isStateAdmin()) data-notice-count-url="{{ route('notices.unread-count') }}" @endif>
+<body @if (auth()->user() && ! auth()->user()->isStateAdmin()) data-notice-count-url="{{ route('notices.unread-count') }}" @endif @auth data-downloads-url="{{ route('downloads.status') }}" @if (session('export_job')) data-export-job="{{ session('export_job') }}" @endif @endauth>
 <x-page-loader />
 @php
     $u = auth()->user();
@@ -36,6 +36,7 @@
         ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1 (after Map View since 25-11-2026)
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', $can('view_reports')],
         ['Holiday Calendar', 'holidays.index', 'bi-calendar-heart', 'holidays.*', null], // V14 (25-11-2026)
+        ['Downloads', 'downloads.index', 'bi-cloud-arrow-down', 'downloads.*', null], // 26-11-2026: large files made in the background
     ];
     $usersNav = array_values(array_filter([
         $u->can('approve_registrations') ? ['admin.approvals.index', 'admin.approvals.*', 'bi-person-check', 'Pending Approvals', 'pending'] : null,

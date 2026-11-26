@@ -151,6 +151,14 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::put('/settings', [TodaySchoolsController::class, 'updateSettings'])->middleware('can:manage_holidays')->name('settings.update');
         });
 
+        /* ---------------- 26-11-2026 performance: large downloads made in the background ---------------- */
+        Route::prefix('downloads')->name('downloads.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\DownloadController::class, 'index'])->name('index');
+            Route::get('/status', [\App\Http\Controllers\DownloadController::class, 'status'])->middleware('throttle:120,1')->name('status');
+            Route::get('/{exportJob}/file', [\App\Http\Controllers\DownloadController::class, 'file'])->name('file');
+            Route::delete('/{exportJob}', [\App\Http\Controllers\DownloadController::class, 'destroy'])->name('destroy');
+        });
+
         /* ---------------- V14 item 1: Instruction / Notification / Order letters ---------------- */
         Route::prefix('notices')->name('notices.')->group(function () {
             Route::get('/', [NoticeController::class, 'index'])->name('index');

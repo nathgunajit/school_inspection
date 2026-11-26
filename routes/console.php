@@ -30,6 +30,36 @@ Artisan::command('register:purge-tmp {--hours=24 : Remove kept files older than 
 
 Schedule::command('register:purge-tmp')->dailyAt('01:00');
 
+/* 26-11-2026 performance, module B: background downloads are kept EXPORT_KEEP_HOURS, then removed with their files. */
+Artisan::command('exports:purge {--hours= : Keep this many hours (default EXPORT_KEEP_HOURS)}', function () {
+    $hours = $this->option('hours') !== null ? max(0, (int) $this->option('hours')) : \App\Support\QueuedExports::keepHours();
+    $cutoff = now()->subHours($hours);
+    $disk = \Illuminate\Support\Facades\Storage::disk('private');
+    // a job the worker never finished (stopped, crashed) is shown as failed after 3 hours
+    $stuck = \App\Models\ExportJob::whereIn('status', \App\Models\ExportJob::ACTIVE)->where('created_at', '<', now()->subHours(3))
+        ->update(['status' => 'failed', 'error' => 'The file was not made in time (is the queue worker running?). Please try again.', 'finished_at' => now()]);
+    $rows = 0;
+    \App\Models\ExportJob::where('created_at', '<', $cutoff)->chunkById(200, function ($jobs) use ($disk, &$rows) {
+        foreach ($jobs as $job) {
+            if ($job->file_path) {
+                $disk->delete($job->file_path);
+            }
+            $job->delete();
+            $rows++;
+        }
+    });
+    $files = 0; // files left behind (e.g. their officer was removed)
+    foreach ($disk->allFiles('exports') as $path) {
+        if ($disk->lastModified($path) < $cutoff->timestamp) {
+            $disk->delete($path);
+            $files++;
+        }
+    }
+    $this->info("Removed {$rows} download(s) and {$files} leftover file(s) older than {$hours} hours; {$stuck} unfinished job(s) marked failed.");
+})->purpose('Delete background downloads older than the keep time');
+
+Schedule::command('exports:purge')->hourly();
+
 /* 26-11-2026 performance: small thumbnails for photos stored before thumbnails existed. Safe to re-run. */
 Artisan::command('evidence:thumbs {--force : Rebuild thumbnails that already exist}', function () {
     $disk = \Illuminate\Support\Facades\Storage::disk(\App\Services\EvidenceStorage::DISK);

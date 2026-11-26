@@ -161,4 +161,13 @@ return [
     // 26-11-2026: outside production a lazy-loaded relation (an N+1 query) is written to the log. "throw" makes it
     // an error (used by tests to find them); "off" disables the check.
     'lazy_loading' => env('LAZY_LOADING_CHECK', 'log'),
+
+    // 26-11-2026 performance: large Excel / PDF downloads (App\Support\QueuedExports::ROUTES) are made by the queue
+    // worker and collected from the Downloads page. EXPORT_QUEUE unset = on whenever the queue is not "sync" (a
+    // worker must run: php artisan queue:work). Files are kept keep_hours; at most max_active per officer at once.
+    'export_queue' => [
+        'enabled' => env('EXPORT_QUEUE') === null ? env('QUEUE_CONNECTION', 'database') !== 'sync' : (bool) env('EXPORT_QUEUE'),
+        'keep_hours' => (int) env('EXPORT_KEEP_HOURS', 24),
+        'max_active' => (int) env('EXPORT_MAX_ACTIVE', 3),
+    ],
 ];

@@ -2911,3 +2911,37 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - full suite 326 passed, with lazy loading set to throw
   - `npm run build`
   - `php artisan cache:status`
+
+## 26-11-2026: Performance gaps, module B (background downloads)
+- **What:**
+  - **Background downloads:** the heavy Excel / PDF downloads (`App\Support\QueuedExports::ROUTES`: School Master Excel / PDF, Location Master, My Schools, Coverage, Rating, Inspections PDF, Network Issues PDF) are made by the queue worker instead of inside the request.
+  - **Queuing (`QueueLargeExports`, web middleware):**
+    - It runs the route's own middleware first (auth, active, gates, the Rating Report's State Admin closure, throttle), so a refused request is answered as before and never queued.
+    - It saves an `ExportJob` (new table `export_jobs`) and redirects back.
+    - At most 3 at once per officer.
+  - **Making the file (`App\Jobs\GenerateExport`):** replays the same GET as the same user through the same middleware and controller, and stores the returned file (`private:exports/{user}/`).
+    - No export logic was copied or changed: filters, jurisdiction scoping, row caps and audit entries (with the click's IP and browser) are the controllers' own.
+    - A controller warning (PDF row cap) becomes a failed job with its message.
+  - **Downloads page** (`/downloads`, sidebar):
+    - Owner only (others 404), with status JSON, file and delete.
+    - `resources/js/downloads.js` shows a "Preparing…" box, starts the download when ready, and warns after 30 s when no worker seems to run.
+  - `exports:purge` runs hourly (keep 24 h; unfinished after 3 h becomes failed).
+  - `EXPORT_QUEUE` (unset = on unless the queue is `sync`), `EXPORT_KEEP_HOURS`, `EXPORT_MAX_ACTIVE`.
+  - Worker command and restart notes are in `.env.example` and CLAUDE.md Commands.
+- **Files:**
+  - `app/Support/QueuedExports.php`, `app/Jobs/GenerateExport.php`, `app/Http/Middleware/QueueLargeExports.php`
+  - `app/Http/Controllers/DownloadController.php`, `app/Models/ExportJob.php`
+  - migration `2026_11_26_000001_create_export_jobs_table`
+  - `resources/views/downloads/index.blade.php`, `resources/js/{downloads,app}.js`, `resources/scss/app.scss`, `resources/views/components/layouts/app.blade.php`
+  - `bootstrap/app.php`, `routes/{web,console}.php`, `config/inspection.php`
+  - `app/Http/Controllers/Auth/LoginController.php` (download URLs are never an intended URL)
+  - `.env.example`, `CLAUDE.md`
+  - tests `QueuedExportTest`
+- **Verified:**
+  - full suite 333 passed
+  - MySQL migrated
+  - with a real `queue:work` on MySQL:
+    - whole-state School Master Excel done in 2 min 5 s (4.5 MB, audit with the admin, IP and browser)
+    - District officer coverage PDF 1 s, My Schools PDF 2 min 15 s
+    - School Master PDF refused for that officer ("You are not allowed to download this.")
+  - check jobs and files removed afterwards
