@@ -145,7 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reopen) bootstrap.Modal.getOrCreateInstance(reopen).show();
 
     /* ---------- Tooltips ---------- */
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => new bootstrap.Tooltip(el));
+    // 26-11-2026: delegated, so tooltips in sections swapped in by filter-partial.js work too
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => bootstrap.Tooltip.getOrCreateInstance(el));
+    ['mouseover', 'focusin'].forEach((ev) => document.addEventListener(ev, (e) => {
+        const el = e.target.closest?.('[data-bs-toggle="tooltip"]');
+        if (el && !bootstrap.Tooltip.getInstance(el)) bootstrap.Tooltip.getOrCreateInstance(el).show();
+    }));
 
     /* ---------- Confirm before submit ---------- */
     // delegated (capture), so rows swapped in by filter-partial.js still ask

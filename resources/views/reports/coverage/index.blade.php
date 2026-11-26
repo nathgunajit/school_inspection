@@ -101,26 +101,45 @@
     </form>
 
     <div id="cov-results" data-filter-region data-filter-results>
-    {{-- ============ KPIs ============ --}}
+    {{-- ============ 26-11-2026: the two figures in plain words (same sentences as the downloads) ============ --}}
+    <section class="cov-explain mb-3" data-cov-explain>
+        <div class="cov-explain-head">
+            <h3><i class="bi bi-lightbulb"></i>What this report shows</h3>
+            <button type="button" class="btn btn-sm btn-light" data-cov-explain-toggle aria-expanded="true"><span data-show-text>Hide</span></button>
+        </div>
+        <div class="cov-explain-body">
+            <div class="cov-explain-item tone-{{ $s['band']['tone'] }}">
+                <span class="cov-explain-title"><i class="bi bi-geo-alt"></i>Visit coverage · {{ $pct($s['visit_pct']) }}</span>
+                <p>{{ $explain['visit'] }}</p>
+            </div>
+            <div class="cov-explain-item tone-{{ $s['insp_band']['tone'] }}">
+                <span class="cov-explain-title"><i class="bi bi-patch-check"></i>Inspection coverage · {{ $pct($s['insp_pct']) }}</span>
+                <p>{{ $explain['inspection'] }}</p>
+            </div>
+        </div>
+        <div class="cov-explain-foot"><i class="bi bi-palette"></i>Colours: {{ $explain['bands'] }}. Tap a district, block or cluster name to see the areas inside it.</div>
+    </section>
+
+    {{-- ============ KPIs (hover or tap a tile for its meaning) ============ --}}
     <div class="row g-2 g-md-3 mb-3">
-        <div class="col-6 col-xl-2"><x-stat-card wrap label="Assigned schools" :value="number_format($s['schools'])" icon="bi-buildings" tone="primary" hint="active, in this area" /></div>
-        <div class="col-6 col-xl-2"><x-stat-card wrap label="Unique schools visited" :value="number_format($s['visited'])" icon="bi-geo-alt" tone="accent" hint="verified visit" /></div>
+        <div class="col-6 col-xl-2"><x-stat-card wrap label="Schools in this area" :value="number_format($s['schools'])" icon="bi-buildings" tone="primary" hint="active schools" data-bs-toggle="tooltip" tabindex="0" title="Active schools of this area in the School Master. Both percentages are out of this number." /></div>
+        <div class="col-6 col-xl-2"><x-stat-card wrap label="Schools visited" :value="number_format($s['visited'])" icon="bi-geo-alt" tone="accent" hint="at least one counted visit" data-bs-toggle="tooltip" tabindex="0" :title="'Schools that got at least one visit in the period with the officer\'s location within '.$radius.' m of the school. A school visited 3 times counts once.'" /></div>
         <div class="col-6 col-xl-2">
-            <div class="card stat-card stat-card-wrap tone-edge-{{ $s['band']['tone'] }} h-100"><div class="card-body d-flex align-items-center gap-3">
+            <div class="card stat-card stat-card-wrap tone-edge-{{ $s['band']['tone'] }} h-100" data-bs-toggle="tooltip" tabindex="0" title="Schools visited ÷ schools in this area. It shows how many schools were seen at least once in the period."><div class="card-body d-flex align-items-center gap-3">
                 {!! $ring($s['visit_pct'], $s['band']['tone']) !!}
                 <div class="min-w-0"><div class="stat-value">{{ $pct($s['visit_pct']) }}</div><div class="stat-label stat-label-wrap">Visit coverage</div>
                     <span class="cov-band tone-{{ $s['band']['tone'] }}">{{ $s['band']['label'] }}</span></div>
             </div></div>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card stat-card stat-card-wrap tone-edge-{{ $s['insp_band']['tone'] }} h-100"><div class="card-body d-flex align-items-center gap-3">
+            <div class="card stat-card stat-card-wrap tone-edge-{{ $s['insp_band']['tone'] }} h-100" data-bs-toggle="tooltip" tabindex="0" title="Schools with a submitted inspection in the {{ strtolower($setting->cycleLabel()) }} cycle ÷ schools in this area. Drafts do not count here."><div class="card-body d-flex align-items-center gap-3">
                 {!! $ring($s['insp_pct'], $s['insp_band']['tone']) !!}
                 <div class="min-w-0"><div class="stat-value">{{ $pct($s['insp_pct']) }}</div><div class="stat-label stat-label-wrap">Inspection coverage</div>
-                    <div class="stat-hint">{{ $s['inspected'] }} inspected · {{ strtolower($setting->cycleLabel()) }} cycle</div></div>
+                    <div class="stat-hint">{{ number_format($s['inspected']) }} inspected this {{ strtolower($setting->cycleLabel()) }} cycle</div></div>
             </div></div>
         </div>
-        <div class="col-6 col-xl-2"><x-stat-card wrap label="Not visited" :value="number_format($s['not_visited'])" icon="bi-exclamation-triangle" tone="danger" :hint="$s['due'].' due in the cycle'" /></div>
-        <div class="col-6 col-xl-2"><x-stat-card wrap label="Verified visits" :value="number_format($s['visits'])" icon="bi-clipboard-check" tone="success" :hint="$s['repeat'].' repeat · '.$s['unverified'].' unverified · '.$s['officers'].' officers'" /></div>
+        <div class="col-6 col-xl-2"><x-stat-card wrap label="Not visited" :value="number_format($s['not_visited'])" icon="bi-exclamation-triangle" tone="danger" :hint="number_format($s['due']).' not inspected this cycle'" data-bs-toggle="tooltip" tabindex="0" title="Schools with no counted visit in the period. Open a cluster to see their names (not visited first)." /></div>
+        <div class="col-6 col-xl-2"><x-stat-card wrap label="Total visits" :value="number_format($s['visits'])" icon="bi-clipboard-check" tone="success" :hint="$s['repeat'].' repeat · '.$s['unverified'].' not counted · '.$s['officers'].' officers'" data-bs-toggle="tooltip" tabindex="0" title="Counted visits in the period. Repeat = a second or later visit to the same school. Not counted = the location was missing or too far from the school." /></div>
     </div>
 
     {{-- ============ Area tables ============ --}}
@@ -137,27 +156,36 @@
             <div class="rv-table-wrap cov-table-wrap">
                 <table class="rv-table cov-table">
                     <thead><tr>
-                        <th>Sl.</th><th>{{ ucfirst($level) }}</th><th class="r">Total schools</th><th class="r">Unique visited</th><th style="min-width:150px">Visit coverage</th>
-                        <th class="r">Inspected (cycle)</th><th style="min-width:130px">Inspection coverage</th><th class="r">Not visited</th><th class="r">Visits</th><th class="r">Officers</th><th>Last visit</th>
+                        @php $th = fn ($label, $tip, $attr = '') => '<th '.$attr.'><span class="cov-th" data-bs-toggle="tooltip" tabindex="0" title="'.e($tip).'">'.e($label).'<i class="bi bi-info-circle"></i></span></th>'; @endphp
+                        <th>Sl.</th><th>{{ ucfirst($level) }}</th>
+                        {!! $th('Schools', 'Active schools in the School Master.', 'class="r"') !!}
+                        {!! $th('Visited', 'Schools with at least one counted visit in the period.', 'class="r"') !!}
+                        {!! $th('Visit coverage', 'Visited ÷ schools. The colour shows the band.', 'style="min-width:150px"') !!}
+                        {!! $th('Inspected this cycle', 'Schools with a submitted inspection in the inspection cycle.', 'class="r"') !!}
+                        {!! $th('Inspection coverage', 'Inspected this cycle ÷ schools.', 'style="min-width:130px"') !!}
+                        {!! $th('Not visited', 'Schools with no counted visit in the period.', 'class="r"') !!}
+                        {!! $th('Visits', 'All counted visits, with repeat visits and visits not counted (location missing or too far).', 'class="r"') !!}
+                        {!! $th('Officers', 'Officers who made at least one counted visit.', 'class="r"') !!}
+                        {!! $th('Last visit', 'Date of the latest counted visit.') !!}
                     </tr></thead>
                     <tbody>
                     @foreach ($rows as $i => $r)
                         <tr>
                             <td class="rv-sl">{{ $i + 1 }}</td>
                             <td class="rv-wide"><a href="{{ $drill($r) }}" class="cov-area">{{ $r['name'] }}<i class="bi bi-chevron-right"></i></a>@if ($r['parent'])<span class="rv-sub">{{ $r['parent'] }}</span>@endif</td>
-                            <td class="r" data-label="Total schools"><b>{{ number_format($r['schools']) }}</b></td>
-                            <td class="r" data-label="Unique visited"><b class="text-primary">{{ number_format($r['visited']) }}</b></td>
+                            <td class="r" data-label="Schools"><b>{{ number_format($r['schools']) }}</b></td>
+                            <td class="r" data-label="Visited"><b class="text-primary">{{ number_format($r['visited']) }}</b></td>
                             <td data-label="Visit coverage" class="rv-wide">
                                 <div class="cov-bar tone-{{ $r['band']['tone'] }}"><i style="width: {{ min(100, $r['visit_pct'] ?? 0) }}%"></i></div>
                                 <span class="cov-pct">{{ $pct($r['visit_pct']) }}</span> <span class="cov-band tone-{{ $r['band']['tone'] }}">{{ $r['band']['label'] }}</span>
                             </td>
-                            <td class="r" data-label="Inspected (cycle)">{{ number_format($r['inspected']) }}</td>
+                            <td class="r" data-label="Inspected this cycle">{{ number_format($r['inspected']) }}</td>
                             <td data-label="Inspection coverage">
                                 <div class="cov-bar thin tone-{{ $r['insp_band']['tone'] }}"><i style="width: {{ min(100, $r['insp_pct'] ?? 0) }}%"></i></div>
                                 <span class="cov-pct">{{ $pct($r['insp_pct']) }}</span>
                             </td>
                             <td class="r" data-label="Not visited">@if ($r['not_visited'])<span class="text-danger fw-semibold">{{ number_format($r['not_visited']) }}</span>@else<span class="text-success"><i class="bi bi-check2-all"></i></span>@endif</td>
-                            <td class="r" data-label="Visits">{{ $r['visits'] }}@if ($r['repeat'])<span class="rv-sub">{{ $r['repeat'] }} repeat</span>@endif @if ($r['unverified'])<span class="rv-sub text-warning">{{ $r['unverified'] }} unverified</span>@endif</td>
+                            <td class="r" data-label="Visits">{{ $r['visits'] }}@if ($r['repeat'])<span class="rv-sub">{{ $r['repeat'] }} repeat</span>@endif @if ($r['unverified'])<span class="rv-sub text-warning">{{ $r['unverified'] }} not counted</span>@endif</td>
                             <td class="r" data-label="Officers">{{ $r['officers'] }}</td>
                             <td data-label="Last visit">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}</td>
                         </tr>
@@ -177,10 +205,11 @@
     @if ($filters['cluster_id'])
         <section class="card cov-card mb-3">
             <div class="cov-card-head"><h3 class="cov-title"><i class="bi bi-building"></i>Schools · {{ $areaTitle }}</h3>
-                <span class="cov-order">{{ $schools->where('verified', 0)->count() }} not visited · {{ $schools->where('inspected', false)->count() }} due in cycle</span></div>
+                <span class="cov-order">{{ $schools->where('verified', 0)->count() }} not visited · {{ $schools->where('inspected', false)->count() }} not inspected this cycle</span></div>
+            <p class="cov-note"><i class="bi bi-info-circle"></i>Schools not visited are listed first. "Visit not counted" means the officer went, but the location was missing or more than {{ $radius }} m from the school.</p>
             <div class="rv-table-wrap cov-table-wrap">
                 <table class="rv-table cov-table">
-                    <thead><tr><th>Sl.</th><th>School</th><th>Visit status</th><th class="r">Verified visits</th><th>Last visit</th><th>Inspection cycle</th></tr></thead>
+                    <thead><tr><th>Sl.</th><th>School</th><th>Visit in the period</th><th class="r">Counted visits</th><th>Last visit</th><th>Inspection this cycle</th></tr></thead>
                     <tbody>
                     @forelse ($schools as $i => $r)
                         <tr class="{{ $r['verified'] ? '' : 'cov-missed' }}">
@@ -188,13 +217,13 @@
                             <td class="rv-wide">@can('conduct_inspections')<a href="{{ route('schools.show', $r['school']) }}" class="rv-name">{{ $r['school']->name }}</a>@else<span class="rv-name">{{ $r['school']->name }}</span>@endcan
                                 <span class="rv-sub font-monospace">UDISE {{ $r['school']->udise_code }}@unless ($r['gps']) · <span class="text-warning">no GPS in master</span>@endunless</span></td>
                             <td data-label="Visit status">
-                                @if ($r['verified'])<span class="rs-chip ok"><i class="bi bi-geo-alt-fill"></i>Visited {{ $r['verified'] }}×</span>
-                                @elseif ($r['unverified'])<span class="rs-chip warn"><i class="bi bi-question-circle"></i>Unverified only ({{ $r['unverified'] }})</span>
+                                @if ($r['verified'])<span class="rs-chip ok"><i class="bi bi-geo-alt-fill"></i>Visited {{ $r['verified'] }} {{ $r['verified'] === 1 ? 'time' : 'times' }}</span>
+                                @elseif ($r['unverified'])<span class="rs-chip warn"><i class="bi bi-question-circle"></i>Visit not counted (location){{ $r['unverified'] > 1 ? ' · '.$r['unverified'] : '' }}</span>
                                 @else<span class="rs-chip bad"><i class="bi bi-x-circle"></i>Not visited</span>@endif
                             </td>
-                            <td class="r" data-label="Verified visits">{{ $r['verified'] }}</td>
+                            <td class="r" data-label="Counted visits">{{ $r['verified'] }}</td>
                             <td data-label="Last visit">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}@if ($r['last_officer'])<span class="rv-sub">{{ $r['last_officer'] }}</span>@endif</td>
-                            <td data-label="Inspection cycle">@if ($r['inspected'])<span class="rs-chip ok"><i class="bi bi-patch-check-fill"></i>Inspected</span>@else<span class="rs-chip warn"><i class="bi bi-hourglass-split"></i>Due</span>@endif</td>
+                            <td data-label="Inspection this cycle">@if ($r['inspected'])<span class="rs-chip ok"><i class="bi bi-patch-check-fill"></i>Inspected</span>@else<span class="rs-chip warn"><i class="bi bi-hourglass-split"></i>Not inspected yet</span>@endif</td>
                         </tr>
                     @empty
                         <tr><td colspan="6"><x-empty-state icon="bi-building" title="No schools" text="This cluster has no active school in the School Master." /></td></tr>
@@ -204,17 +233,45 @@
             </div>
         </section>
     @endif
-    </div>
 
-    {{-- ============ How it is counted ============ --}}
+    {{-- ============ How it is counted (inside the results, so it follows the filters) ============ --}}
     <details class="cov-help">
-        <summary><i class="bi bi-info-circle"></i>How coverage is counted</summary>
+        <summary><i class="bi bi-question-circle"></i>Questions about this report</summary>
+        {{-- 26-11-2026: short questions and answers with an example each --}}
         <dl>
-            <dt>Assigned schools</dt><dd>Active schools of the area in the School Master.</dd>
-            <dt>Visit Coverage</dt><dd>Schools with at least one <b>verified visit</b> in the period ÷ assigned schools. A visit is any inspection that was not cancelled (draft or submitted). It is verified when the start location, the submit location or a geo-tagged photo is within <b>{{ $radius }} m</b> of the school. If the school has no GPS in the master, any captured location counts.</dd>
-            <dt>Inspection Coverage</dt><dd>Schools with a <b>submitted</b> formal inspection inside the prescribed <b>{{ strtolower($setting->cycleLabel()) }}</b> inspection cycle ({{ $cycle->from->format('d M Y') }} – {{ $cycle->to->format('d M Y') }}) ÷ assigned schools. A school without one is <b>due</b>.</dd>
-            <dt>Repeat / unverified</dt><dd>Repeat = verified visits − unique schools visited. Unverified visits (no location, or too far from the school) are shown but not counted.</dd>
-            <dt>Bands</dt><dd>Good ≥ 75 %, Moderate 50–74.9 %, Low 25–49.9 %, Critical below 25 %.</dd>
+            <dt>Which schools are counted?</dt><dd>The <b>active</b> schools of the area in the School Master. Both percentages are out of this number.</dd>
+            <dt>What is a visit?</dt><dd>Any inspection the officer started at the school (draft or submitted, not cancelled). <i>Example: an officer starts an inspection at a school on 10 Nov; the school counts as visited in November, even if the form is finished later.</i></dd>
+            <dt>When is a visit not counted?</dt><dd>When neither the start location, the submit location nor a photo location is within <b>{{ $radius }} m</b> of the school (for example GPS was off, or the form was started from the office). A school with no GPS in the School Master accepts any captured location.</dd>
+            <dt>What is the coverage period?</dt><dd>The dates the visits are counted for: <b>{{ $period->label() }}</b> ({{ $period->from->format('d M Y') }} – {{ $period->to->format('d M Y') }}). Use Daily, Weekly, Monthly, Quarterly or Custom above, or the arrows for the previous / next period.</dd>
+            <dt>What is the inspection cycle?</dt><dd>How often every school must have a <b>submitted</b> inspection: <b>{{ strtolower($setting->cycleLabel()) }}</b>, now {{ $cycle->from->format('d M Y') }} – {{ $cycle->to->format('d M Y') }}. A school without one is <b>not inspected yet</b> (due). Drafts do not count here.</dd>
+            <dt>Why are the two percentages different?</dt><dd>Visit coverage looks at the period and counts any visit; Inspection coverage looks at the whole cycle and counts only submitted forms. <i>Example: a school visited in October and submitted then is not "visited" in November, but is "inspected" for the October–December quarter.</i></dd>
+            <dt>What do repeat visits mean?</dt><dd>A second or later counted visit to a school already visited in the period. The school is still counted once.</dd>
+            <dt>What do the colours mean?</dt><dd>{{ $explain['bands'] }}.</dd>
+            <dt>Who sets the period and the cycle?</dt><dd>The State Admin sets the state default; a district can have its own (Coverage Settings). This view uses the <b>{{ $setting->district_id ? $setting->district?->label.' district setting' : 'state default' }}</b>.</dd>
         </dl>
     </details>
+    </div>
+
+    @push('scripts')
+        <script>
+            // 26-11-2026: "What this report shows" can be folded away; the choice is remembered (sections swapped by the filters too)
+            (() => {
+                const KEY = 'si-cov-help';
+                const apply = () => document.querySelectorAll('[data-cov-explain]').forEach((box) => {
+                    const hidden = localStorage.getItem(KEY) === 'hidden';
+                    box.classList.toggle('is-folded', hidden);
+                    const btn = box.querySelector('[data-cov-explain-toggle]');
+                    btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+                    btn.querySelector('[data-show-text]').textContent = hidden ? 'Show' : 'Hide';
+                });
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('[data-cov-explain-toggle]')) return;
+                    localStorage.setItem(KEY, localStorage.getItem(KEY) === 'hidden' ? 'shown' : 'hidden');
+                    apply();
+                });
+                document.addEventListener('si:content', apply);
+                apply();
+            })();
+        </script>
+    @endpush
 </x-layouts.app>

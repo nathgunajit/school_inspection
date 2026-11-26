@@ -200,6 +200,44 @@ class CoverageReportTest extends TestCase
         $this->actingAs($admin)->get(route('dashboard'))->assertSee('Reports')->assertSee(route('reports.coverage'), false); // 25-11-2026: one Reports item
     }
 
+    /** 26-11-2026: the figures are explained in plain sentences on the page, the settings page and the downloads. */
+    public function test_report_and_settings_explain_the_figures_in_plain_words(): void
+    {
+        [$s1] = $this->schools();
+        $o = $this->officer(UserLevel::Cluster, $this->north);
+        $this->visit($s1, $o, '2026-11-03');
+
+        $res = $this->actingAs($o)->get(route('reports.coverage'))->assertOk()
+            ->assertSee('What this report shows')->assertSee('Schools in this area')->assertSee('Questions about this report')
+            ->assertSee('Good 75 % and above · Moderate 50–74 % · Low 25–49 % · Critical below 25 %');
+        $say = $res->viewData('explain');
+        $this->assertStringStartsWith('1 of 3 schools (33.3 %)', $say['visit']);
+        $this->assertStringContainsString('November 2026', $say['visit']);
+        $this->assertStringContainsString('2 schools were not visited.', $say['visit']);
+        $this->assertStringContainsString('1 of 3 schools (33.3 %) have a submitted inspection in the current quarterly cycle (01 Oct 2026 – 31 Dec 2026). 2 schools are still due.', $say['inspection']);
+        $res->assertSee($say['visit']);
+
+        // downloads carry the same sentences in a "What it means" column
+        $rows = app(CoverageReportService::class)->export($o, $this->filters($o))->sheets()[0];
+        $this->assertSame(CoverageReportService::SUMMARY_HEADS, $rows->headings());
+        $byItem = collect($rows->array())->keyBy(0);
+        $this->assertSame($say['visit'], $byItem['Visit Coverage'][2]);
+        $this->assertSame($say['inspection'], $byItem['Inspection Coverage'][2]);
+        $pdf = app(CoverageReportService::class)->pdfSections($o, $this->filters($o));
+        $this->assertSame(CoverageReportService::SUMMARY_HEADS, $pdf[0]['headings']);
+
+        // settings: field help, the dates each choice gives, and a plain success message
+        $admin = $this->admin();
+        $res = $this->actingAs($admin)->get(route('reports.coverage.settings'))->assertOk()
+            ->assertSee('Period and cycle: what is the difference?')->assertSee('How often every school must have a');
+        $preview = $res->viewData('preview');
+        $this->assertSame('this month (01 Nov 2026 – 30 Nov 2026)', $preview['periods']['monthly']);
+        $this->assertSame('01 Oct 2026 – 31 Dec 2026', $preview['cycles']['quarterly']);
+        $this->assertSame('01 Apr 2026 – 31 Mar 2027', $preview['cycles']['yearly']);
+        $this->actingAs($admin)->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly'])
+            ->assertSessionHas('success', 'Coverage settings saved. The report now opens on this month (01 Nov 2026 – 30 Nov 2026). A school counts as inspected when an inspection is submitted in the quarterly cycle (01 Oct 2026 – 31 Dec 2026).');
+    }
+
     public function test_settings_state_default_and_district_override(): void
     {
         $admin = $this->admin();
@@ -254,12 +292,12 @@ class CoverageReportTest extends TestCase
         $daily = $summary(['type' => 'daily', 'ref' => '2026-11-10']);
         $this->assertSame('Daily', $daily['Report period type']);
         $this->assertStringContainsString('10-11-2026 to 10-11-2026', $daily['Coverage period']);
-        $this->assertSame(1, $daily['Unique schools visited (verified)'], 'only the visit of that day');
+        $this->assertSame(1, $daily['Schools visited'], 'only the visit of that day');
 
         $monthly = $summary(['type' => 'monthly', 'ref' => '2026-11-10']);
         $this->assertSame('Monthly', $monthly['Report period type']);
         $this->assertStringContainsString('01-11-2026 to 30-11-2026', $monthly['Coverage period']);
-        $this->assertSame(2, $monthly['Unique schools visited (verified)']);
+        $this->assertSame(2, $monthly['Schools visited']);
 
         $xlsx = $this->actingAs($admin)->get(route('reports.coverage.export', ['type' => 'daily', 'ref' => '2026-11-10']))->assertOk();
         $this->assertStringContainsString('coverage-daily-district-wise-2026-11-10-to-2026-11-10.xlsx', $xlsx->headers->get('content-disposition'));

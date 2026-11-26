@@ -268,6 +268,12 @@ Counts at the top of the area list: schools in the area, schools inspected in th
 | Repeat / unverified | Repeat = verified visits − unique schools visited. Unverified visits (no location, or too far) are shown but not counted. |
 | Bands | Good ≥ 75 %, Moderate 50–74.9 %, Low 25–49.9 %, Critical below 25 % |
 
+**Plain-words explanations (26-11-2026).** The report opens with a **What this report shows** card that puts the view's own figures into two sentences, for example "120 of 300 schools (40 %) in KOKRAJHAR were visited at least once in November 2026 … 180 schools were not visited." and "80 of 300 schools (27 %) have a submitted inspection in the current quarterly cycle (01 Oct 2026 – 31 Dec 2026). 220 schools are still due." Under them is the colour band line, read from the configuration. Officers can fold the card away (Hide / Show, remembered on the device).
+- Tiles and table headings use plainer names (Schools in this area, Schools visited, Total visits, Inspected this cycle, "not counted" for unverified visits) and show their meaning when hovered or tapped.
+- The bottom box is now **Questions about this report**, a short Q&A with examples.
+- The settings page explains each field, shows a live **With these settings** sentence with the actual dates, and has a "Period and cycle: what is the difference?" card.
+- The Excel / PDF Summary has a third column, **What it means**, holding the same sentences.
+
 - **Configurable coverage period** (`coverage_settings`, page `/reports/coverage/settings`):
   - The State Admin sets the state default: Daily, Weekly (Mon–Sun), Monthly, Quarterly or a Custom date range, plus the inspection cycle and the verification radius.
   - A **District officer with the Manage users right** can give their own district its own period and cycle, or go back to the state default.

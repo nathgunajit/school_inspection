@@ -3047,3 +3047,23 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
     - only the officer's own district override counts
   - Full suite: 346 passed.
   - Migrated on MySQL.
+
+## 26-11-2026 · Inspection Coverage Report and Coverage Settings explained in plain words
+- **Request:** "Inspection Coverage Report and setting explain. More easy to user understanding report."
+- **Report page:**
+  - New **What this report shows** card with the view's own figures in sentences (`CoverageReportService::explain()`), for example "1 of 3 schools (33.3 %) in … were visited at least once in November 2026 … 2 schools were not visited." It covers both Visit and Inspection coverage, plus the colour bands read from config (`bandsText()`; they were hardcoded before). The card folds away and the choice is remembered (`si-cov-help`).
+  - Plainer tile and heading names ("Schools in this area", "Schools visited", "Total visits", "Inspected this cycle", "not counted", "Not inspected yet"), each with a tooltip giving its meaning.
+  - The cluster school list has a note on the order and on visits not counted.
+  - "How coverage is counted" became **Questions about this report** (Q&A with examples). It moved inside the results, so it follows the filters.
+- **Settings page:**
+  - Help under each field.
+  - A live **With these settings** sentence with today's actual dates (`CoverageReportController::preview()`).
+  - A "Period and cycle: what is the difference?" card with an example, and a note on district settings.
+  - The success message is a plain sentence.
+- **Downloads:** the Summary (Excel sheet and PDF) has a third column, **What it means** (`SUMMARY_HEADS`), with the same sentences. "Unverified" is now "Not counted" in the headings.
+- **Tooltips:** `app.js` also creates tooltips on hover / focus, so sections swapped in by the filters keep them.
+- **No calculation changed.**
+- **Files:** `app/Services/CoverageReportService.php`, `app/Http/Controllers/CoverageReportController.php`, `resources/views/reports/coverage/{index,settings}.blade.php`, `resources/scss/app.scss`, `resources/js/app.js`, `tests/Feature/CoverageReportTest.php`, `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Verified:**
+  - New test `test_report_and_settings_explain_the_figures_in_plain_words`: sentences, bands line, Summary column, PDF headings, preview dates, success message.
+  - Full suite: 347 passed. `npm run build` OK.

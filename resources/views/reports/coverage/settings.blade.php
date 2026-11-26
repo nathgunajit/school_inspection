@@ -32,6 +32,7 @@
                                 <label for="pt-{{ $fm['scope'] }}-{{ $k }}"><i class="bi {{ ['daily' => 'bi-calendar-day', 'weekly' => 'bi-calendar-week', 'monthly' => 'bi-calendar-month', 'quarterly' => 'bi-calendar3', 'custom' => 'bi-calendar-range'][$k] }}"></i>{{ $l }}</label>
                             @endforeach
                         </div>
+                        <p class="cov-field-help">The dates the report counts visits for when it opens. <b>Monthly</b> = this month's visits. Anyone can still pick another period on the report.</p>
                         <div class="row g-2 mb-3 cov-custom-dates" data-cov-custom>
                             <div class="col-6"><label class="form-label text-sm">From</label><input type="date" name="custom_from" value="{{ old('custom_from', $fm['row']->custom_from?->toDateString()) }}" class="form-control @error('custom_from') is-invalid @enderror">
                                 @error('custom_from')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
@@ -43,12 +44,15 @@
                         <select name="inspection_cycle" class="form-select mb-3">
                             @foreach (CS::CYCLES as $k => $l)<option value="{{ $k }}" @selected(old('inspection_cycle', $fm['row']->inspection_cycle) === $k)>{{ $l }}</option>@endforeach
                         </select>
+                        <p class="cov-field-help">How often every school must have a <b>submitted</b> inspection. <b>Quarterly</b> = once every 3 months (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec); half-yearly and yearly follow the financial year (from 1 April).</p>
 
                         @if ($fm['withRadius'])
                             <label class="form-label">Visit verification radius <span class="opt">metres from the school</span></label>
                             <input type="number" name="verify_radius_m" min="50" max="5000" step="10" value="{{ old('verify_radius_m', $fm['row']->verify_radius_m) }}" class="form-control mb-1 @error('verify_radius_m') is-invalid @enderror">
-                            <div class="form-text mb-3">A visit counts for Visit Coverage when the start / submit location or a geo-tagged photo is within this distance of the school.</div>
+                            <div class="form-text mb-3">How close the officer must be to the school for a visit to count: the start or submit location, or a photo location, must be within this distance. 500 m suits most schools; raise it where GPS is weak. It applies to every district.</div>
                         @endif
+
+                        <div class="cov-preview mb-3" data-cov-preview data-radius="{{ $fm['row']->verify_radius_m ?: $state->verify_radius_m }}" aria-live="polite"></div>
 
                         <div class="d-flex flex-wrap gap-2">
                             <button class="btn btn-primary"><i class="bi bi-check2"></i>Save</button>
@@ -77,6 +81,7 @@
                             <div class="col-6 col-md-4 cov-custom-dates" data-cov-custom><label class="form-label text-sm">From</label><input type="date" name="custom_from" class="form-control"></div>
                             <div class="col-6 col-md-4 cov-custom-dates" data-cov-custom><label class="form-label text-sm">To</label><input type="date" name="custom_to" class="form-control"></div>
                         </div>
+                        <p class="cov-field-help mt-2 mb-0">The district's officers then see the report with this period and cycle; every other district keeps the state default. The radius always comes from the state default.</p>
                         <button class="btn btn-primary mt-3"><i class="bi bi-plus-lg"></i>Save district setting</button>
                     </form>
                 </section>
@@ -106,21 +111,39 @@
                 </section>
             @endif
             <div class="alert alert-light border text-sm">
-                <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>Two different measures</div>
-                <p class="mb-1"><b>Visit Coverage:</b> at least one <b>verified visit</b> to every assigned school in the coverage period (location within the radius of the school).</p>
-                <p class="mb-0"><b>Inspection Coverage:</b> a formal inspection <b>submitted</b> within the prescribed inspection cycle.</p>
+                <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>Period and cycle: what is the difference?</div>
+                <p class="mb-1"><b>Coverage period</b> → <b>Visit coverage</b>: was every school <b>visited</b> at least once in these dates? Any started inspection counts, if the officer was within the radius of the school.</p>
+                <p class="mb-1"><b>Inspection cycle</b> → <b>Inspection coverage</b>: does every school have a <b>submitted</b> inspection in this cycle? Drafts do not count.</p>
+                <p class="mb-2"><i>Example: period Monthly, cycle Quarterly. In November the report shows which schools were visited in November, and which schools have a submitted inspection between 1 October and 31 December.</i></p>
+                <div class="fw-semibold mb-1"><i class="bi bi-diagram-3 me-1"></i>District settings</div>
+                <p class="mb-0">A district setting replaces the state default for that district only. <b>Use state default</b> / <b>Reset</b> brings the district back to the state default.</p>
             </div>
         </div>
     </div>
 
     @push('scripts')
         <script>
-            // show the from / to dates only for "Custom date range"
+            // show the from / to dates only for "Custom date range"; 26-11-2026: "With these settings" sentence
+            // (the dates come from the server, CoverageReportController::preview())
+            const PREVIEW = @json($preview);
+            const fmt = (v) => v ? new Date(v + 'T00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '…';
             document.querySelectorAll('[data-cov-form]').forEach((form) => {
                 const sync = () => {
                     const v = form.querySelector('input[name="period_type"]:checked')?.value ?? form.querySelector('[data-cov-type]')?.value;
                     form.querySelectorAll('[data-cov-custom]').forEach((el) => el.classList.toggle('d-none', v !== 'custom'));
+                    const box = form.querySelector('[data-cov-preview]');
+                    if (!box) return;
+                    const cycle = form.querySelector('[name="inspection_cycle"]');
+                    const radius = form.querySelector('[name="verify_radius_m"]')?.value || box.dataset.radius;
+                    const period = v === 'custom'
+                        ? fmt(form.querySelector('[name="custom_from"]').value) + ' – ' + fmt(form.querySelector('[name="custom_to"]').value)
+                        : PREVIEW.periods[v];
+                    const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+                    box.innerHTML = '<b>With these settings</b>The report opens on <b>' + esc(period) + '</b> and counts the visits made then. '
+                        + 'A school counts as inspected when an inspection is submitted in the <b>' + esc(cycle.options[cycle.selectedIndex].text.toLowerCase())
+                        + '</b> cycle, now <b>' + esc(PREVIEW.cycles[cycle.value]) + '</b>. A visit counts when the officer is within <b>' + esc(radius) + ' m</b> of the school.';
                 };
+                form.addEventListener('input', sync);
                 form.addEventListener('change', sync);
                 sync();
             });

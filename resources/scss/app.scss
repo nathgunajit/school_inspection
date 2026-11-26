@@ -2309,6 +2309,24 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     summary { cursor: pointer; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: .4rem; i { color: $primary; } }
     dl { margin: .75rem 0 0; display: grid; grid-template-columns: 170px 1fr; gap: .4rem 1rem; @include media-breakpoint-down(md) { grid-template-columns: 1fr; } }
     dt { font-weight: 600; color: #0f172a; } dd { margin: 0; } }
+// 26-11-2026: plain-words card, heading info marks, notes and settings help
+.cov-explain { padding: .85rem 1rem; border: 1px solid #dbe6f5; border-radius: .9rem; background: linear-gradient(180deg, #f5f9ff, #fff);
+    &-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+        h3 { margin: 0; font-size: .9rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: .4rem; i { color: $accent; } } }
+    &-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: .65rem; @include media-breakpoint-down(md) { grid-template-columns: 1fr; } }
+    &-item { padding: .6rem .8rem; border-radius: .7rem; background: #fff; border-left: 4px solid #cbd5e1;
+        p { margin: .25rem 0 0; font-size: .82rem; color: #334155; line-height: 1.5; } }
+    &-title { font-weight: 700; font-size: .82rem; color: #0f172a; display: flex; align-items: center; gap: .35rem; }
+    &-foot { margin-top: .6rem; font-size: .75rem; color: #64748b; i { margin-right: .3rem; } }
+    &.is-folded { .cov-explain-body, .cov-explain-foot { display: none; } }
+}
+@each $k, $c in $cov-tones { .cov-explain-item.tone-#{$k} { border-left-color: $c; } }
+.cov-th { display: inline-flex; align-items: center; gap: .25rem; cursor: help; i { font-size: .72em; color: #94a3b8; } }
+.cov-note { margin: 0; padding: .5rem 1rem; font-size: .78rem; color: #64748b; i { margin-right: .3rem; color: $primary; } }
+.stat-card[data-bs-toggle="tooltip"] { cursor: help; }
+.cov-field-help { font-size: .78rem; color: #64748b; margin: -.5rem 0 1rem; }
+.cov-preview { margin-top: 1rem; padding: .65rem .85rem; border-radius: .7rem; background: rgba($primary, .06); font-size: .82rem; color: #1e293b; line-height: 1.5;
+    > b:first-child { display: block; margin-bottom: .2rem; } }
 // settings
 .cov-set-body { padding: 1rem; }
 .cov-choice { display: flex; flex-wrap: wrap; gap: .4rem;

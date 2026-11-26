@@ -428,7 +428,7 @@ class CoverageReportService
      */
     public function export(User $user, array $f): SchoolTemplateExport
     {
-        $sheets = [[new ArrayExport(['Item', 'Value'], $this->summaryRows($user, $f)), 'Summary']];
+        $sheets = [[new ArrayExport(self::SUMMARY_HEADS, $this->summaryRows($user, $f)), 'Summary']];
 
         if ($level = $this->level($user, $f)) {
             $sheets[] = [new ArrayExport(self::AREA_HEADS, $this->areaRows($user, $f, $level)), self::LEVELS[$level]];
@@ -448,11 +448,11 @@ class CoverageReportService
     /* ======================= PDF (23-11-2026) ======================= */
 
     public const AREA_HEADS = ['Sl.', 'Area', 'Parent', 'Total schools', 'Unique schools visited (verified)', 'Visit coverage %', 'Visit band',
-        'Inspected in cycle', 'Inspection coverage %', 'Not visited', 'Due in cycle', 'Verified visits', 'Repeat visits', 'Unverified visits', 'Officers active', 'Last visit'];
+        'Inspected in cycle', 'Inspection coverage %', 'Not visited', 'Due in cycle', 'Verified visits', 'Repeat visits', 'Visits not counted', 'Officers active', 'Last visit'];
 
     /** The same columns with headings short enough for an A4 landscape page. */
     public const AREA_HEADS_SHORT = ['Sl.', 'Area', 'Parent', 'Schools', 'Visited', 'Visit %', 'Band',
-        'Inspected', 'Insp. %', 'Not visited', 'Due', 'Visits', 'Repeat', 'Unverified', 'Officers', 'Last visit'];
+        'Inspected', 'Insp. %', 'Not visited', 'Due', 'Visits', 'Repeat', 'Not counted', 'Officers', 'Last visit'];
 
     /**
      * What the screen shows, for App\Support\MasterPdf::sections(): the summary, then the area table of the
@@ -462,7 +462,7 @@ class CoverageReportService
      */
     public function pdfSections(User $user, array $f): array
     {
-        $sections = [['title' => 'Summary', 'headings' => ['Item', 'Value'], 'rows' => $this->summaryRows($user, $f)]];
+        $sections = [['title' => 'Summary', 'headings' => self::SUMMARY_HEADS, 'rows' => $this->summaryRows($user, $f)]];
         if ($level = $this->level($user, $f)) {
             $sections[] = ['title' => self::LEVELS[$level], 'headings' => self::AREA_HEADS_SHORT, 'rows' => $this->areaRows($user, $f, $level)];
         } elseif ($f['cluster_id']) {
@@ -472,7 +472,7 @@ class CoverageReportService
         return $sections;
     }
 
-    public const CLUSTER_SCHOOL_HEADS = ['Sl.', 'UDISE', 'School', 'Verified visits', 'Unverified', 'Last visit', 'Last officer', 'Inspected in cycle', 'GPS'];
+    public const CLUSTER_SCHOOL_HEADS = ['Sl.', 'UDISE', 'School', 'Counted visits', 'Not counted', 'Last visit', 'Last officer', 'Inspected in cycle', 'GPS'];
 
     /** The selected cluster's schools (not visited first), in the CLUSTER_SCHOOL_HEADS order. */
     private function clusterSchoolRows(User $user, array $f): array
@@ -500,7 +500,61 @@ class CoverageReportService
         return $f['cluster_id'] ? (clone $this->schoolQuery($user, $f))->count() : 0;
     }
 
-    /** Summary as Item / Value rows (Excel Summary sheet and PDF). */
+    public const SUMMARY_HEADS = ['Item', 'Value', 'What it means'];
+
+    /**
+     * 26-11-2026: the two coverage figures of the view in plain sentences, shared by the page card and the
+     * downloads, so the screen and the files say the same thing.
+     *
+     * @return array{visit: string, inspection: string, bands: string}
+     */
+    public function explain(User $user, array $f): array
+    {
+        $s = $this->summary($user, $f);
+        $period = $this->period($f);
+        $cycle = $this->cycle($f);
+        $setting = $this->setting($f);
+        $pct = fn ($v) => $v === null ? '0 %' : rtrim(rtrim(number_format($v, 1), '0'), '.').' %';
+        $area = $this->areaTitle($f);
+        $n = fn ($v) => number_format($v);
+        $schools = fn ($v) => $n($v).' school'.($v === 1 ? '' : 's');
+        $range = $period->from->isSameDay($period->to) ? $period->from->format('d M Y') : $period->from->format('d M').' – '.$period->to->format('d M Y');
+        $when = match ($period->type) {
+            'daily' => 'on '.$range,
+            'weekly' => 'in the week '.$range,
+            'custom' => 'from '.$period->from->format('d M Y').' to '.$period->to->format('d M Y'),
+            default => 'in '.$period->label().' ('.$range.')',
+        };
+
+        return [
+            'visit' => $n($s['visited']).' of '.$schools($s['schools']).' ('.$pct($s['visit_pct']).') in '.$area
+                .' were visited at least once '.$when.'. '
+                .'A visit counts only when the officer\'s location was within '.$this->radius().' m of the school. '
+                .($s['not_visited'] ? $schools($s['not_visited']).' were not visited.' : 'Every school was visited.'),
+            'inspection' => $n($s['inspected']).' of '.$schools($s['schools']).' ('.$pct($s['insp_pct']).') have a submitted inspection in the current '
+                .strtolower($setting->cycleLabel()).' cycle ('.$cycle->from->format('d M Y').' – '.$cycle->to->format('d M Y').'). '
+                .($s['due'] ? $schools($s['due']).' are still due.' : 'No school is due.'),
+            'bands' => self::bandsText(),
+        ];
+    }
+
+    /** "Good 75 % and above · Moderate 50–74 % · Low 25–49 % · Critical below 25 %", from config('inspection.coverage.bands'). */
+    public static function bandsText(): string
+    {
+        $bands = config('inspection.coverage.bands');
+        krsort($bands);
+        $out = [];
+        $upper = null;
+        foreach ($bands as $min => [$label]) {
+            $out[] = $upper === null ? "$label $min % and above"
+                : ((int) $min === 0 ? "$label below $upper %" : "$label {$min}–".($upper - 1).' %');
+            $upper = (int) $min;
+        }
+
+        return implode(' · ', $out);
+    }
+
+    /** Summary as Item / Value / What it means rows (Excel Summary sheet and PDF). */
     private function summaryRows(User $user, array $f): array
     {
         $period = $this->period($f);
@@ -508,24 +562,27 @@ class CoverageReportService
         $setting = $this->setting($f);
         $s = $this->summary($user, $f);
         $pct = fn ($v) => $v === null ? '' : $v;
+        $say = $this->explain($user, $f);
 
         return [
-            ['Report period type', $period->typeLabel()], // 25-11-2026: the period picked on screen
-            ['Area', $this->areaTitle($f)],
-            ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')'],
-            ['Configured period type', $setting->periodLabel().($setting->district_id ? ' (district setting)' : ' (state default)')],
-            ['Inspection cycle', $setting->cycleLabel().': '.$cycle->from->format('d-m-Y').' to '.$cycle->to->format('d-m-Y')],
-            ['Verification radius', $this->radius().' m'],
-            ['Assigned schools', $s['schools']],
-            ['Unique schools visited (verified)', $s['visited']],
-            ['Visit coverage %', $pct($s['visit_pct'])],
-            ['Schools inspected in cycle', $s['inspected']],
-            ['Inspection coverage %', $pct($s['insp_pct'])],
-            ['Not visited', $s['not_visited']],
-            ['Verified visits / repeat / unverified', $s['visits'].' / '.$s['repeat'].' / '.$s['unverified']],
-            ['Officers active', $s['officers']],
-            ['Visit Coverage', 'At least one verified visit (location within the radius of the school) in the period.'],
-            ['Inspection Coverage', 'A formal inspection submitted within the prescribed inspection cycle.'],
+            ['Report period type', $period->typeLabel(), 'The period picked on the report screen.'], // 25-11-2026
+            ['Area', $this->areaTitle($f), 'The schools of this area are counted.'],
+            ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')', 'Visits made between these dates are counted for Visit coverage.'],
+            ['Configured period type', $setting->periodLabel().($setting->district_id ? ' (district setting)' : ' (state default)'), 'The period the report opens on, from Coverage Settings.'],
+            ['Inspection cycle', $setting->cycleLabel().': '.$cycle->from->format('d-m-Y').' to '.$cycle->to->format('d-m-Y'), 'Every school should have one submitted inspection between these dates.'],
+            ['Verification radius', $this->radius().' m', 'A visit counts only when the officer was this close to the school.'],
+            ['Schools in this area', $s['schools'], 'Active schools in the School Master.'],
+            ['Schools visited', $s['visited'], 'Schools with at least one counted visit in the period.'],
+            ['Visit coverage %', $pct($s['visit_pct']), 'Schools visited ÷ schools in this area × 100.'],
+            ['Schools inspected this cycle', $s['inspected'], 'Schools with a submitted inspection in the cycle.'],
+            ['Inspection coverage %', $pct($s['insp_pct']), 'Schools inspected this cycle ÷ schools in this area × 100.'],
+            ['Not visited', $s['not_visited'], 'Schools with no counted visit in the period.'],
+            ['Not inspected this cycle', $s['due'], 'Schools still due a submitted inspection in the cycle.'],
+            ['Total visits / repeat / not counted', $s['visits'].' / '.$s['repeat'].' / '.$s['unverified'], 'Repeat = more than one visit to the same school. Not counted = location missing or too far from the school.'],
+            ['Officers active', $s['officers'], 'Officers who made at least one counted visit.'],
+            ['Visit Coverage', $pct($s['visit_pct']), $say['visit']],
+            ['Inspection Coverage', $pct($s['insp_pct']), $say['inspection']],
+            ['Colour bands', '', $say['bands']],
         ];
     }
 

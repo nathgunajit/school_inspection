@@ -75,6 +75,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - **Inspection Coverage**: schools with a *submitted* or unlocked inspection in the inspection-cycle window (`App\Support\CoveragePeriod::cycle()`) that contains the period end.
   - The period comes from `coverage_settings` (`CoverageSetting::forDistrict()`: district override, else state default; the radius always comes from the state row). Gate `configure_coverage`: the State Admin, or a District officer with `manage_users` (own district only).
   - Areas use the school's own district / block / cluster. Verification runs in PHP (`Inspection::haversine()`), and the query count is fixed.
+  - **Plain words** (26-11-2026):
+    - `CoverageReportService::explain()` turns the view's figures into the "1 of 3 schools (33.3 %) … were visited" sentences. `bandsText()` builds the band line from `config('inspection.coverage.bands')`.
+    - Both feed the page's **What this report shows** card (foldable, `localStorage` `si-cov-help`) and the Summary sheet / PDF's third column, **What it means** (`SUMMARY_HEADS`). Change the wording there, not in the view.
+    - Tiles and headings carry tooltips. `app.js` initialises `[data-bs-toggle="tooltip"]` on hover / focus too, so swapped sections work.
+    - The settings page gets its "With these settings" dates from `CoverageReportController::preview()`.
+    - User-facing names: "Schools in this area", "Schools visited", "not counted" (= unverified), "Not inspected yet" (= due).
 - Rating report (V6 Module 10): `RatingReportService` (jurisdiction-scoped base query joined with `inspection_ratings`; summary, sections, `areas()`, `schools()` latest against previous) and `RatingReportController` (`/reports/ratings`, `/export`; views in `resources/views/reports/ratings/`). The PDF removed in V9 is back since 23-11-2026 as a designed A4 portrait report: `reports.ratings.export-pdf` (`exportPdf()`, view `reports/ratings/pdf.blade.php`: KPI cards, band and section bars, best / lowest 5, area-wise and school-wise tables; table-based layout for DomPDF), rendered with `MasterPdf::view()`, at most `master_pdf_max_rows` schools, audited `rating_report_exported` with `format: pdf`.
 - Modification V9, rating display switch: `config('inspection.rating.display')` (`RATING_DISPLAY`, default **false**).
   - Ratings are still calculated at submit.

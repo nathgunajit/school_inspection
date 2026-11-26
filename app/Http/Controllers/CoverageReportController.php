@@ -6,6 +6,7 @@ use App\Models\CoverageSetting;
 use App\Models\District;
 use App\Services\AuditLogger;
 use App\Services\CoverageReportService;
+use App\Support\CoveragePeriod;
 use App\Support\MasterPdf;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,7 @@ class CoverageReportController extends Controller
             'setting' => $this->report->setting($f),
             'radius' => $this->report->radius(),
             'summary' => $this->report->summary($user, $f),
+            'explain' => $this->report->explain($user, $f), // 26-11-2026: the figures in plain sentences
             'levels' => $this->report->levels($user, $f),
             'level' => $level,
             'viewLabel' => $this->report->viewLabel($user, $f),
@@ -103,7 +105,34 @@ class CoverageReportController extends Controller
             'own' => $own ? CoverageSetting::where('district_id', $own)->first() : null,
             'overrides' => $user->isStateAdmin() ? CoverageSetting::with(['district', 'updater'])->whereNotNull('district_id')->get()->sortBy('district.name') : collect(),
             'districts' => $user->isStateAdmin() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(),
+            'preview' => self::preview(),
         ]);
+    }
+
+    /**
+     * 26-11-2026: the dates each choice gives today, for the "With these settings" sentence on the settings page
+     * (the script only looks them up, it does no date maths).
+     */
+    public static function preview(): array
+    {
+        $range = fn (CoveragePeriod $p) => $p->from->isSameDay($p->to) ? $p->from->format('d M Y') : $p->from->format('d M Y').' – '.$p->to->format('d M Y');
+        $names = ['daily' => 'today', 'weekly' => 'this week', 'monthly' => 'this month', 'quarterly' => 'this quarter'];
+
+        return [
+            'periods' => collect($names)->map(fn ($n, $t) => $n.' ('.$range(CoveragePeriod::forType($t, today())).')')->all() + ['custom' => 'the custom dates'],
+            'cycles' => collect(CoverageSetting::CYCLES)->map(fn ($l, $c) => $range(CoveragePeriod::cycle($c, today())))->all(),
+        ];
+    }
+
+    /** The saved setting as one plain sentence (success message). */
+    private static function sentence(CoverageSetting $row): string
+    {
+        $p = self::preview();
+        $period = $row->period_type === 'custom' && $row->custom_from
+            ? $row->custom_from->format('d M Y').' – '.$row->custom_to?->format('d M Y') : ($p['periods'][$row->period_type] ?? $row->periodLabel());
+
+        return 'The report now opens on '.$period.'. A school counts as inspected when an inspection is submitted in the '
+            .strtolower($row->cycleLabel()).' cycle ('.($p['cycles'][$row->inspection_cycle] ?? '').').';
     }
 
     public function updateSettings(Request $request)
@@ -159,6 +188,6 @@ class CoverageReportController extends Controller
         }
         AuditLogger::log('coverage_setting_updated', $row, ['district_id' => $districtId] + $values);
 
-        return back()->with('success', 'Coverage period saved: '.$row->periodLabel().', inspection cycle '.strtolower($row->cycleLabel()).'.');
+        return back()->with('success', 'Coverage settings saved. '.self::sentence($row));
     }
 }
