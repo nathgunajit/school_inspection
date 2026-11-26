@@ -3239,3 +3239,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Password: live rule checklist under the box (`#pw-rules`: length, A–Z, a–z, 0–9, symbol, ticks green, feeds the meter); under Confirm, "Passwords match" / "Passwords do not match" (`#pw-match`); a mismatched submit is stopped in `register.js` before the encryption listener.
 - Files: `auth/register.blade.php`, `partials/captcha.blade.php`, `resources/js/register.js`, `resources/scss/app.scss`.
 - Verified: `npm run build`; registration / login / captcha / icon tests 45 passed.
+
+## 2026-11-26 · Registration CAPTCHA row alignment
+- The CAPTCHA picture, refresh button (now a square) and entry box are all 52 px tall and centred on one line (`.captcha-box-inline`); the picture is no longer squeezed by `max-width: calc(100% - 64px)`.
+- From tablets up the field is a two-column grid (label | picture + box, no wrap); the label is centred on the row, and the hint and error start under the picture, not under the label. Phones stack as before. Login CAPTCHA unchanged.
+- Files: `resources/scss/app.scss`.
+- Verified: `npm run build`; registration / captcha / icon tests 34 passed.
