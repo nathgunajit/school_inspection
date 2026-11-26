@@ -3,16 +3,8 @@
         <button type="button" class="btn btn-soft-primary d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mapFilters" aria-controls="mapFilters"><i class="bi bi-funnel"></i>Filters</button>
     </x-slot:actions>
 
-    {{-- Stat cards: filled from the JSON of the current map level --}}
-    <div class="row g-2 g-md-3 mb-3 map-stats">
-        <div class="col-6 col-md-4 col-xl"><x-stat-card label="Registered officers" value="—" icon="bi-person-badge" tone="primary" data-stat="officers" /></div>
-        <div class="col-6 col-md-4 col-xl"><x-stat-card label="Total schools" value="—" icon="bi-building" tone="info" data-stat="schools" /></div>
-        <div class="col-6 col-md-4 col-xl"><x-stat-card label="Inspected schools" value="—" icon="bi-check2-circle" tone="success" data-stat="inspected" /></div>
-        <div class="col-6 col-md-4 col-xl"><x-stat-card label="Pending inspections" value="—" icon="bi-hourglass-split" tone="danger" data-stat="pending" /></div>
-        <div class="col-12 col-md-4 col-xl"><x-stat-card label="Inspection coverage" value="—" icon="bi-pie-chart" tone="accent" data-stat="coverage" /></div>
-    </div>
-
-    <div class="row g-3">
+    {{-- 26-11-2026: map and filters only (no count tiles, no table); Full screen covers this block --}}
+    <div class="row g-3 map-layout" id="mapLayout">
         {{-- Filters: a side panel on desktop, an offcanvas on phones --}}
         <div class="col-lg-3">
             <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="mapFilters" aria-labelledby="mapFiltersLabel">
@@ -87,12 +79,16 @@
         </div>
 
         <div class="col-lg-9">
-            <div class="card map-card" id="mapCard">{{-- the dashboard's Map view button links to /map#mapCard --}}
+            <div class="card map-card map-card-full" id="mapCard">{{-- the dashboard's Map view button links to /map#mapCard --}}
                 <div class="card-body p-2 p-md-3">
                     <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                         <nav aria-label="Map level" class="flex-grow-1 min-w-0"><ol class="breadcrumb mb-0 map-crumbs" id="mapCrumbs"></ol></nav>
                         <span class="text-xs text-muted" id="mapNoGps"></span>
+                        <button type="button" class="btn btn-sm btn-soft-primary d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#mapFilters" aria-controls="mapFilters"><i class="bi bi-funnel"></i>Filters</button>
+                        <button type="button" class="btn btn-sm btn-light" data-map-full aria-pressed="false" title="Show the map on the full screen"><i class="bi bi-arrows-fullscreen"></i><span>Full screen</span></button>
                     </div>
+                    {{-- 26-11-2026: what is selected (area, school, officer, period, colour), each with × to clear --}}
+                    <div class="map-chips" id="mapChips" aria-live="polite" aria-label="Selected filters"></div>
                     {{-- Modification V8 item 2: colour key on top of the map, with the live counts of the current level --}}
                     <div class="map-keybar" aria-label="Map colour key">
                         <div class="map-keybar-items {{ $colour === 'rating' ? 'd-none' : '' }}" data-legend="status">
@@ -110,17 +106,6 @@
                     <div id="map" class="si-map" role="region" tabindex="-1" aria-label="Inspection coverage map"
                          data-config='@json($config)' data-start='@json($start)'></div>
                     <div class="map-loading d-none" id="mapLoading"><span class="spinner-border spinner-border-sm"></span> Loading…</div>
-                </div>
-            </div>
-
-            {{-- District-, block-, cluster- or school-wise table of the current level --}}
-            <div class="card mt-3">
-                <div class="card-header bg-white fw-semibold" id="mapTableTitle">Areas</div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0 map-table">
-                        <thead id="mapTableHead"></thead>
-                        <tbody id="mapTableBody"><tr><td class="text-muted p-3">Loading…</td></tr></tbody>
-                    </table>
                 </div>
             </div>
         </div>

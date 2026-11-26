@@ -26,7 +26,10 @@ class MapViewTest extends TestCase
                 ->assertSee('map-keybar', false)->assertSee('data-key="inspected"', false)->assertSee('Not inspected')
                 ->assertSee('form-select form-select-sm', false)->assertSee('map-filters', false)
                 // 25-11-2026: no Map view button on this page; #mapCard is the dashboard button's target
-                ->assertDontSee('data-map-jump', false)->assertSee('id="mapCard"', false);
+                ->assertDontSee('data-map-jump', false)->assertSee('id="mapCard"', false)
+                // 26-11-2026: map and filters only (no count tiles, no table), Full screen, selected-filter chips
+                ->assertSee('id="mapChips"', false)->assertSee('data-map-full', false)->assertSee('id="mapLayout"', false)
+                ->assertDontSee('mapTableBody', false)->assertDontSee('data-stat="officers"', false);
         }
     }
 

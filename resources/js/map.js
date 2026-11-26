@@ -107,8 +107,10 @@ if (el) {
             renderCrumbs(data.breadcrumb, level);
             level === 'school' ? renderSchools(data.rows, focusSchool) : renderAreas(data.rows, level);
             renderOffices();
-            renderTable(data.rows, level);
             syncSelects(data.breadcrumb, level, data.rows);
+            crumbsNow = data.breadcrumb;
+            if (focusSchool === null) picked = null; // a school chip only for the school picked in the search
+            renderChips();
             syncOutline(data.outline || null, level);
         } catch (e) {
             window.toast?.(e.message, 'danger');
@@ -140,13 +142,7 @@ if (el) {
     }
 
     function renderStats(t) {
-        const set = (k, v) => { const n = document.querySelector(`[data-stat="${k}"] .stat-value`); if (n) n.textContent = v; };
-        set('officers', fmt(t.officers));
-        set('schools', fmt(t.schools));
-        set('inspected', fmt(t.inspected));
-        set('pending', fmt(t.pending + (t.in_progress || 0)));
-        set('coverage', `${t.coverage} %`);
-        // Modification V8 item 2: the colour key above the map carries the same counts
+        // Modification V8 item 2: the colour key above the map carries the counts (26-11-2026: the count tiles were removed)
         const key = (k, v) => { const n = document.querySelector(`[data-key="${k}"]`); if (n) n.textContent = fmt(v); };
         key('inspected', t.inspected);
         key('in_progress', t.in_progress || 0);
@@ -361,39 +357,6 @@ if (el) {
         }
     }
 
-    function renderTable(rows, level) {
-        $('mapTableTitle').textContent = level === 'school' ? 'Schools in this cluster' : `${levelName[level]}-wise coverage and registered officers`;
-        const head = $('mapTableHead');
-        const body = $('mapTableBody');
-        if (level === 'school') {
-            // 23-11-2026: straight-line distance to the school's Block office, when its location is set
-            const hasBlockOffice = offices.some((o) => o.type === 'block');
-            const blockKm = (s) => {
-                const o = officeOf('block', s.block_id);
-                return o && s.lat !== null && s.lng !== null ? fmtKm(haversineKm([o.lat, o.lng], [s.lat, s.lng])) : '—';
-            };
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
-            body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
-                <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
-                <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
-                ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
-                ${hasBlockOffice ? `<td class="text-end text-nowrap">${blockKm(s)}</td>` : ''}
-                <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
-                : '<tr><td colspan="8" class="text-muted p-3">No schools match the filters.</td></tr>';
-        } else {
-            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
-                <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
-            body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
-                <td><a href="#" data-drill="${r.id}">${esc(r.label ?? r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
-                <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
-                <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
-                ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
-                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
-                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
-                : '<tr><td colspan="11" class="text-muted p-3">No areas with schools here.</td></tr>';
-        }
-    }
-
     /* ---- the District / Block / Cluster selects follow the current drill-down ---- */
     function fill(select, rows, value, placeholder) {
         select.innerHTML = `<option value="">${placeholder}</option>` + rows.map((r) => `<option value="${r.id}">${esc(r.label ?? r.name)}</option>`).join('');
@@ -461,6 +424,7 @@ if (el) {
         if (!b) return;
         results.classList.add('d-none');
         window.bootstrap?.Offcanvas.getInstance($('mapFilters'))?.hide();
+        picked = { id: +b.dataset.school, name: b.querySelector('.fw-semibold')?.textContent || '' };
         load('school', +b.dataset.cluster, +b.dataset.school);
     });
 
@@ -479,15 +443,77 @@ if (el) {
         e.popup.getElement()?.querySelector('[data-drill]')?.addEventListener('click', (ev) => drill(+ev.currentTarget.dataset.drill));
         bindDirectionsPanel(e.popup.getElement()?.querySelector('.si-dir'), directions);
     });
-    $('mapTableBody').addEventListener('click', (e) => {
-        const a = e.target.closest('[data-drill]');
-        if (a) { e.preventDefault(); drill(+a.dataset.drill); return; }
-        const tr = e.target.closest('[data-row]');
-        const m = tr && markers.get(+tr.dataset.row);
-        if (!m) return;
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        current.level === 'school' ? schoolLayer.zoomToShowLayer(m, () => m.openPopup()) : m.openPopup();
+    /* ---- 26-11-2026: what is selected, as chips above the map; × clears one, Clear all resets ---- */
+    let crumbsNow = [];
+    let picked = null; // { id, name } of the school picked in the search
+    const order = ['district', 'block', 'cluster', 'school'];
+    const areaKind = { block: 'District', cluster: 'Block', school: 'Cluster' }; // crumb level -> the area it names
+    const longDay = (v) => (v ? new Date(`${v}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '…');
+    function renderChips() {
+        const box = $('mapChips');
+        if (!box) return;
+        const chips = [];
+        // the area path (from the map data's breadcrumb): crumb i names the area whose list is shown
+        crumbsNow.forEach((c, i) => {
+            if (!i || !areaKind[c.level]) return;
+            const back = crumbsNow[i - 1];
+            const locked = order.indexOf(back.level) < order.indexOf(start.level); // above the officer's own area
+            chips.push({ cls: 'area', label: areaKind[c.level], value: c.name, clear: locked ? null : () => load(back.level, back.parent) });
+        });
+        if (picked) chips.push({ cls: 'school', label: 'School', value: picked.name, clear: () => { picked = null; $('fSchool').value = ''; renderChips(); } });
+        const off = $('fOfficer');
+        if (off.value) chips.push({ cls: 'officer', label: 'Officer', value: off.selectedOptions[0]?.textContent.trim(), clear: () => { off.value = ''; off.dispatchEvent(new Event('change')); } });
+        const changedDates = $('fFrom').value !== $('fFrom').defaultValue || $('fTo').value !== $('fTo').defaultValue;
+        chips.push({ cls: 'period', label: 'Period', value: `${longDay($('fFrom').value)} – ${longDay($('fTo').value)}`,
+            clear: changedDates ? () => { $('fFrom').value = $('fFrom').defaultValue; $('fTo').value = $('fTo').defaultValue; ['fFrom', 'fTo'].forEach((id) => $(id).dispatchEvent(new Event('fp-sync'))); load(current.level, current.parent); } : null });
+        if (colourBy === 'rating') chips.push({ cls: 'rating', label: 'Colour', value: 'Rating', clear: () => { const r = $('colourStatus'); if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } } });
+        const anything = chips.some((c) => c.clear) || current.level !== start.level || current.parent !== start.parent;
+        box.innerHTML = '<span class="map-chips-label"><i class="bi bi-funnel"></i>Showing</span>'
+            + chips.map((c, i) => `<span class="map-chip is-${c.cls}"><span class="map-chip-k">${esc(c.label)}</span><b>${esc(c.value || '')}</b>${c.clear
+                ? `<button type="button" class="map-chip-x" data-chip="${i}" aria-label="Clear ${esc(c.label)}" title="Clear"><i class="bi bi-x-lg"></i></button>` : ''}</span>`).join('')
+            + (anything ? '<button type="button" class="btn btn-link btn-sm map-chips-clear" data-chip-all><i class="bi bi-arrow-counterclockwise"></i>Clear all</button>' : '');
+        box.onclick = (e) => {
+            const x = e.target.closest('[data-chip]');
+            if (x) { chips[+x.dataset.chip]?.clear?.(); return; }
+            if (e.target.closest('[data-chip-all]')) {
+                const r = $('colourStatus');
+                if (r && colourBy === 'rating') { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
+                picked = null;
+                $('fReset').click();
+            }
+        };
+    }
+    ['fOfficer', 'fFrom', 'fTo'].forEach((id) => $(id).addEventListener('change', renderChips));
+    document.querySelectorAll('input[name="colourBy"]').forEach((r) => r.addEventListener('change', renderChips));
+
+    /* ---- 26-11-2026: Full screen (filters and map together); a fixed overlay where the browser has no Fullscreen API ---- */
+    const layout = $('mapLayout');
+    const fullBtn = document.querySelector('[data-map-full]');
+    const isFull = () => document.fullscreenElement === layout || layout.classList.contains('map-full-fixed');
+    const paintFull = () => {
+        const on = isFull();
+        layout.classList.toggle('is-full', on);
+        document.body.classList.toggle('map-full-open', on);
+        if (fullBtn) {
+            fullBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            fullBtn.innerHTML = on ? '<i class="bi bi-fullscreen-exit"></i><span>Exit full screen</span>' : '<i class="bi bi-arrows-fullscreen"></i><span>Full screen</span>';
+        }
+        setTimeout(() => map.invalidateSize(), 120);
+    };
+    fullBtn?.addEventListener('click', async () => {
+        if (isFull()) {
+            if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+            layout.classList.remove('map-full-fixed');
+        } else if (layout.requestFullscreen) {
+            try { await layout.requestFullscreen(); } catch { layout.classList.add('map-full-fixed'); }
+        } else {
+            layout.classList.add('map-full-fixed');
+        }
+        paintFull();
     });
+    document.addEventListener('fullscreenchange', paintFull);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && layout.classList.contains('map-full-fixed')) { layout.classList.remove('map-full-fixed'); paintFull(); } });
+    window.addEventListener('resize', () => map.invalidateSize());
 
     (async () => {
         // boundaries are optional: the map works without them. The state outline is drawn first; the district

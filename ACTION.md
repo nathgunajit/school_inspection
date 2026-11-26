@@ -3145,3 +3145,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Migrated on MySQL: started times are now 14:45 / 15:42 / 11:20 / 15:10 / 15:28 (before submit), photos 13:35, and no `on update` column is left.
   - New test checks every entered value and both times (220 assertions).
   - Full suite: 360 passed.
+
+## 26-11-2026: Map View: map and filters only, a full-height map with Full screen, selected filters as chips
+- **Asked:** "Map View page showing only Map View on Large option with Filter No report. And what are selected that are display". The user chose: map + filters only (remove the count tiles and the table, keep the colour key bar), and the selected filters as a chips bar above the map.
+- **Done:**
+  - `resources/views/map/index.blade.php`: tiles and table removed; the map card got Full screen and Filters (phones) buttons and the chips bar.
+  - `resources/js/map.js`: `renderTable()` and the row handler removed, the tile counts dropped from `renderStats()`. New `renderChips()` (area path from the breadcrumb, school, officer, period, rating colour; × per chip and Clear all) and Full screen (Fullscreen API on `#mapLayout`, fixed-overlay fallback, Esc, `invalidateSize()`).
+  - `resources/scss/app.scss`: `.map-card-full .si-map` is as tall as the screen; full-screen styles; `.map-chips` / `.map-chip` (area blue, school / officer green, period grey, rating orange; larger × on phones); `.map-stats` removed.
+- **Tests:** `MapViewTest` checks the chips bar, Full screen, `#mapLayout`, and no table or tiles.
+- **Verified:** full suite 360 passed; `npm run build` OK (new icons are in the subset).
