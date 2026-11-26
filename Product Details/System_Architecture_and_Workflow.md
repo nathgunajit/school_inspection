@@ -221,6 +221,35 @@ flowchart LR
 - **Notice → read → counters:** the sender publishes a notice to officer levels inside an area (`NoticeService::publish()`). Officers see it in the Inbox, the dashboard card and, when ticked for the homepage, the Latest Notice strip. Opening it records `read_at` and lowers every unread counter at once; Acknowledge records `acknowledged_at`; the sender sees the read report and can withdraw it.
 - **Clean Test Data (local server only):** the State Administrator empties one part (inspections and Today's Schools, schedules, the login log, or the audit log after an Excel archive). The page and command do not exist in production.
 
+### 8.2 Background work (26-11-2026)
+
+Long work runs on the queue worker, not inside a web request:
+
+- **Large downloads:** a click on a heavy Excel / PDF download first passes the route's own checks (sign-in, gates, throttle).
+  1. `QueueLargeExports` saves it as an `export_jobs` row and answers at once.
+  2. The worker (`GenerateExport`) replays the same request as the same officer through the same checks and controller, then stores the file.
+  3. The page shows "Preparing…" and the file downloads by itself when ready. It stays on the **Downloads** page for 24 hours.
+- **Excel Upload:** the check and the save run as `ImportMasterFile` jobs. The `import_batches` row follows them (checking → checked → queued → importing → done), and the Upload page shows a progress card that refreshes itself.
+- **Clean-up:** `exports:purge` (hourly) removes old downloads and unconfirmed uploads, and marks work not finished in 3 hours as failed.
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant W as Web request
+    participant Q as jobs table
+    participant K as queue:work
+    B->>W: GET export (filters)
+    W->>W: route middleware (auth, gates, throttle)
+    W->>Q: ExportJob + GenerateExport
+    W-->>B: redirect back (export_job)
+    K->>Q: take job
+    K->>K: replay GET as the officer, same controller
+    K->>K: store file (private:exports/)
+    B->>W: poll downloads.status
+    W-->>B: done + file URL
+    B->>W: GET downloads.file (owner only)
+```
+
 ## 9. Deployment view (current and recommended)
 
 | Item | Current (local) | Production (from the `.env.example` checklist) |
@@ -229,6 +258,6 @@ flowchart LR
 | Assets | `npm run dev` | `npm run build` → `public/build` |
 | DB | MariaDB 10.4 | MySQL 8 / MariaDB 10.6+, with backups |
 | Scheduler | manual | cron / Task Scheduler: `php artisan schedule:run` every minute |
-| Queue | database driver (no jobs dispatched today) | worker only if jobs are added |
+| Queue | database driver; run `php artisan queue:work` for large downloads and Excel uploads (26-11-2026) | **required**: a `queue:work` service (NSSM / supervisor), `--timeout=3600`, restarted after deploys (`queue:restart`); `cache:status` shows waiting / failed jobs |
 | Mail | log | SMTP for password reset links |
 | Keys | `php artisan security:keys` | once per server, back up `storage/app/private/keys` |

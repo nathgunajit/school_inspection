@@ -1050,3 +1050,16 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
   - Only the Bootstrap parts and icons the app uses are bundled: CSS 534 → 447 KB, 73 KB gzipped.
   - The icon font is preloaded.
   - With the Apache modules on, files are compressed and the build files are cached for a year.
+
+## Performance work (26-11-2026)
+
+- **Background downloads:** large Excel / PDF downloads are prepared by the queue worker. The officer keeps working, the file downloads by itself when ready, and it stays on the new **Downloads** page (sidebar) for 24 hours. Only its owner can open it.
+- **Background Excel Upload:** checking and saving a School / Location Master file run in the background. The Upload page shows a progress card; the page need not stay open.
+- **Photo thumbnails:** report and wizard photo grids load small 360 px thumbnails; the viewer and downloads still use the full photo.
+- **Faster pages:**
+  - dashboard figures cached for a minute
+  - fewer database queries on the map and the dashboard
+  - a guard and tests that catch slow repeated queries (N+1)
+- **Faster search:** school suggestions, the Map View search and the planner use a FULLTEXT index (word starts), falling back to the exact search. `%` and `_` in a search are now taken as typed.
+- **Lighter map:** the district polygons (114 KB, was 186 KB) load only for the state-wide view.
+- **Server requirement:** a queue worker must run (`php artisan queue:work`, see `.env.example`). `php artisan cache:status` shows whether jobs are waiting.

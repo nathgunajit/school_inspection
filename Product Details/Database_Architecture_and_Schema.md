@@ -60,7 +60,7 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 4 | `clusters` | Cluster master with coordinates | `id` | blocks, schools, inspections, user_jurisdictions |
 | 5 | `schools` | School Master: 11-digit UDISE code, location, management, category, lat/lng, status | `id` | states, districts, blocks, clusters, master_values, inspections, inspection_schedule_items |
 | 6 | `master_values` | Generic lookup lists by `type`: designation, management, category, photo_category, fund_category, subject | `id` | users, schools, inspection_evidence, inspection_fund_positions |
-| 7 | `import_batches` | Each Excel upload of locations or schools, with counts and an error file | `id` | users |
+| 7 | `import_batches` | Each Excel upload of locations or schools, with counts and an error file. Since 26-11-2026 the row exists from the check on: `status` (checking, checked, check_failed, queued, importing, done, failed), `pending_path`, `preview` (check result JSON), `error`, `district_all`, `started_at`, `finished_at` | `id` | users |
 | 7a | `parliamentary_constituencies` | PC master (Lok Sabha), code `PC1801` and name | `id` | assembly_constituencies, schools |
 | 7b | `assembly_constituencies` | AC master, code `AC18002`, name and its PC | `id` | parliamentary_constituencies, schools |
 | 8 | `users` | Officers and the State Admin: mobile login, level, status, lockout, photo and ID proof paths | `id` | almost every table |
@@ -103,6 +103,7 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 35 | `jobs` | Queue (`QUEUE_CONNECTION=database`) | `id` | — |
 | 36 | `job_batches` | Queue batches | `id` | — |
 | 37 | `failed_jobs` | Failed queue jobs | `id` | — |
+| 37a | `export_jobs` | 26-11-2026: a large download made by the queue worker: owner, route, replayed URL, title, status (queued / running / done / failed), file path / name / size, error, IP, browser, times. Kept `EXPORT_KEEP_HOURS` (24) | `id` | users (cascade) |
 | 38 | `migrations` | Laravel migration history | `id` | — |
 
 ---

@@ -2997,3 +2997,18 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - "govt lps" same 81 rows both ways
   - "okrajh" (part of a word) still found through the fallback
   - planner "batabari" / "ataba" both find WEST BATABARI LPS
+
+## 26-11-2026: Performance gaps, module E (documents)
+- **What:**
+  - **`System_Architecture_and_Workflow.md`:**
+    - new 8.2 Background work, with a sequence diagram
+    - the deployment table now says a queue worker is required
+  - **`Database_Architecture_and_Schema.md`:** `export_jobs`, and the new `import_batches` columns.
+  - **`PROJECT_DOCUMENT.md`:** a "Performance work" summary.
+  - **`UI_Pages_and_Application_Modules.md`:** the Downloads page and the Upload progress card.
+  - **`DB_INDEXING.md`:** section 10 (written in module D).
+  - Rebuilt the Word file.
+- **Files:**
+  - `Product Details/{System_Architecture_and_Workflow,Database_Architecture_and_Schema,PROJECT_DOCUMENT,UI_Pages_and_Application_Modules}.md`
+  - `Product Details/School_Inspection_Product_Details.docx` (3.77 MB)
+- **Verified:** `node tools/docs/build-product-docx.cjs` wrote the Word file.

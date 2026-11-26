@@ -175,3 +175,14 @@
 | Monitoring | Login Monitoring, Audit Log | Implemented |
 | Settings | `config/inspection.php` + `.env`; screens: Rating, Coverage and Today's Schools Settings | Partial (no general settings UI) |
 | Help / user manual in app | None | Not implemented |
+
+
+## Downloads (26-11-2026)
+
+| Item | Detail |
+|---|---|
+| Route | `downloads.index` (`/downloads`), sidebar "Downloads" (every signed-in user) |
+| Shows | The officer's own background downloads of the last 24 hours: title, time, status (waiting, preparing, ready, failed with the reason), file name and size, until when it is kept |
+| Actions | Download (ready files), Remove |
+| Live | `resources/js/downloads.js` polls `downloads.status`; a "Preparing…" box shows on every page while a file is being made, and the file downloads by itself when ready; a hint appears when nothing starts within 30 s (no worker) |
+| Excel Upload | Shows a progress card while a file is checked or saved in the background, then the preview or the result |
