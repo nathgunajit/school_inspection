@@ -230,6 +230,9 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::get('/login-report/daily', [Admin\LoginReportController::class, 'daily'])->name('login-report.daily');
                 Route::get('/login-report/daily/export', [Admin\LoginReportController::class, 'dailyExport'])->name('login-report.daily.export');
                 Route::get('/login-report/users/{user}', [Admin\LoginReportController::class, 'user'])->name('login-report.user');
+                // 26-11-2026: inspection start rules (repeat block window, different levels on the same day)
+                Route::get('/inspection-rules', [Admin\InspectionRuleController::class, 'edit'])->name('inspection-rules');
+                Route::put('/inspection-rules', [Admin\InspectionRuleController::class, 'update'])->name('inspection-rules.update');
             });
 
             Route::middleware('can:manage_masters')->group(function () {

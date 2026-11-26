@@ -36,7 +36,8 @@ class SchoolController extends Controller
                     ->where('inspection_date', today()->toDateString())->where('status', '!=', InspectionStatus::Cancelled)])
                 // Modification V3: another officer's open draft / completed by another officer this month
                 ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
-                ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherThisMonth($user)])
+                ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherInWindow($user)])
+                ->withExists(['inspections as other_level_today' => InspectionStartGuard::otherLevelToday($user)]) // 26-11-2026
                 ->paginate(config('inspection.per_page'))->withQueryString()
             : null;
 

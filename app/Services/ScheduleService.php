@@ -415,19 +415,34 @@ class ScheduleService
         return $schools;
     }
 
-    /** school_id => reason, for schools another officer is inspecting now or already inspected in the plan's month. */
+    /**
+     * school_id => reason, for schools another officer is inspecting now or already inspected in the block window
+     * of the plan's date. 26-11-2026: the window (month / week / day / none) and whether another level blocks the
+     * same day come from the State Admin's Inspection Rules (InspectionStartSetting), the same as InspectionStartGuard.
+     */
     public function blockedSchools(User $officer, Carbon $date, Collection $ids): array
     {
         // 25-11-2026: only officers of the same level block a school (different levels may inspect it too)
         $others = fn (): Builder => \App\Support\InspectionVisibility::sameLevel(Inspection::query(), $officer)->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)->with('officer:id,name');
+        $rule = \App\Models\InspectionStartSetting::current();
         $out = [];
         foreach ($others()->where('status', InspectionStatus::Draft)->get() as $i) {
             $out[$i->school_id] = 'being inspected by '.($i->officer?->name ?? 'another officer').'.';
         }
-        $month = $others()->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
-            ->whereBetween('inspection_date', [$date->copy()->startOfMonth()->toDateString(), $date->copy()->endOfMonth()->toDateString()])->get();
-        foreach ($month as $i) {
-            $out[$i->school_id] ??= 'already inspected by '.($i->officer?->name ?? 'another officer').' on '.$i->inspection_date->format('d-m-Y').' this month.';
+        if ($window = $rule->window($date)) {
+            $done = $others()->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
+                ->whereBetween('inspection_date', [$window[0]->toDateString(), $window[1]->toDateString()])->get();
+            foreach ($done as $i) {
+                $out[$i->school_id] ??= 'already inspected by '.($i->officer?->name ?? 'another officer').' on '.$i->inspection_date->format('d-m-Y').($rule->repeat_window === 'day' ? '' : ' '.$rule->windowLabel()).'.';
+            }
+        }
+        if (! $rule->cross_level) {
+            $level = Inspection::query()->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)
+                ->where('officer_level', '!=', $officer->level->value)->where('status', '!=', InspectionStatus::Cancelled)
+                ->where('inspection_date', $date->toDateString())->with('officer:id,name')->get();
+            foreach ($level as $i) {
+                $out[$i->school_id] ??= 'inspected by '.($i->officer?->name ?? 'an officer of another level').' (another level) on this day.';
+            }
         }
 
         return $out;

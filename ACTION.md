@@ -3078,3 +3078,24 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Verified:**
   - New test `test_a_running_period_uses_the_current_cycle_not_a_future_one`: running quarter → Nov cycle with 1 inspected; past quarter → Sep; state quarterly cycle → Oct–Dec.
   - MySQL, officer 31, Quarterly: cycle 01–30 Nov, 2 inspected.
+
+## 26-11-2026 · Inspection Rules setting (State Admin)
+- **Request:** a setting for the inspection start rules.
+  - Block a school after a same-level submission for this calendar month, this week, this day, or none.
+  - An option allowing officers of different levels to inspect the same school, even on the same day.
+- **User decisions:**
+  - Week = Monday to Sunday.
+  - None still blocks while a same-level draft is open.
+  - Different levels switched off = blocked on the same day only.
+- **Done:**
+  - **Table and model:** migration `2026_11_26_000006_create_inspection_start_settings`, one row (`repeat_window` month | week | day | none, `cross_level`). Model `InspectionStartSetting` (`current()` memoized, `window()`, `reopensOn()`, `windowLabel()`).
+  - **`InspectionStartGuard`:** the window block (`OTHER_MONTH`) follows the setting (`otherInWindow()`, `reopensOn()`). New rule 5 `OTHER_LEVEL_TODAY` / `otherLevelToday()` applies when different levels are not allowed on the same day.
+  - **`ScheduleService::blockedSchools()`** (planner and Today's Schools) uses the same window for the plan date, plus the different-level check on that day.
+  - **Badges and start box:** Find School shows "Inspected this month / this week / today" and "Inspected today by another level". The school page start box shows the matching text and the reopen date.
+  - **Page:** Admin Settings → **Inspection Rules** (`admin.inspection-rules`, `Admin\InspectionRuleController`, State Admin only). It has radio cards, the switch, help text, examples with today's dates and a live "With these settings" summary. Saves are audited `inspection_rules_updated` (old → new).
+  - **Defaults** keep the earlier behaviour (calendar month, different levels allowed).
+- **Files:** the migration, `app/Models/InspectionStartSetting.php`, `app/Services/{InspectionStartGuard,ScheduleService}.php`, `app/Http/Controllers/{SchoolController,Admin/InspectionRuleController}.php`, `routes/web.php`, `resources/views/admin/inspection-rules.blade.php`, `resources/views/schools/{show,_results}.blade.php`, `resources/views/components/layouts/app.blade.php`, `tests/Feature/InspectionRuleSettingsTest.php`, `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Verified:**
+  - 5 new tests: default month; week, day and none (draft still blocks); different level on the same day only; planner window; State Admin only, with audit.
+  - Full suite: 353 passed.
+  - Migrated on MySQL.

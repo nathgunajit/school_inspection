@@ -87,13 +87,22 @@
                         </div>
                     @elseif ($sType === \App\Services\InspectionStartGuard::OTHER_MONTH)
                         <div class="start-block is-done">
-                            <div class="sb-head"><i class="bi bi-patch-check-fill"></i><strong>Already inspected this month</strong></div>
+                            <div class="sb-head"><i class="bi bi-patch-check-fill"></i><strong>Already inspected {{ \App\Models\InspectionStartSetting::current()->windowLabel() ?? 'this month' }}</strong></div>
                             <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
                                 <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
                                     <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation_label ?? $si->officer?->level?->label() }}</div></div></div>
                             <div class="sb-meta"><i class="bi bi-calendar-check"></i>Inspected on {{ $si->inspection_date->format('d M Y') }}@if ($si->inspection_no) · <span class="font-monospace">{{ $si->inspection_no }}</span>@endif</div>
                             <p class="sb-note">It can be inspected again from <strong>{{ \App\Services\InspectionStartGuard::reopensOn()->format('d M Y') }}</strong>.</p>
                             @can('view', $si)<a href="{{ route('inspections.show', $si) }}" class="btn btn-soft-primary w-100"><i class="bi bi-file-earmark-text"></i>View report</a>@endcan
+                        </div>
+                    @elseif ($sType === \App\Services\InspectionStartGuard::OTHER_LEVEL_TODAY)
+                        {{-- 26-11-2026: the State Admin does not allow two levels on the same school on the same day --}}
+                        <div class="start-block is-draft">
+                            <div class="sb-head"><i class="bi bi-people-fill"></i><strong>Inspected today by an officer of another level</strong></div>
+                            <div class="sb-officer"><span class="avatar">{{ $si->officer?->initials() }}</span>
+                                <div class="min-w-0"><div class="fw-semibold text-truncate">{{ $si->officer?->name }}</div>
+                                    <div class="text-xs text-secondary text-truncate">{{ $si->officer?->designation_label ?? $si->officer?->level?->label() }}</div></div></div>
+                            <p class="sb-note">Officers of different levels cannot inspect the same school on the same day. You can inspect it from <strong>{{ today()->addDay()->format('d M Y') }}</strong>.</p>
                         </div>
                     @elseif (! $school->isActive())
                         <div class="alert alert-secondary border-0 mb-0"><i class="bi bi-slash-circle me-1"></i>This school is closed and cannot be inspected.</div>

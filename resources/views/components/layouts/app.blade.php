@@ -56,6 +56,7 @@
         $u->can('manage_masters') ? ['admin.rating.index', 'admin.rating.*', 'bi-star-half', 'Rating Settings', null] : null,
         $u->can('configure_coverage') ? ['reports.coverage.settings', 'reports.coverage.settings*', 'bi-sliders', 'Coverage Settings', null] : null,
         $u->can('manage_holidays') ? ['today.settings', 'today.settings*', 'bi-signpost-split', 'Today\'s Schools Settings', null] : null,
+        $u->can('state_admin') ? ['admin.inspection-rules', 'admin.inspection-rules*', 'bi-shield-lock', 'Inspection Rules', null] : null, // 26-11-2026
         $u->can('state_admin') ? ['admin.login-report.index', 'admin.login-report.*', 'bi-person-lock', 'Login Monitoring', null] : null,
         $u->can('state_admin') ? ['admin.audit.index', 'admin.audit.*', 'bi-shield-check', 'Audit Log', null] : null,
         // 25-11-2026: local server only (never production; TEST_DATA_CLEANUP)
