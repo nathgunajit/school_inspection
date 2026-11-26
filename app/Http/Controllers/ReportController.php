@@ -102,9 +102,11 @@ class ReportController extends Controller
         $canvas = $dompdf->getCanvas();
         $canvas->page_text($canvas->get_width() - 40 - 62, $canvas->get_height() - 30, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.28, 0.33, 0.41]);
 
+        // 26-11-2026: sent as a download (attachment), never opened in the browser
         return response($dompdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$name.'"',
+            'Content-Disposition' => 'attachment; filename="'.$name.'"',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 

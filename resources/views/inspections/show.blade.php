@@ -26,7 +26,7 @@
 @endphp
 <x-layouts.app :title="$inspection->inspection_no ?: 'Inspection draft'" :back="url()->previous() !== url()->current() ? url()->previous() : route('inspections.mine')">
     <x-slot:actions>
-        <a href="{{ route('inspections.pdf', $inspection) }}" target="_blank" class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+        <a href="{{ route('inspections.pdf', $inspection) }}" download data-no-loader class="btn btn-soft-primary d-none d-sm-inline-flex"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </x-slot:actions>
 
     {{-- ============ Report hero (Modification V4 item 1) ============ --}}
@@ -50,7 +50,7 @@
             <div><i class="bi bi-send-check"></i><span>Submitted</span><b>{{ $inspection->submitted_at?->format('d M Y, h:i A') ?? 'Not yet' }}</b></div>
         </div>
         <div class="rp-actions">
-            <a href="{{ route('inspections.pdf', $inspection) }}" target="_blank" class="btn btn-light"><i class="bi bi-file-earmark-pdf"></i>Download PDF</a>
+            <a href="{{ route('inspections.pdf', $inspection) }}" download data-no-loader class="btn btn-light"><i class="bi bi-file-earmark-pdf"></i>Download PDF</a>
             <button type="button" class="btn btn-light d-none d-md-inline-flex" onclick="window.print()"><i class="bi bi-printer"></i>Print</button>
             @if ($inspection->officer_id === auth()->id() && $inspection->isEditable())
                 <a href="{{ route('inspections.step', [$inspection, 1]) }}" class="btn btn-warning"><i class="bi bi-pencil-square"></i>Continue editing</a>
@@ -144,7 +144,7 @@
                         </div>
                     </section>
                 @endif
-                <a href="{{ route('inspections.pdf', $inspection) }}" target="_blank" class="btn btn-primary w-100 rp-pdf-btn"><i class="bi bi-file-earmark-pdf"></i>Download official PDF report</a>
+                <a href="{{ route('inspections.pdf', $inspection) }}" download data-no-loader class="btn btn-primary w-100 rp-pdf-btn"><i class="bi bi-file-earmark-pdf"></i>Download official PDF report</a>
             </aside>
         </div>
     </div>

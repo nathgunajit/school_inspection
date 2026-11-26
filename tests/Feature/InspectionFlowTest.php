@@ -116,7 +116,8 @@ class InspectionFlowTest extends TestCase
             ->assertDontSee('Name of the person met at the school');
         $pdfData = null;
         \Illuminate\Support\Facades\View::composer('inspections.pdf', function ($view) use (&$pdfData) { $pdfData ??= $view->getData(); });
-        $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get(route('inspections.pdf', $i))->assertOk()->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename="'.str_replace('/', '-', $i->fresh()->inspection_no).'.pdf"'); // 26-11-2026: downloads, never opens inline
 
         // Modification V8 item 6: the PDF no longer prints the device location at start and submit (the web report still shows it)
         $html = view('inspections.pdf', $pdfData)->render();

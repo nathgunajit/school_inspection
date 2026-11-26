@@ -12,7 +12,7 @@
                         <div class="text-xs text-secondary">{{ $inspection->submitted_at->format('d M Y, h:i:s A') }}</div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('inspections.pdf', $inspection) }}" target="_blank" class="btn btn-primary btn-lg"><i class="bi bi-file-earmark-pdf"></i>Download PDF report</a>
+                        <a href="{{ route('inspections.pdf', $inspection) }}" download data-no-loader class="btn btn-primary btn-lg"><i class="bi bi-file-earmark-pdf"></i>Download PDF report</a>
                         <a href="{{ route('inspections.show', $inspection) }}" class="btn btn-light"><i class="bi bi-eye"></i>View report</a>
                         <a href="{{ route('schools.index') }}" class="btn btn-link">Start another inspection</a>
                     </div>

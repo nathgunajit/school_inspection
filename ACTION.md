@@ -3099,3 +3099,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - 5 new tests: default month; week, day and none (draft still blocks); different level on the same day only; planner window; State Admin only, with audit.
   - Full suite: 353 passed.
   - Migrated on MySQL.
+
+## 26-11-2026: PDF buttons download the file (no browser view)
+- **Asked:** "When click on PDF download button automatically download. Not view."
+- **Cause:** the inspection report PDF (`inspections.pdf`) was sent `inline` and its buttons opened a new tab (`target="_blank"`), so the browser showed it. All list / report PDFs (`MasterPdf`) and the blank form already downloaded.
+- **Done:** `ReportController::pdf()` sends `attachment; filename="<inspection no>.pdf"` + `Cache-Control: private, no-store`. The five report PDF links (inspection list icon, report page ×3, submitted page) lose `target="_blank"` and get `download data-no-loader`.
+- **Files:** `app/Http/Controllers/ReportController.php`, `resources/views/inspections/{index,show,submitted}.blade.php`, `tests/Feature/InspectionFlowTest.php`, `CLAUDE.md`.
+- **Verified:** the test asserts the attachment header; full suite 353 passed.

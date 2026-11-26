@@ -72,7 +72,7 @@
                                 <a href="{{ route('inspections.step', [$i, 1]) }}" class="btn btn-sm btn-primary">Continue</a>
                             @elseif ($i->status->value !== 'cancelled')
                                 <a href="{{ route('inspections.show', $i) }}" class="btn btn-sm btn-soft-primary">View</a>
-                                <a href="{{ route('inspections.pdf', $i) }}" target="_blank" class="btn btn-sm btn-light btn-icon" aria-label="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                                <a href="{{ route('inspections.pdf', $i) }}" download data-no-loader class="btn btn-sm btn-light btn-icon" aria-label="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
                             @endif
                         </td>
                     </tr>
