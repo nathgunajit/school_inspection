@@ -45,9 +45,15 @@ class InspectionStartSetting extends Model
     /** [from, to] of the block window that contains $date, or null for "none". */
     public function window(CarbonInterface $date): ?array
     {
+        return self::windowFor((string) $this->repeat_window, $date);
+    }
+
+    /** [from, to] of a month / week / day window containing $date (null for "none"); also used by Today's Schools. */
+    public static function windowFor(string $key, CarbonInterface $date): ?array
+    {
         $d = Carbon::instance($date)->startOfDay();
 
-        return match ($this->repeat_window) {
+        return match ($key) {
             'none' => null,
             'day' => [$d, $d->copy()],
             'week' => [$d->copy()->startOfWeek(Carbon::MONDAY), $d->copy()->startOfWeek(Carbon::MONDAY)->addDays(6)],
@@ -64,7 +70,12 @@ class InspectionStartSetting extends Model
     /** "this month", "this week", "today" (null for "none"). */
     public function windowLabel(): ?string
     {
-        return ['month' => 'this month', 'week' => 'this week', 'day' => 'today'][$this->repeat_window] ?? null;
+        return self::labelFor((string) $this->repeat_window);
+    }
+
+    public static function labelFor(string $key): ?string
+    {
+        return ['month' => 'this month', 'week' => 'this week', 'day' => 'today'][$key] ?? null;
     }
 
     public function label(): string

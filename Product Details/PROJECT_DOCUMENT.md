@@ -526,7 +526,7 @@ erDiagram
 | `notices` | Notices & Orders letters | `type` (a `notice_types.code`), `ref_no`, `title`, `body`, `notice_date`, attachment on the private disk, `levels` JSON, `district_id` / `block_id` / `cluster_id`, `expires_on`, `show_on_home`, `pinned_at` (Latest Notification), `status` (published / withdrawn), `created_by` (restrict) |
 | `notice_reads` | Read receipts | `notice_id`, `user_id` UQ pair, `read_at`, `acknowledged_at` |
 | `notice_types` | Notice types master | `code` UQ (never changes), `name` UQ, `icon`, `color`, `sort_order`, `is_active` |
-| `daily_display_settings` | Today's Schools settings (district null = state default) | `enabled`, `levels` JSON, `daily_limit`, `selection`, priority switches, `recent_days`, `weekly_off` JSON, `skip_blocked`, `max_distance_km` |
+| `daily_display_settings` | Today's Schools settings (district null = state default) | `enabled`, `levels` JSON, `daily_limit`, `selection`, priority switches, `recent_days`, `weekly_off` JSON, `skip_blocked`, `skip_window` (day / week / month), `max_distance_km` |
 | `daily_school_list_days` | "List made" marker | UQ (`officer_id`, `list_date`) |
 | `daily_school_lists` | Today's Schools rows | `officer_id`, `list_date`, `school_id`, `position`, `reason`, `source`, `status`, `carried_from`, `carried_to` (V15: a skipped row already carried), `inspection_id`, `assigned_by`; UQ (school, day) and (officer, day, school) |
 | (V15 columns) `daily_display_settings` / `daily_school_list_days` | Skip switch and alerts; alert marks and the list lock | settings: `allow_skip`, `notify_enabled`, `notify_time`, `reminder_enabled`, `reminder_time` (State only). Days: `notified_at`, `reminded_at`, `locked_at`, `unlocked_at`, `unlocked_by`, `unlock_reason` |

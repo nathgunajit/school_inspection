@@ -62,7 +62,12 @@
 
                             <div class="col-12"><div class="setting-checks">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" name="carry_forward" value="1" id="cf{{ $i }}" @checked($r->carry_forward)><label class="form-check-label" for="cf{{ $i }}"><b>Pending school list</b><span>Schools not visited move to the next working day (up to {{ \App\Services\DailySchoolListService::CARRY_DAYS }} days), on top of the daily limit.</span></label></div>
-                                <div class="form-check"><input class="form-check-input" type="checkbox" name="skip_blocked" value="1" id="sb{{ $i }}" @checked($r->skip_blocked)><label class="form-check-label" for="sb{{ $i }}"><b>Skip schools taken by another officer</b><span>Being inspected now, or already inspected this month by someone else.</span></label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" name="skip_blocked" value="1" id="sb{{ $i }}" @checked($r->skip_blocked)><label class="form-check-label" for="sb{{ $i }}"><b>Skip schools taken by another officer</b><span>Being inspected now, or already inspected by someone else in the period below.</span></label>
+                                    {{-- 26-11-2026: the period is chosen here (Same day / This week / This month) --}}
+                                    <div class="d-flex flex-wrap gap-3 mt-1" role="radiogroup" aria-label="Period for skipping schools taken by another officer">
+                                        @foreach (DS::SKIP_WINDOWS as $k => $l)<div class="form-check"><input class="form-check-input" type="radio" name="skip_window" value="{{ $k }}" id="sw{{ $i }}{{ $k }}" @checked(($r->skip_window ?: 'month') === $k)><label class="form-check-label" for="sw{{ $i }}{{ $k }}">{{ $l }}</label></div>@endforeach
+                                    </div>
+                                    @error('skip_window')<div class="text-danger text-xs mt-1">{{ $message }}</div>@enderror</div>
                             </div></div>
 
                             <div class="col-sm-6"><label class="form-label">Recently visited restriction</label>

@@ -17,10 +17,13 @@ class DailyDisplaySetting extends Model
     /** V15 (26-11-2026): set by the State Administrator for every user; a district row always takes these from the state row. */
     public const STATE_ONLY_FIELDS = ['allow_skip', 'notify_enabled', 'notify_time', 'reminder_enabled', 'reminder_time'];
 
-    public const SELECTIONS =['priority' => 'By priority (the options below)', 'random' => 'Random from the eligible schools'];
+    /** 26-11-2026: how long a school inspected by another officer stays off the list (skip_blocked). */
+    public const SKIP_WINDOWS = ['day' => 'Same day', 'week' => 'This week (Monday to Sunday)', 'month' => 'This month'];
+
+    public const SELECTIONS = ['priority' => 'By priority (the options below)', 'random' => 'Random from the eligible schools'];
 
     protected $fillable = ['district_id', 'enabled', 'levels', 'daily_limit', 'selection', 'prefer_not_inspected', 'prefer_low_rating', 'low_rating_below',
-        'prefer_issues', 'prefer_less_visited', 'carry_forward', 'recent_days', 'weekly_off', 'skip_blocked', 'max_distance_km', 'updated_by',
+        'prefer_issues', 'prefer_less_visited', 'carry_forward', 'recent_days', 'weekly_off', 'skip_blocked', 'skip_window', 'max_distance_km', 'updated_by',
         'allow_skip', 'notify_enabled', 'notify_time', 'reminder_enabled', 'reminder_time'];
 
     protected $casts = ['enabled' => 'boolean', 'levels' => 'array', 'weekly_off' => 'array', 'daily_limit' => 'integer', 'low_rating_below' => 'integer',
@@ -35,7 +38,7 @@ class DailyDisplaySetting extends Model
     {
         return ['enabled' => true, 'levels' => ['cluster'], 'daily_limit' => 2, 'selection' => 'priority', 'prefer_not_inspected' => true,
             'prefer_low_rating' => true, 'low_rating_below' => 50, 'prefer_issues' => true, 'prefer_less_visited' => true, 'carry_forward' => true,
-            'recent_days' => 30, 'weekly_off' => [0], 'skip_blocked' => true, 'max_distance_km' => null,
+            'recent_days' => 30, 'weekly_off' => [0], 'skip_blocked' => true, 'skip_window' => 'month', 'max_distance_km' => null,
             'allow_skip' => true, 'notify_enabled' => true, 'notify_time' => '18:00', 'reminder_enabled' => true, 'reminder_time' => '14:00'];
     }
 
@@ -89,7 +92,7 @@ class DailyDisplaySetting extends Model
     {
         return sha1(json_encode([(int) $this->daily_limit, (string) $this->selection, (bool) $this->prefer_not_inspected, (bool) $this->prefer_low_rating,
             (int) $this->low_rating_below, (bool) $this->prefer_issues, (bool) $this->prefer_less_visited, (bool) $this->carry_forward,
-            (int) $this->recent_days, (bool) $this->skip_blocked, $this->max_distance_km === null ? null : (int) $this->max_distance_km]));
+            (int) $this->recent_days, (bool) $this->skip_blocked, (string) ($this->skip_window ?: 'month'), $this->max_distance_km === null ? null : (int) $this->max_distance_km]));
     }
 
     /** A district row whose officer levels come from the state default. */

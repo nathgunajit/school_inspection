@@ -268,7 +268,7 @@ class DailySchoolListService
             ->merge(InspectionScheduleItem::whereIn('school_id', $ids)->where('schedule_date', $day)
                 ->whereHas('schedule', fn ($s) => $s->where('officer_id', '!=', $officer->id))->pluck('school_id'))->flip();
         $recent = $setting->recent_days > 0 ? $this->inspectedSince($ids, $date->copy()->subDays($setting->recent_days), $officer) : [];
-        $blocked = $setting->skip_blocked ? $this->schedules->blockedSchools($officer, $date, $ids) : [];
+        $blocked = $setting->skip_blocked ? $this->schedules->blockedSchools($officer, $date, $ids, $setting->skip_window ?: 'month') : [];
         $start = $setting->max_distance_km ? $this->schedules->startInfo($officer)['point'] : null;
 
         $eligible = $schools->filter(function ($s) use ($busy, $recent, $blocked, $start, $setting) {

@@ -420,20 +420,22 @@ class ScheduleService
      * of the plan's date. 26-11-2026: the window (month / week / day / none) and whether another level blocks the
      * same day come from the State Admin's Inspection Rules (InspectionStartSetting), the same as InspectionStartGuard.
      */
-    public function blockedSchools(User $officer, Carbon $date, Collection $ids): array
+    public function blockedSchools(User $officer, Carbon $date, Collection $ids, ?string $period = null): array
     {
         // 25-11-2026: only officers of the same level block a school (different levels may inspect it too)
         $others = fn (): Builder => \App\Support\InspectionVisibility::sameLevel(Inspection::query(), $officer)->whereIn('school_id', $ids)->where('officer_id', '!=', $officer->id)->with('officer:id,name');
         $rule = \App\Models\InspectionStartSetting::current();
+        // 26-11-2026: Today's Schools passes its own period (DailyDisplaySetting::skip_window); plans keep the Inspection Rules
+        $period ??= (string) $rule->repeat_window;
         $out = [];
         foreach ($others()->where('status', InspectionStatus::Draft)->get() as $i) {
             $out[$i->school_id] = 'being inspected by '.($i->officer?->name ?? 'another officer').'.';
         }
-        if ($window = $rule->window($date)) {
+        if ($window = \App\Models\InspectionStartSetting::windowFor($period, $date)) {
             $done = $others()->whereIn('status', [InspectionStatus::Submitted, InspectionStatus::Unlocked])
                 ->whereBetween('inspection_date', [$window[0]->toDateString(), $window[1]->toDateString()])->get();
             foreach ($done as $i) {
-                $out[$i->school_id] ??= 'already inspected by '.($i->officer?->name ?? 'another officer').' on '.$i->inspection_date->format('d-m-Y').($rule->repeat_window === 'day' ? '' : ' '.$rule->windowLabel()).'.';
+                $out[$i->school_id] ??= 'already inspected by '.($i->officer?->name ?? 'another officer').' on '.$i->inspection_date->format('d-m-Y').($period === 'day' ? '' : ' '.\App\Models\InspectionStartSetting::labelFor($period)).'.';
             }
         }
         if (! $rule->cross_level) {

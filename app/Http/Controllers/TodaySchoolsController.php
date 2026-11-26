@@ -174,7 +174,8 @@ class TodaySchoolsController extends Controller
             'weekly_off' => ['nullable', 'array'],
             'weekly_off.*' => ['integer', 'between:0,6'],
             'max_distance_km' => ['nullable', 'integer', 'min:1', 'max:500'],
-        ], ['daily_limit.max' => 'At most 10 schools a day.']);
+            'skip_window' => ['nullable', Rule::in(array_keys(DailyDisplaySetting::SKIP_WINDOWS))],
+        ], ['daily_limit.max' => 'At most 10 schools a day.', 'skip_window.*' => 'Pick the period for skipping schools taken by another officer: same day, this week or this month.']);
         foreach (['enabled', 'prefer_not_inspected', 'prefer_low_rating', 'prefer_issues', 'prefer_less_visited', 'carry_forward', 'skip_blocked'] as $flag) {
             $data[$flag] = $request->boolean($flag);
         }
@@ -184,6 +185,7 @@ class TodaySchoolsController extends Controller
         $data['levels'] = array_values(array_intersect($allowed, $data['levels'] ?? []));
         $data['weekly_off'] = array_values(array_map('intval', $data['weekly_off'] ?? []));
         $data['max_distance_km'] = $data['max_distance_km'] ?? null;
+        if (empty($data['skip_window'])) { unset($data['skip_window']); } // not sent: keep the stored period (new rows: month)
         // V15: Skip and the notices are set once, by the State Administrator, for everyone
         if (! $districtId && $request->boolean('_alerts')) { // only the state form carries these (hidden _alerts)
             $data += $request->validate([

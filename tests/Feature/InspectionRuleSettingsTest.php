@@ -140,6 +140,39 @@ class InspectionRuleSettingsTest extends TestCase
         $this->assertFalse($on('2026-11-17'));
     }
 
+    /** 26-11-2026: Today's Schools chooses its own period for "Skip schools taken by another officer". */
+    public function test_todays_schools_skip_period_overrides_the_rules(): void
+    {
+        [$a, $b, $school] = $this->setupCluster();
+        $this->submitted($a, $school, '2026-11-23'); // a Monday
+        $plan = app(ScheduleService::class);
+        $on = fn (string $d, ?string $p) => array_key_exists($school->id, $plan->blockedSchools($b, Carbon::parse($d), collect([$school->id]), $p));
+
+        $this->rules('none'); // the Inspection Rules do not decide the list's period
+        $this->assertFalse($on('2026-11-26', null));
+        $this->assertTrue($on('2026-11-30', 'month'));
+        $this->assertTrue($on('2026-11-26', 'week'));
+        $this->assertFalse($on('2026-11-30', 'week'), 'next week');
+        $this->assertFalse($on('2026-11-26', 'day'));
+        $this->assertTrue($on('2026-11-23', 'day'));
+
+        // a draft (being inspected now) is skipped whatever the period
+        $other = School::where('cluster_id', $school->cluster_id)->where('id', '!=', $school->id)->orderBy('id')->firstOrFail();
+        $this->startInspection($a, $other);
+        $this->assertArrayHasKey($other->id, $plan->blockedSchools($b, today(), collect([$other->id]), 'day'));
+
+        // saved from the settings page, part of the list stamp; a wrong value is refused
+        $payload = ['scope' => 'state', 'enabled' => 1, 'levels' => ['cluster'], 'daily_limit' => 2, 'selection' => 'priority', 'low_rating_below' => 50,
+            'recent_days' => 30, 'skip_blocked' => 1];
+        $stamp = \App\Models\DailyDisplaySetting::state()->listStamp();
+        $this->actingAs($this->admin())->put(route('today.settings.update'), $payload + ['skip_window' => 'week'])->assertSessionHasNoErrors();
+        $s = \App\Models\DailyDisplaySetting::state()->fresh();
+        $this->assertSame('week', $s->skip_window);
+        $this->assertNotSame($stamp, $s->listStamp());
+        $this->put(route('today.settings.update'), $payload + ['skip_window' => 'year'])->assertSessionHasErrors('skip_window');
+        $this->get(route('today.settings'))->assertOk()->assertSee('id="sw0week" checked', false);
+    }
+
     public function test_only_the_state_admin_manages_the_rules(): void
     {
         $officer = $this->officer(UserLevel::District);

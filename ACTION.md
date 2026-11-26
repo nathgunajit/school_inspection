@@ -3224,3 +3224,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Security check: `partials/captcha` takes `inline` (`captcha-box-inline`), so on registration the CAPTCHA image, refresh and the entry box (64 px, same height) sit on one line, wrapping on narrow phones. The login page is unchanged.
 - Files: `resources/views/auth/register.blade.php`, `resources/views/partials/captcha.blade.php`, `resources/scss/app.scss`.
 - Verified: `npm run build`; registration / captcha / icon tests 34 passed.
+
+## 2026-11-26 · Today's Schools: period for "Skip schools taken by another officer"
+- New setting `daily_display_settings.skip_window` (migration `2026_11_26_000010`, default `month`): Same day / This week (Mon–Sun) / This month, radio group under the tick box on Today's Schools Settings (state and district forms). A school being inspected now (another officer's draft) is always skipped.
+- `ScheduleService::blockedSchools()` takes an optional period; `DailySchoolListService::pick()` passes `skip_window`. The planner keeps the Inspection Rules window. `InspectionStartSetting::windowFor()` / `labelFor()` share the window maths.
+- `skip_window` is in `listStamp()`, so a change re-picks lists the same day. Saving without it keeps the stored value.
+- Files: migration, `DailyDisplaySetting`, `InspectionStartSetting`, `ScheduleService`, `DailySchoolListService`, `TodaySchoolsController`, `today/settings.blade.php`, `InspectionRuleSettingsTest`, CLAUDE.md, Product Details docs.
+- Verified: 369 tests passed (SQLite); migrated on MySQL.

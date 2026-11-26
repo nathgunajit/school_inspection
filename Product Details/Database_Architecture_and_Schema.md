@@ -384,6 +384,7 @@ Indexes: **unique** `coverage_settings_district_id_unique` (district_id); `cover
 | `recent_days` | smallint(5) unsigned |  |  |  | No | 30 |
 | `weekly_off` | longtext |  |  |  | No |  |
 | `skip_blocked` | tinyint(1) |  |  |  | No | 1 |
+| `skip_window` | varchar(10) |  |  |  | No | month |
 | `max_distance_km` | smallint(5) unsigned |  |  |  | Yes |  |
 | `updated_by` | bigint(20) unsigned |  |  | users.id (set null) | Yes |  |
 | `created_at` | timestamp |  |  |  | Yes |  |
