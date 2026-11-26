@@ -3163,3 +3163,17 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `.map-layout.is-full .map-list { display: none; }`. The count tiles stay removed; the chips, the screen-tall map and Full screen are unchanged.
 - **Files:** `resources/views/map/index.blade.php`, `resources/js/map.js`, `resources/scss/app.scss`, `tests/Feature/MapViewTest.php`, `CLAUDE.md`.
 - **Verified:** full suite 360 passed; `npm run build` OK.
+
+## 26-11-2026: Sidebar Collapse / Expand button fixed (app.js was bundled twice)
+- **Asked:** "Sidebar Collapse not working. JavaScript issue: find and fix it." The user confirmed that the desktop << / >> button is the broken part.
+- **Cause:** headless Chrome showed that a click saved `si-sidebar` but left the rail in place. `downloads.js` imported `escapeHtml` from `./app`, and `app.js` imports `./downloads`. Vite therefore put a **second copy of `app.js`** in the bundle, so every `app.js` handler was registered twice. One click collapsed the sidebar and the second handler expanded it again. Bootstrap's collapse (the Users / Masters groups) lives in the shared chunk, so it was not affected.
+- **Done:**
+  - New `resources/js/util.js` holds `escapeHtml`. `downloads.js` imports it from there, and `app.js` re-exports it and keeps `window.escapeHtml`.
+  - New `resources/js/sidebar.js` holds the phone menu, the rail button and the name popups, moved out of `app.js`. Its click and hover handlers are delegated and set up once (`window.__siSidebar`). It is imported first in `app.js`.
+  - `app.scss`: the brand title is cut with an ellipsis, and the toggle sits above it (`z-index: 1`).
+  - `MapViewTest` checks that the layout renders both sidebar buttons.
+- **Verified:**
+  - The bundle now has one copy of the handlers (was 2).
+  - Headless Chrome at 1366 px, signed in as the State Admin, on the dashboard, Map View and User List: click 1 gives the full menu (232 px, `full`), click 2 gives the rail (72 px, `mini`), with no console errors.
+  - At 390 px the ☰ menu opens.
+  - `npm run build` OK; full suite 360 passed.

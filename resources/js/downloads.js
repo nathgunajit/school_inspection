@@ -7,7 +7,7 @@
  * itself. A small box at the bottom of the screen shows what is being prepared. On the Downloads page
  * ([data-downloads-page]) the list reloads when a job there finishes.
  */
-import { escapeHtml } from './app';
+import { escapeHtml } from './util'; // never from './app' (that bundles app.js twice)
 
 const STORE = 'si-export-jobs';
 const POLL_MS = 3000;

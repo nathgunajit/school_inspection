@@ -1,6 +1,8 @@
 // 25-11-2026, faster loading: only the Bootstrap plugins the app uses (bootstrap-lite.js)
 import { Alert, Button, Collapse, Dropdown, Modal, Offcanvas, Tab, Toast, Tooltip } from './bootstrap-lite';
 import axios from 'axios';
+import { escapeHtml } from './util';
+import './sidebar'; // 26-11-2026: phone menu + desktop icon rail, set up first and only once
 import './button-busy';
 import './password-encrypt';
 import './mobile-input';
@@ -63,79 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sync(false);
     });
 
-    /* ---------- Sidebar toggle (mobile) ---------- */
-    const sidebar = document.querySelector('.app-sidebar');
-    document.querySelectorAll('[data-toggle-sidebar]').forEach((b) =>
-        b.addEventListener('click', (e) => { e.stopPropagation(); sidebar?.classList.toggle('show'); }));
-    document.addEventListener('click', (e) => {
-        if (sidebar?.classList.contains('show') && !sidebar.contains(e.target)) sidebar.classList.remove('show');
-    });
-
-    /* ---------- Collapsible sidebar (desktop), remembered per browser ----------
-       23-11-2026: collapsed (icon rail) by default, see the inline script in layouts/app; 'full' keeps it open.
-       In the rail every icon shows a styled name popup (.si-nav-tip) instead of the plain browser title. */
-    const html = document.documentElement;
-    const isRail = () => html.classList.contains('sidebar-mini') && window.matchMedia('(min-width: 992px)').matches;
-    const tipItems = [...document.querySelectorAll('.app-sidebar [data-mini-tip]')];
-    const toggles = [...document.querySelectorAll('[data-sidebar-mini]')];
-    const syncSidebarState = () => {
-        const mini = html.classList.contains('sidebar-mini');
-        toggles.forEach((b) => {
-            const label = mini ? 'Expand menu' : 'Collapse menu';
-            b.setAttribute('aria-label', label);
-            b.setAttribute('aria-expanded', mini ? 'false' : 'true');
-            b.dataset.tipTitle = label;
-        });
-        // the native title would show a second, plain tooltip next to ours
-        tipItems.forEach((el) => {
-            if (el.hasAttribute('title')) { el.dataset.tipTitle ??= el.getAttribute('title'); }
-            if (mini) el.removeAttribute('title'); else if (el.dataset.tipTitle) el.setAttribute('title', el.dataset.tipTitle);
-        });
-    };
-
-    let tip = null;
-    const hideTip = () => tip?.classList.remove('show');
-    const showTip = (el) => {
-        if (!isRail()) return;
-        if (!tip) {
-            tip = document.createElement('div');
-            tip.className = 'si-nav-tip';
-            tip.setAttribute('role', 'tooltip');
-            tip.id = 'si-nav-tip';
-            document.body.appendChild(tip);
-        }
-        const label = el.matches('[data-sidebar-mini]') ? el.dataset.tipTitle
-            : (el.querySelector('span:not(.badge)')?.textContent || el.dataset.tipTitle || '').trim();
-        const badge = el.querySelector('.badge')?.textContent.trim();
-        tip.replaceChildren();
-        if (el.classList.contains('active')) { const d = document.createElement('i'); d.className = 'tip-dot'; d.title = 'Current page'; tip.appendChild(d); }
-        tip.appendChild(document.createTextNode(label));
-        if (badge) { const b = document.createElement('span'); b.className = 'tip-badge'; b.textContent = badge; tip.appendChild(b); }
-        const r = el.getBoundingClientRect();
-        const rail = document.querySelector('.app-sidebar').getBoundingClientRect();
-        tip.style.left = `${rail.right + 12}px`;
-        tip.style.top = `${r.top + r.height / 2}px`;
-        el.setAttribute('aria-describedby', tip.id);
-        tip.classList.remove('show');
-        void tip.offsetWidth; // restart the slide-in
-        tip.classList.add('show');
-    };
-    tipItems.forEach((el) => {
-        el.addEventListener('mouseenter', () => showTip(el));
-        el.addEventListener('focus', () => showTip(el));
-        el.addEventListener('mouseleave', hideTip);
-        el.addEventListener('blur', hideTip);
-    });
-    document.querySelector('.app-sidebar nav')?.addEventListener('scroll', hideTip, { passive: true });
-    window.addEventListener('resize', hideTip);
-
-    toggles.forEach((b) => b.addEventListener('click', () => {
-        const mini = html.classList.toggle('sidebar-mini');
-        try { localStorage.setItem('si-sidebar', mini ? 'mini' : 'full'); } catch { /* private mode */ }
-        hideTip();
-        syncSidebarState();
-    }));
-    syncSidebarState();
+    /* Sidebar (phone menu and desktop icon rail): sidebar.js since 26-11-2026 */
 
     /* ---------- Flash messages -> toasts ---------- */
     document.querySelectorAll('[data-flash]').forEach((f) => toast(f.dataset.flash, f.dataset.type || 'success'));
@@ -200,9 +130,7 @@ export async function cascade(parent) {
 }
 window.siCascade = cascade;
 
-export function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+export { escapeHtml }; // lives in util.js since 26-11-2026 (imported modules use './util', never './app')
 window.escapeHtml = escapeHtml;
 
 // Profile: change own photo (preview, type/size check, save or cancel)

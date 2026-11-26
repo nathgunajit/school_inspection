@@ -29,7 +29,8 @@ class MapViewTest extends TestCase
                 ->assertDontSee('data-map-jump', false)->assertSee('id="mapCard"', false)
                 // 26-11-2026: map and filters only (no count tiles, no table), Full screen, selected-filter chips
                 ->assertSee('id="mapChips"', false)->assertSee('data-map-full', false)->assertSee('id="mapLayout"', false)
-                ->assertSee('id="mapTableBody"', false)->assertSee('map-list', false)->assertDontSee('data-stat="officers"', false); // the list is back below the map (hidden in Full screen)
+                ->assertSee('id="mapTableBody"', false)->assertSee('map-list', false)->assertDontSee('data-stat="officers"', false) // the list is back below the map (hidden in Full screen)
+                ->assertSee('data-sidebar-mini', false)->assertSee('data-toggle-sidebar', false); // sidebar.js buttons (26-11-2026)
         }
     }
 
