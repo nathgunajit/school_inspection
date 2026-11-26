@@ -118,7 +118,7 @@
                     @endif
                     @if ($school->isActive())
                         {{-- Modification V11 item 2: paper form for a school without internet --}}
-                        <a href="{{ route('schools.blank-form', $school) }}" class="btn btn-light w-100 mt-2" data-no-loader data-no-busy>
+                        <a href="{{ route('schools.blank-form', $school) }}" class="btn btn-light w-100 mt-2" data-no-loader>
                             <i class="bi bi-file-earmark-arrow-down"></i>No internet? Download the blank form (PDF)</a>
                     @endif
                 </div>

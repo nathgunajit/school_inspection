@@ -89,7 +89,7 @@
                             </div>
                         </div>
                         {{-- Modification V11 item 2 --}}
-                        <a href="{{ route('schools.blank-form', $inspection->school) }}" class="paper-form-link text-xs" data-no-loader data-no-busy>
+                        <a href="{{ route('schools.blank-form', $inspection->school) }}" class="paper-form-link text-xs" data-no-loader>
                             <i class="bi bi-file-earmark-arrow-down"></i>No internet? Download the paper form (PDF)</a>
                     @endif
 

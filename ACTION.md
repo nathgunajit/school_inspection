@@ -3251,3 +3251,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Fix: picture capped at 220 px (`object-fit: contain`), entry box at least 10rem wide, the row wraps again when narrow, and the CAPTCHA column is full width (`col-12`).
 - Files: `resources/scss/app.scss`, `resources/views/auth/register.blade.php`.
 - Verified: `npm run build`; registration / captcha / icon tests passed.
+
+## 2026-11-26 · Download links: processing look, no repeat clicks until the file arrives
+- A click on a PDF / Excel download link (inspection report PDF, blank form, Coverage / Rating / Network / My Schools / Inspections / School and Location Master downloads) shows a spinner and "Preparing PDF…" / "Preparing Excel…" on every copy of that link (desktop and phone), like submit buttons, and further clicks are ignored.
+- How it ends: the link is sent with `_dl=<token>`; new middleware `MarkDownloadDone` (prepended to the web group) strips it from the request and, when the answer is a file, sets the readable cookie `si_dl=<token>` (excluded from cookie encryption). The page sees the cookie and restores the button; queued exports redirect back as before; 90 s safety release and Back (`pageshow`) release.
+- The blank form links lost a `data-no-busy` that had no effect on links, so they get the busy look too.
+- Files: `resources/js/download-busy.js` (new), `resources/js/app.js`, `resources/scss/_button-busy.scss`, `app/Http/Middleware/MarkDownloadDone.php` (new), `bootstrap/app.php`, `schools/show.blade.php`, `inspections/step.blade.php`, `tests/Feature/DownloadBusyTest.php` (new), CLAUDE.md.
+- Verified: `npm run build`; full suite 371 passed (SQLite).

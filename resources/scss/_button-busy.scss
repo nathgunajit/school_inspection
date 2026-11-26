@@ -6,6 +6,10 @@
     &[class*="btn-outline"], &[class*="btn-soft"], &.btn-light, &.btn-link { &::after { background: linear-gradient(100deg, transparent 20%, rgba($primary, .12) 50%, transparent 80%); } }
     .btn-busy-text { position: relative; z-index: 1; font-weight: 600; white-space: nowrap; }
 }
+// Download links (resources/js/download-busy.js): icon-only buttons show the spinner only; menu items and plain links too
+.btn-icon.is-loading .btn-busy-text { display: none; }
+.dropdown-item.is-loading, a.is-loading:not(.btn) { display: inline-flex; align-items: center; gap: .5rem; cursor: progress; pointer-events: none; }
+.dropdown-item.is-loading { display: flex; }
 .btn-spin { position: relative; z-index: 1; flex: 0 0 auto; width: 1.05em; height: 1.05em; border-radius: 50%;
     border: 2px solid currentColor; border-right-color: transparent; border-bottom-color: rgba(255, 255, 255, .35); opacity: .95;
     animation: btnSpin .7s linear infinite; }

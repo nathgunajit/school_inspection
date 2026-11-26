@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'password.fresh' => \App\Http\Middleware\ForcePasswordChange::class,
         ]);
+        // 26-11-2026: download buttons stay busy until the file arrives (cookie read by resources/js/download-busy.js)
+        $middleware->web(prepend: [\App\Http\Middleware\MarkDownloadDone::class]);
+        $middleware->encryptCookies(except: [\App\Http\Middleware\MarkDownloadDone::COOKIE]);
         // V6 Module 5: password fields arrive RSA-encrypted from the browser
         $middleware->web(append: [\App\Http\Middleware\DecryptPasswordFields::class, \App\Http\Middleware\TouchLastSeen::class,
             \App\Http\Middleware\EnsurePageUser::class, \App\Http\Middleware\CompactHtml::class, // 25-11-2026: one user per browser; smaller HTML

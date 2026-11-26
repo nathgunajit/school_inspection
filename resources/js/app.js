@@ -4,6 +4,7 @@ import axios from 'axios';
 import { escapeHtml } from './util';
 import './sidebar'; // 26-11-2026: phone menu + desktop icon rail, set up first and only once
 import './button-busy';
+import './download-busy'; // 26-11-2026: PDF / Excel links busy until the file arrives
 import './password-encrypt';
 import './mobile-input';
 import './date-picker';
