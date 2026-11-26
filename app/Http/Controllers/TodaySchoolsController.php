@@ -29,9 +29,12 @@ class TodaySchoolsController extends Controller
     {
         $user = $request->user();
         $date = $request->date('date') ?? today();
-        $date = $date->gt(today()) || $date->lt(today()->subDays(30)) ? today() : $date->startOfDay();
+        // V15: up to a week ahead, so a list made for the next working day (next-day notice) can be opened
+        $date = $date->gt(today()->addDays(7)) || $date->lt(today()->subDays(30)) ? today() : $date->startOfDay();
         $list = $this->lists->forOfficer($user, $date);
         $start = $this->schedules->startInfo($user);
+        $setting = $this->lists->settingFor($user);
+        $next = $this->calendar->nextWorkingDay(today(), $this->calendar->districtOf($user), $setting->weekly_off);
 
         return view('today.index', [
             'date' => $date, 'list' => $list, 'start' => $start,
@@ -39,7 +42,9 @@ class TodaySchoolsController extends Controller
             'distance' => fn ($s) => $start['point'] && $s->latitude !== null && $s->longitude !== null
                 ? round(Inspection::haversine($start['point'][0], $start['point'][1], (float) $s->latitude, (float) $s->longitude) / 1000, 1) : null,
             'canAssign' => $this->subordinates($user)->isNotEmpty(),
-            'setting' => $this->lists->settingFor($user),
+            'setting' => $setting,
+            'marker' => $this->lists->dayMarker($user, $date->toDateString()),
+            'nextDay' => $next && $this->lists->dayMarker($user, $next->toDateString()) ? $next : null,
         ]);
     }
 
@@ -70,7 +75,34 @@ class TodaySchoolsController extends Controller
         return view('today.assign', [
             'officers' => $officers, 'officer' => $officer, 'date' => $date, 'candidates' => $candidates, 'rows' => $rows, 'taken' => $taken,
             'off' => $officer ? $this->calendar->offReason($date, $this->calendar->districtOf($officer), $this->lists->settingFor($officer)->weekly_off) : null,
+            'marker' => $officer ? $this->lists->dayMarker($officer, $date->toDateString()) : null,
+            'drafts' => $officer ? $this->lists->openDrafts($officer, $rows->where('status', 'pending')->pluck('school_id')) : collect(),
         ]);
+    }
+
+    /** V15 item 9: swap a pending school on an officer's list for another one. */
+    public function replace(Request $request, DailySchoolList $row)
+    {
+        $data = $request->validate(['school_id' => ['required', 'integer']], ['school_id.required' => 'Pick the school to put in its place.']);
+        $new = $this->lists->replace($request->user(), $row, (int) $data['school_id']);
+
+        return back()->with('success', 'School replaced: '.($new->school?->name ?? 'the new school').' is on the list now.');
+    }
+
+    /** V15 item 11: the State Administrator allows changes to a list locked by a started inspection. */
+    public function unlock(Request $request)
+    {
+        $data = $request->validate([
+            'officer_id' => ['required', 'integer'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'unlock_reason' => ['required', 'string', 'min:5', 'max:200'],
+        ], ['unlock_reason.required' => 'Write why the list must be changed after the inspection started.',
+            'unlock_reason.min' => 'Write a reason of at least 5 characters.']);
+        $officer = $this->subordinates($request->user())->firstWhere('id', (int) $data['officer_id']);
+        abort_unless($officer, 404);
+        $this->lists->unlock($request->user(), $officer, $data['date'], $data['unlock_reason']);
+
+        return back()->with('success', "Changes allowed on {$officer->name}'s list. It locks again when the next inspection starts.");
     }
 
     public function storeAssign(Request $request)
@@ -126,6 +158,7 @@ class TodaySchoolsController extends Controller
         if ($districtId && $request->boolean('reset')) {
             DailyDisplaySetting::where('district_id', $districtId)->delete();
             AuditLogger::log('daily_settings_reset', null, ['district_id' => $districtId]);
+            \App\Jobs\RefreshDailyLists::dispatch($districtId);
 
             return back()->with('success', 'This district now follows the state default.');
         }
@@ -151,11 +184,22 @@ class TodaySchoolsController extends Controller
         $data['levels'] = array_values(array_intersect($allowed, $data['levels'] ?? []));
         $data['weekly_off'] = array_values(array_map('intval', $data['weekly_off'] ?? []));
         $data['max_distance_km'] = $data['max_distance_km'] ?? null;
+        // V15: Skip and the notices are set once, by the State Administrator, for everyone
+        if (! $districtId && $request->boolean('_alerts')) { // only the state form carries these (hidden _alerts)
+            $data += $request->validate([
+                'notify_time' => ['required', 'date_format:H:i'],
+                'reminder_time' => ['required', 'date_format:H:i'],
+            ], ['notify_time.date_format' => 'Enter the notice time as HH:MM, for example 18:00.', 'reminder_time.date_format' => 'Enter the reminder time as HH:MM, for example 14:00.']);
+            foreach (['allow_skip', 'notify_enabled', 'reminder_enabled'] as $flag) {
+                $data[$flag] = $request->boolean($flag);
+            }
+        }
 
         $row = DailyDisplaySetting::updateOrCreate(['district_id' => $districtId], $data + ['updated_by' => $user->id]);
         AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId] + $data);
+        \App\Jobs\RefreshDailyLists::dispatch($districtId); // V15 item 8: every list made already follows the change at once
 
-        return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. Today\'s lists change too when officers next open them (schools already visited, skipped, started or assigned stay).');
+        return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. Lists already made for today and the next day follow at once (schools already visited, skipped, started or assigned stay; a list locked by a started inspection is not changed).');
     }
 
     /** Active officers below the user in their area (not the user). */

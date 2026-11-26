@@ -12,10 +12,10 @@ class DailySchoolList extends Model
 
     public const REASONS = [
         'not_inspected' => 'Not inspected yet', 'low_rating' => 'Low rating', 'issue' => 'Open issues', 'less_visited' => 'Not visited for long',
-        'random' => 'Random pick', 'carried' => 'Pending from earlier', 'manual' => 'Assigned',
+        'random' => 'Random pick', 'carried' => 'Pending from earlier', 'carried_skipped' => 'Skipped earlier', 'manual' => 'Assigned',
     ];
 
-    protected $fillable = ['officer_id', 'list_date', 'school_id', 'position', 'reason', 'source', 'status', 'carried_from', 'skip_reason', 'inspection_id', 'assigned_by'];
+    protected $fillable = ['officer_id', 'list_date', 'school_id', 'position', 'reason', 'source', 'status', 'carried_from', 'carried_to', 'skip_reason', 'inspection_id', 'assigned_by'];
 
     public function officer() { return $this->belongsTo(User::class, 'officer_id'); }
     public function school() { return $this->belongsTo(School::class); }
@@ -24,6 +24,10 @@ class DailySchoolList extends Model
 
     public function getListDateAttribute($v): ?string { return $v ? substr((string) $v, 0, 10) : null; }
     public function getCarriedFromAttribute($v): ?string { return $v ? substr((string) $v, 0, 10) : null; }
+    public function getCarriedToAttribute($v): ?string { return $v ? substr((string) $v, 0, 10) : null; }
+
+    /** V15: carried from an earlier day (pending or skipped), so it is listed first with a Priority tag. */
+    public function isCarried(): bool { return $this->source === 'carried'; }
 
     /** The reason chip; "Low rating" reads "Needs support" while ratings are hidden from users (V9 switch). */
     public function reasonLabel(): string

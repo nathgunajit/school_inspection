@@ -145,10 +145,20 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [TodaySchoolsController::class, 'index'])->middleware('can:conduct_inspections')->name('index');
             Route::post('/rows/{row}/skip', [TodaySchoolsController::class, 'skip'])->name('skip');
             Route::delete('/rows/{row}', [TodaySchoolsController::class, 'remove'])->name('remove');
+            Route::post('/rows/{row}/replace', [TodaySchoolsController::class, 'replace'])->middleware('can:view_reports')->name('replace'); // V15 item 9
+            Route::post('/unlock', [TodaySchoolsController::class, 'unlock'])->middleware('can:state_admin')->name('unlock');           // V15 item 11
             Route::get('/assign', [TodaySchoolsController::class, 'assign'])->middleware('can:view_reports')->name('assign');
             Route::post('/assign', [TodaySchoolsController::class, 'storeAssign'])->middleware(['can:view_reports', 'throttle:30,1'])->name('assign.store');
             Route::get('/settings', [TodaySchoolsController::class, 'settings'])->middleware('can:manage_holidays')->name('settings');
             Route::put('/settings', [TodaySchoolsController::class, 'updateSettings'])->middleware('can:manage_holidays')->name('settings.update');
+        });
+
+        /* ---------------- V15 (26-11-2026): in-app alerts (the bell) ---------------- */
+        Route::prefix('alerts')->name('alerts.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\AlertController::class, 'index'])->name('index');
+            Route::get('/count', [\App\Http\Controllers\AlertController::class, 'count'])->middleware('throttle:120,1')->name('count');
+            Route::get('/{alert}/open', [\App\Http\Controllers\AlertController::class, 'open'])->name('open');
+            Route::post('/read-all', [\App\Http\Controllers\AlertController::class, 'readAll'])->name('read-all');
         });
 
         /* ---------------- 26-11-2026 performance: large downloads made in the background ---------------- */

@@ -149,7 +149,7 @@ class LoginController extends Controller
         } catch (\Throwable) {
             return $home; // no such page
         }
-        $deny = ['evidence.*', 'session.*', 'map.schools', 'map.areas', 'subjects.suggest', 'schools.suggest', 'inspections.teacher-names', 'inspections.progress', 'notices.unread-count',
+        $deny = ['evidence.*', 'session.*', 'map.schools', 'map.areas', 'subjects.suggest', 'schools.suggest', 'inspections.teacher-names', 'inspections.progress', 'notices.unread-count', 'alerts.count',
             'inspections.pdf', 'inspections.export', 'schools.blank-form', '*.export', '*.export-pdf', '*.template', '*.photo', 'downloads.file', 'downloads.status', 'register.*', 'login*', 'locations.*'];
         $name = (string) $route->getName();
 

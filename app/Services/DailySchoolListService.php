@@ -26,6 +26,14 @@ use Illuminate\Validation\ValidationException;
  *      open issues, not visited for long) or at random. Since 26-11-2026 the carried schools are extra: they no longer
  *      use up the limit (2 pending + limit 2 = 4 schools), only the assigned ones do.
  * Nothing is shown on a holiday or a weekly off day, or when the list is off for the officer's level / district.
+ *
+ * Modification V15 (26-11-2026):
+ *  - skipped schools are carried to the next working day too (once, `carried_to`), listed first like pending ones;
+ *  - the next working day's list can be made ahead (prepare(), by `today:notify` at the notice time); it is brought
+ *    up to date on the officer's first view that day (stamp ':pre' makes generate() run refresh());
+ *  - once the officer starts an inspection that day the list is locked (lockOnStart()): no refresh, assign, remove
+ *    or replace until the State Administrator allows changes with a reason (unlock()); the next start locks it again;
+ *  - Skip can be switched off for everyone (allow_skip, State only).
  */
 class DailySchoolListService
 {
@@ -62,8 +70,8 @@ class DailySchoolListService
         if ($off = $this->calendar->offReason($date, $this->calendar->districtOf($officer), $setting->weekly_off)) {
             return ['state' => 'off', 'reason' => $off, 'rows' => $rows()];
         }
-        if ($date->gt(today())) {
-            return ['state' => 'future', 'reason' => null, 'rows' => $rows()];
+        if ($date->gt(today())) { // V15: a list made ahead (next-day notice) can be looked at, not acted on
+            return ['state' => $this->dayMarker($officer, $date->toDateString()) ? 'upcoming' : 'future', 'reason' => null, 'rows' => $rows()];
         }
         $refreshed = $date->isToday() && $this->generate($officer, $date, $setting);
 
@@ -75,22 +83,25 @@ class DailySchoolListService
      * keeps the settings stamp; when the settings changed since, the list is refreshed (refresh()). Returns true when
      * this call changed an existing list.
      */
-    public function generate(User $officer, Carbon $date, DailyDisplaySetting $setting): bool
+    public function generate(User $officer, Carbon $date, DailyDisplaySetting $setting, bool $ahead = false): bool
     {
         $day = $date->toDateString();
-        $stamp = $setting->listStamp();
+        $stamp = $setting->listStamp().($ahead ? ':pre' : '');
         $marker = fn () => DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day);
 
-        $existing = $marker()->first(['setting_stamp']);
-        if ($existing && $existing->setting_stamp === $stamp) {
-            return false; // already generated with these settings
+        $existing = $marker()->first(['setting_stamp', 'locked_at', 'unlocked_at']);
+        if ($existing && ($existing->setting_stamp === $stamp || $ahead)) {
+            return false; // already generated with these settings (or, ahead of the day, already made)
         }
 
-        return DB::transaction(function () use ($officer, $date, $day, $setting, $stamp, $marker, $existing) {
+        return DB::transaction(function () use ($officer, $date, $day, $setting, $stamp, $marker, $existing, $ahead) {
             if ($existing) {
                 $current = $marker()->lockForUpdate()->value('setting_stamp'); // another request may have refreshed it meanwhile
                 if ($current === $stamp) {
                     return false;
+                }
+                if ($existing->locked_at && ! $existing->unlocked_at) {
+                    return false; // V15 item 10: an inspection has started, so no automatic reset; the change waits for an unlock
                 }
                 $marker()->update(['setting_stamp' => $stamp, 'updated_at' => now()]);
 
@@ -108,7 +119,7 @@ class DailySchoolListService
             $manual = $rows->where('source', 'manual')->count();
 
             if ($setting->carry_forward) {
-                $this->carry($officer, $date, $taken, $position);
+                $this->carry($officer, $date, $taken, $position, ! $ahead); // ahead: copy only, today's rows can still be acted on
             }
 
             $room = max(0, $setting->daily_limit - $manual); // carried ones are still excluded from the pick ($taken)
@@ -117,7 +128,7 @@ class DailySchoolListService
                     $this->claim($officer, $day, $schoolId, ++$position, $reason, 'auto');
                 }
             }
-            AuditLogger::log('daily_list_generated', null, ['officer_id' => $officer->id, 'date' => $day, 'schools' => $position], $officer);
+            AuditLogger::log('daily_list_generated', null, ['officer_id' => $officer->id, 'date' => $day, 'schools' => $position] + ($ahead ? ['ahead' => true] : []), $officer);
 
             return false;
         });
@@ -145,6 +156,8 @@ class DailySchoolListService
                 if ($earlier) {
                     DailySchoolList::whereKey($earlier)->update(['status' => 'pending', 'updated_at' => now()]);
                 }
+                DailySchoolList::where('officer_id', $officer->id)->where('school_id', $r->school_id)->where('carried_to', $day) // V15: a skipped one
+                    ->update(['carried_to' => null, 'updated_at' => now()]);
                 $r->delete();
                 $removed++;
             }
@@ -187,20 +200,29 @@ class DailySchoolListService
      * 'carried' and a 'carried' row is added unless the school is already on the day's list or was inspected since.
      * Returns the number of rows added; $taken and $position are updated.
      */
-    private function carry(User $officer, Carbon $date, array &$taken, int &$position): int
+    private function carry(User $officer, Carbon $date, array &$taken, int &$position, bool $markEarlier = true): int
     {
         $day = $date->toDateString();
-        $pending = DailySchoolList::where('officer_id', $officer->id)->where('status', 'pending')
+        // V15 item 3: skipped schools move on too, once (carried_to), and keep their status and reason on the earlier day
+        $pending = DailySchoolList::where('officer_id', $officer->id)
+            ->where(fn ($q) => $q->where('status', 'pending')->orWhere(fn ($q) => $q->where('status', 'skipped')->whereNull('carried_to')))
             ->where('list_date', '<', $day)->where('list_date', '>=', $date->copy()->subDays(self::CARRY_DAYS)->toDateString())
             ->orderBy('list_date')->orderBy('position')->get();
         $doneSince = $this->inspectedSince($pending->pluck('school_id'), $date->copy()->subDays(self::CARRY_DAYS), $officer);
         $added = 0;
         foreach ($pending as $p) {
-            $p->update(['status' => 'carried']);
+            $skipped = $p->status === 'skipped';
+            if ($markEarlier) {
+                $p->update($skipped ? ['carried_to' => $day] : ['status' => 'carried']);
+            }
             if (in_array($p->school_id, $taken, true) || isset($doneSince[$p->school_id])) {
+                if ($skipped) { // made ahead while still pending, skipped since: say so on the carried row
+                    DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->where('school_id', $p->school_id)
+                        ->where('reason', 'carried')->update(['reason' => 'carried_skipped', 'updated_at' => now()]);
+                }
                 continue;
             }
-            if ($this->claim($officer, $day, $p->school_id, ++$position, 'carried', 'carried', null, $p->carried_from ?? $p->list_date)) {
+            if ($this->claim($officer, $day, $p->school_id, ++$position, $skipped ? 'carried_skipped' : 'carried', 'carried', null, $p->carried_from ?? $p->list_date)) {
                 $taken[] = $p->school_id;
                 $added++;
             }
@@ -311,6 +333,9 @@ class DailySchoolListService
         DailySchoolList::where('officer_id', $inspection->officer_id)->where('school_id', $inspection->school_id)
             ->where('status', 'pending')->where('list_date', '<=', $inspection->inspection_date->toDateString())
             ->update(['status' => 'visited', 'inspection_id' => $inspection->id, 'updated_at' => now()]);
+        // V15: a later list made ahead (next-day notice) no longer needs this school; that day's first view fills the gap
+        DailySchoolList::where('officer_id', $inspection->officer_id)->where('school_id', $inspection->school_id)->where('status', 'pending')
+            ->where('list_date', '>', $inspection->inspection_date->toDateString())->whereIn('source', ['auto', 'carried'])->delete();
     }
 
     public function skip(User $actor, DailySchoolList $row, string $reason): void
@@ -318,8 +343,14 @@ class DailySchoolListService
         if ($row->officer_id !== $actor->id && ! $this->schedules->isSuperior($actor, $row->officer)) {
             abort(403);
         }
+        if (! $this->settingFor($row->officer)->allow_skip) { // V15 item 1
+            throw ValidationException::withMessages(['reason' => 'Skipping is turned off by the State Administrator. Visit the school, or ask your higher officer to change the list.']);
+        }
         if ($row->status !== 'pending') {
             throw ValidationException::withMessages(['reason' => 'This school is no longer pending.']);
+        }
+        if ($row->list_date > today()->toDateString()) {
+            throw ValidationException::withMessages(['reason' => 'A school can be marked as not visited only on its day.']);
         }
         $row->update(['status' => 'skipped', 'skip_reason' => mb_substr(trim($reason), 0, 200)]);
         AuditLogger::log('daily_list_skipped', $row, ['school_id' => $row->school_id, 'date' => $row->list_date, 'reason' => $row->skip_reason]);
@@ -342,6 +373,7 @@ class DailySchoolListService
         if ($off = $this->calendar->offReason($date, $this->calendar->districtOf($officer), $setting->weekly_off)) {
             throw ValidationException::withMessages(['date' => $date->format('d M Y').' is not a working day ('.$off.').']);
         }
+        $this->ensureUnlocked($officer, $date->toDateString());
         $schoolIds = array_values(array_unique(array_map('intval', $schoolIds)));
         $valid = $this->j->schools($officer)->where('schools.status', 'active')->whereIn('schools.id', $schoolIds)->pluck('schools.id')->all();
         if (count($valid) !== count($schoolIds) || ! $schoolIds) {
@@ -366,18 +398,143 @@ class DailySchoolListService
         if (! $added && $skipped) {
             throw ValidationException::withMessages(['school_ids' => 'These schools are already on another officer\'s list for that day.']);
         }
+        if ($added) {
+            $this->tell($officer, $day, $added.' school'.($added === 1 ? '' : 's').' assigned to your list', $actor);
+        }
 
         return $added;
     }
 
-    /** A higher officer removes a pending school they assigned. */
+    /** V15 item 9: a higher officer removes any pending school (assigned, automatic or carried) before its inspection starts. */
     public function remove(User $actor, DailySchoolList $row): void
+    {
+        $this->ensureChangeable($actor, $row);
+        AuditLogger::log('daily_list_removed', $row, ['officer_id' => $row->officer_id, 'school_id' => $row->school_id, 'date' => $row->list_date, 'source' => $row->source]);
+        $row->delete();
+        $this->tell($row->officer, $row->list_date, ($row->school?->name ?? 'A school').' removed from your list', $actor);
+    }
+
+    /** V15 item 9: swap a pending school for another one of the officer's area (added as assigned, same place in the list). */
+    public function replace(User $actor, DailySchoolList $row, int $schoolId): DailySchoolList
+    {
+        $this->ensureChangeable($actor, $row);
+        $officer = $row->officer;
+        $school = $this->j->schools($officer)->where('schools.status', 'active')->where('schools.id', $schoolId)->first(['schools.id', 'schools.name']);
+        if (! $school) {
+            throw ValidationException::withMessages(['school_id' => 'Pick an active school in the officer\'s area.']);
+        }
+        if ($other = DailySchoolList::where('school_id', $schoolId)->where('list_date', $row->list_date)->with('officer:id,name')->first()) {
+            throw ValidationException::withMessages(['school_id' => $other->officer_id === $officer->id ? 'This school is already on the list.'
+                : 'This school is on '.$other->officer?->name.'\'s list that day. Pick another school.']);
+        }
+        $old = $row->school?->name;
+        $new = DB::transaction(function () use ($actor, $row, $officer, $schoolId) {
+            $row->delete();
+            $this->claim($officer, $row->list_date, $schoolId, $row->position, 'manual', 'manual', $actor->id);
+
+            return DailySchoolList::where('officer_id', $officer->id)->where('list_date', $row->list_date)->where('school_id', $schoolId)->firstOrFail();
+        });
+        AuditLogger::log('daily_list_replaced', $new, ['officer_id' => $officer->id, 'date' => $row->list_date, 'from_school_id' => $row->school_id, 'to_school_id' => $schoolId]);
+        $this->tell($officer, $row->list_date, ($old ?? 'A school').' replaced by '.$school->name, $actor);
+
+        return $new;
+    }
+
+    /* ----------------------------- V15: lock ----------------------------- */
+
+    /** Starting an inspection locks that day's list of the officer (items 10–11). Called after a new draft is created. */
+    public function lockOnStart(Inspection $inspection): void
+    {
+        DB::table('daily_school_list_days')->where('officer_id', $inspection->officer_id)->where('list_date', $inspection->inspection_date->toDateString())
+            ->update(['locked_at' => now(), 'unlocked_at' => null, 'unlocked_by' => null, 'unlock_reason' => null, 'updated_at' => now()]);
+    }
+
+    /** The day's marker row (setting stamp, notice / reminder sent, lock), or null when no list was made. */
+    public function dayMarker(User|int $officer, string $day): ?object
+    {
+        return DB::table('daily_school_list_days')->where('officer_id', $officer instanceof User ? $officer->id : $officer)->where('list_date', $day)->first();
+    }
+
+    public function isLocked(User|int $officer, string $day): bool
+    {
+        $m = $this->dayMarker($officer, $day);
+
+        return $m && $m->locked_at && ! $m->unlocked_at;
+    }
+
+    /** Item 11: only the State Administrator allows changes to a locked list, with a reason. */
+    public function unlock(User $admin, User $officer, string $day, string $reason): void
+    {
+        abort_unless($admin->isStateAdmin(), 403);
+        if (! $this->isLocked($officer, $day)) {
+            throw ValidationException::withMessages(['unlock_reason' => 'This list is not locked.']);
+        }
+        $reason = trim($reason);
+        DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day)
+            ->update(['unlocked_at' => now(), 'unlocked_by' => $admin->id, 'unlock_reason' => mb_substr($reason, 0, 200), 'updated_at' => now()]);
+        AuditLogger::log('daily_list_unlocked', null, ['officer_id' => $officer->id, 'date' => $day, 'reason' => $reason]);
+        $this->tell($officer, $day, 'Changes to your list were allowed: '.$reason, $admin);
+    }
+
+    private function ensureUnlocked(User $officer, string $day): void
+    {
+        if ($this->isLocked($officer, $day)) {
+            throw ValidationException::withMessages(['locked' => 'This list is locked because an inspection has started. Ask the State Administrator to allow changes.']);
+        }
+    }
+
+    private function ensureChangeable(User $actor, DailySchoolList $row): void
     {
         if (! $this->schedules->isSuperior($actor, $row->officer) || $row->status !== 'pending') {
             abort(403);
         }
-        AuditLogger::log('daily_list_removed', $row, ['officer_id' => $row->officer_id, 'school_id' => $row->school_id, 'date' => $row->list_date]);
-        $row->delete();
+        $this->ensureUnlocked($row->officer, $row->list_date);
+        if ($this->openDrafts($row->officer, collect([$row->school_id]))->isNotEmpty()) {
+            throw ValidationException::withMessages(['locked' => 'The officer has already started the inspection of this school, so it stays on the list.']);
+        }
+    }
+
+    /** An in-app alert to the officer about a change made by someone else. */
+    private function tell(User $officer, string $day, string $what, User $by): void
+    {
+        if ($officer->id !== $by->id) {
+            $officer->notify(new \App\Notifications\TodayListChanged($day, $what, $by->name));
+        }
+    }
+
+    /* ----------------------------- V15: ahead of the day ----------------------------- */
+
+    /**
+     * Make the officer's list for a later working day now (next-day notice). Returns the rows, or null when the list
+     * is off for the officer or the day is not a working day.
+     */
+    public function prepare(User $officer, \Carbon\CarbonInterface $date): ?Collection
+    {
+        $date = Carbon::parse($date->toDateString());
+        $setting = $this->settingFor($officer);
+        if (! $this->appliesTo($officer, $setting) || $this->calendar->offReason($date, $this->calendar->districtOf($officer), $setting->weekly_off)) {
+            return null;
+        }
+        $this->generate($officer, $date, $setting, ahead: $date->gt(today()));
+
+        return DailySchoolList::where('officer_id', $officer->id)->where('list_date', $date->toDateString())->with('school:id,name')->orderBy('position')->get();
+    }
+
+    /**
+     * Settings changed (item 8): a list made ahead is made again with the new settings. Assigned rows stay; the
+     * untouched automatic and carried rows are dropped and picked again. The 'notice sent' mark is kept.
+     */
+    public function rebuildAhead(User $officer, \Carbon\CarbonInterface $date): void
+    {
+        $day = $date->toDateString();
+        $marker = $this->dayMarker($officer, $day);
+        DB::transaction(function () use ($officer, $day) {
+            DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->where('status', 'pending')->whereIn('source', ['auto', 'carried'])->delete();
+            DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day)->delete();
+        });
+        if ($this->prepare($officer, $date) !== null && $marker?->notified_at) {
+            DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day)->update(['notified_at' => $marker->notified_at]);
+        }
     }
 
     /* ----------------------------- helpers ----------------------------- */

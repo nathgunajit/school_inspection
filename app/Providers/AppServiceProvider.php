@@ -34,6 +34,13 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
+        // V15: a new in-app alert makes the bell's cached unread count stale
+        Event::listen(\Illuminate\Notifications\Events\NotificationSent::class, function ($e) {
+            if ($e->channel === 'database' && $e->notifiable instanceof User) {
+                \App\Services\AlertService::forget($e->notifiable->id);
+            }
+        });
+
         // PRD 14: HTTPS only in production
         if ($this->app->isProduction()) {
             URL::forceScheme('https');

@@ -3,6 +3,9 @@
     $done = $rows->where('status', 'visited')->count();
     $countable = $rows->whereIn('status', ['pending', 'visited', 'skipped'])->count();
     $isToday = $date->isToday();
+    $ahead = $list['state'] === 'upcoming'; // V15: made ahead for a later working day, looked at only
+    $locked = $marker && $marker->locked_at && ! $marker->unlocked_at;
+    $canSkip = $setting->allow_skip && ! $ahead;
 @endphp
 <x-layouts.app title="Today's Schools">
     <x-slot:actions>
@@ -14,9 +17,10 @@
         <form method="GET" class="row g-2 align-items-end">
             <div class="col-12 col-md-auto d-flex gap-1 align-items-center">
                 <a href="{{ route('today.index', ['date' => $date->copy()->subDay()->toDateString()]) }}" class="btn btn-light btn-icon" aria-label="Previous day"><i class="bi bi-chevron-left"></i></a>
-                <input type="date" name="date" value="{{ $date->toDateString() }}" max="{{ today()->toDateString() }}" min="{{ today()->subDays(30)->toDateString() }}" class="form-control" data-autosubmit aria-label="Date">
-                @unless ($isToday)<a href="{{ route('today.index', ['date' => $date->copy()->addDay()->toDateString()]) }}" class="btn btn-light btn-icon" aria-label="Next day"><i class="bi bi-chevron-right"></i></a>
-                <a href="{{ route('today.index') }}" class="btn btn-light">Today</a>@endunless
+                <input type="date" name="date" value="{{ $date->toDateString() }}" max="{{ today()->addDays(7)->toDateString() }}" min="{{ today()->subDays(30)->toDateString() }}" class="form-control" data-autosubmit aria-label="Date">
+                <a href="{{ route('today.index', ['date' => $date->copy()->addDay()->toDateString()]) }}" class="btn btn-light btn-icon" aria-label="Next day"><i class="bi bi-chevron-right"></i></a>
+                @unless ($isToday)<a href="{{ route('today.index') }}" class="btn btn-light">Today</a>@endunless
+                @if ($nextDay && ! $nextDay->isSameDay($date))<a href="{{ route('today.index', ['date' => $nextDay->toDateString()]) }}" class="btn btn-soft-primary"><i class="bi bi-calendar-check"></i>{{ $nextDay->isTomorrow() ? "Tomorrow's" : $nextDay->format('D d M') }} list</a>@endif
             </div>
             <div class="col text-sm text-secondary">
                 <b class="text-body">{{ $date->format('l, d M Y') }}</b>
@@ -29,12 +33,24 @@
         <div class="today-off"><i class="bi bi-calendar-heart"></i><div><b>{{ $list['reason'] }}</b><span>No schools are listed on this day.</span></div></div>
     @elseif ($list['state'] === 'disabled' && $rows->isEmpty())
         <x-empty-state icon="bi-signpost-2" title="Today's schools is not switched on for you" text="The administrator decides which officers get a daily list of schools. You can still plan your own visits in Inspection Schedules." />
+    @elseif ($list['state'] === 'future')
+        <x-empty-state icon="bi-calendar-event" title="No list for this day yet" text="The list of a later working day is made the evening before (you get an alert), or when you open it that morning." />
     @elseif ($rows->isEmpty())
         <x-empty-state icon="bi-check2-all" :title="$isToday ? 'No schools for today' : 'No schools were listed on this day'" text="Every eligible school in your area was visited recently, or is on another officer's list. Use Find School to start any inspection." />
     @endif
 
     @if (! empty($list['refreshed']))
         <div class="alert alert-info py-2 text-sm"><i class="bi bi-info-circle me-1"></i>List updated after a change in the Today's Schools settings.</div>
+    @endif
+
+    @if ($ahead && $rows->isNotEmpty())
+        <div class="alert alert-info py-2 text-sm"><i class="bi bi-calendar-check me-1"></i>This list was made ahead for {{ $date->format('l, d M') }}. It may still change that morning: schools you visit before then come off it, and schools left pending or skipped are added at the top.</div>
+    @endif
+    @if ($locked)
+        {{-- V15 items 10–11 --}}
+        <div class="alert alert-warning py-2 text-sm today-lock"><i class="bi bi-lock-fill"></i><span><b>List locked</b> since {{ \Carbon\Carbon::parse($marker->locked_at)->format('h:i A') }}, when an inspection was started. It no longer changes by itself, and only the State Administrator can allow changes.</span></div>
+    @elseif ($marker && $marker->unlocked_at)
+        <div class="alert alert-light border py-2 text-sm today-lock"><i class="bi bi-unlock"></i><span>Changes allowed by the State Administrator at {{ \Carbon\Carbon::parse($marker->unlocked_at)->format('h:i A') }}: {{ $marker->unlock_reason }}</span></div>
     @endif
 
     @if ($rows->isNotEmpty())
@@ -51,6 +67,7 @@
                         <a href="{{ route('schools.show', $s) }}" class="fw-semibold text-body d-block text-truncate">{{ $s->name }}</a>
                         <div class="text-xs text-secondary">UDISE {{ $s->udise_code }}@if ($s->cluster) · {{ $s->cluster->label }}@endif @if ($km !== null) · {{ number_format($km, 1) }} km away @elseif ($s->latitude === null) · no GPS @endif</div>
                         <div class="d-flex flex-wrap gap-1 mt-1 align-items-center">
+                            @if ($r->isCarried() && $r->status === 'pending')<span class="today-priority" title="Carried from an earlier day: visit it first">Priority</span>@endif
                             <span class="today-reason is-{{ $r->reason }}">{{ $r->reasonLabel() }}</span>
                             @if ($r->carried_from)<span class="text-xs text-secondary">since {{ \Carbon\Carbon::parse($r->carried_from)->format('d M') }}</span>@endif
                             @if ($r->assigner)<span class="text-xs text-secondary">by {{ $r->assigner->name }}</span>@endif
@@ -63,12 +80,13 @@
                                 @if ($r->inspection)<a href="{{ route('inspections.show', $r->inspection) }}" class="text-xs">{{ $r->inspection->inspection_no }}</a>@endif
                             @elseif ($r->status === 'skipped')
                                 <span class="badge-soft badge-soft-secondary" title="{{ $r->skip_reason }}">Not visited · {{ \Illuminate\Support\Str::limit($r->skip_reason, 40) }}</span>
+                                @if ($r->carried_to)<span class="text-xs text-secondary">moved to {{ \Carbon\Carbon::parse($r->carried_to)->format('d M') }}</span>@endif
                             @elseif ($r->status === 'carried')
                                 <span class="badge-soft badge-soft-warning">Moved to the next working day</span>
                             @endif
                         </div>
                     </div>
-                    @if ($r->status === 'pending')
+                    @if ($r->status === 'pending' && ! $ahead)
                         <div class="today-actions">
                             @if ($s->latitude !== null && $s->longitude !== null)
                                 <a href="https://www.google.com/maps/dir/?api=1&destination={{ $s->latitude }},{{ $s->longitude }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-light" data-no-loader><i class="bi bi-sign-turn-right"></i>Route</a>
@@ -80,11 +98,11 @@
                                     <input type="hidden" name="lat"><input type="hidden" name="lng"><input type="hidden" name="accuracy">
                                     <button class="btn btn-sm btn-primary"><i class="bi bi-play-fill"></i>Start</button></form>
                             @endif
-                            @unless ($draft)<button type="button" class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#skip{{ $r->id }}" aria-label="Not visited">Skip</button>@endunless
+                            @if (! $draft && $canSkip)<button type="button" class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#skip{{ $r->id }}" aria-label="Not visited">Skip</button>@endif
                         </div>
                     @endif
                 </div>
-                @if ($r->status === 'pending' && ! $draft)
+                @if ($r->status === 'pending' && ! $draft && $canSkip)
                     <form method="POST" action="{{ route('today.skip', $r) }}" class="collapse today-skip" id="skip{{ $r->id }}">@csrf
                         <div class="input-group input-group-sm"><input name="reason" class="form-control" maxlength="200" placeholder="Why can the school not be visited?" required>
                             <button class="btn btn-outline-secondary">Save</button></div>
@@ -92,6 +110,6 @@
                 @endif
             @endforeach
         </div>
-        @if ($setting->carry_forward)<p class="text-xs text-secondary mt-2"><i class="bi bi-info-circle me-1"></i>Schools not visited move to your next working day's list. A started inspection stays on the list as a draft until it is submitted, which marks the school as visited.</p>@endif
+        @if ($setting->carry_forward)<p class="text-xs text-secondary mt-2"><i class="bi bi-info-circle me-1"></i>Schools not visited or skipped move to the top of your next working day's list (Priority). A started inspection stays on the list as a draft until it is submitted, which marks the school as visited.</p>@endif
     @endif
 </x-layouts.app>

@@ -44,7 +44,8 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | Coverage report settings | `coverage_settings` |
 | Holiday Calendar (V14) | `holidays` |
 | Notices & Orders (V14) | `notices`, `notice_reads`, `notice_types` |
-| Today's Schools (V14) | `daily_display_settings`, `daily_school_list_days`, `daily_school_lists` |
+| Today's Schools (V14, V15) | `daily_display_settings`, `daily_school_list_days`, `daily_school_lists` |
+| In-app alerts (V15) | `notifications` |
 | Audit and monitoring | `audit_logs`, `user_login_logs` |
 | Laravel framework | `migrations`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `password_reset_tokens` |
 
@@ -91,9 +92,10 @@ Status labels used in this document: **Implemented**, **Partial**, **Not impleme
 | 28c | `notices` | Notices & Orders letter: type (a `notice_types` code), ref no, title, body, attachment (private disk), levels JSON, area, expiry, show on homepage, status | `id` | notice_types (by code), districts, blocks, clusters, users, notice_reads |
 | 28d | `notice_reads` | One row per officer and notice: read and acknowledged times | `id` | notices, users |
 | 28e | `notice_types` | Notice types master: stable code, name, icon, colour, order, active | `id` | notices (by code), users |
-| 28f | `daily_display_settings` | Today's Schools settings: state default (district null) or a district's own; officer levels, daily limit, priority rules, weekly off | `id` | districts, users |
-| 28g | `daily_school_list_days` | Marker that an officer's list for a day was made (made once, then fixed) | `id` | users |
-| 28h | `daily_school_lists` | Today's Schools rows: officer, day, school, position, reason, source (auto / carried / manual), status, the inspection done | `id` | users, schools, inspections |
+| 28f | `daily_display_settings` | Today's Schools settings: state default (district null) or a district's own; officer levels, daily limit, priority rules, weekly off; since V15 (State only) Allow Skip, next-day alert time and pending reminder time | `id` | districts, users |
+| 28g | `daily_school_list_days` | Marker that an officer's list for a day was made, with the settings stamp; since V15 the alert marks (`notified_at`, `reminded_at`) and the lock (`locked_at`, `unlocked_at`, `unlocked_by`, `unlock_reason`) | `id` | users |
+| 28h | `daily_school_lists` | Today's Schools rows: officer, day, school, position, reason, source (auto / carried / manual), status, the inspection done; `carried_to` (V15) marks a skipped row already carried | `id` | users, schools, inspections |
+| 28i | `notifications` | V15 in-app alerts (the bell): Laravel database notifications per user, `data` JSON, `read_at` | `id` (UUID) | users (morph) |
 | 29 | `audit_logs` | Append-only audit trail: action, subject, user, IP, meta JSON. Since V13, entries older than `AUDIT_RETENTION_DAYS` (30) are archived to Excel and then deleted, monthly (`audit:purge`) | `id` | users |
 | 30 | `user_login_logs` | Login monitoring: successes and refusals, device, browser, IP, last seen, logout | `id` | users |
 | 31 | `password_reset_tokens` | Laravel email reset tokens | `email` | — |

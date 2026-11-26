@@ -3177,3 +3177,43 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Headless Chrome at 1366 px, signed in as the State Admin, on the dashboard, Map View and User List: click 1 gives the full menu (232 px, `full`), click 2 gives the rail (72 px, `mini`), with no console errors.
   - At 390 px the ☰ menu opens.
   - `npm run build` OK; full suite 360 passed.
+
+## 26-11-2026: Modification V15, Today's Schools: skip switch, carry of skipped schools, alerts, list lock
+- **Asked:** "review the Modification of the ApplicationV15.docx and update accordingly". The document lists 11 items, all about Today's Schools.
+- **Decisions (user):**
+  - Alerts in-app only (the bell).
+  - After the lock, the State Admin allows changes with a reason.
+  - Carried schools stay first and extra to the daily limit.
+- **Done:**
+  - Migration `2026_11_26_000009_v15_today_schools`:
+    - Settings: `allow_skip`, `notify_enabled` / `notify_time`, `reminder_enabled` / `reminder_time` (State only).
+    - `daily_school_lists.carried_to`.
+    - Day marker: `notified_at`, `reminded_at`, `locked_at`, `unlocked_*`.
+    - `notifications` table.
+  - `DailySchoolListService`:
+    - Skip refused when it is off, or for a later day.
+    - Skipped rows are carried once, as `carried_skipped`.
+    - `prepare()` makes a later working day's list ahead; `rebuildAhead()` remakes it.
+    - `markVisited()` clears later rows of the visited school.
+    - `lockOnStart()`, `isLocked()`, `unlock()`.
+    - `remove()` for any pending row without a draft; new `replace()`.
+    - Officers are told of every change.
+  - `today:notify` (every 5 minutes) sends the next-day alert and the pending reminder.
+  - `RefreshDailyLists` job runs on each settings save.
+  - Bell in the top bar:
+    - `AlertService`, `AlertController`, Alerts page, `alert-badge.js`.
+    - The approvals icon is now `bi-person-check`.
+  - Views:
+    - Today page: Priority tag, "moved to", made-ahead notice, lock banner, link to tomorrow's list, Skip hidden when off.
+    - Assign: Remove / Replace modal; lock banner with **Allow changes** for the State Admin.
+    - Settings: a "Skip and alerts" block.
+  - `TodaySchoolsTest`: the limit test now checks that a started inspection locks the list, and that the waiting change applies after the unlock.
+- **Query budget:** coverage report 11 → 12, because the bell's unread count adds one cached query per page (the test cache lives one request). New budget: alerts page 6 (measured 4).
+- **Docs:** CLAUDE.md, `PROJECT_DOCUMENT.md` section 15 and its tables, `Database_Architecture_and_Schema.md`, V15 copied to `Product Details/Requirements/`, Word file rebuilt.
+- **Verified:**
+  - `npm run build` OK.
+  - Full suite green; the new `TodaySchoolsV15Test` has 8 tests.
+  - `php artisan migrate` on MySQL OK, with no `on update` timestamp columns.
+  - `schedule:list` shows `today:notify`.
+  - On the local Apache site as the State Admin, `/today/settings`, `/today/assign`, `/alerts`, `/alerts/count` and the dashboard all return 200.
+  - `today:notify` was not run against the local MySQL data, so the demo officers got no alerts.

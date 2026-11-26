@@ -64,6 +64,7 @@
     ]));
     $pendingCount = $u->can('approve_registrations') ? app(\App\Services\ApproverResolver::class)->pendingCountFor($u) : 0;
     $noticeCount = app(\App\Services\NoticeService::class)->unreadCount($u); // V14 item 1
+    $alertCount = app(\App\Services\AlertService::class)->unreadCount($u);   // V15: the bell (next-day schools, reminders, list changes)
     // 25-11-2026: always rendered (hidden at 0) so notice-badge.js can update it live
     $navBadge = ['notices.index' => '<span class="badge rounded-pill text-bg-warning" data-notice-count'.($noticeCount ? '' : ' hidden').'>'.$noticeCount.'</span>'];
 @endphp
@@ -124,9 +125,19 @@
             @endunless
             @if ($pendingCount)
                 <a href="{{ route('admin.approvals.index') }}" class="topbar-icon" title="{{ $pendingCount }} pending approval{{ $pendingCount > 1 ? 's' : '' }}" aria-label="Pending approvals">
-                    <i class="bi bi-bell"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>
+                    <i class="bi bi-person-check"></i><span class="dot">{{ $pendingCount > 9 ? '9+' : $pendingCount }}</span>
                 </a>
             @endif
+            {{-- V15: in-app alerts; the menu is filled by alert-badge.js when it opens --}}
+            <div class="dropdown" data-alerts data-alerts-url="{{ route('alerts.count') }}">
+                <button type="button" class="topbar-icon" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Alerts" title="Alerts">
+                    <i class="bi bi-bell"></i><span class="dot" data-alert-count @if (! $alertCount) hidden @endif>{{ $alertCount > 9 ? '9+' : $alertCount }}</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end alert-menu">
+                    <div class="alert-menu-head"><b>Alerts</b><a href="{{ route('alerts.index') }}" class="text-xs">See all</a></div>
+                    <div data-alert-items><div class="alert-menu-empty">Loading…</div></div>
+                </div>
+            </div>
             @php
                 $hour = (int) now()->format('G');
                 $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');

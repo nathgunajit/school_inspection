@@ -111,6 +111,11 @@ class InspectionController extends Controller
         // Modification V11 item 4: a brand-new draft starts from the school's previous inspection
         if ($inspection->wasRecentlyCreated) {
             app(\App\Services\InspectionPrefill::class)->apply($inspection);
+            try { // V15 items 10–11: an inspection started, so today's school list is locked
+                app(\App\Services\DailySchoolListService::class)->lockOnStart($inspection);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return redirect()->route('inspections.step', [$inspection, 1]);

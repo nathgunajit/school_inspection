@@ -32,7 +32,8 @@ class QueryBudgetTest extends TestCase
         'area inspections' => 13,
         'inspection report' => 19,
         'map schools json' => 23,
-        'coverage report' => 11,
+        'coverage report' => 12, // V15 (26-11-2026): +1, the alerts bell unread count (cached 60 s; the test cache is per request)
+        'alerts' => 6,           // V15: the Alerts page (measured 4 + 2)
     ];
 
     private Cluster $cluster;
@@ -104,5 +105,6 @@ class QueryBudgetTest extends TestCase
         $this->assertBudget('inspection report', $this->queries($crcc, route('inspections.show', $last)));
         $this->assertBudget('map schools json', $this->queries($district, route('map.schools', ['cluster' => $this->cluster->id]), true));
         $this->assertBudget('coverage report', $this->queries($district, route('reports.coverage')));
+        $this->assertBudget('alerts', $this->queries($crcc, route('alerts.index')));
     }
 }

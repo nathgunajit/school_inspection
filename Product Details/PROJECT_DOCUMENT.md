@@ -528,7 +528,9 @@ erDiagram
 | `notice_types` | Notice types master | `code` UQ (never changes), `name` UQ, `icon`, `color`, `sort_order`, `is_active` |
 | `daily_display_settings` | Today's Schools settings (district null = state default) | `enabled`, `levels` JSON, `daily_limit`, `selection`, priority switches, `recent_days`, `weekly_off` JSON, `skip_blocked`, `max_distance_km` |
 | `daily_school_list_days` | "List made" marker | UQ (`officer_id`, `list_date`) |
-| `daily_school_lists` | Today's Schools rows | `officer_id`, `list_date`, `school_id`, `position`, `reason`, `source`, `status`, `inspection_id`, `assigned_by`; UQ (school, day) and (officer, day, school) |
+| `daily_school_lists` | Today's Schools rows | `officer_id`, `list_date`, `school_id`, `position`, `reason`, `source`, `status`, `carried_from`, `carried_to` (V15: a skipped row already carried), `inspection_id`, `assigned_by`; UQ (school, day) and (officer, day, school) |
+| (V15 columns) `daily_display_settings` / `daily_school_list_days` | Skip switch and alerts; alert marks and the list lock | settings: `allow_skip`, `notify_enabled`, `notify_time`, `reminder_enabled`, `reminder_time` (State only). Days: `notified_at`, `reminded_at`, `locked_at`, `unlocked_at`, `unlocked_by`, `unlock_reason` |
+| `notifications` (V15) | In-app alerts (the bell) | Laravel database notifications: `id` UUID, `type`, `notifiable_*`, `data` JSON (kind, icon, title, body, url), `read_at` |
 | `coverage_settings` | Coverage report period and cycle (district null = state default) | `period_type`, `custom_from/to`, `inspection_cycle`, `verify_radius_m` |
 | (column) `inspection_schedules` | Assigned visits with an order | `order_ref`, `attachment_path` / `_name` / `_mime` (private `schedule-orders/`) |
 
@@ -1073,3 +1075,28 @@ The updated `Documents/Modification of the ApplicationV14.docx` adds five items.
 - **Faster search:** school suggestions, the Map View search and the planner use a FULLTEXT index (word starts), falling back to the exact search. `%` and `_` in a search are now taken as typed.
 - **Lighter map:** the district polygons (114 KB, was 186 KB) load only for the state-wide view.
 - **Server requirement:** a queue worker must run (`php artisan queue:work`, see `.env.example`). `php artisan cache:status` shows whether jobs are waiting.
+
+## 15. Modification V15: Today's Schools rules, alerts and the list lock (26-11-2026)
+
+Source: `Documents/Modification of the ApplicationV15.docx` (11 items, all about Today's Schools). Decisions taken with the user: alerts are **in-app only** (the bell; no SMS, email or push); after the lock the **State Administrator allows changes with a reason**; carried schools stay **first and extra** to the daily limit.
+
+| # | Item | How it works |
+|---|---|---|
+| 1 | Skip on / off for all users | **Allow Skip** in Today's Schools Settings (State only; a district setting cannot change it). Off: the Skip button is hidden and a skip is refused. |
+| 2 | Lists made from the State Admin's settings | As in V14, plus the next working day's list is now made ahead at the notice time (item 6). |
+| 3 | A skipped school goes to the next working day | Skipped schools are carried like pending ones, once (`daily_school_lists.carried_to`). The earlier day keeps "Not visited" with the reason and "moved to <date>". |
+| 4 | Skipped and pending first | Carried rows are listed first with a red **Priority** tag ("Skipped earlier" or "Pending from earlier"), on top of the daily limit. |
+| 5 | No schools on state / district holidays | As in V14 (gazetted holidays of the officer's district and the weekly off). The next-day list skips them too: Saturday evening's alert is for Monday. |
+| 6 | Advance alert of the next day's list | `today:notify` (every 5 minutes) at the **notice time** (default 18:00) makes each officer's next working-day list and sends "Tomorrow (Fri 27 Nov): 4 schools to visit". The list can be opened ahead (read-only). A school visited that evening drops off it; one skipped that evening is added the next morning. |
+| 7 | Daily reminder for pending schools | At the **reminder time** (default 14:00) on a working day, officers with schools still pending get "3 schools are still pending today". |
+| 8 | Settings change updates everyone | Saving the settings runs the `RefreshDailyLists` job: today's lists are refreshed (visited, skipped, started and assigned schools stay) and lists made ahead are made again, without anyone opening the page. |
+| 9 | Change assignments before the start | On **Assign schools**, a higher officer can **Remove** or **Replace** any pending school (assigned, automatic or carried) whose inspection has not started. The officer gets an alert. |
+| 10 | Lock once an inspection starts | Starting an inspection locks that day's list (`daily_school_list_days.locked_at`): no automatic refresh, assign, remove or replace. A "List locked" banner shows on both pages. |
+| 11 | Exceptional changes only with State Admin authorization | The State Admin presses **Allow changes** on the locked list and writes a reason (audited `daily_list_unlocked`; the officer is told). The higher officer can then change it; the next start locks it again. A settings change made while locked waits and applies after the unlock. |
+
+- **Alerts (the bell):** a bell in the top bar with the unread count, a menu with the latest alerts, and an **Alerts** page (`/alerts`) with Mark all as read. Laravel database notifications (`notifications` table): `NextDaySchools`, `PendingSchoolsReminder`, `TodayListChanged`. The approvals icon in the top bar is now a person-check.
+- **Settings (State default form):** Allow Skip, Next-day list alert on / off and time, Pending reminder on / off and time. District forms show them read-only.
+- **Server requirement:** the scheduler must run (`schedule:run` every minute) for the alerts; the queue worker for the settings refresh.
+- **Audit:** `daily_list_replaced`, `daily_list_unlocked`, `today_notifications_sent`, `daily_list_generated` (with `ahead`), plus the V14 entries.
+- **Code:** migration `2026_11_26_000009_v15_today_schools`; `DailySchoolListService` (`prepare()`, `rebuildAhead()`, `lockOnStart()`, `isLocked()`, `unlock()`, `replace()`, `carry()` for skipped rows); `App\Console\Commands\TodayNotify`; `App\Jobs\RefreshDailyLists`; `App\Notifications\*`; `AlertService`, `AlertController`, `resources/js/alert-badge.js`.
+- **Tests:** `tests/Feature/TodaySchoolsV15Test.php` (8 tests) and the updated `TodaySchoolsTest`.

@@ -77,6 +77,9 @@ Artisan::command('exports:purge {--hours= : Keep this many hours (default EXPORT
 
 Schedule::command('exports:purge')->hourly();
 
+/* V15 (26-11-2026): Today's Schools next-day notice and pending reminder, at the State Administrator's times. */
+Schedule::command('today:notify')->everyFiveMinutes()->withoutOverlapping(30);
+
 /* 26-11-2026 performance: small thumbnails for photos stored before thumbnails existed. Safe to re-run. */
 Artisan::command('evidence:thumbs {--force : Rebuild thumbnails that already exist}', function () {
     $disk = \Illuminate\Support\Facades\Storage::disk(\App\Services\EvidenceStorage::DISK);

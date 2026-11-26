@@ -2771,3 +2771,19 @@ $half-holiday: #0284c7;
     &.is-done { background: rgba($success, .12); color: $success; }
     &.is-failed { background: rgba($danger, .1); color: $danger; } }
 @include media-breakpoint-down(md) { .si-export-box, .si-export-note { bottom: 4.75rem; } } // above the phone bottom nav
+
+/* V15 (26-11-2026): the alerts bell menu and the Alerts page */
+.alert-menu { width: min(360px, calc(100vw - 24px)); padding: 0; overflow: hidden; }
+.alert-menu-head { display: flex; justify-content: space-between; align-items: center; padding: .65rem .9rem; border-bottom: 1px solid #e2e8f0; }
+.alert-menu-empty { padding: 1rem .9rem; color: #64748b; font-size: .8125rem; }
+[data-alert-items] { max-height: 60vh; overflow-y: auto; }
+.alert-menu-item, .alert-row { display: flex; gap: .65rem; align-items: flex-start; padding: .65rem .9rem; border-bottom: 1px solid #f1f5f9; color: inherit; text-decoration: none; }
+.alert-menu-item:hover, .alert-row:hover { background: #f8fafc; }
+.alert-menu-item.is-unread, .alert-row.is-unread { background: #eff6ff; }
+.alert-menu-item .t { display: block; font-weight: 600; font-size: .8125rem; color: #0f172a; }
+.alert-menu-item .b { display: block; font-size: .75rem; color: #475569; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.alert-menu-item .w { display: block; font-size: .6875rem; color: #94a3b8; margin-top: 2px; }
+.alert-ico { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e3f2fd; color: #1565c0; }
+.today-lock { display: flex; gap: .6rem; align-items: flex-start; }
+.today-reason.is-carried_skipped { background: #fff3e0; color: #b45309; }
+.today-priority { background: #fde8e8; color: #b91c1c; font-size: .6875rem; font-weight: 600; border-radius: 999px; padding: 1px 8px; }

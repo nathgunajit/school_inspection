@@ -13,6 +13,7 @@ import './network-status';
 import './filter-partial';
 import './school-suggest'; // V14: school name / UDISE suggestions
 import './notice-badge'; // 25-11-2026: live Notices & Orders unread counters
+import './alert-badge'; // V15 (26-11-2026): the alerts bell
 import './holiday-day';
 import './downloads'; // 26-11-2026: background downloads (Downloads page)
 import './session-guard'; // 25-11-2026: one user per browser // 25-11-2026: calendar day popup (see / add / remove holidays)

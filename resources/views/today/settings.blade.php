@@ -78,6 +78,26 @@
                                 <div class="form-text">Holidays come from the <a href="{{ route('holidays.index') }}">Holiday Calendar</a>; no schools are shown on them.</div></div>
                         </div>
 
+                        {{-- V15 (26-11-2026): Skip and the alerts are set once by the State Administrator for every user --}}
+                        <div class="mt-4 pt-3 border-top">
+                            <label class="form-label fw-semibold mb-2"><i class="bi bi-bell me-1 text-primary"></i>Skip and alerts <span class="opt">for every user</span></label>
+                            @if ($fm['scope'] === 'state')
+                                <input type="hidden" name="_alerts" value="1">
+                                <div class="setting-checks">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" name="allow_skip" value="1" id="as{{ $i }}" @checked($state->allow_skip)><label class="form-check-label" for="as{{ $i }}"><b>Allow Skip</b><span>Officers may mark a school as not visited, with a reason. It then moves to their next working day.</span></label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" name="notify_enabled" value="1" id="ne{{ $i }}" @checked($state->notify_enabled)><label class="form-check-label" for="ne{{ $i }}"><b>Next-day list alert</b><span>The next working day's schools are listed ahead and each officer gets an alert at
+                                        <input type="time" name="notify_time" value="{{ old('notify_time', $state->notify_time) }}" class="form-control form-control-sm d-inline-block setting-num" style="width: 7.5rem" required>.</span></label></div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" name="reminder_enabled" value="1" id="re{{ $i }}" @checked($state->reminder_enabled)><label class="form-check-label" for="re{{ $i }}"><b>Pending reminder</b><span>Officers with schools still pending on the day get a reminder at
+                                        <input type="time" name="reminder_time" value="{{ old('reminder_time', $state->reminder_time) }}" class="form-control form-control-sm d-inline-block setting-num" style="width: 7.5rem" required>.</span></label></div>
+                                </div>
+                                @error('notify_time')<div class="text-danger text-sm">{{ $message }}</div>@enderror
+                                @error('reminder_time')<div class="text-danger text-sm">{{ $message }}</div>@enderror
+                                <div class="form-text">Alerts appear under the bell in the top bar (no SMS or email). Holidays and weekly offs are skipped. The scheduler must run (<code>schedule:run</code>).</div>
+                            @else
+                                <div class="text-sm text-secondary">Set by the State Administrator: Skip {{ $state->allow_skip ? 'allowed' : 'turned off' }} · next-day alert {{ $state->notify_enabled ? 'at '.$state->notify_time : 'off' }} · pending reminder {{ $state->reminder_enabled ? 'at '.$state->reminder_time : 'off' }}.</div>
+                            @endif
+                        </div>
+
                         <div class="d-flex flex-wrap gap-2 mt-3">
                             <button class="btn btn-primary"><i class="bi bi-check2"></i>Save</button>
                             @if (! $isState && $own)
@@ -106,7 +126,7 @@
                     @endforelse
                 </div>
             @endif
-            <div class="alert alert-light border text-sm"><i class="bi bi-info-circle me-1"></i>The list is made once, when the officer first opens it on a working day, and then stays the same all day. Changes apply from the next list. Higher officers can also <a href="{{ route('today.assign') }}">assign schools</a> by hand (manual selection).</div>
+            <div class="alert alert-light border text-sm"><i class="bi bi-info-circle me-1"></i>The list is made the evening before (with the next-day alert) or when the officer first opens it, and stays the same all day. A settings change applies at once to lists not yet locked; a list locks when the officer starts an inspection, and only the State Administrator can then allow changes. Higher officers can also <a href="{{ route('today.assign') }}">assign schools</a> by hand (manual selection).</div>
         </div>
     </div>
 </x-layouts.app>

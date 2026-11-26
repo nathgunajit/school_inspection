@@ -188,7 +188,12 @@ class TodaySchoolsTest extends TestCase
         // a visited and a started school are never taken off, even when the limit drops below them
         $rows[0]->update(['status' => 'visited']);
         $this->startInspection($crcc, School::findOrFail($rows[1]->school_id));
+        // V15: the start locked the list, so a settings change leaves it alone ...
         DailyDisplaySetting::state()->update(['daily_limit' => 1]);
+        $this->get(route('today.index'))->assertOk()->assertDontSee('List updated')->assertSee('List locked');
+        $this->assertCount(4, $this->todayRows($crcc));
+        // ... until the State Administrator allows changes
+        \Illuminate\Support\Facades\DB::table('daily_school_list_days')->where('officer_id', $crcc->id)->update(['unlocked_at' => now()]);
         $this->get(route('dashboard'))->assertOk()->assertSee('List updated after a settings change');
         $this->assertEqualsCanonicalizing([$rows[0]->school_id, $rows[1]->school_id], $this->todayRows($crcc)->pluck('school_id')->all());
 
