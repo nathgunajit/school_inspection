@@ -61,7 +61,7 @@
                                 </div></div>
 
                             <div class="col-12"><div class="setting-checks">
-                                <div class="form-check"><input class="form-check-input" type="checkbox" name="carry_forward" value="1" id="cf{{ $i }}" @checked($r->carry_forward)><label class="form-check-label" for="cf{{ $i }}"><b>Pending school list</b><span>Schools not visited move to the next working day (up to {{ \App\Services\DailySchoolListService::CARRY_DAYS }} days).</span></label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" name="carry_forward" value="1" id="cf{{ $i }}" @checked($r->carry_forward)><label class="form-check-label" for="cf{{ $i }}"><b>Pending school list</b><span>Schools not visited move to the next working day (up to {{ \App\Services\DailySchoolListService::CARRY_DAYS }} days), on top of the daily limit.</span></label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" name="skip_blocked" value="1" id="sb{{ $i }}" @checked($r->skip_blocked)><label class="form-check-label" for="sb{{ $i }}"><b>Skip schools taken by another officer</b><span>Being inspected now, or already inspected this month by someone else.</span></label></div>
                             </div></div>
 

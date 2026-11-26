@@ -3012,3 +3012,15 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `Product Details/{System_Architecture_and_Workflow,Database_Architecture_and_Schema,PROJECT_DOCUMENT,UI_Pages_and_Application_Modules}.md`
   - `Product Details/School_Inspection_Product_Details.docx` (3.77 MB)
 - **Verified:** `node tools/docs/build-product-docx.cjs` wrote the Word file.
+
+## 2026-11-26: Today's Schools: carried-over pending schools no longer fill the daily limit
+- **Problem:** a CRCC with 2 pending schools from earlier days saw only those 2 and no new school. `DailySchoolListService::generate()` took the room for new picks as `daily_limit - (assigned + carried)`, and the default limit is 2.
+- **Fix:**
+  - Only the assigned (`source = manual`) rows use the daily limit. Carried schools are extra (2 pending + limit 2 = 4), and they are still left out of the automatic pick, so no school appears twice.
+  - Repair: `DailySchoolListService::reopenCarriedOnlyDays($day)` drops the "generated" marker of a day that holds carried rows but no `auto` row. Migration `2026_11_26_000004_regenerate_todays_school_lists` runs it for today, and the next view adds the new schools (the rows already there stay).
+  - Text: the list header reads "Daily limit N + pending from earlier", and the setting help says "on top of the daily limit".
+- **Files:** `app/Services/DailySchoolListService.php`, `database/migrations/2026_11_26_000004_regenerate_todays_school_lists.php`, `resources/views/today/{index,settings}.blade.php`, `tests/Feature/TodaySchoolsTest.php`
+- **Verified:**
+  - `TodaySchoolsTest`: carry-forward now expects 1 carried + 2 new; new tests for 2 pending + 2 new and for repairing a day made the old way.
+  - Full suite: 343 passed.
+  - Migrated on MySQL: today's lists now hold 6 auto and 5 carried rows.

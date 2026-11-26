@@ -22,7 +22,8 @@ use Illuminate\Validation\ValidationException;
  *   1. schools a higher officer assigned for the day (manual),
  *   2. pending schools from earlier days (carry forward),
  *   3. automatic picks up to the daily limit, from the eligible schools, by priority (never inspected, low rating,
- *      open issues, not visited for long) or at random.
+ *      open issues, not visited for long) or at random. Since 26-11-2026 the carried schools are extra: they no longer
+ *      use up the limit (2 pending + limit 2 = 4 schools), only the assigned ones do.
  * Nothing is shown on a holiday or a weekly off day, or when the list is off for the officer's level / district.
  */
 class DailySchoolListService
@@ -79,8 +80,11 @@ class DailySchoolListService
             if (! $inserted) {
                 return; // already generated today
             }
-            $taken = DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->pluck('school_id')->all(); // manual rows
+            $existing = DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->get(['school_id', 'source']); // manual rows
+            $taken = $existing->pluck('school_id')->all();
             $position = count($taken);
+            // 26-11-2026: only the assigned rows use the daily limit; carried schools are extra
+            $manual = $existing->where('source', 'manual')->count();
 
             if ($setting->carry_forward) {
                 $pending = DailySchoolList::where('officer_id', $officer->id)->where('status', 'pending')
@@ -98,7 +102,7 @@ class DailySchoolListService
                 }
             }
 
-            $room = max(0, $setting->daily_limit - count($taken));
+            $room = max(0, $setting->daily_limit - $manual); // carried ones are still excluded from the pick ($taken)
             if ($room > 0) {
                 foreach ($this->pick($officer, $date, $setting, $taken, $room) as [$schoolId, $reason]) {
                     $this->claim($officer, $day, $schoolId, ++$position, $reason, 'auto');
@@ -106,6 +110,22 @@ class DailySchoolListService
             }
             AuditLogger::log('daily_list_generated', null, ['officer_id' => $officer->id, 'date' => $day, 'schools' => $position], $officer);
         });
+    }
+
+    /**
+     * 26-11-2026 repair: a day made before the fix may hold only carried schools (they used up the limit). Drop the
+     * "generated" marker of those days, so the next view adds the day's new schools; the rows already there stay.
+     * Returns the number of reopened days.
+     */
+    public static function reopenCarriedOnlyDays(string $day): int
+    {
+        $officers = DB::table('daily_school_lists')->where('list_date', $day)->groupBy('officer_id')
+            ->havingRaw("sum(case when source = 'carried' then 1 else 0 end) > 0")
+            ->havingRaw("sum(case when source = 'auto' then 1 else 0 end) = 0")
+            ->pluck('officer_id');
+
+        return $officers->isEmpty() ? 0
+            : DB::table('daily_school_list_days')->where('list_date', $day)->whereIn('officer_id', $officers)->delete();
     }
 
     /**

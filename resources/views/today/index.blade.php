@@ -37,7 +37,7 @@
         <div class="dash-panel">
             <div class="dash-panel-head">
                 <h3><i class="bi bi-signpost-2"></i>{{ $isToday ? "Today's schools" : 'Schools on '.$date->format('d M') }} · {{ $done }} of {{ $countable }} visited</h3>
-                <span class="text-xs text-secondary">Daily limit {{ $setting->daily_limit }}</span>
+                <span class="text-xs text-secondary">Daily limit {{ $setting->daily_limit }}@if ($rows->contains('source', 'carried')) + pending from earlier @endif</span>
             </div>
             @foreach ($rows as $r)
                 @php $s = $r->school; $km = $distance($s); $draft = $r->status === 'pending' ? $drafts->get($r->school_id) : null; @endphp

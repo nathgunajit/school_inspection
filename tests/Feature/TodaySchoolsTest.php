@@ -108,7 +108,8 @@ class TodaySchoolsTest extends TestCase
 
         $this->actingAs($crcc)->get(route('today.index'))->assertOk()->assertSee('Pending from earlier');
         $today = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->orderBy('position')->get();
-        $this->assertCount(2, $today);
+        $this->assertCount(3, $today); // 26-11-2026: the carried school is extra to the daily limit of 2
+        $this->assertSame(2, $today->where('source', 'auto')->count());
         $this->assertSame(['carried', $s->id], [$today[0]->source, $today[0]->school_id]);
         $this->assertSame(today()->subDays(2)->toDateString(), $today[0]->carried_from);
         $this->assertSame('carried', DailySchoolList::where('list_date', today()->subDays(2)->toDateString())->value('status'));
@@ -124,6 +125,40 @@ class TodaySchoolsTest extends TestCase
         $this->assertSame('skipped', $today[1]->fresh()->status);
         $outsider = $this->officer(UserLevel::Cluster, $this->otherCluster($this->cluster));
         $this->actingAs($outsider)->post(route('today.skip', $today[1]), ['reason' => 'xxx'])->assertForbidden();
+    }
+
+    /** 26-11-2026: two pending schools with the daily limit 2 used to leave no room for new ones. */
+    public function test_pending_schools_are_shown_on_top_of_the_new_ones(): void
+    {
+        $crcc = $this->crcc();
+        $old = School::where('cluster_id', $this->cluster->id)->orderBy('id')->take(2)->get();
+        foreach ($old as $n => $s) {
+            DailySchoolList::create(['officer_id' => $crcc->id, 'list_date' => today()->subDay()->toDateString(), 'school_id' => $s->id,
+                'position' => $n + 1, 'reason' => 'not_inspected', 'source' => 'auto', 'status' => 'pending']);
+        }
+
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk()->assertSee('+ pending from earlier');
+        $today = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->get();
+        $this->assertSame(['auto' => 2, 'carried' => 2], $today->countBy('source')->sortKeys()->all());
+        $this->assertSame($today->count(), $today->pluck('school_id')->unique()->count(), 'no school twice');
+        $this->assertEqualsCanonicalizing($old->pluck('id')->all(), $today->where('source', 'carried')->pluck('school_id')->all());
+    }
+
+    public function test_a_day_made_before_the_fix_gets_its_new_schools(): void
+    {
+        $crcc = $this->crcc();
+        $day = today()->toDateString();
+        $s = School::where('cluster_id', $this->cluster->id)->orderBy('id')->first();
+        // the old result: the marker is there and only the carried school is on the list
+        DB::table('daily_school_list_days')->insert(['officer_id' => $crcc->id, 'list_date' => $day, 'created_at' => now(), 'updated_at' => now()]);
+        DailySchoolList::create(['officer_id' => $crcc->id, 'list_date' => $day, 'school_id' => $s->id, 'position' => 1, 'reason' => 'carried',
+            'source' => 'carried', 'status' => 'pending', 'carried_from' => today()->subDay()->toDateString()]);
+
+        $this->assertSame(1, DailySchoolListService::reopenCarriedOnlyDays($day));
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk();
+        $today = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', $day)->get();
+        $this->assertSame(['auto' => 2, 'carried' => 1], $today->countBy('source')->sortKeys()->all());
+        $this->assertSame(0, DailySchoolListService::reopenCarriedOnlyDays($day), 'a completed day is left alone');
     }
 
     public function test_no_list_on_a_holiday_or_weekly_off(): void
