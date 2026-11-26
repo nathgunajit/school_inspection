@@ -1,6 +1,6 @@
 // Inspection questionnaire (v2): auto-save after every answer, conditional rules, repeating sections,
 // inline validation messages, progress
-import { offlineStore, syncAll, mountBanner, isNetworkError } from './offline-queue';
+import { offlineStore, syncAll, mountBanner, isNetworkError, rejectedItem, addRejected, rejectedList, clearRejected } from './offline-queue';
 
 const SI = window.SI;
 const esc = window.escapeHtml;
@@ -127,18 +127,46 @@ window.siRefreshProgress = () => axios.get(SI.progressUrl).then((r) => applyProg
 function questionError(block, msg, missing = false) {
     block.classList.add('has-error');
     block.classList.toggle('is-missing', missing);
-    let el = block.querySelector('.q-error');
+    let el = block.querySelector('.q-error:not(.q-remark-error)');
     if (!el) {
         el = document.createElement('div');
         el.className = 'q-error';
+        el.id = `q-err-${block.dataset.code}`;
         el.setAttribute('role', 'alert');
         block.querySelector('.q-input').after(el);
     }
     el.innerHTML = `<i class="bi bi-exclamation-circle"></i>${esc(msg)}`;
+    // 26-11-2026: the field says it is wrong and points at the message (screen readers)
+    block.querySelectorAll('.q-input [data-answer]').forEach((i) => { i.setAttribute('aria-invalid', 'true'); i.setAttribute('aria-describedby', el.id); });
 }
 function clearQuestionError(block) {
     block.classList.remove('has-error', 'is-missing');
-    block.querySelector('.q-error')?.remove();
+    block.querySelector('.q-error:not(.q-remark-error)')?.remove();
+    block.querySelectorAll('.q-input [data-answer]').forEach((i) => { i.removeAttribute('aria-invalid'); i.removeAttribute('aria-describedby'); });
+}
+/** 26-11-2026: a message under the remarks box of a question (not under the answer). */
+function remarkError(block, msg) {
+    const box = block.querySelector('[data-remarks]');
+    if (!box) return;
+    let el = block.querySelector('.q-remark-error');
+    if (!msg) { el?.remove(); box.classList.remove('is-invalid'); box.removeAttribute('aria-invalid'); return; }
+    if (!el) {
+        el = document.createElement('div');
+        el.className = 'q-error q-remark-error';
+        el.id = `q-rerr-${block.dataset.code}`;
+        el.setAttribute('role', 'alert');
+        box.after(el);
+    }
+    el.innerHTML = `<i class="bi bi-exclamation-circle"></i>${esc(msg)}`;
+    box.classList.add('is-invalid');
+    box.setAttribute('aria-invalid', 'true');
+    box.setAttribute('aria-describedby', el.id);
+}
+/** Answers refused on this screen or by the server, not saved yet: { code: message } (listed when leaving the step). */
+SI.unsaved = {};
+function markUnsaved(block, msg) {
+    SI.unsaved[block.dataset.code] = msg;
+    indicator('error', 'Not saved: fix the red box');
 }
 
 /* ---------------- Answer helpers ---------------- */
@@ -170,12 +198,18 @@ function photoRequired(q, v) {
 
 /** Client-side check before saving; returns an error message or null. */
 function checkValue(block, v) {
+    const type = block.dataset.type;
+    const el = block.querySelector('[data-answer]');
+    // 26-11-2026: letters in a number box read as blank in the browser; say so instead of clearing the answer
+    if (type === 'number' && el?.validity?.badInput) return 'Numbers only, e.g. 12. Remove letters, spaces or signs.';
     if (!filled(v)) return null;
-    if (block.dataset.type === 'number') {
-        if (!/^\d+$/.test(String(v))) return 'Enter a whole number (0, 1, 2 …) without decimals or minus sign.';
-        if (Number(v) > 100000) return 'This number looks too large. Please check it.';
+    if (type === 'number') {
+        if (!/^\d+$/.test(String(v))) return 'Enter a whole number (0, 1, 2 …) without decimals or a minus sign.';
+        if (Number(v) > 100000) return 'This number looks too large (more than 1,00,000). Please check it.';
     }
-    if (block.dataset.type === 'text' && String(v).trim().length < 2) return 'Please enter at least 2 characters.';
+    if ((type === 'text' || type === 'textarea') && String(v).trim().length < 2) return 'Please write at least 2 characters.';
+    const max = el?.maxLength > 0 ? el.maxLength : 0;
+    if (max && String(v).length > max) return `Too long: at most ${max} characters. Shorten the answer.`;
     return null;
 }
 
@@ -186,6 +220,13 @@ function refreshRules() {
         if (!block) continue;
         let v = SI.answers[q.code];
         block.classList.toggle('d-none', !isVisible(q));
+        if (q.show_if && !isVisible(q) && filled(v)) {
+            // 26-11-2026: the server clears a hidden (show_if) answer when its parent changes; mirror it on screen
+            SI.answers[q.code] = v = null;
+            block.querySelectorAll('[data-answer]').forEach((el) => { if (el.type === 'radio' || el.type === 'checkbox') el.checked = false; else el.value = ''; });
+            clearQuestionError(block);
+            delete SI.unsaved[q.code];
+        }
         if (q.enable_if) {
             const on = isEnabled(q);
             block.classList.toggle('is-disabled', !on);
@@ -219,12 +260,15 @@ const timers = {};
 function saveAnswer(block, value) {
     const code = block.dataset.code;
     const problem = checkValue(block, value);
-    if (problem) { questionError(block, problem); refreshRules(); return Promise.resolve(); }
+    if (problem) { questionError(block, problem); markUnsaved(block, problem); refreshRules(); return Promise.resolve(); }
     clearQuestionError(block);
+    delete SI.unsaved[code];
     SI.answers[code] = value;
     refreshRules();
     return queue(() => axios.post(SI.saveUrl, { code, value }), (errors, message) => {
-        questionError(block, (errors.value || [])[0] || message || 'Please check this answer.');
+        const msg = (errors.value || [])[0] || message || 'Please check this answer.';
+        questionError(block, msg);
+        markUnsaved(block, msg);
         refreshRules();
     }, { method: 'post', url: SI.saveUrl, body: { code, value }, key: `a:${code}` }).then((res) => {
         // V12 item 2: all teachers present -> the server removed the absentee list
@@ -259,11 +303,30 @@ $$('.q-block').forEach((block) => {
     const remarks = block.querySelector('[data-remarks]');
     if (remarks) {
         const k = `${code}__r`;
-        const send = () => queue(() => axios.post(SI.saveUrl, { code, remarks: remarks.value }), null,
-            { method: 'post', url: SI.saveUrl, body: { code, remarks: remarks.value }, key: `r:${code}` });
+        const q = SI.questions[code] || {};
+        const send = () => {
+            if (remarks.value.length > 2000) { remarkError(block, 'Too long: at most 2000 characters. Shorten the remarks.'); return; }
+            remarkError(block, '');
+            return queue(() => axios.post(SI.saveUrl, { code, remarks: remarks.value }), (errors, message) => remarkError(block, (errors.remarks || [])[0] || message),
+                { method: 'post', url: SI.saveUrl, body: { code, remarks: remarks.value }, key: `r:${code}` });
+        };
         remarks.addEventListener('input', () => { clearTimeout(timers[k]); timers[k] = setTimeout(send, 800); });
-        remarks.addEventListener('blur', () => { if (timers[k]) { clearTimeout(timers[k]); timers[k] = null; send(); } });
+        remarks.addEventListener('blur', () => {
+            if (timers[k]) { clearTimeout(timers[k]); timers[k] = null; send(); }
+            // 26-11-2026: a mandatory remark left empty is pointed out at once, under the remarks box
+            if (!q.remarks_optional && !remarks.closest('.q-remarks')?.classList.contains('d-none') && !remarks.value.trim()) {
+                remarkError(block, 'Please write the remarks for this answer (what is the problem?).');
+            }
+        });
     }
+});
+
+/* ---------------- Number boxes: keys that are not part of a number (26-11-2026) ---------------- */
+document.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLInputElement) || el.type !== 'number' || e.ctrlKey || e.metaKey) return;
+    const whole = !!el.closest('.q-block[data-type="number"]'); // counts: no decimals; fund amounts in lakh may have them
+    if (['e', 'E', '+', '-'].includes(e.key) || (whole && ['.', ','].includes(e.key))) e.preventDefault();
 });
 
 /* ---------------- Number steppers (− / +) ---------------- */
@@ -323,6 +386,11 @@ function focusFirstError(form) {
     first.scrollIntoView({ behavior: 'smooth', block: 'center' });
     (first.matches('input,select,textarea,button') ? first : first.querySelector('input'))?.focus({ preventScroll: true });
 }
+/** A person's name: letters (any script), spaces, dot, apostrophe, brackets, hyphen; same rule as the server. */
+const NAME_RE = /^[\p{L}\p{M}][\p{L}\p{M} .'()\-]*$/u;
+const sameName = (n) => String(n ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+/** Names on the absent list of this inspection (SI.absentNames comes with the step 4 page). */
+const absentNames = () => new Set((SI.absentNames || []).map(sameName));
 /** Required fields / radio groups, with friendly messages taken from the field labels. */
 function validateRequired(form) {
     clearFormErrors(form);
@@ -331,15 +399,23 @@ function validateRequired(form) {
     $$('[required]', form).forEach((el) => {
         if (seen.has(el.name)) return;
         seen.add(el.name);
-        const label = (form.querySelector(`label[for="${el.id}"]`) || el.closest('[class*="col-"]')?.querySelector('.form-label'))
-            ?.textContent.replace('*', '').trim().toLowerCase() || 'this field';
+        // a radio's own label is an option ("Yes"): use the question's label for a radio group (26-11-2026)
+        const labelEl = el.type === 'radio' ? el.closest('[class*="col-"]')?.querySelector('.form-label')
+            : (form.querySelector(`label[for="${el.id}"]`) || el.closest('[class*="col-"]')?.querySelector('.form-label'));
+        const label = labelEl?.textContent.replace('*', '').trim().toLowerCase() || 'this field';
         if (el.type === 'radio') {
-            if (!form.querySelector(`input[name="${el.name}"]:checked`)) { setFieldError(form, el.name, `Please choose ${label}.`); ok = false; }
+            if (!form.querySelector(`input[name="${el.name}"]:checked`)) { setFieldError(form, el.name, el.name === 'tlm_used' ? 'Please choose Yes or No for use of TLM.' : `Please choose the ${label}.`); ok = false; }
         } else if (!el.value.trim()) {
             setFieldError(form, el.name, el.tagName === 'SELECT' ? `Please select ${label}.` : `Please enter ${label}.`);
             ok = false;
         } else if (el.type === 'text' && el.value.trim().length < 2) {
-            setFieldError(form, el.name, `The ${label} is too short.`);
+            setFieldError(form, el.name, `The ${label} is too short: write at least 2 characters.`);
+            ok = false;
+        } else if (el.name === 'teacher_name' && !NAME_RE.test(el.value.trim())) {
+            setFieldError(form, el.name, "Use letters for the teacher's name (spaces and . ' - are allowed).");
+            ok = false;
+        } else if (form.id === 'classroom-form' && el.name === 'teacher_name' && absentNames().has(sameName(el.value))) {
+            setFieldError(form, el.name, `${el.value.trim()} is marked absent today on step 3. Choose a teacher who is present, or remove them from the absent list.`);
             ok = false;
         }
     });
@@ -763,16 +839,25 @@ function formatFundInput(el) {
     if (f !== el.value) { el.value = f; return true; }
     return false;
 }
+/** What is wrong with one amount box, with the fix (26-11-2026); null when it is fine or empty. */
+function fundProblem(el) {
+    if (el.validity?.badInput) return 'Numbers only, e.g. 1.25 (amount in lakh). Remove letters, commas or spaces.';
+    if (el.value === '') return null;
+    if (el.value.trim().startsWith('-')) return 'The amount cannot be negative. Enter 0 or more.';
+    if (!/^\d+(\.\d{1,2})?$/.test(el.value)) return 'Use a number with up to 2 decimals, e.g. 1.25 or .2 (= 0.20)';
+    if (parseFloat(el.value) > 99999) return 'Too large. Enter the amount in lakh (e.g. 2.50 for 2,50,000).';
+    return null;
+}
 function validateFund() {
     clearFormErrors(fundForm);
     $$('#fund-amounts input', fundForm).forEach(formatFundInput);
     if (!fundForm.querySelector('input[name="financial_year"]:checked')) { setFieldError(fundForm, 'financial_year', 'Select the financial year first.'); focusFirstError(fundForm); return false; }
     let ok = true, any = false;
     $$('#fund-amounts input', fundForm).forEach((el) => {
-        if (el.value === '') return;
+        const problem = fundProblem(el);
+        if (el.value === '' && !problem) return;
         any = true;
-        if (!/^\d+(\.\d{1,2})?$/.test(el.value)) { setFieldError(fundForm, el.name, 'Use a number with up to 2 decimals, e.g. 1.25 or .2 (= 0.20)'); ok = false; }
-        else if (parseFloat(el.value) > 99999) { setFieldError(fundForm, el.name, 'Too large. Enter the amount in lakh.'); ok = false; }
+        if (problem) { setFieldError(fundForm, el.name, problem); ok = false; }
     });
     if (ok && !any) { formError(fundForm, 'Enter at least one amount for this year.'); ok = false; }
     if (!ok) focusFirstError(fundForm);
@@ -785,8 +870,8 @@ if (fundForm) {
         const el = e.target;
         if (!el.matches?.('#fund-amounts input')) return;
         if (formatFundInput(el)) fundTotals();
-        if (el.value !== '' && !/^\d+(\.\d{1,2})?$/.test(el.value)) setFieldError(fundForm, el.name, 'Use a number with up to 2 decimals, e.g. 1.25 or .2 (= 0.20)');
-        else if (el.value !== '' && parseFloat(el.value) > 99999) setFieldError(fundForm, el.name, 'Too large. Enter the amount in lakh.');
+        const problem = fundProblem(el);
+        if (problem) setFieldError(fundForm, el.name, problem); else clearFieldError(fundForm, el.name);
     });
     fundForm.addEventListener('change', (e) => {
         if (e.target.name !== 'financial_year') return;
@@ -833,8 +918,31 @@ const sugBox = $('#suggestions');
 if (sugBox) {
     let t;
     const send = () => {
-        const body = { suggestions: $$('[data-suggestion]', sugBox).map((i) => i.value) };
-        return queue(() => axios.post(sugBox.dataset.url, body), null, { method: 'post', url: sugBox.dataset.url, body, key: 'suggestions' });
+        const inputs = $$('[data-suggestion]', sugBox);
+        const show = (errors) => inputs.forEach((el, n) => {
+            const msg = (errors[`suggestions.${n}`] || [])[0];
+            el.classList.toggle('is-invalid', !!msg);
+            let fb = el.parentElement.querySelector('.field-error');
+            if (!msg) { fb?.remove(); el.removeAttribute('aria-invalid'); return; }
+            if (!fb) { fb = document.createElement('div'); fb.className = 'field-error'; fb.id = `sug-err-${n}`; el.parentElement.appendChild(fb); }
+            fb.innerHTML = `<i class="bi bi-exclamation-circle"></i>${esc(msg)}`;
+            el.setAttribute('aria-invalid', 'true');
+            el.setAttribute('aria-describedby', fb.id);
+        });
+        // 26-11-2026: checked here first, with the number of the suggestion and the fix
+        const local = {};
+        inputs.forEach((el, n) => {
+            const v = el.value.trim();
+            if (v.length === 1) local[`suggestions.${n}`] = [`Suggestion ${n + 1} is too short: write at least 2 characters, or clear the box.`];
+            else if (el.value.length > 500) local[`suggestions.${n}`] = [`Suggestion ${n + 1} is too long: at most 500 characters. Shorten it.`];
+        });
+        show(local);
+        if (Object.keys(local).length) { indicator('error', 'Not saved: fix the red box'); return; }
+        const body = { suggestions: inputs.map((i) => i.value) };
+        return queue(() => axios.post(sugBox.dataset.url, body), (errors, message) => {
+            show(errors);
+            if (!Object.keys(errors).some((k) => k.startsWith('suggestions.'))) window.toast(message || 'The suggestions were not saved. Please check them.', 'danger');
+        }, { method: 'post', url: sugBox.dataset.url, body, key: 'suggestions' });
     };
     sugBox.addEventListener('input', () => { clearTimeout(t); t = setTimeout(send, 900); });
     sugBox.addEventListener('focusout', () => { if (t) { clearTimeout(t); t = null; send(); } });
@@ -865,11 +973,15 @@ $$('[data-next]').forEach((a) => a.addEventListener('click', async (e) => {
     if (active && active.matches('[data-answer], [data-remarks], [data-suggestion]')) active.blur();
     e.preventDefault();
     await chain;
-    if (SI.missingNow.length && missModal && !a.dataset.force) {
+    // 26-11-2026: answers refused (red boxes) are not saved: they come first in the list, with their message
+    const unsaved = Object.entries(SI.unsaved).filter(([c]) => document.getElementById(`q-${c}`))
+        .map(([c, m]) => ({ code: c, message: `Not saved: ${SI.questions[c]?.label || c}. ${m}` }));
+    const items = [...unsaved, ...SI.missingNow.filter((m) => !SI.unsaved[m.code])];
+    if (items.length && missModal && !a.dataset.force) {
         leaveTo = a.href;
-        $('#missing-count').textContent = SI.missingNow.length;
-        $('#missing-list').innerHTML = SI.missingNow.slice(0, 6).map((m) => `<li><i class="bi bi-dot"></i>${esc(m.message)}</li>`).join('')
-            + (SI.missingNow.length > 6 ? `<li class="text-secondary">… and ${SI.missingNow.length - 6} more</li>` : '');
+        $('#missing-count').textContent = items.length;
+        $('#missing-list').innerHTML = items.slice(0, 6).map((m) => `<li class="${m.message.startsWith('Not saved') ? 'text-danger fw-semibold' : ''}"><i class="bi bi-dot"></i>${esc(m.message)}</li>`).join('')
+            + (items.length > 6 ? `<li class="text-secondary">… and ${items.length - 6} more</li>` : '');
         bootstrap.Modal.getOrCreateInstance(missModal).show();
         return;
     }
@@ -1097,11 +1209,35 @@ const syncHooks = {
         }
     },
     onInvalid: (op, err) => {
-        const what = op.section ? 'A record' : (op.body?.code ? `The answer to ${SI.questions[op.body.code]?.label || op.body.code}` : 'A change');
-        window.toast(`${what} saved offline could not be accepted: ${err.response?.data?.message || 'please enter it again.'}`, 'danger');
+        const r = rejectedItem(op, err, (c) => SI.questions[c]?.label);
+        addRejected(SI.inspectionKey, r);
+        renderRejected();
+        window.toast(`${r.what} could not be saved: ${r.message}`, 'danger');
     },
     onAuth: (err) => handleAuthError(err),
 };
+
+/**
+ * 26-11-2026: changes kept on this device that the server refused are listed above the form (sessionStorage),
+ * each with what it was, why, and what to do; an answer on this step is also marked red with the message.
+ */
+function renderRejected() {
+    const list = rejectedList(SI.inspectionKey);
+    let box = document.getElementById('si-rejected');
+    if (!list.length) { box?.remove(); return; }
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'si-rejected';
+        box.className = 'alert alert-danger text-sm';
+        box.setAttribute('role', 'alert');
+        document.querySelector('.wizard-card')?.before(box);
+    }
+    box.innerHTML = `<div class="fw-semibold mb-1"><i class="bi bi-exclamation-octagon me-1"></i>${list.length} change${list.length === 1 ? '' : 's'} made without network could not be saved. Please enter ${list.length === 1 ? 'it' : 'them'} again:</div>`
+        + `<ul class="mb-2 ps-3">${list.map((r) => `<li><b>${esc(r.what)}</b>: ${esc(r.message)}</li>`).join('')}</ul>`
+        + '<button type="button" class="btn btn-sm btn-light" data-rejected-clear><i class="bi bi-check2"></i>I have entered them again</button>';
+    box.querySelector('[data-rejected-clear]').addEventListener('click', () => { clearRejected(SI.inspectionKey); renderRejected(); });
+    list.forEach((r) => { const b = r.code && document.getElementById(`q-${r.code}`); if (b) questionError(b, r.message); });
+}
 
 async function refreshOffline() {
     try { offline.ops = await offlineStore.ops(SI.inspectionKey); } catch { offline.ops = []; }
@@ -1123,6 +1259,7 @@ window.siSyncOffline = trySync;
 
 (async () => {
     offline.ok = !!SI.inspectionKey && await offlineStore.available();
+    renderRejected();
     if (!offline.ok) return;
     offline.banner = mountBanner(SI.inspectionKey, document.querySelector('.wizard-card')?.parentElement);
     document.addEventListener('si:offline-counts', (e) => {

@@ -3106,3 +3106,25 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Done:** `ReportController::pdf()` sends `attachment; filename="<inspection no>.pdf"` + `Cache-Control: private, no-store`. The five report PDF links (inspection list icon, report page ×3, submitted page) lose `target="_blank"` and get `download data-no-loader`.
 - **Files:** `app/Http/Controllers/ReportController.php`, `resources/views/inspections/{index,show,submitted}.blade.php`, `tests/Feature/InspectionFlowTest.php`, `CLAUDE.md`.
 - **Verified:** the test asserts the attachment header; full suite 353 passed.
+
+## 26-11-2026: Inspection form entry validation (screen, server, database) with the fix in every message
+- **Asked:** "Inspection Form Entry All use case entry database validation and UI validation if not added and display the resolution". The user chose two new rules: an absent teacher's type must be within its step 2 count, and an absent teacher cannot be the observed teacher. Result shown as messages plus a document.
+- **Found by an audit of all entry points:**
+  - Letters in a number box were read as blank, so the answer was cleared without a message.
+  - The server turned "1.9" into 1 and cut long text.
+  - Hidden TSI_14 / 15 could be saved and get around the teacher-totals rule.
+  - An array value gave a 500 error.
+  - `show_if` answers were kept after their parent changed.
+  - The TLM and Participation errors read "Please choose yes." / "Please choose satisfactory."
+  - Remarks and suggestions had only a toast. Suggestions used Laravel's default text.
+  - A negative amount got the format message.
+  - Rejected offline changes were dropped, and `review.js` dropped them with no message at all.
+  - A Retry button was shown after a 422.
+  - The gallery used `window.prompt`.
+  - The document limit was checked on the server only.
+  - The database had no CHECK constraints.
+- **Done:** server rules (`InspectionController` `saveAnswer` / `cleanValue` / `teacherData` / `classroomData` / suggestions / `teacherNames?present=1`, `EvidenceController`, `InspectionValidator::absentTypeProblems()` + the observed-absent check at submit, `InspectionAbsentTeacher::TYPE_COUNT_CODES` / `typeCounts()` / `sameName()`); screen rules and inline messages (`wizard.js`, `camera.js`, `review.js`, `offline-queue.js`, step views); 12 MySQL CHECK constraints (migration `2026_11_26_000007`, run on MySQL: all added, no existing row broke them); document `Product Details/INSPECTION_VALIDATION.md` (added to the Word file).
+- **Tests:**
+  - New: `tests/Feature/InspectionValidationTest.php` (6 tests).
+  - Changed: `ModificationV10Test`. The hidden TSI_14 / 15 are now written as stored old data, and posting them is checked to fail with 422. Step 2 gets a contractual teacher before a contractual absent row.
+- **Verified:** full suite 359 passed; `npm run build` OK.

@@ -94,6 +94,28 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.
+- **Inspection form validation** (26-11-2026, full table in `Product Details/INSPECTION_VALIDATION.md`):
+  - **Every message says what is wrong and what to do.** A wrong value is refused (422), never changed or cut quietly. Keep this when adding a field.
+  - **`saveAnswer` / `cleanValue`:**
+    - Hidden or unknown codes are refused, so TSI_14 / 15 can no longer get around the teacher-totals rule. Tests that need old data write `inspection_answers` directly.
+    - A value of the wrong shape gives a 422 (was a 500).
+    - Numbers are whole digits from 0 to `NUMBER_MAX`.
+    - Text has 2 to `TEXT_MAX` / `TEXTAREA_MAX` characters, remarks up to `REMARKS_MAX`.
+    - `show_if` children are cleared when their parent changes, like `enable_if`.
+  - **Rows:**
+    - Names follow `InspectionController::NAME_PATTERN` (letters, spaces, `. ' ( ) -`), and extra spaces are removed. A subject needs at least 2 characters.
+    - **Absent type within its step 2 count** (`InspectionAbsentTeacher::TYPE_COUNT_CODES`: regular = TSI_04 + TSI_06, contractual = TSI_05, tutor = TSI_07 + TSI_08; `typeCounts()`, `InspectionValidator::absentTypeProblems()`).
+    - **An absent teacher cannot be the observed classroom teacher** (`InspectionAbsentTeacher::sameName()`; the `teacher-names?present=1` suggestions leave them out).
+    - Both rules are checked on save and again at submit.
+  - **Evidence:** a photo needs a category, unless it belongs to a question. `taken_at` cannot be in the future. The photo / document limits are checked with the inspection row locked, and the errors come back as a field errors array.
+  - **Screen:**
+    - `checkValue()` / `fundProblem()` catch `validity.badInput`. Number boxes block the `e`, `+`, `-` keys (and `.` / `,` for counts).
+    - A refused answer is kept in `SI.unsaved`, the pill reads "Not saved: fix the red box", and Next lists it first.
+    - Remarks and suggestions show their errors inline (`remarkError()`).
+    - Radio groups name the question.
+    - A refused photo shows **Not accepted** without Retry. The gallery asks for the no-location reason in a small window (no `window.prompt`).
+    - Offline changes the server refused are kept in sessionStorage (`rejectedItem()` / `addRejected()` in `offline-queue.js`) and listed above the wizard and on the Review page.
+  - **Database:** MySQL CHECK constraints from migration `2026_11_26_000007` (fund amounts 0–99999 and FY format, `completion_pct` ≤ 100, location ranges, absent type / reason / name, classroom class / participation / names, answer step 1–7). The migration counts rows that break a rule first and skips that rule (reporting it), so it never fails a deploy.
 - Step 2 teacher totals (blocking): TSI_10 + TSI_11 + TSI_12 + TSI_13 (Trained + Untrained) must be **equal to** Total teachers (TSI_04–08) since 21-11-2026, and TSI_09 must not exceed it. Since 23-11-2026 the live box, report and PDF show Total trained / untrained **and Total male / female** (`QuestionnaireDefinition::teacherBreakdown()`, `InspectionValidator::teacherConsistency()`, live box in `wizard.js`). The highlighted **Teachers absent today** box (`.is-highlight`) sits right after that box (after TSI_13), and the Total teachers box is highlighted too; the report and PDF add an absent tile.
 - Modification V11 (`Documents/Modification of the ApplicationV11.docx`, 21-11-2026):
   1. The phone bottom nav and the wizard action bar hide while scrolling down (`body.bars-hidden`, end of `resources/js/app.js`). They come back on scroll up, a 700 ms pause, at the page bottom, or while a modal is open.

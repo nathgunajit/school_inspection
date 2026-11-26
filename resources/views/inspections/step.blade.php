@@ -35,6 +35,8 @@
         'missing' => $progress['missing'],
         'mandatory' => $mandatory,
         'maxPhotos' => config('inspection.evidence.max_photos'),
+        'maxDocuments' => config('inspection.evidence.max_documents'),
+        'absentNames' => $inspection->absentTeachers->pluck('teacher_name')->values(), // 26-11-2026: an absent teacher cannot be observed (step 4)
         'maxSide' => config('inspection.evidence.photo_max_side_px'),
         'stamp' => ['udise' => $inspection->school->udise_code, 'school' => $inspection->school->name, 'officer' => $inspection->officer->name],
     ];
@@ -212,7 +214,7 @@
                             <div class="row-form-title"><span class="rf-icon"><i class="bi bi-journal-plus"></i></span>
                                 <span data-form-title data-add="Add a classroom observation" data-edit="Edit classroom observation">Add a classroom observation</span></div>
                             <div class="row g-2">
-                                <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label>{{-- V11 item 3: names already recorded for this school --}}<div class="ac-wrap" data-ac data-ac-icon="bi-person" data-ac-free="off" data-url="{{ route('inspections.teacher-names', $inspection) }}"><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name · earlier names of this school are suggested" autocomplete="off" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="c_name_list"><div class="ac-list d-none" id="c_name_list" role="listbox" aria-label="Teacher names recorded for this school"></div></div></div>
+                                <div class="col-md-6"><label class="form-label text-sm" for="c_name">Name of the teacher <span class="req">*</span></label>{{-- V11 item 3: names already recorded for this school --}}<div class="ac-wrap" data-ac data-ac-icon="bi-person" data-ac-free="off" data-url="{{ route('inspections.teacher-names', [$inspection, 'present' => 1]) }}"><input id="c_name" name="teacher_name" class="form-control" maxlength="120" placeholder="Full name · earlier names of this school are suggested" autocomplete="off" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="c_name_list"><div class="ac-list d-none" id="c_name_list" role="listbox" aria-label="Teacher names recorded for this school"></div></div></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_class">Class <span class="req">*</span></label>
                                     <select id="c_class" name="class" class="form-select" required><option value="">Select</option>@foreach (CO::CLASSES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
                                 <div class="col-6 col-md-3"><label class="form-label text-sm" for="c_subject">Subject <span class="req">*</span></label>

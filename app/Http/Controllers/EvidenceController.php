@@ -10,7 +10,9 @@ use App\Services\AuditLogger;
 use App\Services\EvidenceStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /** Photograph and document evidence (PRD 9). */
 class EvidenceController extends Controller
@@ -28,16 +30,23 @@ class EvidenceController extends Controller
             'evidence_uid' => ['required', 'uuid'],
             'kind' => ['required', 'in:photo,document'],
             'source' => ['nullable', 'in:camera,gallery'],
-            'category' => ['nullable', Rule::exists('master_values', 'code')->where('type', 'photo_category')],
+            // 26-11-2026: a photo says what it shows (a category, or the question it belongs to)
+            'category' => [$request->input('kind') === 'photo' ? 'required_without:question_code' : 'nullable', 'nullable', Rule::exists('master_values', 'code')->where('type', 'photo_category')],
             'question_code' => ['nullable', 'string', 'max:20'],
             'caption' => ['nullable', 'string', 'max:150'],
-            'taken_at' => ['nullable', 'date'],
+            'taken_at' => ['nullable', 'date', 'before_or_equal:'.now()->addMinutes(10)->toDateTimeString()], // a phone clock a little ahead is allowed
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'accuracy' => ['nullable', 'numeric', 'min:0'],
             'no_location_reason' => [$request->input('kind') === 'photo' ? 'required_without:latitude' : 'nullable', 'nullable', 'string', 'max:255'],
             'sha256' => ['nullable', 'regex:/^[a-f0-9]{64}$/i'],
-        ], ['no_location_reason.required_without' => 'Location is not available: please enter a reason.']);
+        ], [
+            'no_location_reason.required_without' => 'Location is not available: please enter a reason.',
+            'category.required_without' => 'Choose what the photo shows (the photo type), then save it again.',
+            'category.exists' => 'This photo type is not in the list. Choose one of the photo types shown.',
+            'taken_at.before_or_equal' => "The photo time is in the future. Check the phone's date and time, then take the photo again.",
+            'file.required' => 'No file was received. Choose or take the photo again.',
+        ]);
 
         // Idempotent retry: sending the same evidence ID again never creates a duplicate
         $existing = InspectionEvidence::where('evidence_uid', $data['evidence_uid'])->where('inspection_id', $inspection->id)->first();
@@ -45,17 +54,31 @@ class EvidenceController extends Controller
             return response()->json($existing->load('category')->toClientArray());
         }
 
-        if ($data['kind'] === 'photo') {
-            abort_if($inspection->photos()->count() >= $cfg['max_photos'], 422, "A maximum of {$cfg['max_photos']} photographs is allowed per inspection.");
-        } else {
-            abort_if($inspection->documents()->count() >= $cfg['max_documents'], 422, "A maximum of {$cfg['max_documents']} documents is allowed.");
-        }
-
         if (! empty($data['question_code']) && ! QuestionnaireDefinition::find($data['question_code'])) {
-            abort(422, 'Unknown question.');
+            throw ValidationException::withMessages(['question_code' => 'This photo belongs to a question that is not in the form. Reload the page and take it again.']);
         }
 
-        $evidence = $this->storage->store($inspection, $request->user(), $request->file('file'), [
+        // 26-11-2026: the count is checked with the inspection row locked, so two uploads at once cannot pass the limit
+        $evidence = DB::transaction(function () use ($inspection, $data, $cfg, $request) {
+            Inspection::whereKey($inspection->id)->lockForUpdate()->first();
+            if ($data['kind'] === 'photo' && $inspection->photos()->count() >= $cfg['max_photos']) {
+                throw ValidationException::withMessages(['file' => "You already added {$cfg['max_photos']} photographs, the most allowed. Remove one to add another."]);
+            }
+            if ($data['kind'] === 'document' && $inspection->documents()->count() >= $cfg['max_documents']) {
+                throw ValidationException::withMessages(['file' => "You already added {$cfg['max_documents']} documents, the most allowed. Remove one to add another."]);
+            }
+
+            return $this->storeFile($inspection, $request, $data);
+        });
+
+        AuditLogger::log('evidence_uploaded', $evidence, ['inspection_id' => $inspection->id, 'kind' => $evidence->kind, 'source' => $evidence->source, 'sha256' => $evidence->sha256]);
+
+        return response()->json($evidence->load('category')->toClientArray(), 201);
+    }
+
+    private function storeFile(Inspection $inspection, Request $request, array $data): InspectionEvidence
+    {
+        return $this->storage->store($inspection, $request->user(), $request->file('file'), [
             'evidence_uid' => $data['evidence_uid'],
             'kind' => $data['kind'],
             'source' => $data['kind'] === 'photo' ? ($data['source'] ?? 'camera') : 'gallery',
@@ -69,10 +92,6 @@ class EvidenceController extends Controller
             'accuracy' => $data['accuracy'] ?? null,
             'no_location_reason' => isset($data['latitude']) ? null : ($data['no_location_reason'] ?? null),
         ]);
-
-        AuditLogger::log('evidence_uploaded', $evidence, ['inspection_id' => $inspection->id, 'kind' => $evidence->kind, 'source' => $evidence->source, 'sha256' => $evidence->sha256]);
-
-        return response()->json($evidence->load('category')->toClientArray(), 201);
     }
 
     /** Retake / delete before submission only (PRD 9.2, 9.8). */

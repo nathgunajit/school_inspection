@@ -23,7 +23,7 @@ const ALL_PARTS = [
     'User_Roles_and_Permissions.md', 'UI_Pages_and_Application_Modules.md', 'System_Architecture_and_Workflow.md',
     'Technical_Audit_and_Recommendations.md', 'Future_Recommendations_Gaps_and_Roadmap.md', 'Installed_Packages_and_Libraries.md'] },
   { key: 'B', title: 'Part B: Project Documents', intro: 'Functional and operational documents kept up to date with each modification of the application.', files: [
-    'PROJECT_DOCUMENT.md', 'INSPECTION_FORM_DOCUMENT.md', 'NEW_MODULES_PLAN.md', 'DB_INDEXING.md', 'LOAD_TEST.md', 'BROWSER_SUPPORT.md'] },
+    'PROJECT_DOCUMENT.md', 'INSPECTION_FORM_DOCUMENT.md', 'INSPECTION_VALIDATION.md', 'NEW_MODULES_PLAN.md', 'DB_INDEXING.md', 'LOAD_TEST.md', 'BROWSER_SUPPORT.md'] },
 ];
 const PARTS = ONLY ? [{ key: '', title: null, files: [ONLY] }] : ALL_PARTS;
 const CURRENT_MD_DIR = path.join(ROOT, 'Product Details');

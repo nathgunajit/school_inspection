@@ -71,15 +71,18 @@ class ModificationV10Test extends TestCase
     public function test_inspection_saved_with_the_v10_totals_still_reads(): void
     {
         $i = $this->draft();
-        foreach (['TSI_04' => 6, 'TSI_14' => 4, 'TSI_15' => 2] as $c => $v) {
-            $this->answer($i, $c, $v);
+        $this->answer($i, 'TSI_04', 6);
+        // the hidden V10 codes can no longer be saved through the form (26-11-2026): stored as older data
+        foreach (['TSI_14' => 4, 'TSI_15' => 2] as $c => $v) {
+            $i->answers()->create(['question_code' => $c, 'step' => 2, 'value' => $v]);
         }
         $this->get(route('inspections.review', $i))->assertOk()
             ->assertSee('Total Number of Trained Teachers')->assertSee('Trained 4 · Untrained 2')->assertDontSee('Number of Male Trained Teachers');
         $this->get(route('inspections.pdf', $i))->assertOk();
 
         // over the total: reported on TSI_14
-        $this->answer($i, 'TSI_14', 9);
+        $this->postJson(route('inspections.answers', $i), ['code' => 'TSI_14', 'value' => 9])->assertStatus(422)->assertJsonValidationErrors('value');
+        $i->answers()->where('question_code', 'TSI_14')->update(['value' => 9]);
         $codes = collect((new InspectionValidator($i->fresh()))->missing()[2] ?? [])->pluck('code');
         $this->assertContains('TSI_14', $codes);
     }
@@ -88,6 +91,7 @@ class ModificationV10Test extends TestCase
     {
         $i = $this->draft();
         $this->answer($i, 'TSI_04', 3);
+        $this->answer($i, 'TSI_05', 1); // a contractual teacher on step 2 (26-11-2026: absent type within the step 2 count)
         $this->answer($i, 'TSI_09', 1);
         $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'R. Kalita', 'teacher_type' => 'contractual', 'reason' => 'CL',
             'row_uid' => (string) Str::uuid()])->assertOk();

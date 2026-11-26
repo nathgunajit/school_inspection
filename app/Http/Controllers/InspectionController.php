@@ -171,25 +171,52 @@ class InspectionController extends Controller
         'tlm_items.*.in' => 'A ticked TLM item is no longer in the TLM list.',
         'participation.required' => 'Please choose the participation of students.',
         'in' => 'Please choose a valid :attribute from the list.',
-        'min' => 'The :attribute is too short.',
-        'max' => 'The :attribute is too long (max :max characters).',
+        'min' => 'The :attribute is too short: write at least :min characters.',
+        'max' => 'The :attribute is too long: at most :max characters. Shorten it.',
+        'string' => 'The :attribute could not be read. Type it again.',
+        'array' => 'The :attribute could not be read. Tick them again.',
+        'integer' => 'A ticked TLM item could not be read. Untick it and tick it again.',
+        'tlm_items.*.integer' => 'A ticked TLM item could not be read. Untick it and tick it again.',
+        'uuid' => 'This record could not be saved. Reload the page and add it again.',
+        'teacher_name.regex' => "Use letters for the teacher's name (spaces and . ' - are allowed).",
     ];
+
+    /** A person's name: letters (any script), spaces, dot, apostrophe, hyphen (26-11-2026). */
+    public const NAME_PATTERN = "/^[\p{L}\p{M}][\p{L}\p{M} .'()\-]*$/u";
 
     public function saveAnswer(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $code = (string) $request->input('code');
-        $q = Q::find($code);
-        abort_unless($q, 422, 'Unknown question.');
+        // 26-11-2026: the shape is checked first, so a wrong value is a 422 with a fix, never a 500
+        $code = $request->input('code');
+        $q = is_string($code) ? Q::find($code) : null;
+        if (! $q || ! empty($q['hidden'])) { // hidden codes (V9 / V10 / V12) are kept for old data, never saved again
+            throw ValidationException::withMessages(['value' => 'This question is not part of the form any more. Reload the page and answer the questions shown.']);
+        }
+        $raw = $request->input('value');
+        if (is_array($raw) && $q['type'] !== 'multi' || $raw !== null && ! is_array($raw) && ! is_scalar($raw)) {
+            throw ValidationException::withMessages(['value' => 'This answer could not be read. Choose or type it again.']);
+        }
+        if ($request->has('remarks') && ! is_null($request->input('remarks')) && ! is_scalar($request->input('remarks'))) {
+            throw ValidationException::withMessages(['remarks' => 'The remarks could not be read. Type them again.']);
+        }
 
-        $value = $this->cleanValue($q, $request->input('value'));
-        $remarks = $request->has('remarks') ? mb_substr(trim((string) $request->input('remarks')), 0, 2000) : null;
+        $value = $this->cleanValue($q, $raw);
+        $remarks = null;
+        if ($request->has('remarks')) {
+            $remarks = trim((string) $request->input('remarks'));
+            if (($len = mb_strlen($remarks)) > self::REMARKS_MAX) {
+                throw ValidationException::withMessages(['remarks' => 'Too long: at most '.self::REMARKS_MAX." characters (you typed {$len}). Shorten the remarks."]);
+            }
+        }
 
-        // A greyed-out question (enable_if parent not matched) cannot hold an answer
-        if (! empty($q['enable_if'])) {
-            $parent = $inspection->answers()->where('question_code', $q['enable_if'][0])->first()?->value;
-            if (! InspectionValidator::enabled($q, [$q['enable_if'][0] => $parent])) {
-                $value = null;
+        // A greyed-out (enable_if) or hidden (show_if) question whose parent does not match cannot hold an answer
+        foreach (['enable_if' => 'enabled', 'show_if' => 'visible'] as $key => $check) {
+            if (! empty($q[$key])) {
+                $parent = $inspection->answers()->where('question_code', $q[$key][0])->first()?->value;
+                if (! InspectionValidator::$check($q, [$q[$key][0] => $parent])) {
+                    $value = null;
+                }
             }
         }
 
@@ -203,10 +230,11 @@ class InspectionController extends Controller
         }
         $answer->save();
 
-        // Parent changed (e.g. Internet Facility = No): clear the answers of questions it now disables
+        // Parent changed (e.g. Internet Facility = No): clear the answers of questions it now disables or hides (show_if since 26-11-2026)
         if ($request->has('value')) {
             foreach (Q::all() as $child) {
-                if (($child['enable_if'][0] ?? null) === $code && ! InspectionValidator::enabled($child, [$code => $value])) {
+                if ((($child['enable_if'][0] ?? null) === $code && ! InspectionValidator::enabled($child, [$code => $value]))
+                    || (($child['show_if'][0] ?? null) === $code && ! InspectionValidator::visible($child, [$code => $value]))) {
                     $inspection->answers()->where('question_code', $child['code'])->update(['value' => null]);
                 }
             }
@@ -236,7 +264,9 @@ class InspectionController extends Controller
     public function addAbsentTeacher(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        $data = $this->teacherData($request);
+        $uid = $request->input('row_uid');
+        $replay = is_string($uid) ? $inspection->absentTeachers()->where('row_uid', strtolower($uid))->first() : null;
+        $data = $this->teacherData($request, $inspection, $replay);
         $this->guardAbsentLimit($inspection, $request);
         $this->addRow($inspection->absentTeachers(), $data, $request);
 
@@ -247,7 +277,7 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         abort_unless($teacher->inspection_id === $inspection->id, 404);
-        $teacher->update($this->teacherData($request));
+        $teacher->update($this->teacherData($request, $inspection, $teacher));
 
         return $this->progressResponse($inspection, ['teachers' => $this->teacherRows($inspection)]);
     }
@@ -293,21 +323,34 @@ class InspectionController extends Controller
         return $rows->createOrFirst(['row_uid' => strtolower($uid)], $data); // safe even if two copies arrive at once
     }
 
-    private function teacherData(Request $request): array
+    /** $self = the row being edited (or replayed), which is not counted against itself. */
+    private function teacherData(Request $request, Inspection $inspection, ?InspectionAbsentTeacher $self = null): array
     {
-        return $request->validate([
-            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
+        $data = $request->validate([
+            'teacher_name' => ['required', 'string', 'min:2', 'max:120', 'regex:'.self::NAME_PATTERN],
             'teacher_type' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::TYPES))],
             'reason' => ['required', Rule::in(array_keys(InspectionAbsentTeacher::REASONS))],
             'remarks' => ['nullable', 'string', 'max:500'],
         ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
+        $data['teacher_name'] = trim(preg_replace('/\s+/u', ' ', $data['teacher_name']));
+
+        // 26-11-2026: no more absent teachers of a type than step 2 has of that type
+        $types = $inspection->absentTeachers()->when($self, fn ($q) => $q->whereKeyNot($self->id))->pluck('teacher_type')->push($data['teacher_type'])->all();
+        $answers = $inspection->unsetRelation('answers')->answerMap();
+        $counts = InspectionAbsentTeacher::typeCounts($answers);
+        $n = count(array_keys($types, $data['teacher_type'], true));
+        if ($counts !== null && $n > ($have = $counts[$data['teacher_type']])) {
+            throw ValidationException::withMessages(['teacher_type' => InspectionValidator::absentTypeMessage($data['teacher_type'], $have, $n)]);
+        }
+
+        return $data;
     }
 
     /** Class Room Performance row (v2 step 4). */
     public function addClassroom(Request $request, Inspection $inspection)
     {
         $this->authorize('update', $inspection);
-        [$data, $tlm] = $this->classroomData($request);
+        [$data, $tlm] = $this->classroomData($request, $inspection);
         $this->addRow($inspection->classroomObservations(), $data, $request)->tlmItems()->sync($tlm); // a replay syncs the same ids
 
         return $this->progressResponse($inspection, ['classrooms' => $this->classroomRows($inspection)]);
@@ -317,7 +360,7 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         abort_unless($classroom->inspection_id === $inspection->id, 404);
-        [$data, $tlm] = $this->classroomData($request, $classroom);
+        [$data, $tlm] = $this->classroomData($request, $inspection, $classroom);
         $classroom->update($data);
         $classroom->tlmItems()->sync($tlm);
 
@@ -334,7 +377,7 @@ class InspectionController extends Controller
     }
 
     /** @return array{0: array, 1: int[]} the row columns and the ticked TLM item ids */
-    private function classroomData(Request $request, ?InspectionClassroomObservation $existing = null): array
+    private function classroomData(Request $request, Inspection $inspection, ?InspectionClassroomObservation $existing = null): array
     {
         // FLN TLM: when TLM was used, tick at least one item; every active item is offered (grouped by class)
         $offered = TlmItem::active()->pluck('id')->all();
@@ -343,15 +386,21 @@ class InspectionController extends Controller
         $kept = $existing ? $existing->tlmItems()->pluck('tlm_items.id')->all() : [];
 
         $data = $request->validate([
-            'teacher_name' => ['required', 'string', 'min:2', 'max:120'],
+            'teacher_name' => ['required', 'string', 'min:2', 'max:120', 'regex:'.self::NAME_PATTERN],
             'class' => ['required', Rule::in(array_keys(InspectionClassroomObservation::CLASSES))],
-            'subject' => ['required', 'string', 'max:100'],
+            'subject' => ['required', 'string', 'min:2', 'max:100'],
             'tlm_used' => ['required', 'in:yes,no'],
             'tlm_items' => [$tlmYes && $offered ? 'required' : 'nullable', 'array'],
             'tlm_items.*' => $tlmYes ? ['integer', Rule::in(array_merge($offered, $kept))] : ['nullable'],
             'participation' => ['required', Rule::in(array_keys(InspectionClassroomObservation::PARTICIPATION))],
             'remarks' => ['nullable', 'string', 'max:500'],
         ], self::ROW_MESSAGES, self::ROW_ATTRIBUTES);
+        $data['teacher_name'] = trim(preg_replace('/\s+/u', ' ', $data['teacher_name']));
+        // 26-11-2026: a teacher marked absent today (step 3) cannot be the observed teacher
+        $absent = $inspection->absentTeachers()->pluck('teacher_name')->map(fn ($n) => InspectionAbsentTeacher::sameName($n));
+        if ($absent->contains(InspectionAbsentTeacher::sameName($data['teacher_name']))) {
+            throw ValidationException::withMessages(['teacher_name' => InspectionValidator::observedAbsentMessage($data['teacher_name'])]);
+        }
         $data['tlm_used'] = $data['tlm_used'] === 'yes';
         $data['remarks'] ??= null;
         $tlm = $data['tlm_used'] ? array_values(array_unique(array_map('intval', $data['tlm_items'] ?? []))) : [];
@@ -402,7 +451,18 @@ class InspectionController extends Controller
     {
         $this->authorize('update', $inspection);
         $max = config('inspection.max_suggestions');
-        $data = $request->validate(['suggestions' => ['array', "max:$max"], 'suggestions.*' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validate(['suggestions' => ['array', "max:$max"], 'suggestions.*' => ['nullable', 'string', 'max:500']], [
+            'suggestions.array' => 'The suggestions could not be read. Type them again.',
+            'suggestions.max' => "At most {$max} suggestions can be added.",
+            'suggestions.*.string' => 'Suggestion :position could not be read. Type it again.',
+            'suggestions.*.max' => 'Suggestion :position is too long: at most 500 characters. Shorten it.',
+        ]);
+        // 26-11-2026: messages name the suggestion and the fix ("suggestions.0 field…" before)
+        foreach ($data['suggestions'] ?? [] as $n => $s) {
+            if ($s !== null && mb_strlen(trim((string) $s)) === 1) {
+                throw ValidationException::withMessages(["suggestions.$n" => 'Suggestion '.($n + 1).' is too short: write at least 2 characters, or clear the box.']);
+            }
+        }
 
         DB::transaction(function () use ($inspection, $data) {
             $inspection->remarks()->where('type', 'suggestion')->delete();
@@ -477,7 +537,11 @@ class InspectionController extends Controller
                 ->latest('id')->limit(200)->get(['teacher_name', 'id'])->map(fn ($r) => [trim(preg_replace('/\s+/', ' ', $r->teacher_name)), $r->id]));
         }
         $needle = mb_strtolower($q);
+        // 26-11-2026: the classroom teacher list (?present=1) leaves out the teachers marked absent on this inspection
+        $absent = $request->boolean('present')
+            ? $inspection->absentTeachers()->pluck('teacher_name')->map(fn ($n) => InspectionAbsentTeacher::sameName($n))->all() : [];
         $items = $names->sortByDesc(fn ($n) => $n[1])
+            ->reject(fn ($n) => in_array(InspectionAbsentTeacher::sameName($n[0]), $absent, true))
             ->unique(fn ($n) => mb_strtolower($n[0]))
             ->sortBy(fn ($n) => $needle !== '' && str_starts_with(mb_strtolower($n[0]), $needle) ? 0 : 1) // prefix matches first, then most recent
             ->pluck(0)->filter()->take(10)->values();
@@ -597,23 +661,60 @@ class InspectionController extends Controller
 
     /* ======================= Helpers ======================= */
 
+    /** Answer limits, the same as the form (maxlength / number box). */
+    public const TEXT_MAX = 200;
+    public const TEXTAREA_MAX = 2000;
+    public const REMARKS_MAX = 2000;
+    public const NUMBER_MAX = 100000;
+
+    /**
+     * The stored form of an answer. 26-11-2026: a value that is wrong is refused with a message that says
+     * how to fix it (never changed quietly: "1.9" is not stored as 1, long text is not cut).
+     */
     private function cleanValue(array $q, mixed $value): mixed
     {
+        if (is_string($value)) {
+            $value = trim($value);
+        }
         if ($value === null || $value === '' || $value === []) {
             return null;
         }
-        $opts = array_keys($q['options'] ?? []);
+        $opts = array_map('strval', array_keys($q['options'] ?? []));
+        $fail = fn (string $m) => throw ValidationException::withMessages(['value' => $m]);
 
-        return match ($q['type']) {
-            'radio', 'select' => in_array((string) $value, array_map('strval', $opts), true) ? (string) $value
-                : throw ValidationException::withMessages(['value' => 'Invalid option.']),
-            'multi' => array_values(array_intersect(array_map('strval', $opts), array_map('strval', (array) $value))) ?: null,
-            'number' => is_numeric($value) && (int) $value >= 0 && (int) $value <= 100000 ? (int) $value
-                : throw ValidationException::withMessages(['value' => 'Enter a whole number of 0 or more.']),
-            'date' => ($d = \DateTime::createFromFormat('Y-m-d', (string) $value)) && $d <= new \DateTime('tomorrow') ? $d->format('Y-m-d')
-                : throw ValidationException::withMessages(['value' => 'Enter a valid date, not in the future.']),
-            default => mb_substr(trim((string) $value), 0, $q['type'] === 'text' ? 200 : 2000),
-        };
+        switch ($q['type']) {
+            case 'radio':
+            case 'select':
+                return in_array((string) $value, $opts, true) ? (string) $value : $fail('Choose one of the options shown.');
+            case 'multi':
+                $picked = array_map('strval', (array) $value);
+                if (array_diff($picked, $opts)) {
+                    $fail('Tick only the options shown.');
+                }
+
+                return array_values(array_intersect($opts, $picked)) ?: null;
+            case 'number':
+                $s = (string) $value;
+                if (! preg_match('/^\d+$/', $s)) {
+                    $fail('Enter a whole number (0, 1, 2 …) without decimals or a minus sign.');
+                }
+
+                return (int) $s <= self::NUMBER_MAX ? (int) $s : $fail('This number looks too large (more than '.number_format(self::NUMBER_MAX).'). Please check it.');
+            case 'date':
+                return ($d = \DateTime::createFromFormat('!Y-m-d', (string) $value)) && $d->format('Y-m-d') === (string) $value && $d < new \DateTime('tomorrow') && $d->format('Y') >= 2000
+                    ? $d->format('Y-m-d') : $fail('Enter a valid date (DD-MM-YYYY), not in the future.');
+            default:
+                $s = (string) $value;
+                $max = $q['type'] === 'text' ? self::TEXT_MAX : self::TEXTAREA_MAX;
+                if (($len = mb_strlen($s)) > $max) {
+                    $fail("Too long: at most {$max} characters (you typed {$len}). Shorten the answer.");
+                }
+                if (mb_strlen($s) < 2) {
+                    $fail('Please write at least 2 characters.');
+                }
+
+                return $s;
+        }
     }
 
     private function progressResponse(Inspection $inspection, array $extra = [])

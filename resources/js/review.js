@@ -2,7 +2,7 @@
 // Loaded as a Vite module (after app.js has set window.bootstrap). Inline scripts ran before
 // bootstrap was available, which broke "Expand all" whenever photos were present (Modification V3 item 8).
 import { Collapse, Modal } from './bootstrap-lite';
-import { offlineStore, syncAll } from './offline-queue';
+import { offlineStore, syncAll, rejectedItem, addRejected, rejectedList, clearRejected } from './offline-queue';
 
 /* ---------------- Expand / collapse all steps ---------------- */
 const acc = document.getElementById('reviewAcc');
@@ -107,7 +107,9 @@ if (f) {
         if (!c.ops && !c.photos) return;
         lockForSync(c);
         if (!navigator.onLine) return;
-        const r = await syncAll(insp, { evidenceUrl: f.dataset.evidenceUrl });
+        // 26-11-2026: a change the server refuses is listed (not dropped silently), see showRejected()
+        const r = await syncAll(insp, { evidenceUrl: f.dataset.evidenceUrl, hooks: { onInvalid: (op, err) => addRejected(insp, rejectedItem(op, err)) } });
+        showRejected();
         if (!r.left) {
             // the server now has everything: reload so the checklist and Submit reflect it
             window.toast('Saved changes sent. Refreshing…', 'success');
@@ -116,6 +118,19 @@ if (f) {
             lockForSync(await offlineStore.counts(insp), true);
         }
     };
+    /** Changes made without network that the server refused: what, why, and go back to enter them again. */
+    function showRejected() {
+        const list = insp ? rejectedList(insp) : [];
+        let el = document.getElementById('si-rejected');
+        if (!list.length) { el?.remove(); return; }
+        if (!el) { el = document.createElement('div'); el.id = 'si-rejected'; el.className = 'alert alert-danger text-sm'; el.setAttribute('role', 'alert'); f.before(el); }
+        const esc = window.escapeHtml;
+        el.innerHTML = `<div class="fw-semibold mb-1"><i class="bi bi-exclamation-octagon me-1"></i>${list.length} change${list.length === 1 ? '' : 's'} made without network could not be saved. Go back to the step and enter ${list.length === 1 ? 'it' : 'them'} again:</div>`
+            + `<ul class="mb-2 ps-3">${list.map((x) => `<li><b>${esc(x.what)}</b>: ${esc(x.message)}</li>`).join('')}</ul>`
+            + '<button type="button" class="btn btn-sm btn-light" data-rejected-clear><i class="bi bi-check2"></i>I have entered them again</button>';
+        el.querySelector('[data-rejected-clear]').addEventListener('click', () => { clearRejected(insp); showRejected(); });
+    }
+    showRejected();
     checkDevice();
     setInterval(() => { if (waiting) checkDevice(); }, 20000);
     window.addEventListener('online', checkDevice);

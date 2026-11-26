@@ -33,7 +33,34 @@ class InspectionAbsentTeacher extends Model
         'absent_without_info' => 'Absent without information',
     ];
 
+    /**
+     * 26-11-2026: the step 2 counts each absent teacher type is taken from (Regular includes SSA teachers).
+     * An inspection cannot have more absent teachers of a type than step 2 has of that type.
+     */
+    public const TYPE_COUNT_CODES = [
+        'regular' => ['TSI_04', 'TSI_06'],
+        'contractual' => ['TSI_05'],
+        'tutor' => ['TSI_07', 'TSI_08'],
+    ];
+
     protected $fillable = ['inspection_id', 'row_uid', 'teacher_name', 'teacher_type', 'reason', 'status', 'remarks'];
+
+    /** How many teachers of each type step 2 has (null until Regular teachers is entered). @return array<string,int>|null */
+    public static function typeCounts(array $answers): ?array
+    {
+        $a = \App\Questionnaire\QuestionnaireDefinition::withDefaults($answers);
+        if (! is_numeric($a['TSI_04'] ?? null)) {
+            return null;
+        }
+
+        return collect(self::TYPE_COUNT_CODES)->map(fn ($codes) => array_sum(array_map(fn ($c) => is_numeric($a[$c] ?? null) ? (int) $a[$c] : 0, $codes)))->all();
+    }
+
+    /** "Rahul  das " and "rahul das" are the same teacher. */
+    public static function sameName(?string $name): string
+    {
+        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', (string) $name)));
+    }
 
     public function typeLabel(): string
     {

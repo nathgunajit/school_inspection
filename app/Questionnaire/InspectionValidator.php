@@ -185,11 +185,23 @@ class InspectionValidator
             $add(3, 'ABSENTEE', "{$absentRows} absent teachers added, but only {$expected} are absent (Total teachers - Present on step 2). Remove the extra rows or correct step 2.");
         }
 
+        // 26-11-2026: no more absent teachers of a type than step 2 has of that type
+        foreach (self::absentTypeProblems($this->answers, $this->inspection->absentTeachers->pluck('teacher_type')->all()) as $msg) {
+            $add(3, 'ABSENTEE', $msg);
+        }
+
         // Step 5: fund details are optional (Modification V9)
 
         // Step 4: at least one classroom observed
         if ($this->inspection->classroomObservations->isEmpty()) {
             $add(4, 'CLASSROOM', 'Add at least one classroom performance record');
+        }
+        // 26-11-2026: a teacher marked absent today cannot be the observed classroom teacher
+        $absent = $this->inspection->absentTeachers->mapWithKeys(fn ($t) => [\App\Models\InspectionAbsentTeacher::sameName($t->teacher_name) => $t->teacher_name]);
+        foreach ($this->inspection->classroomObservations as $row) {
+            if ($absent->has(\App\Models\InspectionAbsentTeacher::sameName($row->teacher_name))) {
+                $add(4, 'CLASSROOM', self::observedAbsentMessage($row->teacher_name));
+            }
         }
 
         // Mandatory photographs
@@ -213,7 +225,7 @@ class InspectionValidator
 
     /**
      * Step 2 consistency (blocking):
-     *  - Trained + Untrained and Male + Female (TSI_10..13; TSI_14 + TSI_15 for a V10 totals-only inspection) must be less than or equal to Total teachers (TSI_04..08);
+     *  - Trained + Untrained and Male + Female (TSI_10..13; TSI_14 + TSI_15 for a V10 totals-only inspection) must be equal to Total teachers (TSI_04..08);
      *  - teachers present (TSI_09) cannot be more than Total teachers.
      *
      * @return array<int, array{0:string, 1:string}> [code, message]
@@ -253,6 +265,43 @@ class InspectionValidator
         $present = QuestionnaireDefinition::withDefaults($answers)['TSI_09'] ?? null;
 
         return is_numeric($present) ? max(0, $total - (int) $present) : null;
+    }
+
+    /**
+     * 26-11-2026: absent teacher types against the step 2 counts (InspectionAbsentTeacher::TYPE_COUNT_CODES).
+     *
+     * @param  list<?string>  $types  the teacher_type of every absent row
+     * @return list<string> one message per type with too many absent rows, each saying how to fix it
+     */
+    public static function absentTypeProblems(array $answers, array $types): array
+    {
+        $counts = \App\Models\InspectionAbsentTeacher::typeCounts($answers);
+        if ($counts === null) {
+            return [];
+        }
+        $out = [];
+        foreach (array_count_values(array_filter($types, 'is_string')) as $type => $n) {
+            $have = $counts[$type] ?? null;
+            if ($have !== null && $n > $have) {
+                $out[] = self::absentTypeMessage($type, $have, $n);
+            }
+        }
+
+        return $out;
+    }
+
+    public static function absentTypeMessage(string $type, int $have, int $absent): string
+    {
+        $label = \App\Models\InspectionAbsentTeacher::TYPES[$type] ?? $type;
+
+        return $have === 0
+            ? "Step 2 has no {$label} (0). Choose another type for this teacher, or enter the number of {$label}s on step 2."
+            : "Step 2 has {$have} {$label}(s), but {$absent} are marked absent. Change the type of the extra row(s), or correct the number on step 2.";
+    }
+
+    public static function observedAbsentMessage(string $name): string
+    {
+        return trim($name)." is marked absent today on step 3. Choose a teacher who is present, or remove them from the absent list.";
     }
 
     /** Non-blocking hints (shown, but do not stop submission). */

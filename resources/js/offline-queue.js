@@ -207,3 +207,33 @@ export function mountBanner(insp, anchor) {
         get state() { return state; },
     };
 }
+
+/* ---------------- Changes the server refused after working offline (26-11-2026) ---------------- */
+const REJ = (insp) => `si-rejected:${insp}`;
+const SECTION_NAMES = { teachers: 'Absent teacher', classrooms: 'Classroom record', funds: 'Fund details' };
+
+/** What the refused change was, and why, in words the officer can act on. labelOf(code) gives a question's label. */
+export function rejectedItem(op, err, labelOf = () => null) {
+    const data = err?.response?.data || {};
+    const first = Object.values(data.errors || {})[0]?.[0];
+    const message = first || data.message || 'It could not be saved. Please enter it again.';
+    const b = op?.body || {};
+    let what = 'A change';
+    if (op?.photo) what = `Photo${op.photo.caption ? ` "${op.photo.caption}"` : ''}`;
+    else if (op?.section || b.teacher_name || b.financial_year) {
+        const name = SECTION_NAMES[op.section] || (b.financial_year ? 'Fund details' : 'Record');
+        const detail = b.teacher_name || (b.financial_year ? String(b.financial_year).replace('FY-', 'FY ') : '');
+        what = detail ? `${name} "${detail}"` : name;
+    } else if (op?.key === 'suggestions') what = 'Suggestions';
+    else if (b.code) what = `${'remarks' in b ? 'Remarks for ' : ''}${labelOf(b.code) || b.code}`;
+    return { what, message, code: b.code && !('remarks' in b) ? b.code : null, at: Date.now() };
+}
+export function rejectedList(insp) {
+    try { return JSON.parse(sessionStorage.getItem(REJ(insp)) || '[]'); } catch { return []; }
+}
+export function addRejected(insp, item) {
+    try { sessionStorage.setItem(REJ(insp), JSON.stringify([...rejectedList(insp), item].slice(-20))); } catch { /* storage full or blocked */ }
+}
+export function clearRejected(insp) {
+    try { sessionStorage.removeItem(REJ(insp)); } catch { /* ignore */ }
+}

@@ -44,18 +44,18 @@ const toBlob = (canvas, q) => new Promise((res) => canvas.toBlob(res, 'image/jpe
 function tile(e) {
     const statusBadge = {
         pending: '<span class="badge text-bg-warning tile-status"><span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem"></span>Uploading</span>',
-        failed: '<span class="badge text-bg-danger tile-status">Failed</span>',
+        failed: e.refused ? '<span class="badge text-bg-danger tile-status">Not accepted</span>' : '<span class="badge text-bg-danger tile-status">Failed</span>',
         waiting: '<span class="badge text-bg-warning tile-status"><i class="bi bi-phone me-1"></i>On this device · waiting for network</span>',
         uploaded: (e.source === 'gallery' ? '<span class="badge text-bg-info tile-status">Gallery</span>' : '')
             + (e.has_location === false ? `<span class="badge text-bg-dark tile-status" style="${e.source === 'gallery' ? 'top:28px' : ''}">No location</span>` : ''),
     }[e.status] || '';
-    const retry = e.status === 'failed' ? `<button type="button" class="btn" data-retry="${e.evidence_uid}" title="Retry" aria-label="Retry upload"><i class="bi bi-arrow-clockwise text-primary"></i></button>` : '';
+    const retry = e.status === 'failed' && !e.refused ? `<button type="button" class="btn" data-retry="${e.evidence_uid}" title="Retry" aria-label="Retry upload"><i class="bi bi-arrow-clockwise text-primary"></i></button>` : '';
     const src = e.local_url || e.thumb_url || e.url; // 360 px thumbnail in the grid; the link opens the full photo
     return `<div class="photo-tile" data-uid="${e.evidence_uid}">
         <a href="${esc(e.url || src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(e.category_label || 'Photo')}" loading="lazy"></a>
         ${statusBadge}
         <div class="tile-actions">${retry}<button type="button" class="btn" data-remove="${e.evidence_uid}" title="Delete" aria-label="Delete photo"><i class="bi bi-trash text-danger"></i></button></div>
-        <div class="tile-cap">${esc(e.caption || e.category_label || '')}</div>
+        <div class="tile-cap">${e.refused ? `<span class="text-danger">${esc(e.error)} Delete it and take the photo again.</span>` : esc(e.caption || e.category_label || '')}</div>
     </div>`;
 }
 
@@ -90,7 +90,8 @@ function render() {
             <i class="bi bi-file-earmark-${d.original_name?.toLowerCase().endsWith('.pdf') ? 'pdf text-danger' : 'image text-primary'} fs-5"></i>
             <div class="flex-grow-1 min-w-0 text-sm text-truncate">${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.original_name)}</a>` : esc(d.original_name)}</div>
             ${d.status === 'pending' ? '<span class="spinner-border spinner-border-sm text-warning"></span>' : ''}
-            ${d.status === 'failed' ? `<button type="button" class="btn btn-sm btn-soft-primary" data-retry="${d.evidence_uid}">Retry</button>` : ''}
+            ${d.status === 'failed' && d.refused ? `<span class="text-xs text-danger">${esc(d.error)} Remove it and attach the file again.</span>` : ''}
+            ${d.status === 'failed' && !d.refused ? `<button type="button" class="btn btn-sm btn-soft-primary" data-retry="${d.evidence_uid}">Retry</button>` : ''}
             <button type="button" class="btn btn-sm btn-light btn-icon" data-remove="${d.evidence_uid}" aria-label="Remove document"><i class="bi bi-trash text-danger"></i></button>
         </div>`).join('') : '<div class="text-sm text-secondary p-3">No documents attached.</div>';
     }
@@ -100,6 +101,7 @@ function render() {
 async function upload(item, attempt = 1) {
     item.status = 'pending';
     item.error = null;
+    item.refused = false;
     render();
     // Keep the photo in this browser first, so it survives no network, a reload or a closed tab
     if (storeOk && item.blob && !item.stored) {
@@ -141,7 +143,9 @@ async function upload(item, attempt = 1) {
             if (!warnedOffline) { warnedOffline = true; window.toast('No network. Photos are kept on this device and will upload automatically.', 'warning'); }
         } else {
             item.status = 'failed';
-            item.error = err.response?.data?.message || 'Upload failed';
+            // 26-11-2026: the first field message says what to do (e.g. "Choose what the photo shows…")
+            item.error = Object.values(err.response?.data?.errors || {})[0]?.[0] || err.response?.data?.message || 'Upload failed. Check the network and press Retry.';
+            item.refused = !!permanent;
             if (item.stored && permanent) { offlineStore.removePhoto(INSP, item.evidence_uid).catch(() => {}); item.stored = false; }
             window.toast(item.error, 'danger');
         }
@@ -176,8 +180,11 @@ $('#doc-input')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return window.toast('Document must be 5 MB or smaller.', 'danger');
-    if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) return window.toast('Only PDF, JPG or PNG documents are allowed.', 'danger');
+    if (SI.evidence.filter((x) => x.kind === 'document' && !x.refused).length >= (SI.maxDocuments || 5)) {
+        return window.toast(`You already added ${SI.maxDocuments || 5} documents, the most allowed. Remove one to add another.`, 'warning');
+    }
+    if (file.size > 5 * 1024 * 1024) return window.toast('The document is larger than 5 MB. Choose a smaller file, or scan it at a lower quality.', 'danger');
+    if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) return window.toast('Only PDF, JPG or PNG documents are allowed. Save the file in one of these formats.', 'danger');
     const item = { evidence_uid: uuid(), kind: 'document', blob: file, filename: file.name, original_name: file.name, sha256: await sha256(file), status: 'pending' };
     SI.evidence.push(item);
     upload(item);
@@ -351,12 +358,70 @@ $('#cam-shutter')?.addEventListener('click', async () => {
     restampShot(); // the location may have arrived while the photo was processed
 });
 
+/** 26-11-2026: inline message under the no-location reason box. */
+function nolocError(on) {
+    const box = $('#cam-noloc');
+    if (!box) return;
+    box.classList.toggle('is-invalid', on);
+    box.toggleAttribute('aria-invalid', on);
+    let el = document.getElementById('cam-noloc-error');
+    if (!on) { el?.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'cam-noloc-error'; el.className = 'field-error text-warning'; el.setAttribute('role', 'alert'); box.after(el); }
+    el.innerHTML = '<i class="bi bi-exclamation-circle"></i>The location could not be found. Write why (e.g. "No GPS signal inside the building") to use this photo.';
+    box.setAttribute('aria-describedby', el.id);
+}
+$('#cam-noloc')?.addEventListener('input', () => { if ($('#cam-noloc').value.trim()) nolocError(false); });
+
+/**
+ * 26-11-2026: the reason for a gallery photo without a location, asked in a small window with an inline
+ * message (was window.prompt). Resolves with the reason, or null when cancelled.
+ */
+function askNoLocationReason() {
+    return new Promise((resolve) => {
+        let m = document.getElementById('noloc-modal');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'noloc-modal';
+            m.className = 'modal fade';
+            m.tabIndex = -1;
+            m.innerHTML = `<div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-geo-alt me-1"></i>Location not available</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body"><label class="form-label text-sm" for="noloc-reason">Why is the location not available? <span class="text-danger">*</span></label>
+                    <input id="noloc-reason" class="form-control" maxlength="255" placeholder="e.g. No GPS signal inside the building">
+                    <div class="field-error d-none" id="noloc-reason-error" role="alert"><i class="bi bi-exclamation-circle"></i>Write a reason (at least 3 characters) to use this photo.</div></div>
+                <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" data-noloc-ok><i class="bi bi-check2"></i>Use photo</button></div>
+            </div></div>`;
+            document.body.appendChild(m);
+        }
+        const input = m.querySelector('#noloc-reason');
+        const err = m.querySelector('#noloc-reason-error');
+        input.value = '';
+        input.classList.remove('is-invalid');
+        err.classList.add('d-none');
+        let done = false;
+        const modalObj = window.bootstrap.Modal.getOrCreateInstance(m);
+        const ok = () => {
+            const v = input.value.trim();
+            if (v.length < 3) { input.classList.add('is-invalid'); err.classList.remove('d-none'); input.focus(); return; }
+            done = true;
+            modalObj.hide();
+            resolve(v);
+        };
+        m.querySelector('[data-noloc-ok]').onclick = ok;
+        input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); ok(); } };
+        m.addEventListener('hidden.bs.modal', () => { if (!done) resolve(null); }, { once: true });
+        m.addEventListener('shown.bs.modal', () => input.focus(), { once: true });
+        modalObj.show();
+    });
+}
+
 $('#cam-retake')?.addEventListener('click', () => { if (shot?.url) URL.revokeObjectURL(shot.url); shot = null; showMode('capture'); syncUseButton(); });
 
 $('#cam-use')?.addEventListener('click', async () => {
     if (!shot || (!shot.geo && geoState === 'locating')) return; // still getting the location
     const reason = $('#cam-noloc').value.trim();
-    if (!shot.geo && !reason) { $('#cam-noloc').focus(); return window.toast('Location is not available. Enter a reason to continue.', 'warning'); }
+    if (!shot.geo && !reason) { nolocError(true); $('#cam-noloc').focus(); return; }
+    nolocError(false);
     const category = catSel.value;
     const item = {
         evidence_uid: uuid(),
@@ -399,7 +464,7 @@ document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-gallery]');
     if (!btn) return;
     if (SI.evidence.filter((x) => x.kind === 'photo').length >= SI.maxPhotos) {
-        return window.toast(`A maximum of ${SI.maxPhotos} photographs is allowed.`, 'warning');
+        return window.toast(`You already added ${SI.maxPhotos} photographs, the most allowed. Delete one to add another.`, 'warning');
     }
     galleryCategory = btn.dataset.category || 'other';
     $('#gallery-input')?.click();
@@ -423,8 +488,8 @@ $('#gallery-input')?.addEventListener('change', async (e) => {
     const g = await currentPosition();
     let reason = null;
     if (!g) {
-        reason = (window.prompt('Location is not available. Enter a reason to continue:') || '').trim();
-        if (!reason) return window.toast('Upload cancelled: a reason is required when location is unavailable.', 'warning');
+        reason = await askNoLocationReason();
+        if (!reason) return window.toast('Upload cancelled: a reason is required when the location is not available.', 'warning');
     }
     const blob = await processImage(bitmap, bitmap.width, bitmap.height, takenAt, g, true);
     bitmap.close?.();

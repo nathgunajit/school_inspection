@@ -61,7 +61,7 @@
                 </div>
                 @break
             @case('date')
-                <input type="date" name="{{ $code }}" value="{{ $val }}" max="{{ now()->toDateString() }}" class="form-control q-w-sm" data-answer aria-label="{{ $q['label'] }}">
+                <input type="date" name="{{ $code }}" value="{{ $val }}" min="2000-01-01" max="{{ now()->toDateString() }}" class="form-control q-w-sm" data-answer aria-label="{{ $q['label'] }}">
                 @break
             @case('textarea')
                 <textarea name="{{ $code }}" rows="3" maxlength="2000" class="form-control" data-answer aria-label="{{ $q['label'] }}" placeholder="Type here">{{ $val }}</textarea>
