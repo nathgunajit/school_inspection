@@ -140,7 +140,7 @@ class TlmItemsTest extends TestCase
         $card = TlmItem::where('list', 'ecce')->where('name', 'Number Card')->firstOrFail();
         $this->classroom($i, ['tlm_items' => [$card->id]])->assertOk();
         $this->classroom($i, ['tlm_used' => 'no'])->assertOk();
-        [$ecceOnly, $no] = $i->classroomObservations()->orderBy('id')->get()->all();
+        [$ecceOnly, $no] = $i->classroomObservations()->with('tlmItems')->orderBy('id')->get()->all();
         $this->assertSame(['ecce'], array_column($ecceOnly->tlmGroups(), 'list'));
         $this->assertSame('Yes · ECCE 1', $ecceOnly->tlmSummary());
         $this->assertSame([], $no->tlmGroups());

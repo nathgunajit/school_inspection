@@ -286,6 +286,8 @@ class MasterImportService
 
     private function finish(ImportBatch $batch, string $type, array $expected, array $result): ImportBatch
     {
+        DashboardStats::flush(); // schools are written with the query builder (no model events)
+
         if ($result['errors']) {
             $path = 'imports/errors-'.$batch->id.'-'.Str::random(8).'.xlsx';
             Excel::store(new ArrayExport(['row_number', 'reason', ...$expected, ...($type === 'location' ? self::LOCATION_OPTIONAL : [])], $result['errors']), $path, 'private');

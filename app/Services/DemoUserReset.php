@@ -30,7 +30,7 @@ class DemoUserReset
                 $insp = DB::table('inspections')->whereIn('officer_id', $chunk)->pluck('id');
                 $inspections += $insp->count();
                 foreach ($insp->chunk(500) as $ic) {
-                    $files = array_merge($files, DB::table('inspection_evidence')->whereIn('inspection_id', $ic)->whereNotNull('storage_path')->pluck('storage_path')->all());
+                    $files = array_merge($files, EvidenceStorage::withThumbs(DB::table('inspection_evidence')->whereIn('inspection_id', $ic)->whereNotNull('storage_path')->pluck('storage_path')->all()));
                     DB::table('inspection_evidence')->whereIn('inspection_id', $ic)->delete();
                     DB::table('inspections')->whereIn('prefilled_from_id', $ic)->update(['prefilled_from_id' => null]);
                     DB::table('inspections')->whereIn('id', $ic)->delete(); // answers, rows, ratings cascade

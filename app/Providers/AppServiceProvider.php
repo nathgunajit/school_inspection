@@ -71,6 +71,20 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
+        // 26-11-2026: catch N+1 queries early. Outside production a lazy-loaded relation is logged (or thrown with
+        // LAZY_LOADING_CHECK=throw); users never see an error from it.
+        $lazy = config('inspection.lazy_loading');
+        if (! $this->app->isProduction() && in_array($lazy, ['log', 'throw'], true)) {
+            \Illuminate\Database\Eloquent\Model::preventLazyLoading();
+            if ($lazy === 'log') {
+                \Illuminate\Database\Eloquent\Model::handleLazyLoadingViolationUsing(function ($model, string $relation) {
+                    \Illuminate\Support\Facades\Log::warning('Lazy loading ['.$relation.'] on ['.$model::class.']', [
+                        'url' => app()->runningInConsole() ? 'console' : request()->path(),
+                    ]);
+                });
+            }
+        }
+
         Event::listen(Logout::class, function (Logout $e) {
             if ($e->user) {
                 AuditLogger::log('logout', $e->user, [], $e->user);

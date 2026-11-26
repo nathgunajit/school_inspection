@@ -50,7 +50,7 @@ function tile(e) {
             + (e.has_location === false ? `<span class="badge text-bg-dark tile-status" style="${e.source === 'gallery' ? 'top:28px' : ''}">No location</span>` : ''),
     }[e.status] || '';
     const retry = e.status === 'failed' ? `<button type="button" class="btn" data-retry="${e.evidence_uid}" title="Retry" aria-label="Retry upload"><i class="bi bi-arrow-clockwise text-primary"></i></button>` : '';
-    const src = e.local_url || e.url;
+    const src = e.local_url || e.thumb_url || e.url; // 360 px thumbnail in the grid; the link opens the full photo
     return `<div class="photo-tile" data-uid="${e.evidence_uid}">
         <a href="${esc(e.url || src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="${esc(e.category_label || 'Photo')}" loading="lazy"></a>
         ${statusBadge}

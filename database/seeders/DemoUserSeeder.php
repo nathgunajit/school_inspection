@@ -97,7 +97,7 @@ class DemoUserSeeder extends Seeder
             // Jurisdiction from the location (cluster -> block -> district -> state)
             $cluster = $loc instanceof Cluster ? $loc : null;
             $block = $cluster?->block ?? ($loc instanceof Block ? $loc : null);
-            $district = $block?->district ?? ($loc instanceof District ? $loc : null);
+            $district = $block?->loadMissing('district')->district ?? ($loc instanceof District ? $loc : null);
             UserJurisdiction::updateOrCreate(
                 ['user_id' => $user->id, 'end_date' => null],
                 [

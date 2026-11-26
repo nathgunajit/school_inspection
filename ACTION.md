@@ -2876,3 +2876,38 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Verified:**
   - `npm run build`: the built CSS has the same icon bytes as before the optimisation.
   - Full suite: 321 passed.
+
+## 26-11-2026: Performance gaps, module A (quick fixes)
+- **What:**
+  - **Photo thumbnails:**
+    - `EvidenceStorage::makeThumb()` writes a 360 px JPEG next to each photo (`abc.jpg` -> `abc-t.jpg`, `thumbPathFor()`; no new column).
+    - `evidence.show?size=thumb` serves it, falling back to the original when it is missing. Evidence is cached privately for a day.
+    - `thumb_url` in `toClientArray()`; the wizard grid (`camera.js`) and the review / report tiles use it. The viewer and downloads keep the full photo.
+    - Deleting a photo, Clean Test Data and `users:reset-demo` remove the thumbnail too.
+    - `php artisan evidence:thumbs [--force]` backfills; it ran locally and made 12.
+  - **N+1 guard:** outside production `Model::preventLazyLoading()`, logged by default (`LAZY_LOADING_CHECK=log|throw|off`), throw in phpunit.xml. Fixed what it found:
+    - Map View officer list loaded no `code` / state, so labels lacked the code.
+    - Approvals list and schedule officer lists: jurisdiction state.
+    - Notice inbox: creator designation.
+    - `DemoUserSeeder`.
+    - Three tests.
+  - **Dashboard figures:** `App\Services\DashboardStats`, cached 60 s per officer, posting and day. The version key is bumped when an inspection is created / deleted or changes status / date, when a school is added / closed / moved, and after a School Master import. Draft autosaves do not bump it.
+  - **Fewer queries:**
+    - `MapDataService::chain()` is memoised per request: map schools JSON 27 -> 21 queries.
+    - `DailyDisplaySetting::forDistrict()` is memoised (a clone per caller): Cluster dashboard 23 -> 19 queries.
+  - **`cache:status`:** adds routes / events / views cached, GD, queue connection, waiting and failed jobs, and a warning when jobs wait over 5 minutes.
+  - **Queue:** `DB_QUEUE_RETRY_AFTER` default 90 -> 3700 (long jobs are not run twice).
+  - **`QueryBudgetTest`:** query budgets for the dashboard (3 levels), Find School, My Schools, both inspection lists, the report page, map schools JSON and coverage.
+- **Files:**
+  - `app/Services/{EvidenceStorage,DashboardStats,MapDataService,MasterImportService,ApproverResolver,ScheduleService,TestDataCleaner,DemoUserReset}.php`
+  - `app/Http/Controllers/{EvidenceController,DashboardController,NoticeController}.php`
+  - `app/Models/{InspectionEvidence,Inspection,School,DailyDisplaySetting}.php`
+  - `app/Providers/AppServiceProvider.php`, `app/Console/Commands/CacheStatus.php`
+  - `config/{inspection,queue}.php`, `routes/console.php`, `phpunit.xml`
+  - `resources/js/camera.js`, `resources/views/inspections/partials/step-answers.blade.php`
+  - `database/seeders/DemoUserSeeder.php`
+  - tests `PerformanceQuickFixesTest`, `QueryBudgetTest`, `TlmItemsTest`, `TodaySchoolsTest`, `InspectionScheduleTest`
+- **Verified:**
+  - full suite 326 passed, with lazy loading set to throw
+  - `npm run build`
+  - `php artisan cache:status`

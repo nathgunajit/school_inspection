@@ -13,20 +13,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request, JurisdictionService $j, ApproverResolver $approvers)
     {
         $user = $request->user();
-        $mine = fn () => $user->inspections()->where('status', InspectionStatus::Submitted);
-
-        $stats = [
-            'today' => $mine()->where('inspection_date', today()->toDateString())->count(),
-            'month' => $mine()->where('inspection_date', '>=', now()->startOfMonth()->toDateString())->count(),
-            'total' => $mine()->count(),
-            'my_drafts' => $user->inspections()->whereIn('status', [InspectionStatus::Draft, InspectionStatus::Unlocked])->count(),
-            // Schools in the officer's own area (cluster / block / district / state), scoped by JurisdictionService
-            'schools' => $j->schools($user)->where('schools.status', 'active')->count(),
-            'schools_inspected_month' => $j->inspections($user)
-                ->where('inspections.status', InspectionStatus::Submitted)
-                ->where('inspections.inspection_date', '>=', now()->startOfMonth()->toDateString())
-                ->distinct()->count('inspections.school_id'),
-        ];
+        $stats = app(\App\Services\DashboardStats::class)->for($user); // cached a minute, refreshed on any change
 
         $drafts = $user->inspections()->with('school')
             ->whereIn('status', [InspectionStatus::Draft, InspectionStatus::Unlocked])

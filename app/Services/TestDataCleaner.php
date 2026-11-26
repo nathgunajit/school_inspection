@@ -111,7 +111,7 @@ class TestDataCleaner
         }
 
         $disk = Storage::disk('private');
-        foreach ($files as $path) {
+        foreach (EvidenceStorage::withThumbs($files) as $path) { // photo thumbnails go with their photos
             $disk->delete($path);
         }
         Cache::flush(); // dashboard figures, map data, counts

@@ -61,7 +61,7 @@ class TodaySchoolsTest extends TestCase
     {
         $crcc = $this->crcc();
         $this->actingAs($crcc)->get(route('dashboard'))->assertOk()->assertSee("Today's schools", false);
-        $rows = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->get();
+        $rows = DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->with('school')->get();
         $this->assertCount(2, $rows); // default limit 2
         $this->assertTrue($rows->every(fn ($r) => $r->reason === 'not_inspected' && $r->source === 'auto'));
 

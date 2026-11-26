@@ -19,6 +19,17 @@ class School extends Model
 
     protected $casts = ['latitude' => 'float', 'longitude' => 'float', 'streams' => 'array'];
 
+    protected static function booted(): void
+    {
+        // 26-11-2026: the dashboard's "schools in my area" figure is cached; a school added, closed or moved refreshes it
+        static::saved(function (self $s) {
+            if ($s->wasRecentlyCreated || $s->wasChanged(['status', 'district_id', 'block_id', 'cluster_id', 'deleted_at'])) {
+                \App\Services\DashboardStats::flush();
+            }
+        });
+        static::deleted(fn () => \App\Services\DashboardStats::flush());
+    }
+
     /** UDISE+ School_Type (stored codes are stable; labels may change). */
     public const SCHOOL_TYPES = ['boys' => 'Boys', 'girls' => 'Girls', 'co_ed' => 'Co-ed'];
 

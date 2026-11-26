@@ -51,7 +51,7 @@ class InspectionScheduleTest extends TestCase
         $this->assertGreaterThan(0, $s->total_minutes);
         $this->assertTrue(AuditLog::where('action', 'schedule_created')->where('auditable_id', $s->id)->exists());
 
-        $this->actingAs($officer)->get(route('schedules.show', $s))->assertOk()->assertSee($s->items[0]->school->name);
+        $this->actingAs($officer)->get(route('schedules.show', $s))->assertOk()->assertSee($s->items->load('school')[0]->school->name);
         $this->actingAs($officer)->get(route('schedules.index', ['view' => 'month', 'date' => today()->addDay()->toDateString()]))->assertOk()->assertSee($officer->name);
         $this->actingAs($officer)->get(route('schedules.plan', ['date' => today()->addDay()->toDateString()]))->assertOk()->assertSee('Day plan');
     }

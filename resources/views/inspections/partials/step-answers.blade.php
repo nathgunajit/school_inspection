@@ -187,7 +187,7 @@
                             <div class="rv-photo-wrap">
                             <button type="button" class="rv-photo" data-photo="{{ route('evidence.show', $p) }}" data-cap="{{ $cap }}"
                                     data-meta="{{ $p->taken_at?->format('d M Y, h:i A') }}{{ $p->source === 'gallery' ? ' · From gallery' : '' }}{{ $where }}" aria-label="View {{ $cap }}">
-                                <img src="{{ route('evidence.show', $p) }}" alt="{{ $cap }}" loading="lazy">
+                                <img src="{{ route('evidence.show', [$p, 'size' => 'thumb']) }}" alt="{{ $cap }}" loading="lazy" decoding="async">
                                 <span class="rv-photo-tags">
                                     @if ($p->source === 'gallery')<span class="rv-tag">From gallery</span>@endif
                                     @if ($p->hasLocation())<span class="rv-tag geo" title="Geo-tagged"><i class="bi bi-geo-alt-fill"></i></span>@endif

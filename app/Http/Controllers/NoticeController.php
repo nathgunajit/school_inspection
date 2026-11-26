@@ -36,7 +36,7 @@ class NoticeController extends Controller
                     'reads as ack_count' => fn ($r) => $r->whereNotNull('acknowledged_at')])
             : Notice::query()->for($user)->with(['reads' => fn ($r) => $r->where('user_id', $user->id)]);
 
-        $items = $query->with(['creator:id,name,level,designation_id,designation_other', 'district:id,name,code', 'block:id,name,code', 'cluster:id,name,code'])
+        $items = $query->with(['creator:id,name,level,designation_id,designation_other', 'creator.designation:id,code,label', 'district:id,name,code', 'block:id,name,code', 'cluster:id,name,code'])
             ->when($type, fn ($q) => $q->where('type', $type))
             ->when($request->q, fn ($q, $s) => $q->where(fn ($w) => $w->where('title', 'like', "%$s%")->orWhere('ref_no', 'like', "%$s%")))
             ->when($tab === 'inbox' && $request->query('unread'), fn ($q) => $q->whereDoesntHave('reads', fn ($r) => $r->where('user_id', $user->id)->whereNotNull('read_at')))

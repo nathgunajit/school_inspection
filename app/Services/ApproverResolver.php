@@ -65,7 +65,7 @@ class ApproverResolver
     {
         return RegistrationRequest::query()
             ->where('status', 'pending')
-            ->with(['user.currentJurisdiction.district', 'user.currentJurisdiction.block', 'user.currentJurisdiction.cluster', 'user.designation'])
+            ->with(['user.currentJurisdiction.state', 'user.currentJurisdiction.district', 'user.currentJurisdiction.block', 'user.currentJurisdiction.cluster', 'user.designation'])
             ->oldest()
             ->get()
             ->filter(fn ($r) => $r->user && $this->canApprove($approver, $r->user))

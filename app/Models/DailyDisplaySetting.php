@@ -38,7 +38,23 @@ class DailyDisplaySetting extends Model
         return static::whereNull('district_id')->first() ?? static::create(['district_id' => null] + self::defaults());
     }
 
+    protected static function booted(): void
+    {
+        $forget = fn () => \App\Support\RequestMemo::forget('daily_display.');
+        static::saved($forget);
+        static::deleted($forget);
+    }
+
+    /**
+     * 26-11-2026: read once per request (the dashboard asked three times, two queries each), like
+     * CoverageSetting::forDistrict(). Each caller gets its own copy, so changing it in memory never leaks.
+     */
     public static function forDistrict(?int $districtId): self
+    {
+        return clone \App\Support\RequestMemo::remember('daily_display.'.($districtId ?: 0), fn () => static::resolveForDistrict($districtId));
+    }
+
+    private static function resolveForDistrict(?int $districtId): self
     {
         $row = $districtId ? static::where('district_id', $districtId)->first() : null;
         if (! $row) {

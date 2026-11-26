@@ -69,7 +69,7 @@ class ScheduleService
             ->where('status', UserStatus::Active)
             ->where('id', '!=', $actor->id)
             ->whereIn('level', collect(UserLevel::cases())->filter(fn ($l) => $l->rank() > $actor->level->rank() && $l !== UserLevel::StateAdmin)->map->value->all())
-            ->with('currentJurisdiction.cluster', 'currentJurisdiction.block', 'currentJurisdiction.district', 'designation')
+            ->with('currentJurisdiction.state', 'currentJurisdiction.cluster', 'currentJurisdiction.block', 'currentJurisdiction.district', 'designation')
             ->orderBy('level')->orderBy('name')->get();
 
         return $actor->can('conduct_inspections') ? $below->prepend($actor->loadMissing('currentJurisdiction')) : $below;

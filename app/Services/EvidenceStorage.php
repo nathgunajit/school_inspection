@@ -19,6 +19,59 @@ class EvidenceStorage
 {
     public const DISK = 'private';
 
+    /** Long side of the list / grid thumbnail (26-11-2026 performance work). */
+    public const THUMB_SIDE = 360;
+
+    /** The thumbnail sits next to the photo: evidence/12/abc.jpg -> evidence/12/abc-t.jpg. */
+    public static function thumbPathFor(?string $path): ?string
+    {
+        return $path ? preg_replace('/\.[a-z0-9]+$/i', '', $path).'-t.jpg' : null;
+    }
+
+    /** Photo paths plus their thumbnails, for clean-up code that deletes files in bulk. */
+    public static function withThumbs(array $paths): array
+    {
+        $out = [];
+        foreach ($paths as $p) {
+            $out[] = $p;
+            if (preg_match('/\.(jpe?g|png)$/i', (string) $p)) {
+                $out[] = self::thumbPathFor($p);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Write a small JPEG thumbnail for a stored photo. Returns false (and writes nothing) when GD is missing or the
+     * image cannot be read: the grid then falls back to the full photo.
+     */
+    public static function makeThumb(string $path): bool
+    {
+        $disk = Storage::disk(self::DISK);
+        if (! function_exists('imagecreatefromstring') || ! $disk->exists($path)) {
+            return false;
+        }
+        $bytes = $disk->get($path);
+        if (@getimagesizefromstring($bytes) === false || ($src = @imagecreatefromstring($bytes)) === false) {
+            return false;
+        }
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $scale = min(self::THUMB_SIDE / max($w, $h), 1.0);
+        $dw = max(1, (int) round($w * $scale));
+        $dh = max(1, (int) round($h * $scale));
+        $dst = imagecreatetruecolor($dw, $dh);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $dw, $dh, $w, $h);
+        ob_start();
+        imagejpeg($dst, null, 75);
+        $out = ob_get_clean();
+        imagedestroy($src);
+        imagedestroy($dst);
+
+        return $out ? (bool) $disk->put(self::thumbPathFor($path), $out) : false;
+    }
+
     /**
      * Store a photo or document. Idempotent on evidence_uid.
      *
@@ -64,6 +117,13 @@ class EvidenceStorage
             default => 'bin',
         };
         $path = $file->storeAs('evidence/'.$inspection->id, Str::random(40).'.'.$ext, self::DISK);
+        if ($kind === 'photo') {
+            try {
+                self::makeThumb($path);
+            } catch (\Throwable $e) {
+                report($e); // a missing thumbnail only means the grid shows the full photo
+            }
+        }
 
         return InspectionEvidence::create([
             'evidence_uid' => $meta['evidence_uid'],
@@ -92,7 +152,7 @@ class EvidenceStorage
     public function delete(InspectionEvidence $evidence): void
     {
         if ($evidence->storage_path) {
-            Storage::disk(self::DISK)->delete($evidence->storage_path);
+            Storage::disk(self::DISK)->delete(self::withThumbs([$evidence->storage_path]));
         }
         $evidence->forceDelete();
     }

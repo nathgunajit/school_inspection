@@ -30,6 +30,25 @@ Artisan::command('register:purge-tmp {--hours=24 : Remove kept files older than 
 
 Schedule::command('register:purge-tmp')->dailyAt('01:00');
 
+/* 26-11-2026 performance: small thumbnails for photos stored before thumbnails existed. Safe to re-run. */
+Artisan::command('evidence:thumbs {--force : Rebuild thumbnails that already exist}', function () {
+    $disk = \Illuminate\Support\Facades\Storage::disk(\App\Services\EvidenceStorage::DISK);
+    $made = $skipped = $failed = 0;
+    \App\Models\InspectionEvidence::query()->where('kind', 'photo')->whereNotNull('storage_path')
+        ->select('id', 'storage_path')->chunkById(200, function ($rows) use ($disk, &$made, &$skipped, &$failed) {
+            foreach ($rows as $e) {
+                if (! $this->option('force') && $disk->exists(\App\Services\EvidenceStorage::thumbPathFor($e->storage_path))) {
+                    $skipped++;
+                } elseif (\App\Services\EvidenceStorage::makeThumb($e->storage_path)) {
+                    $made++;
+                } else {
+                    $failed++;
+                }
+            }
+        });
+    $this->info("Thumbnails: {$made} made, {$skipped} already there, {$failed} could not be made (missing file or no GD).");
+})->purpose('Create the small grid thumbnails for stored inspection photos');
+
 /* Modification V13 item 1: keep only the State Administrator and create 3–4 demo officers per level. */
 Artisan::command('users:reset-demo {--force : Do not ask for confirmation}', function () {
     if (app()->isProduction()) {

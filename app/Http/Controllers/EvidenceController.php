@@ -78,6 +78,7 @@ class EvidenceController extends Controller
     /** Retake / delete before submission only (PRD 9.2, 9.8). */
     public function destroy(InspectionEvidence $evidence)
     {
+        $evidence->loadMissing('inspection');
         $this->authorize('update', $evidence->inspection);
         $this->storage->delete($evidence);
         AuditLogger::log('evidence_deleted', $evidence->inspection, ['evidence_uid' => $evidence->evidence_uid]);
@@ -88,21 +89,34 @@ class EvidenceController extends Controller
     /** Every view checks permission; there are no public links (PRD 9.8). */
     public function show(Request $request, InspectionEvidence $evidence)
     {
+        $evidence->loadMissing('inspection', 'category');
         $this->authorize('view', $evidence->inspection);
-        abort_unless($evidence->storage_path && Storage::disk(EvidenceStorage::DISK)->exists($evidence->storage_path), 404);
+        $disk = Storage::disk(EvidenceStorage::DISK);
+        abort_unless($evidence->storage_path && $disk->exists($evidence->storage_path), 404);
 
         $download = $request->boolean('download');
         if ($download) {
             AuditLogger::log('evidence_downloaded', $evidence, ['inspection_id' => $evidence->inspection_id]);
         }
 
-        $name = ($evidence->category?->code ?? $evidence->kind).'-'.$evidence->evidence_uid.'.'.pathinfo($evidence->storage_path, PATHINFO_EXTENSION);
+        // Grids and lists ask for ?size=thumb (360 px); the viewer and downloads get the original
+        $path = $evidence->storage_path;
+        $mime = $evidence->mime;
+        if (! $download && $request->query('size') === 'thumb' && $evidence->kind === 'photo') {
+            $thumb = EvidenceStorage::thumbPathFor($path);
+            if ($disk->exists($thumb)) {
+                [$path, $mime] = [$thumb, 'image/jpeg'];
+            }
+        }
 
-        return Storage::disk(EvidenceStorage::DISK)->response($evidence->storage_path, $name, [
-            'Content-Type' => $evidence->mime,
+        $name = ($evidence->category?->code ?? $evidence->kind).'-'.$evidence->evidence_uid.'.'.pathinfo($path, PATHINFO_EXTENSION);
+
+        // Stored evidence never changes, so the browser may keep it for a day (still private to this user)
+        return $disk->response($path, $name, [
+            'Content-Type' => $mime,
             'Content-Disposition' => ($download ? 'attachment' : 'inline').'; filename="'.$name.'"',
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, max-age=600',
+            'Cache-Control' => 'private, max-age=86400',
         ]);
     }
 }

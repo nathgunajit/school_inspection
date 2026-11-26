@@ -58,6 +58,7 @@ class InspectionEvidence extends Model
             'status' => $this->status->value,
             'has_location' => $this->hasLocation(),
             'url' => route('evidence.show', $this),
+            'thumb_url' => $this->kind === 'photo' ? route('evidence.show', [$this, 'size' => 'thumb']) : null,
             'delete_url' => route('evidence.destroy', $this),
             'original_name' => $this->original_name,
         ];

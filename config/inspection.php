@@ -158,4 +158,7 @@ return [
     'retention_years' => 5,
     // 25-11-2026: a database query slower than this (ms) is written to the log as a warning (0 = off)
     'slow_query_ms' => (int) env('SLOW_QUERY_MS', 1000),
+    // 26-11-2026: outside production a lazy-loaded relation (an N+1 query) is written to the log. "throw" makes it
+    // an error (used by tests to find them); "off" disables the check.
+    'lazy_loading' => env('LAZY_LOADING_CHECK', 'log'),
 ];

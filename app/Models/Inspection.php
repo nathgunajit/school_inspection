@@ -31,6 +31,15 @@ class Inspection extends Model
                 $i->officer_level = User::withTrashed()->find($i->officer_id)?->level?->value;
             }
         });
+
+        // 26-11-2026: dashboard figures are cached; a new, removed or status-changed inspection refreshes them.
+        // Draft autosaves (answers, progress) change neither, so they do not empty the cache for everyone.
+        static::saved(function (self $i) {
+            if ($i->wasRecentlyCreated || $i->wasChanged(['status', 'inspection_date', 'officer_id', 'school_id'])) {
+                \App\Services\DashboardStats::flush();
+            }
+        });
+        static::deleted(fn () => \App\Services\DashboardStats::flush());
     }
 
     protected function casts(): array

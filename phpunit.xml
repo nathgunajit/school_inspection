@@ -27,6 +27,7 @@
         <env name="CAPTCHA_ENABLED" value="false"/>
         <env name="LOGIN_MATH_CAPTCHA" value="false"/>
         <env name="MAP_CACHE_SECONDS" value="0"/>
+        <env name="LAZY_LOADING_CHECK" value="throw"/>
         <env name="PASSWORD_ENCRYPTION_REQUIRED" value="false"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

@@ -76,12 +76,14 @@ class MapDataService
     /** Ancestry of an area: [district_id, block_id, cluster_id] (null below the area's own level). */
     public function chain(string $type, int $id): ?array
     {
-        return match ($type) {
+        // 26-11-2026: one map request asks for the same chain up to five times (access check, breadcrumb, outline,
+        // officers, offices); it is read once per request
+        return \App\Support\RequestMemo::remember("map.chain.{$type}.{$id}", fn () => match ($type) {
             'district' => District::whereKey($id)->exists() ? ['district_id' => $id, 'block_id' => null, 'cluster_id' => null] : null,
             'block' => ($b = Block::find($id)) ? ['district_id' => $b->district_id, 'block_id' => $b->id, 'cluster_id' => null] : null,
             'cluster' => ($c = Cluster::with('block')->find($id)) ? ['district_id' => $c->block->district_id, 'block_id' => $c->block_id, 'cluster_id' => $c->id] : null,
             default => null,
-        };
+        });
     }
 
     /** Breadcrumb from the state down to (and including) the given parent area. */
@@ -317,7 +319,7 @@ class MapDataService
             ->where('status', UserStatus::Active)
             ->where('level', '!=', 'state_admin')
             ->whereHas('currentJurisdiction', fn ($w) => $parentType && $parent !== null ? $w->where($parentType.'_id', $parent) : $w)
-            ->with(['currentJurisdiction.district:id,name', 'currentJurisdiction.block:id,name', 'currentJurisdiction.cluster:id,name', 'designation:id,code,label'])
+            ->with(['currentJurisdiction.state:id,name', 'currentJurisdiction.district:id,name,code', 'currentJurisdiction.block:id,name,code', 'currentJurisdiction.cluster:id,name,code', 'designation:id,code,label'])
             ->orderBy('name')->limit(500)->get(['id', 'name', 'level', 'designation_id', 'designation_other'])
             ->map(fn ($u) => [
                 'id' => $u->id,
