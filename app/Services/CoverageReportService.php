@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\DB;
  *    not cancelled (draft, submitted, unlocked) whose start / submit location or a geo-tagged photo lies within
  *    the verification radius of the school; when the school has no GPS in the master, any captured location counts.
  *  - Inspection Coverage: schools with a SUBMITTED (or unlocked) inspection inside the prescribed inspection-cycle
- *    window that contains the period's end date.
+ *    window that contains the period's end date (or today while the period is still running).
  *
  * Areas use the school's own district / block / cluster, so totals, visits and the cycle always agree.
  * The number of queries does not grow with the number of areas; verification runs in PHP (haversine),
@@ -131,10 +131,17 @@ class CoverageReportService
         return CoveragePeriod::forType($type, $ref);
     }
 
-    /** The inspection-cycle window that contains the end of the period. */
+    /**
+     * The inspection-cycle window that contains the end of the period, or today while the period is still running.
+     * 26-11-2026: before, the current quarter (ending 31 Dec) with a monthly cycle used December, a month not yet
+     * started, so Inspection coverage was always 0 %.
+     */
     public function cycle(array $f): CoveragePeriod
     {
-        return CoveragePeriod::cycle($this->setting($f)->inspection_cycle, $this->period($f)->to);
+        $end = $this->period($f)->to;
+        $anchor = $end->greaterThan(today()) ? today() : $end;
+
+        return CoveragePeriod::cycle($this->setting($f)->inspection_cycle, $anchor);
     }
 
     /** Level tabs available for the viewer and filters (empty = one cluster: show its schools). */

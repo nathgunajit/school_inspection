@@ -72,7 +72,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - Inspection Coverage Report (Excel `reports.coverage.export`, PDF `reports.coverage.export-pdf` since 23-11-2026: `CoverageReportService::pdfSections()` = Summary + the level in view with a Total row, or a cluster's schools, capped by `master_pdf_max_rows`):
   - Code: `CoverageReportService`, `CoverageReportController` (`/reports/coverage`, `/export`, `/settings`), views in `resources/views/reports/coverage/`.
   - **Visit Coverage**: schools with at least one *verified* visit (not cancelled; start / submit location or a geo-tagged photo within `verify_radius_m` of the school; a school without GPS accepts any location) in the period.
-  - **Inspection Coverage**: schools with a *submitted* or unlocked inspection in the inspection-cycle window (`App\Support\CoveragePeriod::cycle()`) that contains the period end.
+  - **Inspection Coverage**: schools with a *submitted* or unlocked inspection in the inspection-cycle window (`App\Support\CoveragePeriod::cycle()`) that contains the period end, **or today while the period is still running** (26-11-2026: the running quarter with a monthly cycle used December and showed 0 %).
   - The period comes from `coverage_settings` (`CoverageSetting::forDistrict()`: district override, else state default; the radius always comes from the state row). Gate `configure_coverage`: the State Admin, or a District officer with `manage_users` (own district only).
   - Areas use the school's own district / block / cluster. Verification runs in PHP (`Inspection::haversine()`), and the query count is fixed.
   - **Plain words** (26-11-2026):

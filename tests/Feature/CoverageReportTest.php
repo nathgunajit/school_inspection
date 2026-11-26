@@ -238,6 +238,31 @@ class CoverageReportTest extends TestCase
             ->assertSessionHas('success', 'Coverage settings saved. The report now opens on this month (01 Nov 2026 – 30 Nov 2026). A school counts as inspected when an inspection is submitted in the quarterly cycle (01 Oct 2026 – 31 Dec 2026).');
     }
 
+    /** 26-11-2026: the running quarter with a monthly cycle used December (not started yet), so Inspection coverage was 0 %. */
+    public function test_a_running_period_uses_the_current_cycle_not_a_future_one(): void
+    {
+        [$s1] = $this->schools();
+        $o = $this->officer(UserLevel::Cluster, $this->north);
+        $this->visit($s1, $o, '2026-11-10');
+        $districtId = $this->north->block->district_id;
+        CoverageSetting::create(['district_id' => $districtId, 'period_type' => 'monthly', 'inspection_cycle' => 'monthly', 'verify_radius_m' => 500]);
+        $svc = app(CoverageReportService::class);
+
+        // today is 20-11-2026: the current quarter ends 31-12, so the cycle is the current month
+        $f = $this->filters($o, ['type' => 'quarterly']);
+        $this->assertSame(['2026-11-01', '2026-11-30'], [$svc->cycle($f)->fromDate(), $svc->cycle($f)->toDate()]);
+        $this->assertSame(1, $this->summary($o, ['type' => 'quarterly'])['inspected']);
+
+        // a finished quarter keeps the cycle of its last day
+        $past = $this->filters($o, ['type' => 'quarterly', 'ref' => '2026-08-15']);
+        $this->assertSame(['2026-09-01', '2026-09-30'], [$svc->cycle($past)->fromDate(), $svc->cycle($past)->toDate()]);
+
+        // the state default (quarterly cycle) still gives the whole quarter
+        $other = $this->officer(UserLevel::Cluster, $this->otherCluster($this->north));
+        $g = $this->filters($other, ['type' => 'quarterly']);
+        $this->assertSame(['2026-10-01', '2026-12-31'], [$svc->cycle($g)->fromDate(), $svc->cycle($g)->toDate()]);
+    }
+
     public function test_settings_state_default_and_district_override(): void
     {
         $admin = $this->admin();

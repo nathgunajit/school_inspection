@@ -264,7 +264,7 @@ Counts at the top of the area list: schools in the area, schools inspected in th
 |---|---|
 | Assigned schools | Active schools of the area in the School Master |
 | **Visit Coverage** | Schools with at least one **verified visit** in the coverage period ÷ assigned schools. A visit is any inspection that was not cancelled (draft or submitted). It is verified when the start location, the submit location or a geo-tagged photo is within the radius (default 500 m) of the school. If the school has no GPS in the master, any captured location counts. |
-| **Inspection Coverage** | Schools with a **submitted** formal inspection within the prescribed **inspection cycle** (monthly, quarterly, half-yearly Apr–Sep / Oct–Mar, or yearly Apr–Mar) that contains the end of the period ÷ assigned schools. A school without one is **due**. |
+| **Inspection Coverage** | Schools with a **submitted** formal inspection within the prescribed **inspection cycle** (monthly, quarterly, half-yearly Apr–Sep / Oct–Mar, or yearly Apr–Mar) that contains the end of the period (or today, while the period is still running) ÷ assigned schools. A school without one is **due**. |
 | Repeat / unverified | Repeat = verified visits − unique schools visited. Unverified visits (no location, or too far) are shown but not counted. |
 | Bands | Good ≥ 75 %, Moderate 50–74.9 %, Low 25–49.9 %, Critical below 25 % |
 

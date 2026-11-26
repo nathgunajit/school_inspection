@@ -3067,3 +3067,14 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **Verified:**
   - New test `test_report_and_settings_explain_the_figures_in_plain_words`: sentences, bands line, Summary column, PDF headings, preview dates, success message.
   - Full suite: 347 passed. `npm run build` OK.
+
+## 26-11-2026 · Fix: Coverage Report Quarterly view showed 0 % Inspection coverage
+- **Request:** "Inspection Coverage Report Quaterly not working. Find the error and fixed it."
+- **Cause:** `CoverageReportService::cycle()` used the inspection cycle that contains the **period end**. The running quarter ends on 31-12-2026. With a monthly cycle (the KOKRAJHAR district setting) that is December, a month that has not started, so the report counted no submitted inspection.
+  - Reproduced on MySQL as District officer 31: Monthly gave 2 inspected (Nov cycle), Quarterly gave 0 (Dec cycle).
+- **Fix:** the cycle is anchored on the period end, or on today while the period is still running. Finished periods are unchanged. The page, the plain-words sentences, the Summary, the Excel "Due in cycle" and the PDF all follow.
+- **Not a bug:** Visit coverage is 0 in every period on the local database because all 5 test inspections were made far from their schools (listed as "not counted").
+- **Files:** `app/Services/CoverageReportService.php`, `tests/Feature/CoverageReportTest.php`, `CLAUDE.md`, `Product Details/PROJECT_DOCUMENT.md`, rebuilt Word file.
+- **Verified:**
+  - New test `test_a_running_period_uses_the_current_cycle_not_a_future_one`: running quarter → Nov cycle with 1 inspected; past quarter → Sep; state quarterly cycle → Oct–Dec.
+  - MySQL, officer 31, Quarterly: cycle 01–30 Nov, 2 inspected.
