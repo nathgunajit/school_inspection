@@ -20,6 +20,22 @@
     <div class="tab-content">
     {{-- ================= Upload ================= --}}
     <div class="tab-pane fade {{ $tab === 'upload' ? 'show active' : '' }}" id="tab-upload" role="tabpanel">
+        @if ($working)
+            {{-- 26-11-2026: the check / save runs on the queue; imports.js reloads the page when it moves on --}}
+            @php $stalled = in_array($working->status, ['checking', 'queued'], true) && $working->updated_at->lt(now()->subSeconds(30)); @endphp
+            <div class="imp-card imp-working mb-4 d-flex gap-3 align-items-center" data-import-status="{{ route('admin.imports.status') }}" data-import-state="{{ $working->status }}" role="status" aria-live="polite">
+                <span class="spinner-border text-primary flex-shrink-0" aria-hidden="true"></span>
+                <div class="min-w-0">
+                    <h2 class="imp-title mb-1">{{ $working->statusLabel() }}</h2>
+                    <div class="text-sm text-secondary"><i class="bi bi-file-earmark-excel me-1"></i>{{ $working->file_name }}
+                        · {{ $working->type === 'location' ? 'Location Master' : ($working->district_all ? 'All districts' : ($working->district?->label ?? 'School Master')) }}</div>
+                    <div class="text-xs text-secondary mt-1">This runs in the background: you can leave this page. A state-wide file takes 2–3 minutes for each step.</div>
+                    @if ($stalled)
+                        <div class="text-xs text-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Still waiting to start: the background worker may not be running (php artisan queue:work).</div>
+                    @endif
+                </div>
+            </div>
+        @endif
         @if ($preview && $pending)
             @php $isLoc = ($pending['type'] ?? 'school') === 'location'; @endphp
             {{-- Preview of the checked file (nothing saved yet) --}}
@@ -114,7 +130,7 @@
                     </div>
                 @endif
                 <div class="d-flex flex-wrap gap-2">
-                    <form method="POST" action="{{ route('admin.imports.confirm') }}" data-loader="heavy" data-loader-text="Saving records. A state-wide file takes 2–3 minutes; keep this page open…">@csrf
+                    <form method="POST" action="{{ route('admin.imports.confirm') }}" data-loader="heavy" data-loader-text="Starting the save…">@csrf
                         <button class="btn btn-success" @disabled($preview['added'] + $preview['updated'] === 0)><i class="bi bi-check2-circle"></i>Confirm and save {{ $preview['added'] + $preview['updated'] }} {{ \Illuminate\Support\Str::plural($isLoc ? 'change' : 'school', $preview['added'] + $preview['updated']) }}</button>
                     </form>
                     <form method="POST" action="{{ route('admin.imports.cancel') }}">@csrf
@@ -126,7 +142,7 @@
 
         <div class="row g-4">
             <div class="col-lg-8">
-                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form" data-loader="heavy" data-loader-text="Checking the file. A state-wide file takes 2–3 minutes; keep this page open…"
+                <form method="POST" action="{{ route('admin.imports.preview') }}" enctype="multipart/form-data" class="imp-card" id="imp-form" data-loader="heavy" data-loader-text="Uploading the file…"
                       data-preview-url="{{ route('admin.imports.preview') }}" data-store-url="{{ route('admin.imports.store') }}">
                     @csrf
                     {{-- Step 1 --}}

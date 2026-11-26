@@ -228,7 +228,7 @@ class ModificationV13Test extends TestCase
     {
         $this->assertSame(0, config('inspection.import_timeout'));
         $this->assertSame('2048M', config('inspection.import_memory'));
-        $this->actingAs($this->admin())->get(route('admin.imports.index'))->assertOk()->assertSee('keep this page open');
+        $this->actingAs($this->admin())->get(route('admin.imports.index'))->assertOk()->assertSee('Uploading the file…'); // 26-11-2026: the check and save run on the queue, the page need not stay open
     }
 
     public function test_rating_report_links_to_the_rating_map_for_the_state_admin(): void

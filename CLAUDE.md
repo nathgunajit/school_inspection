@@ -120,7 +120,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
      - Both are scheduled on the 1st of each month (02:00 / 02:15). The scheduler must run (`schedule:run`, `.env.example`).
      - The Audit Log page has a Clean up card (State Admin): Archive and delete older than N days, Clear cache, and archive downloads (`admin.audit.archive`).
      - `AUDIT_RETENTION_DAYS` defaults to 30.
-  5. **Import timeout**: `ImportController::longRunning()` at the start of store / preview / confirm sets:
+  5. **Import timeout**: `ImportMasterFile::longRunning()` (since 26-11-2026 in the queue job, before in `ImportController`) sets:
      - `set_time_limit(IMPORT_TIMEOUT)` (default 0 = no limit) and `memory_limit` = `IMPORT_MEMORY` (2048M)
      - `ignore_user_abort`
      - longer MySQL session timeouts
@@ -267,6 +267,12 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - **Downloads page** `downloads.index` (sidebar): `DownloadController` (owner only, others get 404), `downloads.status` JSON (`?keys=`), `downloads.file`, `downloads.destroy`. `resources/js/downloads.js` follows the job (sessionStorage), shows the "Preparing…" box and starts the download when it is ready.
   - `exports:purge` (hourly) removes files older than `EXPORT_KEEP_HOURS` (24) and marks jobs not finished in 3 h as failed.
   - Measured on MySQL with `queue:work`: whole-state School Master Excel 2 min 5 s (4.5 MB); a District officer's My Schools PDF 2 min 15 s.
+- **Background imports** (26-11-2026, performance module C): the Excel Upload check and save run on the queue (`App\Jobs\ImportMasterFile`, mode `check` / `import`).
+  - The `import_batches` row now exists from the check on: `status` checking → checked | check_failed, then queued → importing → done | failed, plus `pending_path`, `preview` (the check result), `error`, `district_all`, `started_at` / `finished_at`. The session keeps only the batch id (`import_pending`), and only the uploader can confirm it.
+  - History lists finished batches only (`ImportBatch::FINISHED`). The page shows a progress card (`[data-import-status]`, `imports.status` JSON, polled by `imports.js`), and the preview / result once the job is done.
+  - On the sync queue the controller answers as before (preview flash, a template error back on the form as `file`). `MasterImportService::import()` takes an optional existing batch and passes the user to its audit entries.
+  - `exports:purge` also removes uploads checked but not confirmed after `EXPORT_KEEP_HOURS`, and fails checks / saves not finished in 3 h.
+  - Measured: the real UDISE file (44,197 rows) checked in 1 min 50 s by the worker.
 - Page loader and network banner: `<x-page-loader />` in both layouts (inline CSS, `window.SI_LOADER`), `resources/js/network-status.js` (slow / offline / back-online banner `#si-net-banner`). The full splash shows only on a slow load or for `data-loader="heavy"` (+ `data-loader-text`); other navigation gets a thin top bar and a busy submit button. `data-no-loader` opts out. Submit buttons get the processing look from `resources/js/button-busy.js` (`data-loading-text`, `window.SI_BUSY`, `data-no-busy` to skip).
 - Find School order (23-11-2026, `SchoolController::index`): active first, then `visits` (count of Submitted / Unlocked inspections) ascending, so never-inspected schools come first, then the oldest `last_inspected_on`, then name. Each result shows "Not inspected yet" (`.school-tag.todo`) or "Inspected N times · last date".
 - **My Schools** (23-11-2026, `schools.mine` `/my-schools`, `SchoolController::mine`, view `schools/mine`, sidebar after Find School): every school in the officer's own jurisdiction (cluster, block, district, or whole state, via `JurisdictionService::schools()`) listed without a search, in the Find School order (shared `listQuery()`), with tiles (total, inspected, not inspected yet, inspected this month), filters (name / UDISE, district / block / cluster per level, inspected yes / no) and downloads (`export_excel`, audited `my_schools_exported` with `format`):

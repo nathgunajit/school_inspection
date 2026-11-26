@@ -262,16 +262,21 @@ class MasterImportService
             ->values();
     }
 
-    public function import(string $type, UploadedFile|string $file, User $user, ?District $district = null, ?string $fileName = null, bool $all = false): ImportBatch
+    /**
+     * Save a file. 26-11-2026: the queued import (App\Jobs\ImportMasterFile) passes the batch row made at the check,
+     * which is filled in place of a new one; the user is passed to the audit entries (a worker has no signed-in user).
+     */
+    public function import(string $type, UploadedFile|string $file, User $user, ?District $district = null, ?string $fileName = null, bool $all = false, ?ImportBatch $batch = null): ImportBatch
     {
         $rows = $this->readRows($type, $file, $district, $all);
         $expected = $type === 'location' ? self::LOCATION_COLUMNS : self::SCHOOL_COLUMNS;
 
         $result = DB::transaction(fn () => $type === 'location' ? $this->importLocations($rows) : $this->importSchools($rows, $district, $all));
 
-        $batch = ImportBatch::create([
+        $values = [
             'type' => $type,
             'district_id' => $district?->id,
+            'district_all' => $all,
             'file_name' => mb_substr($fileName ?? ($file instanceof UploadedFile ? $file->getClientOriginalName() : basename($file)), 0, 255),
             'uploaded_by' => $user->id,
             'total_rows' => $rows->count(),
@@ -279,12 +284,13 @@ class MasterImportService
             'updated' => $result['updated'],
             'rejected' => count($result['errors']),
             'summary' => ($result['summary'] ?? null) === null ? null : $result['summary'] + ($all ? ['all_districts' => true] : []),
-        ]);
+        ];
+        $batch ? $batch->update($values) : $batch = ImportBatch::create($values);
 
-        return $this->finish($batch, $type, $expected, $result);
+        return $this->finish($batch, $type, $expected, $result, $user);
     }
 
-    private function finish(ImportBatch $batch, string $type, array $expected, array $result): ImportBatch
+    private function finish(ImportBatch $batch, string $type, array $expected, array $result, User $user): ImportBatch
     {
         DashboardStats::flush(); // schools are written with the query builder (no model events)
 
@@ -296,11 +302,11 @@ class MasterImportService
 
         AuditLogger::log('master_upload', $batch, ['type' => $type, 'district_id' => $batch->district_id, 'all_districts' => (bool) ($batch->summary['all_districts'] ?? false),
             'added' => $result['added'], 'updated' => $result['updated'], 'renamed' => $result['summary']['renamed_count'] ?? 0, 'rejected' => count($result['errors']),
-            'districts' => collect($result['summary']['districts'] ?? [])->map(fn ($d) => $d['added'] + $d['updated'])->all()]);
+            'districts' => collect($result['summary']['districts'] ?? [])->map(fn ($d) => $d['added'] + $d['updated'])->all()], $user);
 
         // each name correction is recorded on its own (ID unchanged)
         foreach ($result['summary']['renamed'] ?? [] as $r) {
-            AuditLogger::log('location_renamed', $batch, ['type' => $r['type'], 'id' => $r['id'], 'code' => $r['code'], 'old_name' => $r['old'], 'new_name' => $r['new']]);
+            AuditLogger::log('location_renamed', $batch, ['type' => $r['type'], 'id' => $r['id'], 'code' => $r['code'], 'old_name' => $r['old'], 'new_name' => $r['new']], $user);
         }
 
         return $batch;

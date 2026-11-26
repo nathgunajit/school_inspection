@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ImportMasterFile;
 use App\Models\District;
 use App\Models\ImportBatch;
 use App\Services\MasterImportService;
@@ -26,13 +27,35 @@ class ImportController extends Controller
 
     public function index(Request $request, SchoolCountReport $report)
     {
+        // 26-11-2026: the officer's current upload (checking, checked, saving) comes from its batch row
+        $current = $this->current($request);
+        if ($current && in_array($current->status, ['done', 'failed', 'check_failed'], true)) {
+            $request->session()->forget(self::PENDING); // shown once below, then the page is back to a new upload
+            if ($current->status === 'done') {
+                session()->now('import_result', $current->id);
+                session()->now($current->rejected ? 'warning' : 'success', $this->doneMessage($current));
+            } else {
+                session()->now('error', $current->error ?: 'The upload could not be finished.');
+            }
+            $current = null;
+        }
+
         return view('admin.imports.index', [
-            'batches' => ImportBatch::with('uploader', 'district:id,code,name')->latest()->paginate(config('inspection.per_page')),
+            'batches' => ImportBatch::with('uploader', 'district:id,code,name')->whereIn('status', ImportBatch::FINISHED)->latest()->paginate(config('inspection.per_page')),
             'districts' => District::orderBy('name')->get(['id', 'code', 'name']),
             'report' => $report->districts(),
-            'preview' => session('import_preview'),
-            'pending' => $request->session()->get(self::PENDING),
+            'preview' => $current?->status === 'checked' ? $current->preview : null,
+            'pending' => $current?->status === 'checked' ? $current->pendingInfo() : null,
+            'working' => $current?->isWorking() ? $current : null,
         ]);
+    }
+
+    /** 26-11-2026: JSON for imports.js while the officer's upload is being checked or saved. */
+    public function status(Request $request)
+    {
+        $b = $this->current($request);
+
+        return response()->json(['status' => $b?->status, 'label' => $b?->statusLabel()])->header('Cache-Control', 'no-store, private');
     }
 
     public function template(Request $request, string $type)
@@ -53,26 +76,24 @@ class ImportController extends Controller
         return Excel::download(MasterImportService::template($type), $type.'_master_template.xlsx');
     }
 
-    /** Location Master (and older clients): import straight away. */
-    public function store(Request $request, MasterImportService $service)
+    /** Location Master (and older clients): import straight away (on the queue since 26-11-2026). */
+    public function store(Request $request)
     {
-        $this->longRunning(); // Modification V13 item 5
         $data = $request->validate([
             'type' => ['required', 'in:location,school'],
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:'.config('inspection.import_max_kb', 51200)],
         ]);
-        $district = isset($data['district_id']) ? District::find($data['district_id']) : null;
+        $district = $data['type'] === 'school' && isset($data['district_id']) ? District::find($data['district_id']) : null;
+        $this->discardPending($request);
+        $batch = $this->newBatch($request, $data['type'], $district, false, 'queued');
 
-        $batch = $service->import($data['type'], $request->file('file'), $request->user(), $data['type'] === 'school' ? $district : null);
-
-        return $this->done($batch);
+        return $this->started($request, $batch, 'import');
     }
 
     /** Step 3: check the file (School Master for one district, or Location Master); nothing is saved yet. */
-    public function preview(Request $request, MasterImportService $service)
+    public function preview(Request $request)
     {
-        $this->longRunning(); // Modification V13 item 5
         $data = $request->validate([
             'type' => ['nullable', 'in:location,school'],
             'district_id' => ['required_unless:type,location', 'nullable', function ($attr, $v, $fail) {
@@ -85,41 +106,27 @@ class ImportController extends Controller
         $type = $data['type'] ?? 'school';
         $all = $type === 'school' && ($data['district_id'] ?? null) === self::ALL;
         $district = $type === 'school' && ! $all ? District::findOrFail((int) $data['district_id']) : null;
-        $file = $request->file('file');
 
         $this->discardPending($request);
-        $path = $file->storeAs('imports/pending', Str::random(32).'.'.($file->getClientOriginalExtension() ?: 'xlsx'), 'private');
+        $batch = $this->newBatch($request, $type, $district, $all, 'checking');
 
-        try {
-            $result = $service->preview($type, Storage::disk('private')->path($path), $district, $all);
-        } catch (\Throwable $e) {
-            Storage::disk('private')->delete($path);
-            throw $e;
-        }
-
-        $request->session()->put(self::PENDING, ['path' => $path, 'type' => $type, 'district_id' => $district?->id, 'all' => $all,
-            'district' => $all ? 'All districts' : $district?->name, 'name' => mb_substr($file->getClientOriginalName(), 0, 255)]);
-
-        return redirect()->route('admin.imports.index')->with('import_preview', $result);
+        return $this->started($request, $batch, 'check');
     }
 
-    /** Save the file that was checked in preview(). */
-    public function confirm(Request $request, MasterImportService $service)
+    /** Save the file that was checked in preview() (on the queue since 26-11-2026). */
+    public function confirm(Request $request)
     {
-        $this->longRunning(); // Modification V13 item 5
-        $p = $request->session()->get(self::PENDING);
-        if (! $p || ! Storage::disk('private')->exists($p['path'])) {
-            $request->session()->forget(self::PENDING);
+        $batch = $this->current($request);
+        if (! $batch || $batch->status !== 'checked' || ! $batch->pending_path || ! Storage::disk('private')->exists($batch->pending_path)) {
+            if ($batch && ! $batch->isWorking()) {
+                $this->discardPending($request);
+            }
 
             return redirect()->route('admin.imports.index')->with('error', 'The checked file has expired. Please upload the file again.');
         }
+        $batch->update(['status' => 'queued']);
 
-        $type = $p['type'] ?? 'school';
-        $batch = $service->import($type, Storage::disk('private')->path($p['path']), $request->user(),
-            $type === 'school' && empty($p['all']) ? District::findOrFail($p['district_id']) : null, $p['name'], $type === 'school' && ! empty($p['all']));
-        $this->discardPending($request);
-
-        return $this->done($batch);
+        return $this->started($request, $batch, 'import');
     }
 
     public function cancel(Request $request)
@@ -150,35 +157,81 @@ class ImportController extends Controller
         return Storage::disk('private')->download($batch->error_file_path, "import_{$batch->id}_errors.xlsx");
     }
 
-    private function done(ImportBatch $batch)
+    private function doneMessage(ImportBatch $batch): string
     {
-        return redirect()->route('admin.imports.index')->with('import_result', $batch->id)->with(
-            $batch->rejected ? 'warning' : 'success',
-            "Upload complete: {$batch->added} added, {$batch->updated} updated, {$batch->rejected} rejected."
-        );
+        return "Upload complete: {$batch->added} added, {$batch->updated} updated, {$batch->rejected} rejected.";
+    }
+
+    /** The officer's current upload: the batch id kept in the session, only their own. */
+    private function current(Request $request): ?ImportBatch
+    {
+        $id = $request->session()->get(self::PENDING);
+        if (! is_int($id)) {
+            return null; // nothing, or an array left by the version before 26-11-2026
+        }
+
+        return ImportBatch::with('district:id,code,name')->where('uploaded_by', $request->user()->id)->find($id);
+    }
+
+    /** Keep the uploaded file on the private disk and make the batch row that follows it through check and save. */
+    private function newBatch(Request $request, string $type, ?District $district, bool $all, string $status): ImportBatch
+    {
+        $file = $request->file('file');
+        $path = $file->storeAs('imports/pending', Str::random(32).'.'.($file->getClientOriginalExtension() ?: 'xlsx'), 'private');
+        $batch = ImportBatch::create([
+            'type' => $type, 'status' => $status, 'district_id' => $district?->id, 'district_all' => $all, 'uploaded_by' => $request->user()->id,
+            'file_name' => mb_substr($file->getClientOriginalName(), 0, 255), 'pending_path' => $path,
+        ]);
+        $request->session()->put(self::PENDING, $batch->id);
+
+        return $batch;
+    }
+
+    /**
+     * Hand the batch to the queue. On the "sync" queue (tests, or no worker) it is already finished here, so the
+     * answer is what the page used to show; with a worker the page shows the progress card and polls.
+     */
+    private function started(Request $request, ImportBatch $batch, string $mode)
+    {
+        try {
+            ImportMasterFile::dispatch($batch->id, $mode);
+        } catch (\Throwable $e) { // the sync queue runs the job here and rethrows its error (failed() has recorded it)
+            report($e);
+        }
+        $batch->refresh();
+        $back = redirect()->route('admin.imports.index');
+
+        return match ($batch->status) {
+            'checked' => $back->with('import_preview', $batch->preview),
+            'check_failed' => $this->failedCheck($request, $batch),
+            'done' => tap($back->with('import_result', $batch->id)->with($batch->rejected ? 'warning' : 'success', $this->doneMessage($batch)),
+                fn () => $request->session()->forget(self::PENDING)),
+            'failed' => tap($back->with('error', $batch->error), fn () => $request->session()->forget(self::PENDING)),
+            default => $back->with('info', $mode === 'check'
+                ? 'The file is being checked in the background. You can leave this page; come back to see the result.'
+                : 'The file is being saved in the background. You can leave this page; the result appears in History.'),
+        };
+    }
+
+    /** A file that does not match the template is refused on the form, as before. */
+    private function failedCheck(Request $request, ImportBatch $batch)
+    {
+        $request->session()->forget(self::PENDING);
+        $message = $batch->error ?: 'The file could not be checked.';
+        $batch->delete(); // nothing was checked: no history row
+
+        return redirect()->route('admin.imports.index')->withErrors(['file' => $message])->withInput($request->except('file'));
     }
 
     private function discardPending(Request $request): void
     {
-        if ($p = $request->session()->pull(self::PENDING)) {
-            Storage::disk('private')->delete($p['path']);
-        }
-    }
-
-    /**
-     * Modification V13 item 5: a state-wide School Master (44,000 rows) runs for minutes. Lift the PHP time and
-     * memory limits for this request, keep going if the browser is closed (no half-saved file), and give MySQL
-     * longer session timeouts.
-     */
-    private function longRunning(): void
-    {
-        set_time_limit((int) config('inspection.import_timeout', 0));
-        if ($mem = config('inspection.import_memory')) {
-            @ini_set('memory_limit', (string) $mem);
-        }
-        ignore_user_abort(true);
-        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
-            \Illuminate\Support\Facades\DB::statement('SET SESSION wait_timeout = 28800, net_read_timeout = 600, net_write_timeout = 600');
+        $batch = $this->current($request);
+        $request->session()->forget(self::PENDING);
+        if ($batch && in_array($batch->status, ['checking', 'checked', 'check_failed'], true)) {
+            if ($batch->pending_path) {
+                Storage::disk('private')->delete($batch->pending_path);
+            }
+            $batch->delete(); // a queued check finds no row and stops
         }
     }
 }

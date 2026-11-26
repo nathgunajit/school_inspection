@@ -2945,3 +2945,27 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
     - District officer coverage PDF 1 s, My Schools PDF 2 min 15 s
     - School Master PDF refused for that officer ("You are not allowed to download this.")
   - check jobs and files removed afterwards
+
+## 26-11-2026: Performance gaps, module C (background imports)
+- **What:**
+  - **Background check and save:** the Excel Upload check and save run on the queue (`App\Jobs\ImportMasterFile`, modes `check` / `import`). A state-wide School Master no longer holds a web request open for minutes, twice.
+  - **Batch statuses:** `import_batches` gets `status` (checking, checked, check_failed, queued, importing, done, failed; old rows = done), `pending_path`, `preview`, `error`, `district_all`, `started_at`, `finished_at`.
+    - The session keeps only the batch id, and only its uploader can confirm it.
+    - History lists finished batches only.
+    - The page shows a progress card that polls `imports.status` and reloads when the status changes. The result or error is shown once.
+  - **Sync queue:** the answers are unchanged (preview flash, a template error back on the form as `file`).
+  - **`MasterImportService::import()`:** accepts the existing batch and passes the user to `master_upload` / `location_renamed` (a worker has no signed-in user).
+  - **`longRunning()`:** moved into the job (MariaDB too).
+  - **`exports:purge`:** removes uploads checked but never confirmed after 24 h, and fails checks / saves not finished in 3 h.
+  - **Two tests updated:** a checked batch now exists before Confirm, and the page no longer says "keep this page open".
+- **Files:**
+  - `app/Jobs/ImportMasterFile.php`, `app/Models/ImportBatch.php`
+  - `app/Http/Controllers/Admin/ImportController.php`, `app/Services/MasterImportService.php`
+  - migration `2026_11_26_000002_add_status_to_import_batches`
+  - `resources/views/admin/imports/index.blade.php`, `resources/js/imports.js`, `routes/{web,console}.php`, `CLAUDE.md`
+  - tests `QueuedImportTest`, `DistrictSchoolImportTest`, `ModificationV13Test`
+- **Verified:**
+  - full suite 337 passed
+  - MySQL migrated
+  - real `queue:work` check of `Documents/SchoolMaster_UDISE 202526.xlsx`: 44,197 rows (0 new, 44,197 update, 0 errors) in 1 min 50 s
+  - the check batch was removed afterwards; nothing was saved

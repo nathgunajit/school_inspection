@@ -55,7 +55,24 @@ Artisan::command('exports:purge {--hours= : Keep this many hours (default EXPORT
             $files++;
         }
     }
-    $this->info("Removed {$rows} download(s) and {$files} leftover file(s) older than {$hours} hours; {$stuck} unfinished job(s) marked failed.");
+    // module C: uploads checked but never confirmed (or cancelled by closing the page) are dropped with their file,
+    // and a check / save the worker never finished is marked failed
+    $abandoned = 0;
+    \App\Models\ImportBatch::whereIn('status', ['checked', 'check_failed'])->where('updated_at', '<', $cutoff)->each(function ($b) use ($disk, &$abandoned) {
+        if ($b->pending_path) {
+            $disk->delete($b->pending_path);
+        }
+        $b->delete();
+        $abandoned++;
+    });
+    \App\Models\ImportBatch::whereIn('status', \App\Models\ImportBatch::WORKING)->where('updated_at', '<', now()->subHours(3))->each(function ($b) use ($disk) {
+        if ($b->pending_path) {
+            $disk->delete($b->pending_path);
+        }
+        $b->update(['status' => $b->status === 'checking' ? 'check_failed' : 'failed', 'pending_path' => null, 'finished_at' => now(),
+            'error' => 'The upload was not finished in time (is the queue worker running?). Nothing was saved; please upload it again.']);
+    });
+    $this->info("Removed {$rows} download(s) and {$files} leftover file(s) older than {$hours} hours; {$stuck} unfinished job(s) marked failed; {$abandoned} unconfirmed upload(s) removed.");
 })->purpose('Delete background downloads older than the keep time');
 
 Schedule::command('exports:purge')->hourly();

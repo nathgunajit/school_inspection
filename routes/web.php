@@ -277,6 +277,7 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/imports/preview', [Admin\ImportController::class, 'preview'])->name('imports.preview');
                 Route::post('/imports/confirm', [Admin\ImportController::class, 'confirm'])->name('imports.confirm');
                 Route::post('/imports/cancel', [Admin\ImportController::class, 'cancel'])->name('imports.cancel');
+                Route::get('/imports/status', [Admin\ImportController::class, 'status'])->middleware('throttle:120,1')->name('imports.status'); // 26-11-2026
                 Route::get('/imports/district-blocks', [Admin\ImportController::class, 'district'])->name('imports.district');
                 Route::get('/imports/report/export', [Admin\ImportController::class, 'report'])->name('imports.report');
                 Route::get('/imports/{batch}/errors', [Admin\ImportController::class, 'errors'])->name('imports.errors');

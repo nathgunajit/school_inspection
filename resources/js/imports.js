@@ -80,3 +80,25 @@ if (root) {
         row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(row); } });
     });
 }
+
+// 26-11-2026 performance, module C: the check / save runs on the queue. While the progress card is shown,
+// ask for the status every 3 s and reload the page when it moves on (preview, result or error).
+const working = document.querySelector('[data-import-status]');
+if (working) {
+    const url = working.dataset.importStatus;
+    const was = working.dataset.importState;
+    const tick = async () => {
+        try {
+            const res = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            if (res.ok) {
+                const { status } = await res.json();
+                if (status !== was) {
+                    window.location.reload();
+                    return;
+                }
+            }
+        } catch { /* network trouble: try again */ }
+        setTimeout(tick, 3000);
+    };
+    setTimeout(tick, 3000);
+}

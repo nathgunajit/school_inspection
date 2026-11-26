@@ -48,7 +48,7 @@ class DistrictSchoolImportTest extends TestCase
         $this->actingAs($admin)->post(route('admin.imports.preview'), ['district_id' => $north->id, 'file' => $file])
             ->assertRedirect(route('admin.imports.index'))->assertSessionHas('import_preview', fn ($p) => $p['added'] === 2 && $p['rejected'] === 2 && count($p['summary']['blocks']) >= 2);
         $this->assertDatabaseMissing('schools', ['udise_code' => '18010101901']);
-        $this->assertSame(0, ImportBatch::count());
+        $this->assertSame(0, ImportBatch::whereIn('status', ImportBatch::FINISHED)->count()); // 26-11-2026: the checked batch waits for Confirm
 
         $page = $this->get(route('admin.imports.index'))->assertOk();
         $page->assertSee('File checked: nothing is saved yet')->assertSee('Confirm and save 2 schools')->assertSee('is not in the chosen district (North District)', false);
