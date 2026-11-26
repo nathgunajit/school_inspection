@@ -161,6 +161,86 @@ class TodaySchoolsTest extends TestCase
         $this->assertSame(0, DailySchoolListService::reopenCarriedOnlyDays($day), 'a completed day is left alone');
     }
 
+    /** 26-11-2026: a settings change shows on today's list the same day. */
+    private function todayRows($crcc)
+    {
+        return DailySchoolList::where('officer_id', $crcc->id)->where('list_date', today()->toDateString())->orderBy('position')->get();
+    }
+
+    public function test_a_new_daily_limit_changes_todays_list_the_same_day(): void
+    {
+        $crcc = $this->crcc();
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk()->assertDontSee('List updated');
+        $first = $this->todayRows($crcc)->pluck('school_id')->all();
+        $this->assertCount(2, $first);
+
+        // the same settings: nothing is refreshed
+        $this->get(route('today.index'))->assertOk()->assertDontSee('List updated');
+        $this->assertSame(0, AuditLog::where('action', 'daily_list_refreshed')->count());
+
+        DailyDisplaySetting::state()->update(['daily_limit' => 4]);
+        $this->get(route('today.index'))->assertOk()->assertSee('List updated after a change');
+        $rows = $this->todayRows($crcc);
+        $this->assertCount(4, $rows);
+        $this->assertSame($first, $rows->take(2)->pluck('school_id')->all(), 'the morning schools stay');
+        $this->assertSame(1, AuditLog::where('action', 'daily_list_refreshed')->count());
+
+        // a visited and a started school are never taken off, even when the limit drops below them
+        $rows[0]->update(['status' => 'visited']);
+        $this->startInspection($crcc, School::findOrFail($rows[1]->school_id));
+        DailyDisplaySetting::state()->update(['daily_limit' => 1]);
+        $this->get(route('dashboard'))->assertOk()->assertSee('List updated after a settings change');
+        $this->assertEqualsCanonicalizing([$rows[0]->school_id, $rows[1]->school_id], $this->todayRows($crcc)->pluck('school_id')->all());
+
+        // back up to 3: one new school next to the two kept
+        DailyDisplaySetting::state()->update(['daily_limit' => 3]);
+        $this->get(route('today.index'))->assertOk();
+        $this->assertCount(3, $this->todayRows($crcc));
+    }
+
+    public function test_switching_the_pending_list_off_and_on_the_same_day(): void
+    {
+        $crcc = $this->crcc();
+        $s = School::where('cluster_id', $this->cluster->id)->orderBy('id')->first();
+        $old = DailySchoolList::create(['officer_id' => $crcc->id, 'list_date' => today()->subDay()->toDateString(), 'school_id' => $s->id,
+            'position' => 1, 'reason' => 'not_inspected', 'source' => 'auto', 'status' => 'pending']);
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk();
+        $this->assertTrue($this->todayRows($crcc)->contains('source', 'carried'));
+
+        DailyDisplaySetting::state()->update(['carry_forward' => false]);
+        $this->get(route('today.index'))->assertOk();
+        $this->assertFalse($this->todayRows($crcc)->contains('source', 'carried'));
+        $this->assertSame('pending', $old->fresh()->status, 'back on its own day');
+        $this->assertCount(2, $this->todayRows($crcc));
+
+        DailyDisplaySetting::state()->update(['carry_forward' => true]);
+        $this->get(route('today.index'))->assertOk();
+        $this->assertSame($s->id, $this->todayRows($crcc)->firstWhere('source', 'carried')?->school_id);
+        $this->assertSame('carried', $old->fresh()->status);
+    }
+
+    public function test_a_list_made_before_the_stamp_is_kept_and_a_district_change_is_its_own(): void
+    {
+        $crcc = $this->crcc();
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk();
+        $before = $this->todayRows($crcc)->pluck('school_id')->all();
+        DB::table('daily_school_list_days')->where('officer_id', $crcc->id)->update(['setting_stamp' => null]);
+        DailyDisplaySetting::state()->update(['daily_limit' => 3]);
+        $this->get(route('today.index'))->assertOk();
+        $this->assertSame($before, $this->todayRows($crcc)->pluck('school_id')->all(), 'old list stamped, not changed');
+        $this->assertNotNull(DB::table('daily_school_list_days')->where('officer_id', $crcc->id)->value('setting_stamp'));
+
+        // another district's override does not touch this officer's list
+        $otherDistrict = \App\Models\District::where('id', '!=', $this->cluster->block->district_id)->value('id');
+        DailyDisplaySetting::create(['district_id' => $otherDistrict, 'daily_limit' => 5, 'weekly_off' => []] + DailyDisplaySetting::defaults());
+        $this->get(route('today.index'))->assertOk();
+        $this->assertCount(2, $this->todayRows($crcc));
+        // its own district's override does
+        DailyDisplaySetting::create(['district_id' => $this->cluster->block->district_id, 'daily_limit' => 4, 'weekly_off' => []] + DailyDisplaySetting::defaults());
+        $this->get(route('today.index'))->assertOk();
+        $this->assertCount(4, $this->todayRows($crcc));
+    }
+
     public function test_no_list_on_a_holiday_or_weekly_off(): void
     {
         $crcc = $this->crcc();

@@ -3024,3 +3024,26 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `TodaySchoolsTest`: carry-forward now expects 1 carried + 2 new; new tests for 2 pending + 2 new and for repairing a day made the old way.
   - Full suite: 343 passed.
   - Migrated on MySQL: today's lists now hold 6 auto and 5 carried rows.
+
+## 2026-11-26: Today's Schools: a settings change updates today's list the same day
+- **Problem:** the list was made once a day. Changing Today's Schools Settings (daily limit, priorities, random, recent days, distance, pending list) only showed the next day.
+- **Fix:**
+  - `daily_school_list_days.setting_stamp` (migration `2026_11_26_000005`) keeps `DailyDisplaySetting::listStamp()`, a sha1 of the values that decide the schools. Enabled, levels and weekly off are left out because they are checked on every view.
+  - `DailySchoolListService::generate()`: when the stamp differs on the next view, `refresh()` brings today's list in line. A null stamp (lists made before) is only stamped.
+  - **`refresh()` keeps** assigned, visited, skipped and open-draft rows, plus carried rows while the pending list is on.
+  - **Pending list switched off:** today's untouched carried rows are removed and their earlier row goes back to `pending`. Switching it on carries them again.
+  - **Automatic schools** are picked again for the new limit. `pick(..., $prefer)` gives today's ones a +1 tie bonus (first in random mode), so a higher limit only adds and a lower one keeps the best. Audited `daily_list_refreshed` (added, removed).
+  - The carry step moved to `carry()`, shared by generate and refresh.
+  - `pick()`'s "busy" check no longer counts the officer's own rows (they are passed in `$exclude`).
+  - Text: Today's Schools and the dashboard card note "List updated after a settings change"; the settings save message says today's lists change too.
+- **Files:** `app/Services/DailySchoolListService.php`, `app/Models/DailyDisplaySetting.php`, `app/Http/Controllers/TodaySchoolsController.php`, `database/migrations/2026_11_26_000005_add_setting_stamp_to_daily_school_list_days.php`, `resources/views/today/index.blade.php`, `resources/views/dashboard.blade.php`, `tests/Feature/TodaySchoolsTest.php`
+- **Verified:**
+  - 3 new tests:
+    - limit 2 to 4 keeps the morning schools and adds 2
+    - limit 1 never removes a visited or draft school
+    - pending list off / on the same day
+    - unchanged settings make no refresh
+    - a null stamp is kept
+    - only the officer's own district override counts
+  - Full suite: 346 passed.
+  - Migrated on MySQL.

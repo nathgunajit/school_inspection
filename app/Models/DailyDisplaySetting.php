@@ -70,6 +70,18 @@ class DailyDisplaySetting extends Model
         return $row;
     }
 
+    /**
+     * 26-11-2026: a fingerprint of the values that decide which schools are on a list. A day's list made with another
+     * stamp is refreshed on the officer's next view (DailySchoolListService::refresh()), so a settings change shows the
+     * same day. enabled / levels / weekly_off are not in it: they are checked on every view anyway.
+     */
+    public function listStamp(): string
+    {
+        return sha1(json_encode([(int) $this->daily_limit, (string) $this->selection, (bool) $this->prefer_not_inspected, (bool) $this->prefer_low_rating,
+            (int) $this->low_rating_below, (bool) $this->prefer_issues, (bool) $this->prefer_less_visited, (bool) $this->carry_forward,
+            (int) $this->recent_days, (bool) $this->skip_blocked, $this->max_distance_km === null ? null : (int) $this->max_distance_km]));
+    }
+
     /** A district row whose officer levels come from the state default. */
     public function followsStateLevels(): bool
     {

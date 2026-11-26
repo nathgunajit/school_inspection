@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * V14 item 5 (25-11-2026): "Today's schools", the schools a CRCC is asked to visit on a working day.
  *
- * The list is generated once, on the officer's first view of the day (no cron needed), and then stays the same all day:
+ * The list is generated once, on the officer's first view of the day (no cron needed), and then stays the same all day
+ * unless the settings change (26-11-2026: then the next view refreshes it, keeping what the officer already acted on):
  *   1. schools a higher officer assigned for the day (manual),
  *   2. pending schools from earlier days (carry forward),
  *   3. automatic picks up to the daily limit, from the eligible schools, by priority (never inspected, low rating,
@@ -64,42 +65,50 @@ class DailySchoolListService
         if ($date->gt(today())) {
             return ['state' => 'future', 'reason' => null, 'rows' => $rows()];
         }
-        if ($date->isToday()) {
-            $this->generate($officer, $date, $setting);
-        }
+        $refreshed = $date->isToday() && $this->generate($officer, $date, $setting);
 
-        return ['state' => 'list', 'reason' => null, 'rows' => $rows()];
+        return ['state' => 'list', 'reason' => null, 'rows' => $rows(), 'refreshed' => $refreshed];
     }
 
-    /** Build the day's list once (the day row is the lock and the "already generated" marker). */
-    public function generate(User $officer, Carbon $date, DailyDisplaySetting $setting): void
+    /**
+     * Build the day's list once (the day row is the lock and the "already generated" marker). 26-11-2026: the marker
+     * keeps the settings stamp; when the settings changed since, the list is refreshed (refresh()). Returns true when
+     * this call changed an existing list.
+     */
+    public function generate(User $officer, Carbon $date, DailyDisplaySetting $setting): bool
     {
         $day = $date->toDateString();
-        DB::transaction(function () use ($officer, $date, $day, $setting) {
-            $inserted = DB::table('daily_school_list_days')->insertOrIgnore(['officer_id' => $officer->id, 'list_date' => $day, 'created_at' => now(), 'updated_at' => now()]);
-            if (! $inserted) {
-                return; // already generated today
+        $stamp = $setting->listStamp();
+        $marker = fn () => DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day);
+
+        $existing = $marker()->first(['setting_stamp']);
+        if ($existing && $existing->setting_stamp === $stamp) {
+            return false; // already generated with these settings
+        }
+
+        return DB::transaction(function () use ($officer, $date, $day, $setting, $stamp, $marker, $existing) {
+            if ($existing) {
+                $current = $marker()->lockForUpdate()->value('setting_stamp'); // another request may have refreshed it meanwhile
+                if ($current === $stamp) {
+                    return false;
+                }
+                $marker()->update(['setting_stamp' => $stamp, 'updated_at' => now()]);
+
+                return $current !== null && $this->refresh($officer, $date, $setting); // null: made before the stamp, kept as it is
             }
-            $existing = DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->get(['school_id', 'source']); // manual rows
-            $taken = $existing->pluck('school_id')->all();
+            $inserted = DB::table('daily_school_list_days')->insertOrIgnore(['officer_id' => $officer->id, 'list_date' => $day, 'setting_stamp' => $stamp,
+                'created_at' => now(), 'updated_at' => now()]);
+            if (! $inserted) {
+                return false; // another request generated it just now
+            }
+            $rows = DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->get(['school_id', 'source']); // manual rows
+            $taken = $rows->pluck('school_id')->all();
             $position = count($taken);
             // 26-11-2026: only the assigned rows use the daily limit; carried schools are extra
-            $manual = $existing->where('source', 'manual')->count();
+            $manual = $rows->where('source', 'manual')->count();
 
             if ($setting->carry_forward) {
-                $pending = DailySchoolList::where('officer_id', $officer->id)->where('status', 'pending')
-                    ->where('list_date', '<', $day)->where('list_date', '>=', $date->copy()->subDays(self::CARRY_DAYS)->toDateString())
-                    ->orderBy('list_date')->orderBy('position')->get();
-                $doneSince = $this->inspectedSince($pending->pluck('school_id'), $date->copy()->subDays(self::CARRY_DAYS), $officer);
-                foreach ($pending as $p) {
-                    $p->update(['status' => 'carried']);
-                    if (in_array($p->school_id, $taken, true) || isset($doneSince[$p->school_id])) {
-                        continue;
-                    }
-                    if ($this->claim($officer, $day, $p->school_id, ++$position, 'carried', 'carried', null, $p->carried_from ?? $p->list_date)) {
-                        $taken[] = $p->school_id;
-                    }
-                }
+                $this->carry($officer, $date, $taken, $position);
             }
 
             $room = max(0, $setting->daily_limit - $manual); // carried ones are still excluded from the pick ($taken)
@@ -109,7 +118,95 @@ class DailySchoolListService
                 }
             }
             AuditLogger::log('daily_list_generated', null, ['officer_id' => $officer->id, 'date' => $day, 'schools' => $position], $officer);
+
+            return false;
         });
+    }
+
+    /**
+     * 26-11-2026: the settings changed after today's list was made, so bring it in line, touching only what the officer
+     * has not acted on. Assigned, visited, skipped and draft rows stay; carried rows stay while the pending list is on.
+     * The automatic schools are picked again for the new limit / priorities; today's ones are preferred, so a higher
+     * limit only adds and a lower one keeps the best. Returns true when the list changed.
+     */
+    private function refresh(User $officer, Carbon $date, DailyDisplaySetting $setting): bool
+    {
+        $day = $date->toDateString();
+        $rows = DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->get();
+        $drafts = $this->openDrafts($officer, $rows->where('status', 'pending')->pluck('school_id'));
+        $free = fn ($r) => $r->status === 'pending' && ! $drafts->has($r->school_id); // nothing done on it yet
+        $added = $removed = 0;
+        $position = (int) $rows->max('position');
+
+        if (! $setting->carry_forward) { // pending list switched off: today's untouched carried rows go back to their earlier day
+            foreach ($rows->where('source', 'carried')->filter($free) as $r) {
+                $earlier = DailySchoolList::where('officer_id', $officer->id)->where('school_id', $r->school_id)->where('list_date', '<', $day)
+                    ->where('status', 'carried')->orderByDesc('list_date')->value('id');
+                if ($earlier) {
+                    DailySchoolList::whereKey($earlier)->update(['status' => 'pending', 'updated_at' => now()]);
+                }
+                $r->delete();
+                $removed++;
+            }
+            $rows = $rows->reject(fn ($r) => $r->source === 'carried' && $free($r));
+        }
+
+        $freeAuto = $rows->where('source', 'auto')->filter($free);
+        $taken = $rows->pluck('school_id')->all();
+        if ($setting->carry_forward) {
+            $added += $this->carry($officer, $date, $taken, $position);
+        }
+
+        $kept = $rows->where('source', 'manual')->count() + $rows->where('source', 'auto')->count() - $freeAuto->count();
+        $room = max(0, $setting->daily_limit - $kept);
+        $exclude = array_values(array_diff($taken, $freeAuto->pluck('school_id')->all()));
+        $picks = $room > 0 ? $this->pick($officer, $date, $setting, $exclude, $room, $freeAuto->pluck('school_id')->all()) : [];
+        $picked = array_column($picks, 0);
+
+        foreach ($freeAuto as $r) {
+            if (! in_array($r->school_id, $picked, true)) {
+                $r->delete();
+                $removed++;
+            }
+        }
+        $have = $freeAuto->pluck('school_id')->all();
+        foreach ($picks as [$schoolId, $reason]) {
+            if (! in_array($schoolId, $have, true) && $this->claim($officer, $day, $schoolId, ++$position, $reason, 'auto')) {
+                $added++;
+            }
+        }
+        if ($added || $removed) {
+            AuditLogger::log('daily_list_refreshed', null, ['officer_id' => $officer->id, 'date' => $day, 'added' => $added, 'removed' => $removed], $officer);
+        }
+
+        return $added > 0 || $removed > 0;
+    }
+
+    /**
+     * Carry the officer's pending schools of earlier days (within CARRY_DAYS) onto $date: the earlier row becomes
+     * 'carried' and a 'carried' row is added unless the school is already on the day's list or was inspected since.
+     * Returns the number of rows added; $taken and $position are updated.
+     */
+    private function carry(User $officer, Carbon $date, array &$taken, int &$position): int
+    {
+        $day = $date->toDateString();
+        $pending = DailySchoolList::where('officer_id', $officer->id)->where('status', 'pending')
+            ->where('list_date', '<', $day)->where('list_date', '>=', $date->copy()->subDays(self::CARRY_DAYS)->toDateString())
+            ->orderBy('list_date')->orderBy('position')->get();
+        $doneSince = $this->inspectedSince($pending->pluck('school_id'), $date->copy()->subDays(self::CARRY_DAYS), $officer);
+        $added = 0;
+        foreach ($pending as $p) {
+            $p->update(['status' => 'carried']);
+            if (in_array($p->school_id, $taken, true) || isset($doneSince[$p->school_id])) {
+                continue;
+            }
+            if ($this->claim($officer, $day, $p->school_id, ++$position, 'carried', 'carried', null, $p->carried_from ?? $p->list_date)) {
+                $taken[] = $p->school_id;
+                $added++;
+            }
+        }
+
+        return $added;
     }
 
     /**
@@ -133,8 +230,9 @@ class DailySchoolListService
      *
      * @return array<int, array{0: int, 1: string}>
      */
-    public function pick(User $officer, Carbon $date, DailyDisplaySetting $setting, array $exclude, int $limit): array
+    public function pick(User $officer, Carbon $date, DailyDisplaySetting $setting, array $exclude, int $limit, array $prefer = []): array
     {
+        $prefer = array_flip($prefer); // 26-11-2026 (refresh): today's schools win a tie, so a settings change moves as few as it can
         $schools = $this->j->schools($officer)->where('schools.status', 'active')->whereNotIn('schools.id', $exclude ?: [0])
             ->get(['schools.id', 'schools.latitude', 'schools.longitude'])->keyBy('id');
         if ($schools->isEmpty()) {
@@ -144,7 +242,7 @@ class DailySchoolListService
         $day = $date->toDateString();
 
         // on another officer's list or plan today
-        $busy = DailySchoolList::whereIn('school_id', $ids)->where('list_date', $day)->pluck('school_id')
+        $busy = DailySchoolList::whereIn('school_id', $ids)->where('list_date', $day)->where('officer_id', '!=', $officer->id)->pluck('school_id') // own rows: $exclude
             ->merge(InspectionScheduleItem::whereIn('school_id', $ids)->where('schedule_date', $day)
                 ->whereHas('schedule', fn ($s) => $s->where('officer_id', '!=', $officer->id))->pluck('school_id'))->flip();
         $recent = $setting->recent_days > 0 ? $this->inspectedSince($ids, $date->copy()->subDays($setting->recent_days), $officer) : [];
@@ -168,7 +266,7 @@ class DailySchoolListService
         $eids = $eligible->keys();
 
         if ($setting->selection === 'random') {
-            return $eids->shuffle()->take($limit)->map(fn ($id) => [(int) $id, 'random'])->values()->all();
+            return $eids->shuffle()->sortBy(fn ($id) => isset($prefer[$id]) ? 0 : 1)->take($limit)->map(fn ($id) => [(int) $id, 'random'])->values()->all();
         }
 
         // 25-11-2026: only the inspections this officer may see (own + lower levels) count
@@ -176,7 +274,7 @@ class DailySchoolListService
         $ratings = $setting->prefer_low_rating ? $this->latestRatings($eids, $officer) : [];
         $issues = $setting->prefer_issues ? $this->openIssues($eids, $officer) : [];
 
-        $scored = $eids->map(function ($id) use ($visits, $ratings, $issues, $setting, $date) {
+        $scored = $eids->map(function ($id) use ($visits, $ratings, $issues, $setting, $date, $prefer) {
             $parts = [];
             $v = $visits[$id] ?? null;
             if ($setting->prefer_not_inspected && ! $v) {
@@ -193,7 +291,7 @@ class DailySchoolListService
             }
             arsort($parts);
 
-            return ['id' => (int) $id, 'score' => array_sum($parts) + mt_rand(0, 999) / 1000, 'reason' => array_key_first($parts) ?? 'random'];
+            return ['id' => (int) $id, 'score' => array_sum($parts) + (isset($prefer[$id]) ? 1 : 0) + mt_rand(0, 999) / 1000, 'reason' => array_key_first($parts) ?? 'random'];
         })->sortByDesc('score')->take($limit);
 
         return $scored->map(fn ($s) => [$s['id'], $s['reason']])->values()->all();

@@ -155,7 +155,7 @@ class TodaySchoolsController extends Controller
         $row = DailyDisplaySetting::updateOrCreate(['district_id' => $districtId], $data + ['updated_by' => $user->id]);
         AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId] + $data);
 
-        return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. They apply from the next day\'s list.');
+        return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. Today\'s lists change too when officers next open them (schools already visited, skipped, started or assigned stay).');
     }
 
     /** Active officers below the user in their area (not the user). */

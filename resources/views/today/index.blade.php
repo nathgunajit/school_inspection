@@ -33,6 +33,10 @@
         <x-empty-state icon="bi-check2-all" :title="$isToday ? 'No schools for today' : 'No schools were listed on this day'" text="Every eligible school in your area was visited recently, or is on another officer's list. Use Find School to start any inspection." />
     @endif
 
+    @if (! empty($list['refreshed']))
+        <div class="alert alert-info py-2 text-sm"><i class="bi bi-info-circle me-1"></i>List updated after a change in the Today's Schools settings.</div>
+    @endif
+
     @if ($rows->isNotEmpty())
         <div class="dash-panel">
             <div class="dash-panel-head">

@@ -81,6 +81,9 @@
                             <h3><i class="bi bi-signpost-2"></i>Today's schools @if ($todaySchools['state'] === 'list')· {{ $tsRows->where('status', 'visited')->count() }} of {{ $tsRows->count() }} visited @endif</h3>
                             <a href="{{ route('today.index') }}">Open <i class="bi bi-arrow-right"></i></a>
                         </div>
+                        @if (! empty($todaySchools['refreshed']))
+                            <div class="text-xs text-secondary px-3 pt-2"><i class="bi bi-info-circle me-1"></i>List updated after a settings change.</div>
+                        @endif
                         @if ($todaySchools['state'] === 'off')
                             <div class="dash-empty"><i class="bi bi-calendar-heart"></i>{{ $todaySchools['reason'] }}. No schools today.</div>
                         @else
