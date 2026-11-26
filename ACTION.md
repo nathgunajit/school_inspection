@@ -3231,3 +3231,11 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `skip_window` is in `listStamp()`, so a change re-picks lists the same day. Saving without it keeps the stored value.
 - Files: migration, `DailyDisplaySetting`, `InspectionStartSetting`, `ScheduleService`, `DailySchoolListService`, `TodaySchoolsController`, `today/settings.blade.php`, `InspectionRuleSettingsTest`, CLAUDE.md, Product Details docs.
 - Verified: 369 tests passed (SQLite); migrated on MySQL.
+
+## 2026-11-26 · Registration page: two-line details, one-line CAPTCHA, level text, password help
+- Full name, Gender, Designation and Employee ID: two per line (`col-md-6`).
+- Security check: with `partials/captcha` `inline`, the label, CAPTCHA picture, refresh and entry box share one row from tablets up (`.captcha-field-inline`; stacked on phones). Login unchanged.
+- User level tiles: the level name uses the base field size (`$font-size-base`, 600), the same in every tile.
+- Password: live rule checklist under the box (`#pw-rules`: length, A–Z, a–z, 0–9, symbol, ticks green, feeds the meter); under Confirm, "Passwords match" / "Passwords do not match" (`#pw-match`); a mismatched submit is stopped in `register.js` before the encryption listener.
+- Files: `auth/register.blade.php`, `partials/captcha.blade.php`, `resources/js/register.js`, `resources/scss/app.scss`.
+- Verified: `npm run build`; registration / login / captcha / icon tests 45 passed.

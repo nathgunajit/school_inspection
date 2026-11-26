@@ -38,12 +38,12 @@
                 </div>
                 <div class="reg-block-body">
                     <div class="row g-3">
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="name">Full name <span class="req">*</span></label>
                             <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required minlength="3" maxlength="120" pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*" title="Letters, spaces, dots, apostrophes and hyphens" autocomplete="name" placeholder="e.g. Ananya Sharma">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="gender">Gender <span class="req">*</span></label>
                             <select id="gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
                                 <option value="">Select gender</option>
@@ -51,7 +51,7 @@
                             </select>
                             @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
                             <select id="designation_id" name="designation_id" class="form-select @error('designation_id') is-invalid @enderror" required data-other-value="{{ $otherDesignationId }}" data-other-target="#designation-other-wrap">
                                 <option value="">Select designation</option>
@@ -69,7 +69,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-6">
                             <label class="form-label" for="employee_id">Employee ID <span class="opt">(optional)</span></label>
                             <input id="employee_id" name="employee_id" value="{{ old('employee_id') }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Departmental employee code">
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -214,12 +214,18 @@
                             <label class="form-label" for="password">Password <span class="req">*</span></label>
                             <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" required minlength="8" maxlength="64" autocomplete="new-password">
                             <div class="progress-thin progress mt-2" style="height:4px"><div class="progress-bar" id="pw-meter" style="width:0"></div></div>
-                            <div class="form-text">8 to 64 characters with A–Z, a–z, 0–9 and a symbol.</div>
+                            {{-- 26-11-2026: live checklist of the password rules (register.js) --}}
+                            <ul class="pw-rules" id="pw-rules" aria-live="polite" aria-label="Password rules">
+                                @foreach (['len' => '8 to 64 characters', 'upper' => 'A–Z', 'lower' => 'a–z', 'digit' => '0–9', 'symbol' => 'A symbol (e.g. @ # $)'] as $k => $t)
+                                    <li data-rule="{{ $k }}"><i class="bi bi-circle"></i>{{ $t }}</li>
+                                @endforeach
+                            </ul>
                             @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="password_confirmation">Confirm password <span class="req">*</span></label>
                             <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required maxlength="64" autocomplete="new-password">
+                            <div class="pw-match d-none" id="pw-match" aria-live="polite"></div>
                         </div>
                         @if (config('inspection.captcha_enabled'))
                             <div class="col-12 col-lg-8">@include('partials.captcha', ['inline' => true])</div>

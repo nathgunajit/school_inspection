@@ -38,12 +38,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Password strength meter
     const pw = form.querySelector('#password');
     const meter = document.getElementById('pw-meter');
-    pw.addEventListener('input', () => {
+    const confirmPw = form.querySelector('#password_confirmation');
+    const match = document.getElementById('pw-match');
+    const RULES = { len: (v) => v.length >= 8 && v.length <= 64, lower: (v) => /[a-z]/.test(v), upper: (v) => /[A-Z]/.test(v), digit: (v) => /\d/.test(v), symbol: (v) => /[^A-Za-z0-9]/.test(v) };
+    const checkRules = () => {
         const v = pw.value;
-        const score = [v.length >= 8, /[a-z]/.test(v), /[A-Z]/.test(v), /\d/.test(v), /[^A-Za-z0-9]/.test(v)].filter(Boolean).length;
+        let score = 0;
+        form.querySelectorAll('#pw-rules [data-rule]').forEach((li) => {
+            const ok = RULES[li.dataset.rule]?.(v) ?? false;
+            score += ok ? 1 : 0;
+            li.classList.toggle('is-ok', ok);
+            li.querySelector('i').className = ok ? 'bi bi-check-circle-fill' : 'bi bi-circle';
+        });
         meter.style.width = `${score * 20}%`;
         meter.style.background = score < 3 ? '#dc2626' : score < 5 ? '#d97706' : '#059669';
+    };
+    // 26-11-2026: tell the officer at once whether the two passwords match
+    const checkMatch = () => {
+        if (!match || !confirmPw) return;
+        const c = confirmPw.value;
+        if (!c) {
+            match.classList.add('d-none');
+            confirmPw.setCustomValidity('');
+            return;
+        }
+        const ok = c === pw.value;
+        match.className = `pw-match ${ok ? 'is-ok' : 'is-bad'}`;
+        match.innerHTML = `<i class="bi ${ok ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>${ok ? 'Passwords match' : 'Passwords do not match'}`;
+        confirmPw.setCustomValidity(ok ? '' : 'The two passwords do not match.');
+        confirmPw.classList.toggle('is-invalid', !ok);
+    };
+    pw.addEventListener('input', () => { checkRules(); checkMatch(); });
+    confirmPw?.addEventListener('input', checkMatch);
+    // the form is novalidate: stop a mismatch here (runs before the password encryption listener on the document)
+    form.addEventListener('submit', (e) => {
+        if (!confirmPw || !confirmPw.value || confirmPw.value === pw.value) return;
+        checkMatch();
+        if (!e.defaultPrevented) confirmPw.focus();
+        e.preventDefault();
     });
+    checkRules();
+    checkMatch();
 
     // Upload zones (employee photo, identity proof): preview, size/type check, remove
     form.querySelectorAll('.upload-zone').forEach((zone) => {

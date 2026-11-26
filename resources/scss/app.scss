@@ -380,7 +380,7 @@ html, body { overflow-x: clip; }
     label { border: 1.5px solid $input-border-color; border-radius: .8rem; padding: .85rem .4rem; text-align: center; cursor: pointer;
         background: #fff; transition: all .15s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-height: 44px; height: 100%;
         i { font-size: 1.5rem; color: #94a3b8; }
-        span { font-weight: 600; font-size: 1rem; }
+        span { font-weight: 600; font-size: $font-size-base; line-height: 1.3; } // same size in every tile, as the field text
         &:hover { border-color: rgba($primary, .45); } }
     input:checked + label { border-color: $primary; background: rgba($primary, .06); box-shadow: 0 0 0 3px rgba($primary, .1);
         i, span { color: $primary; } }
@@ -395,6 +395,20 @@ html, body { overflow-x: clip; }
 .captcha-box-inline { flex-direction: row; flex-wrap: wrap; align-items: stretch;
     .captcha-img-wrap { flex: 0 0 auto; max-width: 100%; }
     .captcha-input { flex: 1 1 12rem; min-width: 0; height: 64px; } }
+// ...and the "Security check" label on the same row from tablets up (stacked on phones)
+@include media-breakpoint-up(md) {
+    .captcha-field-inline { display: flex; flex-wrap: wrap; align-items: center; column-gap: .9rem; row-gap: .3rem;
+        > .form-label { margin: 0; white-space: nowrap; }
+        > .captcha-box { flex: 1 1 0; min-width: 0; }
+        > .form-text, > .invalid-feedback { flex-basis: 100%; margin-top: 0; } }
+}
+// Registration password help (26-11-2026): rule checklist and match message
+.pw-rules { list-style: none; padding: 0; margin: .45rem 0 0; display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-size: .76rem; color: #64748b;
+    li { display: inline-flex; align-items: center; gap: .3rem; transition: color .15s; }
+    i { font-size: .8rem; }
+    li.is-ok { color: $success; font-weight: 600; } }
+.pw-match { display: flex; align-items: center; gap: .35rem; margin-top: .4rem; font-size: .8rem; font-weight: 600;
+    &.is-ok { color: $success; } &.is-bad { color: $danger; } }
 
 // ---------- Choice chips (questionnaire) ----------
 .choice-group { display: flex; flex-wrap: wrap; gap: .4rem; }
