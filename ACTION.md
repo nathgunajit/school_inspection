@@ -3245,3 +3245,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - From tablets up the field is a two-column grid (label | picture + box, no wrap); the label is centred on the row, and the hint and error start under the picture, not under the label. Phones stack as before. Login CAPTCHA unchanged.
 - Files: `resources/scss/app.scss`.
 - Verified: `npm run build`; registration / captcha / icon tests 34 passed.
+
+## 2026-11-26 · Registration CAPTCHA: the entry box could not be typed in
+- Cause: the `flat` CAPTCHA picture is 345 × 65; with `max-width: none`, `nowrap` and `min-width: 0` on the input, the label + picture + refresh filled the `col-lg-8` row and the entry box shrank to a few pixels.
+- Fix: picture capped at 220 px (`object-fit: contain`), entry box at least 10rem wide, the row wraps again when narrow, and the CAPTCHA column is full width (`col-12`).
+- Files: `resources/scss/app.scss`, `resources/views/auth/register.blade.php`.
+- Verified: `npm run build`; registration / captcha / icon tests passed.

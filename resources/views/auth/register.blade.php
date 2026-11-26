@@ -228,7 +228,7 @@
                             <div class="pw-match d-none" id="pw-match" aria-live="polite"></div>
                         </div>
                         @if (config('inspection.captcha_enabled'))
-                            <div class="col-12 col-lg-8">@include('partials.captcha', ['inline' => true])</div>
+                            <div class="col-12">@include('partials.captcha', ['inline' => true])</div>
                         @endif
                     </div>
                 </div>
