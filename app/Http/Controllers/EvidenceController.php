@@ -86,7 +86,8 @@ class EvidenceController extends Controller
             'category_id' => isset($data['category']) ? MasterValue::idFor('photo_category', $data['category']) : null,
             'question_code' => $data['question_code'] ?? null,
             'caption' => $data['caption'] ?? null,
-            'taken_at' => $data['taken_at'] ?? null,
+            // 26-11-2026: the phone sends UTC (toISOString); store it in the application time zone, like every other time
+            'taken_at' => isset($data['taken_at']) ? \Illuminate\Support\Carbon::parse($data['taken_at'])->setTimezone(config('app.timezone'))->format('Y-m-d H:i:s') : null,
             'latitude' => $data['latitude'] ?? null,
             'longitude' => $data['longitude'] ?? null,
             'accuracy' => $data['accuracy'] ?? null,

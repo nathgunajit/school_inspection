@@ -3128,3 +3128,20 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - New: `tests/Feature/InspectionValidationTest.php` (6 tests).
   - Changed: `ModificationV10Test`. The hidden TSI_14 / 15 are now written as stored old data, and posting them is checked to fail with 422. Step 2 gets a contractual teacher before a contractual absent row.
 - **Verified:** full suite 359 passed; `npm run build` OK.
+
+## 26-11-2026: Inspection PDF report: all data checked, two time bugs fixed
+- **Asked:** "Inspection PDF report check all data display correctly".
+- **Checked:** every MySQL inspection rendered and compared with the stored rows (answers, remarks, step 2 boxes, absent teachers, classrooms with TLM, funds with the year-wise summary, suggestions, photos). All were printed correctly except the times.
+- **Bug 1, wrong start time:**
+  - "Inspection started" came after "Submitted" (inspections 1–3: started 25 Nov 18:23, submitted 23 Nov), or was equal to it (inspection 5).
+  - Cause: MariaDB had given `inspections.started_at` `ON UPDATE CURRENT_TIMESTAMP`, because `explicit_defaults_for_timestamp` is 0. Every save set it to "now".
+  - Fix: migration `2026_11_26_000008_fix_inspection_timestamps` removes it from `started_at`, `inspection_ratings.calculated_at` and `otp_verifications.expires_at`. It repairs `started_at` from `created_at` (the earlier of the two is kept).
+- **Bug 2, photo times 5 h 30 min early:**
+  - The phone sends `taken_at` in UTC, and it was stored as India time (e.g. 08:05 for a photo received at 13:36).
+  - Fix: `EvidenceController` converts it to the app time zone. The same migration converts the stored rows.
+- **Also:** the PDF prints only uploaded photos (no empty frame for a failed upload), and a photo linked to a question shows the question's label, not its code.
+- **Files:** the migration, `app/Http/Controllers/EvidenceController.php`, `resources/views/inspections/pdf.blade.php`, `tests/Feature/InspectionPdfContentTest.php` (new), `CLAUDE.md`.
+- **Verified:**
+  - Migrated on MySQL: started times are now 14:45 / 15:42 / 11:20 / 15:10 / 15:28 (before submit), photos 13:35, and no `on update` column is left.
+  - New test checks every entered value and both times (220 assertions).
+  - Full suite: 360 passed.

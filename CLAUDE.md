@@ -342,6 +342,10 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
    - It first writes the entries older than `audit_retention_days` to an Excel archive (`private:audit-archive/`), then deletes them, and logs `audit_purged`.
    - A schedule's history (`InspectionSchedule::history()`) loses entries older than the cutoff; the archive keeps them.
 8. **Server time** is the source of truth for inspection date and time.
+   - **Stored times are in the application time zone** (Asia/Kolkata), 26-11-2026:
+     - The phone sends a photo's `taken_at` in UTC (`toISOString`). `EvidenceController` converts it before saving.
+     - MariaDB / MySQL with `explicit_defaults_for_timestamp` OFF add `ON UPDATE CURRENT_TIMESTAMP` to the first NOT NULL TIMESTAMP of a table. That rewrote `inspections.started_at` on every save. Migration `2026_11_26_000008` removed it (also from `inspection_ratings.calculated_at` and `otp_verifications.expires_at`) and repaired the data.
+     - A new NOT NULL timestamp column needs a check on MySQL: `information_schema.COLUMNS.EXTRA` must not say `on update`.
 9. **Employee photo** (`users.photo_path`, required at registration, JPG/PNG ≤ 1 MB) and the identity proof live on the `private` disk. The photo is served only via `admin.users.photo` (self, approver or user manager in jurisdiction); render it with `<x-user-avatar :user="..." />`.
 10. **Schedules** (New Module 2): one plan per officer per day and a school on at most one plan per day (DB unique keys). Only the officer or a higher officer covering them may change a plan; every step is audited.
 11. **Ratings** are derived data: never edit `inspection_ratings` by hand. A scheme is never changed in place; saving settings creates a new version, so each rating keeps the scheme it was calculated with.

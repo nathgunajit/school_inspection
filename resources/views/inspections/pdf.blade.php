@@ -3,7 +3,8 @@
     use App\Questionnaire\InspectionValidator as V;
     $s = $inspection->school;
     $fmtDist = fn ($d) => $d === null ? '' : ' ('.($d < 1000 ? $d.' m' : round($d / 1000, 2).' km').' from school)';
-    $photos = $inspection->evidence->where('kind', 'photo')->values();
+    // 26-11-2026: only photos that reached the server (a failed / pending upload has no image to print)
+    $photos = $inspection->evidence->where('kind', 'photo')->filter(fn ($e) => $e->status === \App\Enums\EvidenceStatus::Uploaded)->values();
     // answer tone dot: green / amber / red, from the same mapping as the web report
     $dot = fn ($v) => match (QD::tone(is_array($v) ? ($v[0] ?? null) : $v)) { 'tone-good' => 'g', 'tone-mid' => 'm', 'tone-bad' => 'b', default => '' };
     $sec = 0; // running section number
@@ -344,7 +345,7 @@
             @foreach ($pair as $p)
                 <td><div class="frame">
                     @if (! empty($images[$p->id]))<img src="{{ $images[$p->id] }}" alt="">@endif
-                    <div class="cap"><b>{{ $p->category?->label }}</b>@if ($p->source === 'gallery') · <em>From gallery</em>@endif @if ($p->question_code) · {{ $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
+                    <div class="cap"><b>{{ $p->category?->label }}</b>@if ($p->source === 'gallery') · <em>From gallery</em>@endif @if ($p->question_code) · {{ QD::find($p->question_code)['label'] ?? $p->question_code }}@endif @if ($p->caption) · {{ $p->caption }}@endif<br>
                         {{ $p->taken_at?->format('d M Y, h:i:s A') }} ·
                         @if ($p->hasLocation()) {{ number_format($p->latitude, 6) }}, {{ number_format($p->longitude, 6) }}{{ $fmtDist($inspection->distanceFromSchool($p->latitude, $p->longitude)) }}
                         @else <b>No location</b>{{ $p->no_location_reason ? ': '.$p->no_location_reason : '' }} @endif<br>
