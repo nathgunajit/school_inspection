@@ -17,7 +17,8 @@ use Illuminate\Support\Str;
  *
  * Output (public/geo):
  *   assam-state.geojson        the state outline
- *   assam-districts.geojson    one feature per polygon, property "name" = district (from the file name)
+ *   assam-districts.geojson    one dissolved feature per district (26-11-2026; was one per constituency polygon),
+ *                              property "name" = district (from the file name), 4 decimals, --tolerance
  *
  *   districts/<slug>.geojson   V6 Module 7: the district outline, its constituency polygons dissolved into one shape
  *   districts/index.json       name, slug and bounding box of every district outline
@@ -29,6 +30,9 @@ use Illuminate\Support\Str;
  */
 class ImportMapBoundaries extends Command
 {
+    /** 26-11-2026: the state and state-wide districts files are drawn zoomed out: 4 decimals ≈ 11 m is plenty. */
+    private const OVERVIEW_DECIMALS = 4;
+
     protected $signature = 'map:boundaries
         {source=public/KML/Assam : Folder with Assam.kml and "Assam Dist/*.kml"}
         {--tolerance=0.0015 : Simplification tolerance in degrees (0.0015 ≈ 150 m)}
@@ -60,23 +64,12 @@ class ImportMapBoundaries extends Command
 
         // ---- state outline
         if (is_file("$src/Assam.kml")) {
-            $features = $this->features("$src/Assam.kml", ['name' => 'Assam'], $tol);
+            $features = $this->features("$src/Assam.kml", ['name' => 'Assam'], $tol, self::OVERVIEW_DECIMALS);
             $this->write("$out/assam-state.geojson", $features);
             $this->info('State outline: '.count($features).' polygon(s)');
         }
 
-        // ---- districts
         $files = glob("$src/Assam Dist/*.kml") ?: [];
-        $features = [];
-        foreach ($files as $file) {
-            $name = trim(pathinfo($file, PATHINFO_FILENAME));
-            $name = mb_convert_case($name, MB_CASE_TITLE); // "nalbari" → "Nalbari"
-            array_push($features, ...$this->features($file, ['name' => $name], $tol));
-        }
-        if ($features) {
-            $this->write("$out/assam-districts.geojson", $features);
-        }
-        $this->info(count($files).' district file(s), '.count($features).' polygon(s) → '.$out.'/assam-districts.geojson');
 
         // ---- V6 Module 7: one dissolved outline per district
         $detail = (float) $this->option('detail');
@@ -86,6 +79,7 @@ class ImportMapBoundaries extends Command
         }
         $index = [];
         $fallback = [];
+        $overview = []; // 26-11-2026: the state-wide districts layer, one dissolved, lighter feature per district
         foreach ($files as $file) {
             $name = mb_convert_case(trim(pathinfo($file, PATHINFO_FILENAME)), MB_CASE_TITLE);
             $slug = Str::slug($name);
@@ -94,6 +88,12 @@ class ImportMapBoundaries extends Command
             if ($rings === null) {
                 $fallback[] = $name;
                 $rings = $raw;
+            }
+            $light = array_values(array_filter(array_map(fn ($r) => $this->simplify($this->dedupe(array_map(
+                fn ($p) => [round($p[0], self::OVERVIEW_DECIMALS), round($p[1], self::OVERVIEW_DECIMALS)], $r)), $tol), $rings), fn ($r) => count($r) >= 4));
+            if ($light) {
+                $overview[] = ['type' => 'Feature', 'properties' => ['name' => $name],
+                    'geometry' => ['type' => 'MultiPolygon', 'coordinates' => array_map(fn ($r) => [$r], $light)]];
             }
             $rings = array_values(array_filter(
                 array_map(fn ($r) => $this->simplify(array_map(fn ($p) => [round($p[0], 5), round($p[1], 5)], $r), $detail), $rings),
@@ -108,6 +108,10 @@ class ImportMapBoundaries extends Command
             $lngs = array_column($all, 0);
             $lats = array_column($all, 1);
             $index[] = ['name' => $name, 'slug' => $slug, 'bbox' => [min($lngs), min($lats), max($lngs), max($lats)]];
+        }
+        if ($overview) {
+            $this->write("$out/assam-districts.geojson", $overview);
+            $this->info(count($files).' district file(s), '.count($overview).' district(s) → '.$out.'/assam-districts.geojson ('.number_format(filesize("$out/assam-districts.geojson") / 1024, 1).' KB)');
         }
         if ($index) {
             file_put_contents("$dir/index.json", json_encode($index, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -244,7 +248,7 @@ class ImportMapBoundaries extends Command
         return $out;
     }
     /** @return array<int, array> GeoJSON polygon features of one KML file */
-    private function features(string $file, array $props, float $tol): array
+    private function features(string $file, array $props, float $tol, int $decimals = 5): array
     {
         $xml = @simplexml_load_file($file);
         if (! $xml) {
@@ -265,7 +269,7 @@ class ImportMapBoundaries extends Command
                 $rings = [];
                 foreach (['outerBoundaryIs', 'innerBoundaryIs'] as $kind) {
                     foreach ($poly->xpath(".//k:$kind//k:coordinates") as $c) {
-                        $ring = $this->simplify($this->coords((string) $c), $tol);
+                        $ring = $this->simplify($this->coords((string) $c, $decimals), $tol);
                         if (count($ring) >= 4) {
                             $rings[] = $ring;
                         }
@@ -280,17 +284,30 @@ class ImportMapBoundaries extends Command
         return $features;
     }
 
-    private function coords(string $text): array
+    private function coords(string $text, int $decimals = 5): array
     {
         $pts = [];
         foreach (preg_split('/\s+/', trim($text)) as $tuple) {
             $p = explode(',', $tuple);
             if (count($p) >= 2) {
-                $pts[] = [round((float) $p[0], 5), round((float) $p[1], 5)];
+                $pts[] = [round((float) $p[0], $decimals), round((float) $p[1], $decimals)];
             }
         }
 
-        return $pts;
+        return $this->dedupe($pts);
+    }
+
+    /** Drop points equal to the one before (rounding can make neighbours equal). */
+    private function dedupe(array $pts): array
+    {
+        $out = [];
+        foreach ($pts as $p) {
+            if (! $out || end($out) !== $p) {
+                $out[] = $p;
+            }
+        }
+
+        return $out;
     }
 
     /** Douglas–Peucker, keeping the ring closed. */

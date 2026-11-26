@@ -82,10 +82,10 @@ class ScheduleService
     {
         $q = $this->j->schools($officer)->where('schools.status', 'active')
             ->when($blockId, fn ($w) => $w->where('schools.block_id', $blockId))
-            ->when($search, fn ($w) => $w->where(fn ($s) => $s->where('udise_code', 'like', $search.'%')->orWhere('name', 'like', '%'.$search.'%')))
             ->with('cluster:id,code,name')
             ->orderBy('name')->limit(1500);
-        $schools = $q->get(['id', 'udise_code', 'name', 'latitude', 'longitude', 'cluster_id', 'block_id']);
+        $get = fn ($w) => $w->get(['schools.id', 'schools.udise_code', 'schools.name', 'schools.latitude', 'schools.longitude', 'schools.cluster_id', 'schools.block_id']);
+        $schools = $search ? \App\Support\SchoolSearch::live($q, $search, $get) : $get($q); // 26-11-2026: FULLTEXT first
         $ids = $schools->pluck('id');
 
         $planned = InspectionScheduleItem::query()->whereIn('school_id', $ids)->where('schedule_date', $date->toDateString())

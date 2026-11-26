@@ -175,8 +175,11 @@ class MapViewTest extends TestCase
         $districts = json_decode(file_get_contents($out.'/assam-districts.geojson'), true);
         $feature = $districts['features'][0];
         $this->assertSame('Kamrup Metro', $feature['properties']['name']);
-        $this->assertSame('Gauhati West', $feature['properties']['constituency']);
-        $coords = $feature['geometry']['coordinates'][0];
+        // 26-11-2026: one dissolved, lighter feature per district (4 decimals) for the state-wide view
+        $this->assertCount(1, $districts['features']);
+        $this->assertSame('MultiPolygon', $feature['geometry']['type']);
+        $coords = $feature['geometry']['coordinates'][0][0];
+        $this->assertSame(round($coords[1][0], 4), $coords[1][0]);
         $this->assertLessThan(54, count($coords));            // the straight edge is simplified
         $this->assertSame($coords[0], end($coords));          // the ring stays closed
         $this->assertFileExists($out.'/assam-state.geojson');

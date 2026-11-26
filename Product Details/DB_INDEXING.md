@@ -176,3 +176,24 @@ Re-run the check on the server after the pilot with: `EXPLAIN select … from in
 - `inspections.officer_level` (visibility) is filtered after the `(district|block|cluster)_id, status, inspection_date` index range; no extra index is needed.
 - **The state-wide My Schools sort (44,000 rows):** this is the one query still above 0.5 s, and only for State-level users. A deferred join (sorting ids only) is the next step if it becomes a problem.
 - **Name contains search:** still a scan (section 6); FULLTEXT only if needed.
+## 10. School name search, queue tables and fewer queries (26-11-2026)
+**FULLTEXT on `schools.name`** (migration `2026_11_26_000003`, `schools_name_ft`, MySQL / MariaDB only):
+- MariaDB 10.4 has no ngram parser, so FULLTEXT matches **word starts** ("kokra" finds KOKRAJHAR; "okra" does not). The tokens are words of 3+ letters (`innodb_ft_min_token_size`), minus the InnoDB stopwords.
+- `App\Support\SchoolSearch::live()` uses it for the live, limited searches: suggestions, Map View search and the planner list. Each word becomes `+word*`. When MATCH finds nothing (part of a word), or no word can be used (shorter than 3 letters, digits), the exact LIKE runs instead, so nothing is lost.
+- Full lists and filters (Find School, My Schools, School Master, inspection lists) keep the exact LIKE, so their results never change.
+- `SchoolSearch` also escapes `%` and `_` (they used to match anything).
+
+| Query (44,197 schools, MariaDB 10.4) | LIKE | FULLTEXT |
+|---|---|---|
+| "kokra", 10 rows, ordered by name | 797 ms cold, ~25 ms warm | 6.6 ms |
+| "govt lps" (count) | 50 ms | 19 ms (same 81 rows) |
+
+**New tables:**
+- `export_jobs` (index `(user_id, status, created_at)`, `created_at` for the purge).
+- `import_batches.status` (index `(status, created_at)` for the purge and History). History now reads `whereIn('status', ['done', 'failed'])`.
+
+**Fewer queries per request:**
+- `MapDataService::chain()` is memoised: map schools JSON 27 → 21.
+- `DailyDisplaySetting::forDistrict()` is memoised: Cluster dashboard 23 → 19.
+- The six dashboard counts are cached for 60 s (`DashboardStats`).
+- `QueryBudgetTest` keeps these numbers from growing again.

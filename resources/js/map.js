@@ -31,6 +31,12 @@ if (el) {
     const directions = createDirections(map, cfg); // V6 Module 8: My location, distance and road route
     let boundaries = null;
     const geo = { state: null, districts: null };
+    // 26-11-2026 performance: the district polygons (about 186 KB) are needed only in the state-wide view, so they are
+    // fetched the first time that view is drawn (officers below the State never download them)
+    let districtsLoading = null;
+    const loadDistricts = () => (districtsLoading ??= cfg.geojson?.districts
+        ? getJson(cfg.geojson.districts).then((d) => { geo.districts = d; }).catch(() => { geo.districts = null; })
+        : Promise.resolve());
     let stateLayer = null;
     let outline = null; // V6 Module 7: { url, layer, bounds } of the district in view
     let current = { ...start };
@@ -199,6 +205,9 @@ if (el) {
     }
 
     function renderAreas(rows, level) {
+        if (level === 'district' && !districtsLoading && cfg.geojson?.districts) {
+            loadDistricts().then(() => { if (geo.districts && current.level === 'district') renderAreas(rows, level); });
+        }
         schoolLayer.clearLayers();
         areaLayer.clearLayers();
         markers.clear();
@@ -481,11 +490,11 @@ if (el) {
     });
 
     (async () => {
-        // boundaries are optional: the map works without them
-        for (const k of ['state', 'districts']) {
-            if (cfg.geojson?.[k]) {
-                try { geo[k] = await getJson(cfg.geojson[k]); } catch (e) { geo[k] = null; }
-            }
+        // boundaries are optional: the map works without them. The state outline is drawn first; the district
+        // polygons load alongside it only when the map opens state-wide (otherwise on first use, see renderAreas)
+        if (start.level === 'district') loadDistricts();
+        if (cfg.geojson?.state) {
+            try { geo.state = await getJson(cfg.geojson.state); } catch (e) { geo.state = null; }
         }
         if (geo.state) {
             stateLayer = L.geoJSON(geo.state, { interactive: false, style: { color: '#1565c0', weight: 2, fill: false, opacity: 0.8 } }).addTo(map);

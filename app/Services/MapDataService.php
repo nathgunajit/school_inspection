@@ -218,7 +218,6 @@ class MapDataService
         return $this->remember($user, ['schools', $clusterId, $filters, $search], function () use ($user, $clusterId, $filters, $search) {
             [$insp, $prog, $ib, $pb] = $this->statusSql($filters, $user);
             $q = $this->schoolsQuery($user, 'school', $clusterId, $filters)
-                ->when($search, fn ($w) => $w->where(fn ($s) => $s->where('schools.udise_code', 'like', $search.'%')->orWhere('schools.name', 'like', '%'.$search.'%')))
                 ->selectRaw("schools.id, schools.udise_code, schools.name, schools.address, schools.latitude, schools.longitude, schools.school_type, schools.area_type,
                     schools.district_id, schools.block_id, schools.cluster_id,
                     case when $insp then 'inspected' when $prog then 'in_progress' else 'pending' end as map_status", array_merge($ib, $pb))
@@ -226,7 +225,8 @@ class MapDataService
                 ->orderBy('schools.name')
                 ->limit($search ? 50 : 2000);
 
-            $schools = $q->get();
+            // 26-11-2026: a name search uses the FULLTEXT word-start match first, the exact search when it finds nothing
+            $schools = $search ? \App\Support\SchoolSearch::live($q, $search, fn ($w) => $w->get()) : $q->get();
 
             // last submitted inspection of each school (any date), with its officer
             // 25-11-2026: the last one the user may see (own + lower levels)

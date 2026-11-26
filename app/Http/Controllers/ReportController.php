@@ -230,7 +230,7 @@ class ReportController extends Controller
             ->when($request->cluster_id, fn ($w, $v) => $w->where('inspections.cluster_id', $v))
             ->when($request->officer_id, fn ($w, $v) => $w->where('officer_id', $v))
             ->when($request->status, fn ($w, $v) => $v === 'draft' ? $w->whereIn('status', ['draft', 'unlocked']) : $w->where('status', $v))
-            ->when($request->school, fn ($w, $v) => $w->whereHas('school', fn ($s) => $s->where('udise_code', 'like', "$v%")->orWhere('name', 'like', "%$v%")));
+            ->when($request->school, fn ($w, $v) => $w->whereHas('school', fn ($s) => \App\Support\SchoolSearch::apply($s, (string) $v)));
     }
 
     private function filterOptions(Request $request): array

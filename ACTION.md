@@ -2969,3 +2969,31 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - MySQL migrated
   - real `queue:work` check of `Documents/SchoolMaster_UDISE 202526.xlsx`: 44,197 rows (0 new, 44,197 update, 0 errors) in 1 min 50 s
   - the check batch was removed afterwards; nothing was saved
+
+## 26-11-2026: Performance gaps, module D (map and search)
+- **What:**
+  - **Map:**
+    - `map.js` loads the state outline first and the district polygons only when the state-wide view is drawn, so officers below the State never fetch the file.
+    - `map:boundaries` writes `assam-districts.geojson` as one dissolved MultiPolygon per district (4 decimals, tolerance 0.0015) instead of one feature per constituency. The state outline is also 4 decimals.
+    - Rebuilt: districts 186 → 114 KB (gzip 55 → 33 KB), state 55 → 49 KB (gzip 19 → 15 KB). The per-district outline files are unchanged.
+  - **Search:** `App\Support\SchoolSearch` is the one school search.
+    - **Escaping (bug fix):** search text is escaped, so `%` and `_` used to match anything.
+    - **Modes:** `split` / `either`, as before.
+    - **FULLTEXT** index `schools_name_ft` (MySQL / MariaDB) for the live searches (suggestions, Map View search, planner): word starts first, the exact LIKE when that finds nothing.
+    - Full lists keep the exact LIKE.
+  - **Test change:** the `map:boundaries` test now expects one feature per district.
+- **Files:**
+  - `app/Support/SchoolSearch.php`
+  - migration `2026_11_26_000003_add_school_name_fulltext_index`
+  - `app/Http/Controllers/{SchoolController,ReportController,Admin/SchoolMasterController}.php`
+  - `app/Services/{MapDataService,ScheduleService}.php`
+  - `app/Console/Commands/ImportMapBoundaries.php`, `resources/js/map.js`, `public/geo/assam-{state,districts}.geojson`
+  - `Product Details/DB_INDEXING.md` (section 10), `CLAUDE.md`
+  - tests `SchoolSearchTest`, `MapViewTest`
+- **Verified:**
+  - full suite 341 passed
+  - MySQL migrated (index built in 2 s)
+  - "kokra" LIKE 797 ms cold → MATCH 6.6 ms
+  - "govt lps" same 81 rows both ways
+  - "okrajh" (part of a word) still found through the fallback
+  - planner "batabari" / "ataba" both find WEST BATABARI LPS

@@ -141,7 +141,7 @@ class SchoolMasterController extends Controller
         $id = fn (string $k) => (int) $request->query($k) ?: null;
 
         return School::query()
-            ->when(trim((string) $request->query('q')), fn ($q, $s) => $q->where(fn ($w) => $w->where('udise_code', 'like', "$s%")->orWhere('name', 'like', "%$s%")))
+            ->when(trim((string) $request->query('q')), fn ($q, $s) => \App\Support\SchoolSearch::apply($q, $s))
             ->when($id('district_id'), fn ($q, $v) => $q->where('district_id', $v))
             ->when($id('block_id'), fn ($q, $v) => $q->where('block_id', $v))
             ->when($id('cluster_id'), fn ($q, $v) => $q->where('cluster_id', $v))

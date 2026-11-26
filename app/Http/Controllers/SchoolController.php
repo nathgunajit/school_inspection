@@ -69,12 +69,10 @@ class SchoolController extends Controller
         }
         $all = $request->boolean('all') && $user->can('manage_masters');
 
-        $items = $this->j->schools($user)
-            ->when(! $all, fn ($w) => $w->where('status', 'active'))
-            ->when(ctype_digit($q), fn ($w) => $w->where('udise_code', 'like', $q.'%'), fn ($w) => $w->where('name', 'like', '%'.$q.'%'))
-            ->with(['cluster:id,name,code', 'block:id,name,code'])
-            ->orderBy('name')->limit(10)
-            ->get(['id', 'udise_code', 'name', 'status', 'cluster_id', 'block_id'])
+        $base = $this->j->schools($user)->when(! $all, fn ($w) => $w->where('status', 'active'));
+        // 26-11-2026: FULLTEXT word-start match first (fast), the exact "contains" search when it finds nothing
+        $items = \App\Support\SchoolSearch::live($base, $q, fn ($w) => $w->with(['cluster:id,name,code', 'block:id,name,code'])
+            ->orderBy('name')->limit(10)->get(['id', 'udise_code', 'name', 'status', 'cluster_id', 'block_id']), 'split')
             ->map(fn (School $s) => [
                 'udise' => $s->udise_code,
                 'name' => $s->name,
@@ -193,9 +191,7 @@ class SchoolController extends Controller
         return $this->j->schools($user)
             ->leftJoinSub($visits, 'sv', 'sv.school_id', '=', 'schools.id')
             ->select('schools.*', 'sv.last_inspected_on')->selectRaw('coalesce(sv.visits, 0) as visits')
-            ->when($q !== '', fn ($w) => ctype_digit($q)
-                ? $w->where('udise_code', 'like', $q.'%')
-                : $w->where('name', 'like', '%'.$q.'%'))
+            ->when($q !== '', fn ($w) => \App\Support\SchoolSearch::apply($w, $q, 'split')) // exact, "%" and "_" as typed
             ->when($request->district_id, fn ($w, $v) => $w->where('district_id', $v))
             ->when($request->block_id, fn ($w, $v) => $w->where('block_id', $v))
             ->when($request->cluster_id, fn ($w, $v) => $w->where('cluster_id', $v))
