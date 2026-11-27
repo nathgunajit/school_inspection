@@ -22,6 +22,9 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
  */
 class HolidayController extends Controller
 {
+    /** 27-11-2026: the longest From – To range one Add makes (one row per day). */
+    public const MAX_RANGE_DAYS = 31;
+
     public function __construct(private HolidayCalendar $calendar) {}
 
     public function index(Request $request)
@@ -63,6 +66,11 @@ class HolidayController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
+        $to = $data['date_to'] ?? null;
+        unset($data['date_to']);
+        if ($to && $to !== $data['date']) {
+            return $this->storeRange($request, $data, $to);
+        }
         $holiday = Holiday::create($data + ['created_by' => $request->user()->id]);
         AuditLogger::log('holiday_created', $holiday, $this->meta($holiday));
         $msg = 'Added '.$holiday->name.' on '.Carbon::parse($holiday->date)->format('d M Y').'.';
@@ -75,6 +83,38 @@ class HolidayController extends Controller
         return redirect()->route('holidays.index', ['month' => substr($holiday->date, 0, 7)] + $this->keepDistrict($holiday))->with('success', $msg);
     }
 
+    /**
+     * 27-11-2026: one holiday over a From – To range (e.g. a 3-day local festival): one row per day, the same name, type
+     * and area. Days that already have it are skipped; when every day has it, nothing is added.
+     */
+    private function storeRange(Request $request, array $data, string $to)
+    {
+        $days = collect(\Carbon\CarbonPeriod::create($data['date'], $to))->map(fn ($d) => $d->toDateString());
+        $have = Holiday::whereIn('date', $days)->where('name', $data['name'])
+            ->where(fn ($q) => $data['district_id'] ? $q->where('district_id', $data['district_id']) : $q->whereNull('district_id'))
+            ->pluck('date')->map(fn ($d) => substr((string) $d, 0, 10))->all();
+        $new = $days->reject(fn ($d) => in_array($d, $have, true))->values();
+        if ($new->isEmpty()) {
+            throw ValidationException::withMessages(['name' => 'This holiday is already in the calendar on every day of that range.']);
+        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($new, $data, $to, $request) {
+            foreach ($new as $day) {
+                $h = Holiday::create(['date' => $day] + $data + ['created_by' => $request->user()->id]);
+                AuditLogger::log('holiday_created', $h, $this->meta($h) + ['range' => ['from' => $data['date'], 'to' => $to]]);
+            }
+        });
+        $from = Carbon::parse($data['date']);
+        $end = Carbon::parse($to);
+        $msg = 'Added '.$data['name'].' on '.$new->count().' day'.($new->count() > 1 ? 's' : '').' ('.$from->format($from->isSameYear($end) ? 'd M' : 'd M Y').' – '.$end->format('d M Y').')'
+            .(count($have) ? ', '.count($have).' day'.(count($have) > 1 ? 's' : '').' already there skipped' : '').'.';
+        if ($request->input('back') === 'dashboard') {
+            return redirect()->route('dashboard')->with('success', $msg);
+        }
+        $first = new Holiday(['district_id' => $data['district_id']]);
+
+        return redirect()->route('holidays.index', ['month' => substr($new->first(), 0, 7)] + $this->keepDistrict($first))->with('success', $msg);
+    }
+
     public function update(Request $request, Holiday $holiday)
     {
         abort_unless($this->calendar->canManage($request->user(), $holiday->district_id), 403);
@@ -83,6 +123,7 @@ class HolidayController extends Controller
         } catch (ValidationException $e) {
             throw $e->errorBag('edit');
         }
+        unset($data['date_to']);
         $holiday->update($data);
         AuditLogger::log('holiday_updated', $holiday, $this->meta($holiday));
 
@@ -175,17 +216,22 @@ class HolidayController extends Controller
     {
         $data = $request->validate([
             'date' => ['required', 'date_format:Y-m-d'],
+            'date_to' => $holiday ? ['prohibited'] : ['nullable', 'date_format:Y-m-d', 'after_or_equal:date'], // 27-11-2026: Add only
             'name' => ['required', 'string', 'min:2', 'max:150'],
             'type' => ['nullable', Rule::in(array_keys(Holiday::TYPES))],
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
-        ], ['date.date_format' => 'Pick the holiday date.']);
+        ], ['date.date_format' => 'Pick the holiday date.', 'date_to.after_or_equal' => 'The To date must be on or after the From date.', 'date_to.date_format' => 'Pick the To date, or leave it empty for one day.']);
+        $data['date_to'] = $data['date_to'] ?? null;
+        if ($data['date_to'] && Carbon::parse($data['date'])->diffInDays(Carbon::parse($data['date_to'])) + 1 > self::MAX_RANGE_DAYS) {
+            throw ValidationException::withMessages(['date_to' => 'A holiday range can be at most '.self::MAX_RANGE_DAYS.' days.']);
+        }
         $data['name'] = trim($data['name']);
         $data['type'] = $data['type'] ?? 'gazetted';
         $data['district_id'] = isset($data['district_id']) ? (int) $data['district_id'] : null;
         if (! $this->calendar->canManage($request->user(), $data['district_id'])) {
             throw ValidationException::withMessages(['district_id' => $request->user()->isStateAdmin() ? 'Pick a district.' : 'You can add holidays for your own district only.']);
         }
-        $dup = Holiday::where('date', $data['date'])->where('name', $data['name'])
+        $dup = (! $data['date_to'] || $data['date_to'] === $data['date']) && Holiday::where('date', $data['date'])->where('name', $data['name'])
             ->where(fn ($q) => $data['district_id'] ? $q->where('district_id', $data['district_id']) : $q->whereNull('district_id'))
             ->when($holiday, fn ($q) => $q->whereKeyNot($holiday->id))->exists();
         if ($dup) {

@@ -96,9 +96,20 @@
                     <div class="card-body">
                         <form method="POST" action="{{ route('holidays.store') }}">
                             @csrf
-                            <label class="form-label" for="h-date">Date</label>
-                            <input type="date" id="h-date" name="date" value="{{ $isOld() ? old('date') : '' }}" class="form-control mb-3 @error('date') is-invalid @enderror" required>
-                            @error('date')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror
+                            {{-- 27-11-2026: a From – To range adds the holiday on every day of it (at most 31) --}}
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label" for="h-date">From date</label>
+                                    <input type="date" id="h-date" name="date" value="{{ $isOld() ? old('date') : '' }}" class="form-control @error('date') is-invalid @enderror" required>
+                                    @error('date')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="h-date-to">To date <span class="text-secondary fw-normal">(optional)</span></label>
+                                    <input type="date" id="h-date-to" name="date_to" value="{{ $isOld() ? old('date_to') : '' }}" class="form-control @error('date_to') is-invalid @enderror">
+                                    @error('date_to')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                            <div class="form-text mb-3">Leave To empty for one day. A range adds the holiday on every day of it (up to {{ \App\Http\Controllers\HolidayController::MAX_RANGE_DAYS }} days).</div>
                             <label class="form-label" for="h-name">Holiday name</label>
                             <input id="h-name" name="name" value="{{ $isOld() ? old('name') : '' }}" maxlength="150" class="form-control mb-3 @error('name') is-invalid @enderror" placeholder="e.g. Bohag Bihu" required>
                             @error('name')<div class="invalid-feedback mt-n2 mb-2">{{ $message }}</div>@enderror

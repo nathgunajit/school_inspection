@@ -238,6 +238,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
     - `App\Services\HolidayCalendar`: `holiday()`, `isWorkingDay()`, `offReason()`, `previous/nextWorkingDay()`, `districtOf()`, `canManage()`. Cached per year and district; the version key is bumped by the model events.
     - `HolidayController` (`/holidays`): every officer sees state holidays plus their district's.
     - Gate `manage_holidays` (= `configure_coverage`): the State Admin manages everything, the District Programmer (V16) their own district's local rows only.
+    - **Date range** (27-11-2026): the Add holiday form has From date (`date`) and an optional To date (`date_to`, linked in `date-picker.js` `PAIRS`); a range adds one row per day (same name, type, area; at most `HolidayController::MAX_RANGE_DAYS` = 31; `storeRange()`, one transaction), skips days that already have it and is refused only when every day has it; each row audited `holiday_created` with `range`. Edit and the day popup stay one day.
     - Excel import: `date`, `name`, `district_code`. All rows are checked first; existing rows are skipped.
     - Weekly off: `config('inspection.holidays.weekly_off')` (Sunday). 2nd / 4th Saturdays are **not** off days (user decision).
     - **Types** (25-11-2026, `holidays.type`): `gazetted` is the only type that closes the day (`Holiday::OFF_TYPES`; `HolidayCalendar::year()` reads only it); `restricted` and `half` are shown only. `between()` / `upcoming()` return every type for display; chips use `Holiday::chipClass()`.

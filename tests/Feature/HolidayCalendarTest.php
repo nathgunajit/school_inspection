@@ -77,6 +77,41 @@ class HolidayCalendarTest extends TestCase
         $this->actingAs($plain)->post(route('holidays.store'), ['date' => $date, 'name' => 'Nope', 'district_id' => $own])->assertForbidden();
     }
 
+    /** 27-11-2026: a holiday over a From – To range is one row per day; days already there are skipped. */
+    public function test_a_local_holiday_can_be_added_over_a_date_range(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $own = $cluster->block->district_id;
+        $u = $this->districtAdmin($cluster);
+        $from = today()->addDays(10);
+        $d = fn (int $n) => $from->copy()->addDays($n)->toDateString();
+        Holiday::create(['date' => $d(1), 'name' => 'Local Mela', 'district_id' => $own]); // the middle day is already there
+
+        $this->actingAs($u)->post(route('holidays.store'), ['date' => $d(0), 'date_to' => $d(2), 'name' => 'Local Mela', 'type' => 'gazetted', 'district_id' => $own])
+            ->assertRedirect()->assertSessionHas('success', fn ($m) => str_contains($m, 'on 2 days') && str_contains($m, '1 day already there skipped'));
+        $rows = Holiday::where('name', 'Local Mela')->where('district_id', $own)->orderBy('date')->pluck('date')->map(fn ($x) => substr((string) $x, 0, 10))->all();
+        $this->assertSame([$d(0), $d(1), $d(2)], $rows);
+        $calendar = app(HolidayCalendar::class);
+        foreach ([0, 1, 2] as $n) {
+            $this->assertFalse($calendar->isWorkingDay($d($n), $own), "day $n is a holiday in the district");
+            $this->assertStringNotContainsString('Local Mela', (string) $calendar->holiday($d($n), $this->otherCluster($cluster)->block->district_id), 'not in another district');
+        }
+        $this->assertSame(2, AuditLog::where('action', 'holiday_created')->whereJsonContains('meta->range->from', $d(0))->count());
+
+        // the whole range already there, To before From, longer than 31 days
+        $this->post(route('holidays.store'), ['date' => $d(0), 'date_to' => $d(2), 'name' => 'Local Mela', 'district_id' => $own])->assertSessionHasErrors('name');
+        $this->post(route('holidays.store'), ['date' => $d(2), 'date_to' => $d(0), 'name' => 'Backwards', 'district_id' => $own])->assertSessionHasErrors('date_to');
+        $this->post(route('holidays.store'), ['date' => $d(0), 'date_to' => $d(31), 'name' => 'Too long', 'district_id' => $own])->assertSessionHasErrors('date_to');
+        $this->assertSame(0, Holiday::whereIn('name', ['Backwards', 'Too long'])->count());
+
+        // one day still works with To empty or equal to From; the State Admin can add a state range
+        $this->post(route('holidays.store'), ['date' => $d(5), 'date_to' => '', 'name' => 'One day', 'district_id' => $own])->assertSessionHasNoErrors();
+        $this->post(route('holidays.store'), ['date' => $d(6), 'date_to' => $d(6), 'name' => 'Same day', 'district_id' => $own])->assertSessionHasNoErrors();
+        $this->actingAs($this->admin())->post(route('holidays.store'), ['date' => $d(7), 'date_to' => $d(8), 'name' => 'State break'])->assertSessionHasNoErrors();
+        $this->assertSame(2, Holiday::where('name', 'State break')->whereNull('district_id')->count());
+        $this->get(route('holidays.index'))->assertOk()->assertSee('name="date_to"', false)->assertSee('To date');
+    }
+
     public function test_import_checks_every_row_before_saving(): void
     {
         $admin = $this->admin();
