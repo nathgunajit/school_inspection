@@ -112,6 +112,70 @@ class HolidayCalendarTest extends TestCase
         $this->get(route('holidays.index'))->assertOk()->assertSee('name="date_to"', false)->assertSee('To date');
     }
 
+    /** 27-11-2026: a state holiday withdrawn for one district (a shorter summer vacation there); that district works those days. */
+    public function test_a_state_holiday_can_be_withdrawn_for_a_district(): void
+    {
+        $cluster = Cluster::orderBy('id')->first();
+        $a = $cluster->block->district_id;
+        $b = $this->otherCluster($cluster)->block->district_id;
+        $start = today()->addMonths(2)->startOfMonth()->addDays(2); // a Wednesday or so, never mind the weekday: weekly off is []
+        config(['inspection.holidays.weekly_off' => []]);
+        $d = fn (int $n) => $start->copy()->addDays($n)->toDateString();
+        $admin = $this->admin();
+        $this->actingAs($admin)->post(route('holidays.store'), ['date' => $d(0), 'date_to' => $d(4), 'name' => 'Summer vacation'])->assertSessionHasNoErrors();
+
+        $this->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $a, 'w_from' => $d(3), 'w_to' => $d(4),
+            'w_reason' => 'Durga Puja holidays given instead', 'year' => $start->year])->assertRedirect()->assertSessionHas('success');
+        $calendar = app(HolidayCalendar::class);
+        foreach ([0, 1, 2] as $n) {
+            $this->assertFalse($calendar->isWorkingDay($d($n), $a), "day $n still off in A");
+        }
+        foreach ([3, 4] as $n) {
+            $this->assertTrue($calendar->isWorkingDay($d($n), $a), "day $n withdrawn in A");
+            $this->assertNull($calendar->offReason($d($n), $a));
+            $this->assertFalse($calendar->isWorkingDay($d($n), $b), "day $n still off in B");
+            $this->assertFalse($calendar->isWorkingDay($d($n), null), 'the state calendar keeps it');
+        }
+        $this->assertCount(3, $calendar->between($d(0), $d(4), $a));
+        $this->assertCount(5, $calendar->between($d(0), $d(4), $b));
+        $this->assertTrue(AuditLog::where('action', 'holiday_withdrawn')->exists());
+
+        // pages: the district view lists the withdrawal with Restore, the state view marks the rows
+        $this->get(route('holidays.index', ['month' => substr($d(0), 0, 7), 'district' => $a]))->assertOk()
+            ->assertSee('Withdrawn in this district')->assertSee('Durga Puja holidays given instead');
+        $this->get(route('holidays.index', ['month' => substr($d(0), 0, 7)]))->assertOk()->assertSee('Withdrawn in 1 district');
+
+        // already withdrawn days are skipped; nothing left to withdraw is refused; reason required
+        $this->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $a, 'w_from' => $d(3), 'w_to' => $d(4), 'w_reason' => 'Again', 'year' => $start->year])
+            ->assertSessionHasErrors('w_name', null, 'withdraw');
+        $this->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $a, 'w_reason' => '', 'year' => $start->year])
+            ->assertSessionHasErrors('w_reason', null, 'withdraw');
+        $this->assertSame(2, \App\Models\HolidayWithdrawal::count());
+
+        // the District Programmer of B may withdraw for B only; an ordinary District officer may not
+        $dp = $this->districtProgrammer($this->otherCluster($cluster));
+        $this->actingAs($dp)->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $a, 'w_reason' => 'x y z', 'year' => $start->year])->assertForbidden();
+        $this->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $b, 'w_from' => $d(0), 'w_to' => $d(0), 'w_reason' => 'Local order', 'year' => $start->year])
+            ->assertSessionHasNoErrors();
+        $this->assertTrue(app(HolidayCalendar::class)->isWorkingDay($d(0), $b));
+        $this->actingAs($this->officer(UserLevel::District, $cluster))->post(route('holidays.withdraw'), ['w_name' => 'Summer vacation', 'w_district_id' => $a, 'w_reason' => 'x y z'])->assertForbidden();
+
+        // plans and Today's Schools read holiday() for the officer's district: a withdrawn day is no holiday there
+        $crcc = $this->officer(UserLevel::Cluster, $cluster);
+        $this->assertNull(app(HolidayCalendar::class)->holiday($d(3), app(HolidayCalendar::class)->districtOf($crcc)));
+
+        // restore makes it a holiday again
+        $w = \App\Models\HolidayWithdrawal::where('district_id', $a)->orderBy('id')->first();
+        $this->actingAs($admin)->delete(route('holidays.withdraw.destroy', $w))->assertRedirect()->assertSessionHas('success');
+        $this->assertFalse(app(HolidayCalendar::class)->isWorkingDay($d(3), $a));
+        $this->assertTrue(AuditLog::where('action', 'holiday_withdrawal_restored')->exists());
+
+        // deleting the state holiday day removes its withdrawals
+        $day4 = Holiday::whereNull('district_id')->where('date', $d(4))->firstOrFail();
+        $this->delete(route('holidays.destroy', $day4))->assertRedirect();
+        $this->assertSame(0, \App\Models\HolidayWithdrawal::where('holiday_id', $day4->id)->count());
+    }
+
     public function test_import_checks_every_row_before_saving(): void
     {
         $admin = $this->admin();

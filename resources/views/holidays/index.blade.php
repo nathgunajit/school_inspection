@@ -127,6 +127,69 @@
                         </form>
                     </div>
                 </div>
+
+                {{-- 27-11-2026: withdraw a state holiday for one district (e.g. a shorter summer vacation); that district works those days --}}
+                @if ($editableDistricts->isNotEmpty() && $stateNames->isNotEmpty())
+                    @php $we = $errors->withdraw; @endphp
+                    <div class="card card-elevated mb-3">
+                        <div class="card-header"><i class="bi bi-calendar-x me-2 text-danger"></i>Withdraw a state holiday for a district</div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ route('holidays.withdraw') }}" data-confirm="Withdraw this state holiday for the district? Offices there will work on those days.">
+                                @csrf
+                                <input type="hidden" name="year" value="{{ $year }}">
+                                <label class="form-label" for="w-name">State holiday</label>
+                                <select id="w-name" name="w_name" class="form-select mb-3 {{ $we->has('w_name') ? 'is-invalid' : '' }}" required>
+                                    <option value="">Pick a holiday</option>
+                                    @foreach ($stateNames as $sn)
+                                        @php $a = \Carbon\Carbon::parse($sn->first); $b = \Carbon\Carbon::parse($sn->last); @endphp
+                                        <option value="{{ $sn->name }}" @selected(old('w_name') === $sn->name)>{{ $sn->name }} ({{ $a->isSameDay($b) ? $a->format('d M') : $a->format('d M').' – '.$b->format('d M') }}{{ $sn->days > 1 ? ', '.$sn->days.' days' : '' }})</option>
+                                    @endforeach
+                                </select>
+                                @if ($we->has('w_name'))<div class="invalid-feedback d-block mt-n2 mb-2">{{ $we->first('w_name') }}</div>@endif
+                                <label class="form-label" for="w-district">District</label>
+                                <select id="w-district" name="w_district_id" class="form-select mb-3" required>
+                                    @foreach ($editableDistricts as $d)<option value="{{ $d->id }}" @selected((int) old('w_district_id', $district) === $d->id)>{{ $d->label }}</option>@endforeach
+                                </select>
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label" for="w-from">From <span class="text-secondary fw-normal">(optional)</span></label>
+                                        <input type="date" id="w-from" name="w_from" value="{{ old('w_from') }}" class="form-control"></div>
+                                    <div class="col-6"><label class="form-label" for="w-to">To <span class="text-secondary fw-normal">(optional)</span></label>
+                                        <input type="date" id="w-to" name="w_to" value="{{ old('w_to') }}" class="form-control {{ $we->has('w_to') ? 'is-invalid' : '' }}">
+                                        @if ($we->has('w_to'))<div class="invalid-feedback">{{ $we->first('w_to') }}</div>@endif</div>
+                                </div>
+                                <div class="form-text mb-3">Leave the dates empty to withdraw every day of the holiday this year.</div>
+                                <label class="form-label" for="w-reason">Reason</label>
+                                <input id="w-reason" name="w_reason" value="{{ old('w_reason') }}" maxlength="255" class="form-control mb-3 {{ $we->has('w_reason') ? 'is-invalid' : '' }}" placeholder="e.g. Durga Puja holidays given instead (order no.)" required>
+                                @if ($we->has('w_reason'))<div class="invalid-feedback d-block mt-n2 mb-2">{{ $we->first('w_reason') }}</div>@endif
+                                <button class="btn btn-soft-danger w-100"><i class="bi bi-calendar-x"></i>Withdraw for the district</button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
+            {{-- 27-11-2026: state holiday days withdrawn (in the district in view, or every district in the State Admin's state view) --}}
+            @if ($withdrawals->isNotEmpty())
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center"><span><i class="bi bi-calendar-x me-2 text-danger"></i>Withdrawn {{ $district ? 'in this district' : 'for districts' }} · {{ $year }}</span><span class="badge text-bg-light">{{ $withdrawals->count() }}</span></div>
+                    <ul class="list-group list-group-flush holiday-list">
+                        @foreach ($withdrawals as $w)
+                            <li class="list-group-item d-flex gap-2 align-items-center">
+                                <span class="holiday-date"><b>{{ \Carbon\Carbon::parse($w->holiday->date)->format('d') }}</b>{{ \Carbon\Carbon::parse($w->holiday->date)->format('M') }}</span>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-truncate"><s class="text-secondary">{{ $w->holiday->name }}</s> · working day</div>
+                                    <div class="text-xs text-secondary text-truncate" title="{{ $w->reason }}">{{ $district ? '' : $w->district?->label.' · ' }}{{ $w->reason }}</div>
+                                </div>
+                                @if ($calendar->canManage(auth()->user(), $w->district_id))
+                                    <form method="POST" action="{{ route('holidays.withdraw.destroy', $w) }}" data-confirm="Make {{ $w->holiday->name }} on {{ \Carbon\Carbon::parse($w->holiday->date)->format('d M') }} a holiday again in {{ $w->district?->label }}?">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-light btn-icon" aria-label="Restore the holiday" title="Restore the holiday"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                    </form>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
             <div class="card">
@@ -141,7 +204,7 @@
                                 <span class="holiday-date"><b>{{ \Carbon\Carbon::parse($h->date)->format('d') }}</b>{{ \Carbon\Carbon::parse($h->date)->format('M') }}</span>
                                 <div class="flex-grow-1 min-w-0">
                                     <div class="fw-semibold text-truncate">{{ $h->name }}</div>
-                                    <div class="text-xs"><span class="holiday-chip {{ $h->chipClass() }} d-inline-block">{{ $h->isOff() ? $h->areaLabel() : $h->typeLabel().($h->isState() ? '' : ' · '.$h->district?->label) }}</span> · {{ \Carbon\Carbon::parse($h->date)->format('l') }}</div>
+                                    <div class="text-xs"><span class="holiday-chip {{ $h->chipClass() }} d-inline-block">{{ $h->isOff() ? $h->areaLabel() : $h->typeLabel().($h->isState() ? '' : ' · '.$h->district?->label) }}</span> · {{ \Carbon\Carbon::parse($h->date)->format('l') }}@if ($in = $withdrawnIn->get($h->id))<span class="holiday-chip is-withdrawn d-inline-block ms-1" title="{{ implode(', ', $in) }}">Withdrawn in {{ count($in) }} district{{ count($in) > 1 ? 's' : '' }}</span>@endif</div>
                                 </div>
                                 @if ($editable)
                                     <div class="dropdown">

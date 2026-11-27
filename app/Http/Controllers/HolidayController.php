@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Exports\HolidayTemplateExport;
 use App\Models\District;
 use App\Models\Holiday;
+use App\Models\HolidayWithdrawal;
 use App\Services\AuditLogger;
+use Illuminate\Support\Facades\DB;
 use App\Services\HolidayCalendar;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -41,11 +43,20 @@ class HolidayController extends Controller
         $holidays = Holiday::with('district:id,name,code')
             ->whereBetween('date', ["$year-01-01", "$year-12-31"])
             ->when(! $showRestricted, fn ($q) => $q->where('type', '!=', 'restricted'))
-            ->where(fn ($q) => $q->whereNull('district_id')->when($district, fn ($w) => $w->orWhere('district_id', $district))
+            // 27-11-2026: in a district's calendar, state holidays withdrawn for it are working days there
+            ->where(fn ($q) => $q->where(fn ($s) => $s->whereNull('district_id')->when($district, fn ($x) => $x->whereDoesntHave('withdrawals', fn ($w) => $w->where('district_id', $district))))
+                ->when($district, fn ($w) => $w->orWhere('district_id', $district))
                 ->when(! $district && $user->isStateAdmin() && $request->query('district') === 'all', fn ($w) => $w->orWhereNotNull('district_id')))
             ->orderBy('date')->orderByRaw('district_id is not null')->orderBy('name')->get();
 
         $editableDistricts = $this->calendar->editableDistricts($user);
+        // 27-11-2026: withdrawals of state holidays for districts (the district in view, or all for the State Admin's state view)
+        $withdrawals = $this->calendar->withdrawalsFor($district, $year);
+        $withdrawnCounts = $district ? collect() : $withdrawals->groupBy('holiday_id')->map(fn ($g) => $g->map(fn ($w) => $w->district?->label)->filter()->values()->all());
+        $stateNames = $editableDistricts->isNotEmpty()
+            ? Holiday::whereNull('district_id')->whereIn('type', Holiday::OFF_TYPES)->whereBetween('date', ["$year-01-01", "$year-12-31"])
+                ->selectRaw('name, min(date) as first, max(date) as last, count(*) as days')->groupBy('name')->orderBy('first')->get()
+            : collect();
 
         return view('holidays.index', [
             'month' => $month,
@@ -60,6 +71,9 @@ class HolidayController extends Controller
             'weeklyOff' => $this->calendar->weeklyOff(),
             'calendar' => $this->calendar,
             'showRestricted' => $showRestricted,
+            'withdrawals' => $withdrawals,
+            'withdrawnIn' => $withdrawnCounts,
+            'stateNames' => $stateNames,
         ]);
     }
 
@@ -137,6 +151,65 @@ class HolidayController extends Controller
         $holiday->delete();
 
         return back()->with('success', 'Deleted '.$holiday->name.'.');
+    }
+
+    /**
+     * 27-11-2026: withdraw a state holiday for one district over a date range (e.g. a shorter summer vacation where
+     * Durga Puja holidays were given instead): that district works on those days. One row per state-holiday day;
+     * days already withdrawn are skipped. State Admin (any district) or the district's own manager (District Programmer).
+     */
+    public function withdraw(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'w_name' => ['required', 'string', 'max:150'],
+                'w_district_id' => ['required', 'integer', 'exists:districts,id'],
+                'w_from' => ['nullable', 'date_format:Y-m-d'],
+                'w_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:w_from'],
+                'w_reason' => ['required', 'string', 'min:3', 'max:255'],
+                'year' => ['nullable', 'integer', 'between:2000,2100'],
+            ], ['w_name.required' => 'Pick the state holiday to withdraw.', 'w_district_id.required' => 'Pick the district.',
+                'w_reason.required' => 'Write why it is withdrawn (e.g. the order number).', 'w_to.after_or_equal' => 'The To date must be on or after the From date.']);
+        } catch (ValidationException $e) {
+            throw $e->errorBag('withdraw');
+        }
+        $district = (int) $data['w_district_id'];
+        abort_unless($this->calendar->canManage($request->user(), $district), 403);
+        $year = (int) ($data['year'] ?? substr($data['w_from'] ?? today()->toDateString(), 0, 4));
+        $days = Holiday::whereNull('district_id')->where('name', $data['w_name'])->whereIn('type', Holiday::OFF_TYPES)
+            ->when($data['w_from'] ?? null, fn ($q, $v) => $q->where('date', '>=', $v), fn ($q) => $q->where('date', '>=', "$year-01-01"))
+            ->when($data['w_to'] ?? null, fn ($q, $v) => $q->where('date', '<=', $v), fn ($q) => $q->where('date', '<=', "$year-12-31"))
+            ->whereDoesntHave('withdrawals', fn ($w) => $w->where('district_id', $district))
+            ->orderBy('date')->get(['id', 'date', 'name']);
+        if ($days->isEmpty()) {
+            throw ValidationException::withMessages(['w_name' => 'No day of this state holiday falls in that range (or every day is already withdrawn for the district).'])->errorBag('withdraw');
+        }
+        $reason = trim($data['w_reason']);
+        DB::transaction(function () use ($days, $district, $reason, $request) {
+            foreach ($days as $h) {
+                HolidayWithdrawal::create(['holiday_id' => $h->id, 'district_id' => $district, 'reason' => $reason, 'created_by' => $request->user()->id]);
+            }
+        });
+        $label = District::find($district)?->label;
+        AuditLogger::log('holiday_withdrawn', null, ['name' => $data['w_name'], 'district_id' => $district, 'dates' => $days->pluck('date')->all(), 'days' => $days->count(), 'reason' => $reason]);
+        $from = Carbon::parse($days->first()->date);
+        $to = Carbon::parse($days->last()->date);
+
+        return redirect()->route('holidays.index', ['month' => $from->format('Y-m')] + ($request->user()->level->isStateWide() ? ['district' => $district] : []))
+            ->with('success', $data['w_name'].' withdrawn for '.$label.' on '.$days->count().' day'.($days->count() > 1 ? 's' : '')
+                .' ('.($from->isSameDay($to) ? $from->format('d M Y') : $from->format('d M').' – '.$to->format('d M Y')).'). Offices there work on those days.');
+    }
+
+    /** 27-11-2026: restore a withdrawn state holiday day for the district. */
+    public function restoreWithdrawal(Request $request, HolidayWithdrawal $withdrawal)
+    {
+        abort_unless($this->calendar->canManage($request->user(), $withdrawal->district_id), 403);
+        $withdrawal->loadMissing('holiday:id,date,name', 'district:id,name,code');
+        AuditLogger::log('holiday_withdrawal_restored', $withdrawal->holiday, ['name' => $withdrawal->holiday?->name, 'date' => $withdrawal->holiday?->date,
+            'district_id' => $withdrawal->district_id, 'reason' => $withdrawal->reason]);
+        $withdrawal->delete();
+
+        return back()->with('success', ($withdrawal->holiday?->name ?? 'The holiday').' on '.Carbon::parse($withdrawal->holiday?->date)->format('d M Y').' is a holiday again in '.$withdrawal->district?->label.'.');
     }
 
     /** Excel template: date, name, type, district_code (blank = state holiday), plus value lists; ?fill=assam-2026 = the Assam list 2026. */

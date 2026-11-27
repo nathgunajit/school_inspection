@@ -41,7 +41,7 @@ class HolidayCalendar
      */
     public function year(int $year, ?int $districtId): array
     {
-        $key = 'holidays:v2:'.Cache::get(self::VERSION_KEY, 0).":$year:".($districtId ?? 'state');
+        $key = 'holidays:v3:'.Cache::get(self::VERSION_KEY, 0).":$year:".($districtId ?? 'state');
 
         return Cache::remember($key, 3600, fn () => $this->area(Holiday::query(), $districtId)
             ->whereIn('type', Holiday::OFF_TYPES)
@@ -68,9 +68,25 @@ class HolidayCalendar
             ->orderBy('name')->take($n)->get();
     }
 
+    /**
+     * State rows plus the district's own. 27-11-2026: in a district, a state holiday withdrawn for it (holiday_withdrawals)
+     * is left out, so the district works that day; the state view (no district) is unchanged.
+     */
     private function area($q, ?int $districtId)
     {
-        return $q->where(fn ($w) => $w->whereNull('district_id')->when($districtId, fn ($x) => $x->orWhere('district_id', $districtId)));
+        return $q->where(fn ($w) => $w->where(fn ($s) => $s->whereNull('district_id')
+                ->when($districtId, fn ($x) => $x->whereNotExists(fn ($e) => $e->selectRaw('1')->from('holiday_withdrawals')
+                    ->whereColumn('holiday_withdrawals.holiday_id', 'holidays.id')->where('holiday_withdrawals.district_id', $districtId))))
+            ->when($districtId, fn ($x) => $x->orWhere('district_id', $districtId)));
+    }
+
+    /** 27-11-2026: the withdrawals of one district (or every district when null) in a year, for the calendar page list. */
+    public function withdrawalsFor(?int $districtId, int $year)
+    {
+        return \App\Models\HolidayWithdrawal::with(['holiday:id,date,name', 'district:id,name,code', 'creator:id,name'])
+            ->when($districtId, fn ($q, $d) => $q->where('district_id', $d))
+            ->whereHas('holiday', fn ($q) => $q->whereBetween('date', ["$year-01-01", "$year-12-31"]))
+            ->get()->sortBy(fn ($w) => $w->holiday->date.'|'.$w->district?->name)->values();
     }
 
     /** The holiday name(s) on a date, or null. */

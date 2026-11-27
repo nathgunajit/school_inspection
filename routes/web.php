@@ -143,6 +143,9 @@ Route::middleware(['auth', 'active'])->group(function () {
                 Route::post('/', [HolidayController::class, 'store'])->name('store');
                 Route::get('/template', [HolidayController::class, 'template'])->name('template');
                 Route::post('/import', [HolidayController::class, 'import'])->middleware('throttle:10,1')->name('import');
+                // 27-11-2026: a state holiday withdrawn for one district (that district works those days), and restore
+                Route::post('/withdraw', [HolidayController::class, 'withdraw'])->middleware('throttle:30,1')->name('withdraw');
+                Route::delete('/withdraw/{withdrawal}', [HolidayController::class, 'restoreWithdrawal'])->name('withdraw.destroy');
                 Route::put('/{holiday}', [HolidayController::class, 'update'])->name('update');
                 Route::delete('/{holiday}', [HolidayController::class, 'destroy'])->name('destroy');
             });

@@ -5,7 +5,7 @@ import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 
 // 25-11-2026: From / To pairs are linked: To cannot be before From, From cannot be after To.
-const PAIRS = [['from', 'to'], ['custom_from', 'custom_to'], ['date', 'date_to']]; // 27-11-2026: holiday From – To
+const PAIRS = [['from', 'to'], ['custom_from', 'custom_to'], ['date', 'date_to'], ['w_from', 'w_to']]; // 27-11-2026: holiday From – To, withdraw From – To
 const ID_PAIRS = [['fFrom', 'fTo']];
 
 function partnerOf(el) {

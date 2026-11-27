@@ -47,6 +47,8 @@ class Holiday extends Model
 
     public function district() { return $this->belongsTo(District::class); }
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
+    /** 27-11-2026: districts where this state holiday is withdrawn (they work that day). */
+    public function withdrawals() { return $this->hasMany(HolidayWithdrawal::class); }
 
     /** Stored as plain Y-m-d, like inspection_date and schedule_date. */
     public function getDateAttribute($value): ?string
