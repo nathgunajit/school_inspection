@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserJurisdiction;
 use App\Services\AuditLogger;
 use App\Services\RegisterUploadStash;
+use App\Support\DesignationMaster;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -64,11 +65,16 @@ class RegisterController extends Controller
                 [$photoPath] = $kept;
             }
 
+            // 27-11-2026: a typed "Other" designation joins the master list (an existing one is reused)
+            $designationId = $request->isOtherDesignation()
+                ? DesignationMaster::resolve($data['designation_other'])[0]
+                : $data['designation_id'];
+
             $attrs = [
                 'name' => $data['name'],
                 'gender' => $data['gender'],
-                'designation_id' => $data['designation_id'],
-                'designation_other' => $request->isOtherDesignation() ? trim($data['designation_other']) : null,
+                'designation_id' => $designationId,
+                'designation_other' => null,
                 'employee_id' => $data['employee_id'] ?? null,
                 'mobile' => $data['mobile'],
                 'email' => $data['email'] ?? null,

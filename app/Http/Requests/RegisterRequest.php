@@ -61,7 +61,8 @@ class RegisterRequest extends FormRequest
             'gender' => ['required', Rule::in(array_keys(\App\Models\User::GENDERS))], // Modification V13
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
             // Modification V7: "Other" designation is typed in
-            'designation_other' => [Rule::requiredIf(fn () => $this->isOtherDesignation()), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
+            'designation_other' => [Rule::requiredIf(fn () => $this->isOtherDesignation()), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u",
+                fn ($a, $v, $fail) => $this->isOtherDesignation() && \App\Support\DesignationMaster::isJustOther($v) ? $fail('Please type your actual designation.') : null],
             // Modification V7: Employee ID and identity proof are optional
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
             'id_proof' => ['nullable', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],

@@ -94,7 +94,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Rating Settings stays for admins.
   - The inspection PDF never prints the rating.
 - Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK). **Employee photo by selfie** (27-11-2026): the photo zone has **Take a selfie** (`resources/js/selfie.js`, `#selfie-modal`): front camera, 600 px square mirrored JPEG put into the same `photo` input (no server change); without the camera API it uses `capture="user"`.
-  - Designation "Other" stores text in `users.designation_other`; always print `$user->designation_label`, never `designation?->label`.
+  - Designation "Other": the typed text goes into the Designation master (`master_values`, type `designation`) through `App\Support\DesignationMaster::resolve()` (27-11-2026, registration and the admin user page). A label already there is reused (case and extra spaces ignored), and only a new one is added, just above Other (sort = Other − 1, code from the slug, audited `designation_added`). The officer points at that row and `designation_other` stays null. Typing just "Other" is refused. Migration `2026_11_27_000001` moved older typed designations. Always print `$user->designation_label`, never `designation?->label`.
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
   - The rating card (`inspections/partials/rating.blade.php`) shows the change against `Inspection::previousRating()`.

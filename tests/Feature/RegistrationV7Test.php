@@ -148,9 +148,14 @@ class RegistrationV7Test extends TestCase
         $this->assertNull($plain->designation_other);
         $this->assertSame('Cluster Resource Centre Coordinator', $plain->designation_label);
 
+        // 27-11-2026: the typed designation is added to the Designation master and the officer points at it
         $user = User::where('mobile', '9876543210')->firstOrFail();
-        $this->assertSame('Academic Counsellor (SSA)', $user->designation_other);
+        $added = MasterValue::where('type', 'designation')->where('label', 'Academic Counsellor (SSA)')->firstOrFail();
+        $this->assertSame($added->id, $user->designation_id);
+        $this->assertNull($user->designation_other);
         $this->assertSame('Academic Counsellor (SSA)', $user->designation_label);
+        $this->assertSame(MasterValue::where('code', 'other')->value('sort') - 1, $added->sort);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'designation_added']);
         $reg = RegistrationRequest::where('user_id', $user->id)->firstOrFail();
         $this->actingAs($this->admin())->get(route('admin.approvals.show', $reg))->assertSee('Academic Counsellor (SSA)');
 
@@ -159,6 +164,42 @@ class RegistrationV7Test extends TestCase
             'name' => $user->name, 'designation_id' => MasterValue::idFor('designation', 'director'), 'designation_other' => 'x',
         ])->assertSessionHasNoErrors();
         $this->assertNull($user->fresh()->designation_other);
+    }
+
+    /** 27-11-2026: only a new typed designation is added to the master; a known one is reused. */
+    public function test_other_designation_adds_only_new_master_values(): void
+    {
+        $other = MasterValue::idFor('designation', User::OTHER_DESIGNATION);
+        $count = fn () => MasterValue::where('type', 'designation')->count();
+        $before = $count();
+
+        $this->post(route('register'), $this->payload(['designation_id' => $other, 'designation_other' => ' other ']))
+            ->assertSessionHasErrors(['designation_other' => 'Please type your actual designation.']);
+
+        // a seeded label, typed in another case with extra spaces, uses the seeded row
+        $this->registers(['designation_id' => $other, 'designation_other' => 'block   education officer']);
+        $this->assertSame($before, $count());
+        $this->assertSame(MasterValue::idFor('designation', 'block_education_officer'), User::where('mobile', '9876543210')->value('designation_id'));
+
+        // a new label is added once, then reused
+        $this->registers(['mobile' => '8876543210', 'designation_other' => 'Assistant Mission Coordinator', 'designation_id' => $other]);
+        $this->registers(['mobile' => '7876543210', 'designation_other' => 'assistant  mission coordinator', 'designation_id' => $other]);
+        $this->assertSame($before + 1, $count());
+        $added = MasterValue::where('label', 'Assistant Mission Coordinator')->firstOrFail();
+        $this->assertSame('assistant_mission_coordinator', $added->code);
+        $this->assertSame(2, User::where('designation_id', $added->id)->count());
+
+        // the dropdown offers it, above Other
+        auth()->logout();
+        $this->get(route('register'))->assertOk()->assertSeeInOrder(['Assistant Mission Coordinator', '>Other<'], false);
+
+        // the admin typing a new designation adds it as well
+        $user = User::where('mobile', '7876543210')->firstOrFail();
+        $this->actingAs($this->admin())->put(route('admin.users.update', $user), [
+            'name' => $user->name, 'designation_id' => $other, 'designation_other' => 'State Consultant',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('State Consultant', $user->fresh()->designation_label);
+        $this->assertSame($before + 2, $count());
     }
 
     /** V7-3: file sizes are written one standard way, from config. */

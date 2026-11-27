@@ -17,6 +17,7 @@ use App\Services\AreaOfficerGuard;
 use App\Services\AuditLogger;
 use App\Services\JurisdictionService;
 use App\Services\PermissionService;
+use App\Support\DesignationMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -78,13 +79,16 @@ class UserController extends Controller
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'gender' => ['nullable', Rule::in(array_keys(User::GENDERS))], // Modification V13
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')],
-            'designation_other' => [Rule::requiredIf(fn () => (int) $request->input('designation_id') === MasterValue::idFor('designation', User::OTHER_DESIGNATION)), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u"],
+            'designation_other' => [Rule::requiredIf(fn () => (int) $request->input('designation_id') === MasterValue::idFor('designation', User::OTHER_DESIGNATION)), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u",
+                fn ($a, $v, $fail) => DesignationMaster::isJustOther($v) ? $fail('Please type the actual designation.') : null],
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($user->id)],
             'email' => ['nullable', 'email', 'max:150'],
         ]);
-        if ((int) $data['designation_id'] !== MasterValue::idFor('designation', User::OTHER_DESIGNATION)) {
-            $data['designation_other'] = null;
+        if ((int) $data['designation_id'] === MasterValue::idFor('designation', User::OTHER_DESIGNATION)) {
+            // 27-11-2026: the typed designation joins the master list (an existing one is reused)
+            [$data['designation_id']] = DesignationMaster::resolve($data['designation_other'], $request->user());
         }
+        $data['designation_other'] = null;
         $before = $user->only(array_keys($data));
         $user->update($data);
         AuditLogger::log('user_updated', $user, ['before' => $before, 'after' => $data]);
