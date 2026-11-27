@@ -3382,3 +3382,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `PasswordController::resetWithDob()` (`POST /forgot-password/reset`, `password.dob`, throttle 10/10): CAPTCHA first; 5 failures per mobile per 30 min; same message for every failure (unknown mobile, wrong DOB, no DOB, not Active / Locked); success sets the password, unlocks a Locked account, audits `password_reset_dob` (failures `password_reset_dob_failed`).
 - Files: PasswordController, routes/web.php, auth/forgot-password.blade.php, app.scss (`.forgot-card`, `.forgot-email`), tests/Feature/ForgotPasswordDobTest.php (6 tests).
 - Verified: full suite 389 passed; npm run build.
+
+## 27-11-2026 · Forgot password: email reset link hidden
+- Removed the folded "Have an email on your account? Send a reset link instead" section from `/forgot-password`; the help note now reads "No date of birth on your account? Ask your State Administrator…". The `password.email` route, `PasswordController::sendLink()` and the email reset form are unchanged (can be shown again later).
+- Files: `resources/views/auth/forgot-password.blade.php`, `resources/scss/app.scss` (unused `.forgot-email` style removed), `tests/Feature/ForgotPasswordDobTest.php` (page no longer shows the link), CLAUDE.md rule 12.
+- Verification: full test suite and `npm run build`.

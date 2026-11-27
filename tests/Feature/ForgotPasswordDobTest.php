@@ -35,7 +35,7 @@ class ForgotPasswordDobTest extends TestCase
             $page->assertSee($field, false);
         }
         $this->assertSame(2, substr_count($page->getContent(), 'data-pw-toggle'));
-        $page->assertSee(route('password.email'), false); // the email link stays available
+        $page->assertDontSee('Send a reset link instead'); // the email option is hidden (27-11-2026)
     }
 
     public function test_mobile_and_date_of_birth_reset_the_password(): void

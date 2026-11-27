@@ -52,19 +52,8 @@
             <button class="btn btn-primary w-100 mt-3" data-loading-text="Resetting password…"><i class="bi bi-check2-circle"></i>Reset password</button>
         </form>
 
-        <details class="forgot-email mt-3">
-            <summary><i class="bi bi-envelope me-1"></i>Have an email on your account? Send a reset link instead</summary>
-            <form method="POST" action="{{ route('password.email') }}" class="mt-2">
-                @csrf
-                <label class="form-label" for="link_mobile">Mobile number</label>
-                <div class="input-group">
-                    <span class="input-group-text">+91</span>
-                    <input type="tel" inputmode="numeric" maxlength="10" pattern="[6-9][0-9]{9}" data-mobile name="mobile" id="link_mobile" class="form-control" required placeholder="10-digit number">
-                    <button class="btn btn-soft-primary" data-loading-text="Sending…"><i class="bi bi-send"></i>Send link</button>
-                </div>
-            </form>
-        </details>
-        <div class="login-help mt-3"><i class="bi bi-info-circle"></i>No date of birth or email on your account? Ask your State Administrator to reset your password. You'll get a temporary password to change after signing in.</div>
+        {{-- 27-11-2026: the "Send a reset link instead" email option is hidden for now; route password.email still works --}}
+        <div class="login-help mt-3"><i class="bi bi-info-circle"></i>No date of birth on your account? Ask your State Administrator to reset your password. You'll get a temporary password to change after signing in.</div>
         <div class="text-center mt-3 text-sm"><a href="{{ route('login') }}"><i class="bi bi-arrow-left"></i> Back to sign in</a></div>
     </div>
 </x-layouts.portal>
