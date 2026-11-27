@@ -15,6 +15,7 @@
             ['Coverage', 'reports.coverage', 'bi-pie-chart', 'reports.coverage*', 'view_reports'],
             ['Rating', 'reports.ratings', 'bi-bar-chart-line', 'reports.ratings*', 'state_admin'],
             ['Network Issues', 'reports.network*', 'bi-wifi-off', 'reports.network*', 'view_reports'],
+            ['District Ranking', 'reports.ranking', 'bi-trophy', 'reports.ranking*', 'view_district_ranking'], // 27-11-2026
         ],
     ];
     $tabs = array_values(array_filter($groups[$group] ?? [], fn ($t) => $u?->can($t[4])));

@@ -42,6 +42,8 @@ final class QueuedExports
         'reports.ratings.export-pdf' => 'Rating Report (PDF)',
         'inspections.export-pdf' => 'Inspections (PDF)',
         'reports.network.export-pdf' => 'Network Issues (PDF)',
+        'reports.ranking.export' => 'District Ranking (Excel)', // 27-11-2026
+        'reports.ranking.export-pdf' => 'District Ranking (PDF)',
     ];
 
     public static function enabled(): bool

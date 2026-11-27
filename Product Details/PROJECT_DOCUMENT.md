@@ -1152,3 +1152,18 @@ Source: `Documents/Modification of the ApplicationV16.docx` (updated 27-11-2026,
 - **Retired:** the "If permitted" grants (approve registrations, manage users) given to individual officers. They were removed by migration `2026_11_27_000004_v16_user_managers` (each one is in the audit log as `permissions_retired`). Coverage, holiday, notice and Today's Schools settings that used to follow "District officer with Manage users" now follow the District Programmer.
 - **Demo:** 9000000015 Pranjal Bhuyan (District Programmer, KOKRAJHAR) and 9000000025 Nisha Talukdar (Block MIS, DOTMA); the other demo officers no longer approve.
 - **Tests:** `tests/Feature/ModificationV16Test.php` (6 tests).
+
+## 18. District Ranking report (27-11-2026)
+
+A new tab under **Reports** (Coverage | Rating | Network Issues | **District Ranking**) for the State Administrator and State-level officers. It ranks the districts of the state for one period (Daily, Weekly, Monthly, Quarterly or Custom, with previous / next, as on the Coverage Report) and an optional school category, in two separate tables:
+
+| Ranking | Ranked by | Also shown | Who sees it |
+|---|---|---|---|
+| Coverage ranking | Inspection coverage % (schools with a submitted inspection in the inspection cycle ÷ active schools) | Schools, schools inspected, Visit coverage % | State Admin, State officers |
+| Rating ranking | Average rating % of the submitted, rated inspections dated in the period | Rated inspections, schools rated, band | State Admin only (like the Rating Report) |
+
+- Equal percentages share a rank (1, 2, 2, 4); ties are listed by schools inspected (coverage) or rated inspections (rating). Districts without schools or without a rated inspection come last without a rank ("Not rated").
+- The top three ranks have gold, silver and bronze badges. A district name opens its Coverage Report or Rating Report for the same period.
+- Downloads: Excel (sheets "Coverage ranking" and "Rating ranking") and PDF (both sections, with the period and cycle), made in the background like the other large downloads; audited `district_ranking_exported`.
+- The figures come from the Coverage and Rating reports, so the three always agree.
+- District, Block and Cluster officers do not see the tab (403).

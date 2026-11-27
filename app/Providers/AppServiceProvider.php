@@ -65,6 +65,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('configure_coverage', fn (User $user) => $user->isActive() && ($user->isStateAdmin() || $user->isDistrictProgrammer()));
         // V16 item 1: School Master and Location Master (District / Block) lists, read-only below the State Admin, own area only
         Gate::define('view_masters', fn (User $user) => $user->isActive() && $user->isUserManager());
+        // 27-11-2026: District Ranking report, for State-wide viewers (State Admin and State officers)
+        Gate::define('view_district_ranking', fn (User $user) => $user->isActive() && $user->level->isStateWide());
         // V14 (25-11-2026): holiday calendar and Today's schools settings, the same rule (a district manages its own rows only)
         Gate::define('manage_holidays', fn (User $user) => Gate::forUser($user)->allows('configure_coverage'));
         // V14 item 1: Instruction / Notification / Order letters, sent by the same people

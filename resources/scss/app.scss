@@ -2974,3 +2974,12 @@ $half-holiday: #0284c7;
         background: rgba($primary, .1); box-shadow: 0 0 0 8px rgba($primary, .05); }
     .pw-prompt-text { font-size: .86rem; color: #475569; line-height: 1.55; margin-bottom: 1.25rem; }
     .pw-prompt-actions { display: grid; gap: .5rem; .btn { border-radius: 999px; } .btn-light { background: #fff; border: 1px solid #e3e8f0; } } }
+
+// ---------- 27-11-2026: District Ranking report ----------
+.rank-badge { display: inline-grid; place-items: center; min-width: 1.9rem; height: 1.9rem; padding: 0 .4rem; border-radius: 2rem;
+    background: #eef2f7; color: #334155; font-weight: 700; font-size: .8rem;
+    &.is-gold { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #78350f; }
+    &.is-silver { background: linear-gradient(135deg, #f1f5f9, #94a3b8); color: #1e293b; }
+    &.is-bronze { background: linear-gradient(135deg, #fed7aa, #c2410c); color: #fff; } }
+.rank-band { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 2rem; font-size: .7rem; font-weight: 600;
+    color: var(--rb); background: color-mix(in srgb, var(--rb) 12%, #fff); border: 1px solid color-mix(in srgb, var(--rb) 35%, #fff); }

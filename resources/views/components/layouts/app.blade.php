@@ -31,7 +31,7 @@
         ['Today\'s Schools', 'today.index', 'bi-signpost-2', ['today.index', 'today.assign*'], $can('conduct_inspections')], // V14 item 5
         ['Schools', 'schools.index', 'bi-buildings', ['schools.index', 'schools.show', 'schools.blank-form', 'schools.mine*'], $can('conduct_inspections')], // Find School | My Schools
         ['Inspections', $u->can('conduct_inspections') ? 'inspections.mine' : 'inspections.area', 'bi-clipboard-check', ['inspections.mine', 'inspections.area'], $can('conduct_inspections', 'view_reports')], // Mine | In My Area
-        ['Reports', $u->can('view_reports') ? 'reports.coverage' : 'reports.ratings', 'bi-bar-chart-line', ['reports.coverage', 'reports.coverage.export*', 'reports.ratings*', 'reports.network*'], $can('view_reports', 'state_admin')], // Coverage | Rating (State Admin) | Network Issues
+        ['Reports', $u->can('view_reports') ? 'reports.coverage' : 'reports.ratings', 'bi-bar-chart-line', ['reports.coverage', 'reports.coverage.export*', 'reports.ratings*', 'reports.network*', 'reports.ranking*'], $can('view_reports', 'state_admin')], // Coverage | Rating (State Admin) | Network Issues
         ['Map View', 'map.index', 'bi-map', 'map.*', $can('view_reports')],
         ['Notices & Orders', 'notices.index', 'bi-megaphone', 'notices.*', null], // V14 item 1 (after Map View since 25-11-2026)
         ['Inspection Schedules', 'schedules.index', 'bi-calendar-week', 'schedules.*', $can('view_reports')],

@@ -114,6 +114,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/reports/network-issues', [NetworkIssueController::class, 'index'])->middleware('can:view_reports')->name('reports.network');
         Route::get('/reports/network-issues/export-pdf', [NetworkIssueController::class, 'exportPdf'])
             ->middleware(['can:view_reports', 'can:export_excel', 'throttle:6,1'])->name('reports.network.export-pdf'); // 25-11-2026
+        // 27-11-2026: District Ranking (Coverage % and Rating % ranked separately), State-wide viewers
+        Route::middleware(['can:view_reports', 'can:view_district_ranking'])->prefix('reports/district-ranking')->name('reports.ranking')->group(function () {
+            Route::get('/', [\App\Http\Controllers\DistrictRankingController::class, 'index'])->name('');
+            Route::get('/export', [\App\Http\Controllers\DistrictRankingController::class, 'export'])->middleware(['can:export_excel', 'throttle:6,1'])->name('.export');
+            Route::get('/export-pdf', [\App\Http\Controllers\DistrictRankingController::class, 'exportPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('.export-pdf');
+        });
         // V6 Module 10: rating report
         Route::middleware('can:view_reports')->prefix('reports/ratings')->name('reports.ratings')->group(function () {
             Route::get('/', [RatingReportController::class, 'index'])->name('');
