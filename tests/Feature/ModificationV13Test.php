@@ -41,8 +41,18 @@ class ModificationV13Test extends TestCase
         $this->assertNotNull($admin->fresh(), 'the State Administrator is kept');
         $this->assertNull(User::withTrashed()->find($old->id));
         $this->assertSame(0, DB::table('inspections')->count(), 'their inspections go with them');
-        foreach ([UserLevel::State, UserLevel::District, UserLevel::Block, UserLevel::Cluster] as $level) {
-            $this->assertSame(4, User::where('level', $level)->where('status', UserStatus::Active)->count(), $level->value);
+        // 4 per level, plus (27-11-2026) a District Programmer and a Block MIS
+        foreach ([UserLevel::State->value => 4, UserLevel::District->value => 5, UserLevel::Block->value => 5, UserLevel::Cluster->value => 4] as $level => $count) {
+            $this->assertSame($count, User::where('level', $level)->where('status', UserStatus::Active)->count(), $level);
+        }
+        $this->assertSame('District Programmer', User::where('mobile', '9000000015')->first()->designation_label);
+        $this->assertSame(UserLevel::District, User::where('mobile', '9000000015')->first()->level);
+        $this->assertSame('Block MIS', User::where('mobile', '9000000025')->first()->designation_label);
+        $this->assertSame(UserLevel::Block, User::where('mobile', '9000000025')->first()->level);
+        $this->app['auth']->forgetGuards(); // signed out, without the logout event
+        $login = $this->get(route('login'))->assertOk(); // listed on the sign-in page's Demo accounts panel
+        foreach (['Pranjal Bhuyan', 'District Programmer', '9000000015', 'Nisha Talukdar', 'Block MIS', '9000000025'] as $text) {
+            $login->assertSee($text);
         }
         $this->assertSame(1, User::where('status', UserStatus::Pending)->count());
         $this->assertSame(1, User::where('status', UserStatus::Rejected)->count());

@@ -17,9 +17,11 @@ class MasterValueSeeder extends Seeder
                 'district_education_officer' => 'District Education Officer',
                 'inspector_of_schools' => 'Inspector of Schools',
                 'district_project_coordinator' => 'District Project Coordinator',
+                'district_programmer' => 'District Programmer', // 27-11-2026 (District level)
                 'block_education_officer' => 'Block Education Officer',
                 'block_resource_person' => 'Block Resource Person',
                 'block_mission_coordinator' => 'Block Mission Coordinator',
+                'block_mis' => 'Block MIS', // 27-11-2026 (Block level)
                 'cluster_resource_coordinator' => 'Cluster Resource Centre Coordinator',
                 'other' => 'Other',
             ],

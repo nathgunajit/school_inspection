@@ -17,7 +17,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Demo officers: 4 per level (State, District, Block, Cluster) plus one pending and one rejected account (Modification V13).
+ * Demo officers: 4 per level (State, District, Block, Cluster) plus one pending and one rejected account (Modification V13),
+ * and since 27-11-2026 a District Programmer (District) and a Block MIS (Block).
  * All demo accounts use the password Demo@1234. Never run in production.
  */
 class DemoUserSeeder extends Seeder
@@ -72,6 +73,9 @@ class DemoUserSeeder extends Seeder
             // Approval queue
             ['9000000041', 'Amit Phukan',      'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(0), UserStatus::Pending, []],
             ['9000000044', 'Gita Barman',      'female', UserLevel::Cluster,  'cluster_resource_coordinator', $c(1), UserStatus::Rejected, []],
+            // 27-11-2026: District Programmer (District level) and Block MIS (Block level); last, so the DEMO00nn employee IDs of the others stay
+            ['9000000015', 'Pranjal Bhuyan',   'male',   UserLevel::District, 'district_programmer',          $d1,   UserStatus::Active, []],
+            ['9000000025', 'Nisha Talukdar',   'female', UserLevel::Block,    'block_mis',                    $b(0), UserStatus::Active, []],
         ];
         $idProof = $this->idProofFile();
         $n = 0;

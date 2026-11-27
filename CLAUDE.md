@@ -42,7 +42,9 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 | 9000000001–04 | Ananya Sharma (F), Bikash Kalita, Chandana Bora (F), Dipankar Saikia | State | 01 can approve District registrations |
 | 9000000011–12 | Rakesh Baruah, Meera Kalita (F) | District · KOKRAJHAR (1801) | 11 approve + manage users |
 | 9000000013–14 | Nabajit Deka, Rupali Das (F) | District · DHUBRI (1802) | 13 approve + manage users |
+| 9000000015 | Pranjal Bhuyan | District · KOKRAJHAR (1801) | **District Programmer** (27-11-2026), inspector |
 | 9000000021–24 | Sanjay Das, Priya Gogoi (F), Imran Hussain, Deepa Bora (F) | Block · DOTMA, GOSSAIGAON, GOLAKGANJ, AGOMONI | can approve Cluster registrations |
+| 9000000025 | Nisha Talukdar (F) | Block · DOTMA | **Block MIS** (27-11-2026), inspector |
 | 9000000031–34 | Arjun Saikia, Kavita Deka (F), Rohit Nath, Sunita Rabha (F) | Cluster · GOSSAINICHINA, BHAWRAGURI, BALAJAN, AGOMONI | inspectors |
 | 9000000041 | Amit Phukan | Cluster · GOSSAINICHINA | **Pending** approval (the cluster is held, so approval names the officer) |
 | 9000000044 | Gita Barman (F) | Cluster | Rejected (can re-apply) |
