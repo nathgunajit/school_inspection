@@ -293,6 +293,8 @@ html, body { overflow-x: clip; }
     @include media-breakpoint-up(md) { grid-template-columns: 1.15fr 1fr; align-items: stretch; } }
 .login-card { max-width: 480px; width: 100%; }
 .login-grid .login-card { max-width: none; }
+.login-card.forgot-card { max-width: 640px; } // 27-11-2026: Mobile | DOB and the two passwords side by side
+.forgot-email summary { cursor: pointer; font-size: .85rem; font-weight: 600; color: $primary; }
 .login-side { display: flex; flex-direction: column;
     @include media-breakpoint-up(md) { background: linear-gradient(160deg, #fff 55%, rgba(30,155,75,.06)); } }
 .login-points { list-style: none; padding: 0; margin: 0 0 1.25rem; font-size: .82rem;

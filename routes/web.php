@@ -39,6 +39,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/register/kept/{field}', [RegisterController::class, 'keptUpload'])->whereIn('field', ['photo', 'id_proof'])->name('register.kept');
     Route::get('/forgot-password', [PasswordController::class, 'forgot'])->name('password.request');
     Route::post('/forgot-password', [PasswordController::class, 'sendLink'])->middleware('throttle:5,10')->name('password.email');
+    Route::post('/forgot-password/reset', [PasswordController::class, 'resetWithDob'])->middleware('throttle:10,10')->name('password.dob'); // 27-11-2026
     Route::get('/reset-password/{token}', [PasswordController::class, 'resetForm'])->name('password.reset');
     Route::post('/reset-password', [PasswordController::class, 'reset'])->name('password.update');
 });

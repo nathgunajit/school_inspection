@@ -3376,3 +3376,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Password eye: `partials/pw-toggle.blade.php` + `resources/js/password-toggle.js` (delegated, aria-pressed / label, back to type password on submit) on Register (both boxes), Login (replaces the inline onclick), Change Password (3) and Reset Password (2).
 - Files: User, RegisterRequest, RegisterController, Admin\UserController, register / login / change-password / reset-password / admin users show / profile views, app.js, tests (payloads + `test_date_of_birth_is_required_and_checked`).
 - Verified: full suite 383 passed; npm run build.
+
+## 27-11-2026: Forgot password with Mobile number + Date of birth
+- `/forgot-password` now asks Mobile number | Date of birth and New | Confirm password (show / hide eyes, `partials/pw-toggle`), plus the math CAPTCHA; the email reset link is kept in a folded "Send a reset link instead" section.
+- `PasswordController::resetWithDob()` (`POST /forgot-password/reset`, `password.dob`, throttle 10/10): CAPTCHA first; 5 failures per mobile per 30 min; same message for every failure (unknown mobile, wrong DOB, no DOB, not Active / Locked); success sets the password, unlocks a Locked account, audits `password_reset_dob` (failures `password_reset_dob_failed`).
+- Files: PasswordController, routes/web.php, auth/forgot-password.blade.php, app.scss (`.forgot-card`, `.forgot-email`), tests/Feature/ForgotPasswordDobTest.php (6 tests).
+- Verified: full suite 389 passed; npm run build.
