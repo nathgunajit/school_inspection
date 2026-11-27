@@ -22,7 +22,7 @@
         <div class="container-xl d-flex align-items-center gap-3">
             <img src="{{ asset('logo/ASSAM GOVT LOGO.png') }}" alt="Government of Assam" class="reg-logo-govt" decoding="async">
             <div class="reg-topbar-title">
-                <div class="t0 d-none d-sm-block">Government of Assam · Samagra Shiksha, Assam</div>
+                <div class="t0 d-none d-sm-block">Government of Assam · Samagra Shiksha Axom</div>
                 <div class="t1"><i class="bi bi-clipboard2-check"></i>School Inspection <span class="d-none d-sm-inline">Management System</span></div>            </div>
             <img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" class="reg-logo-ss ms-auto" decoding="async">
         </div>
@@ -46,7 +46,7 @@
 
     <footer class="reg-footer">
         <div class="container-xl d-flex flex-column flex-md-row justify-content-between gap-1">
-            <span>&copy; {{ date('Y') }} Government of Assam · Samagra Shiksha, Assam</span>
+            <span>&copy; {{ date('Y') }} Government of Assam · Samagra Shiksha Axom</span>
             <span>For inspecting officers of the Education Department only</span>
         </div>
     </footer>

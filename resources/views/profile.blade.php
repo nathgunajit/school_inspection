@@ -8,7 +8,7 @@
         <div class="pf-hero-band" aria-hidden="true">
             <span class="pf-hero-ring r1"></span><span class="pf-hero-ring r2"></span>
             <img src="{{ asset('logo/SSA LOGO.png') }}" alt="" class="pf-hero-mark">
-            <div class="pf-hero-greet"><span>{{ now()->hour < 12 ? 'Good morning' : (now()->hour < 17 ? 'Good afternoon' : 'Good evening') }}</span>Samagra Shiksha, Assam</div>
+            <div class="pf-hero-greet"><span>{{ now()->hour < 12 ? 'Good morning' : (now()->hour < 17 ? 'Good afternoon' : 'Good evening') }}</span>Samagra Shiksha Axom</div>
         </div>
         <div class="pf-hero-body">
             <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo pf-photo" data-photo-form

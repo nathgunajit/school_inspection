@@ -71,8 +71,8 @@
 
 <aside class="app-sidebar" aria-label="Main navigation">
     <div class="brand">
-        <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha, Assam"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" decoding="async"></a>
-        <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha, Assam</small></a>
+        <a href="{{ route('dashboard') }}" class="brand-mark" title="Samagra Shiksha Axom"><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha" decoding="async"></a>
+        <a href="{{ route('dashboard') }}" class="brand-text text-white text-decoration-none">School Inspection<small>Samagra Shiksha Axom</small></a>
         <button type="button" class="sidebar-toggle d-none d-lg-grid" data-sidebar-mini data-mini-tip title="Collapse menu" aria-label="Collapse menu" aria-expanded="true"><i class="bi bi-chevron-double-left"></i></button>
     </div>
     @can('conduct_inspections')

@@ -126,7 +126,7 @@ class MySchoolsExport implements FromQuery, WithHeadings, WithMapping, WithCusto
 
             $lines = [
                 1 => ['GOVERNMENT OF ASSAM', ['bold' => true, 'size' => 13]],
-                2 => ['Samagra Shiksha Abhiyan, Assam', ['bold' => true, 'size' => 11, 'color' => ['rgb' => '1B5E20']]],
+                2 => ['Samagra Shiksha Axom', ['bold' => true, 'size' => 11, 'color' => ['rgb' => '1B5E20']]],
                 3 => ['MY SCHOOLS', ['bold' => true, 'size' => 14, 'color' => ['rgb' => '0D47A1']]],
                 4 => [implode('   ·   ', ['Area: '.$this->meta['scope'], 'Officer: '.$this->meta['officer'],
                     'Records: '.number_format($this->meta['rows']), 'Generated: '.now()->format('d-m-Y H:i')]), ['size' => 10]],

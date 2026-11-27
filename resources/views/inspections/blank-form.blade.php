@@ -137,7 +137,7 @@
 <header>
     <table><tr>
         <td class="lg">@if ($logos['assam'])<img src="{{ $logos['assam'] }}" alt="">@endif</td>
-        <td class="hc"><div class="g1">GOVERNMENT OF ASSAM</div><div class="g2">Samagra Shiksha, Assam</div>
+        <td class="hc"><div class="g1">GOVERNMENT OF ASSAM</div><div class="g2">Samagra Shiksha Axom</div>
             <div class="g3">SCHOOL INSPECTION FORM</div><div class="g4">Paper copy for use without internet · enter it in the app when the network is back</div></td>
         <td class="lg ssa">@if ($logos['ssa'])<img src="{{ $logos['ssa'] }}" alt="">@endif</td>
     </tr></table>

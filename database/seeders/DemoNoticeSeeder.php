@@ -116,14 +116,14 @@ class DemoNoticeSeeder extends Seeder
         $html = '<html><body style="font-family: DejaVu Sans, sans-serif; font-size: 11pt; color: #1e293b">'
             .'<div style="text-align:center; border-bottom: 2px solid #1565c0; padding-bottom: 8px">'
             .'<div style="font-size: 13pt; font-weight: bold">Government of Assam</div>'
-            .'<div style="font-size: 12pt; color: #1565c0; font-weight: bold">Samagra Shiksha, Assam</div>'
+            .'<div style="font-size: 12pt; color: #1565c0; font-weight: bold">Samagra Shiksha Axom</div>'
             .'<div style="font-size: 9pt; color: #64748b">Kahilipara, Guwahati-19 (demo document)</div></div>'
             .'<table style="width:100%; margin-top: 12px; font-size: 10pt"><tr><td>No. '.e($n->ref_no).'</td><td style="text-align:right">Dated '.e(date('d-m-Y', strtotime($n->notice_date))).'</td></tr></table>'
             .'<h3 style="text-align:center; margin: 18px 0 10px">ORDER</h3>'
             .'<p style="font-weight:bold">Subject: '.e($n->title).'</p>'
             .collect(explode("\n\n", $n->body))->map(fn ($p) => '<p style="text-align:justify; line-height: 1.5">'.e($p).'</p>')->implode('')
             .'<p style="text-align:justify; line-height: 1.5">Targets: State and District officers 4, Block officers 8 and Cluster officers 15 school inspections in the month. District offices shall review progress every Monday.</p>'
-            .'<div style="margin-top: 50px; text-align:right">Sd/-<br><b>Mission Director</b><br>Samagra Shiksha, Assam</div>'
+            .'<div style="margin-top: 50px; text-align:right">Sd/-<br><b>Mission Director</b><br>Samagra Shiksha Axom</div>'
             .'</body></html>';
         $path = 'notices/'.Str::random(40).'.pdf';
         Storage::disk(NoticeService::DISK)->put($path, Pdf::loadHTML($html)->setPaper('a4')->output());

@@ -17,7 +17,7 @@ class PageLoaderTest extends TestCase
     public function test_dashboard_has_loader_and_network_banner(): void
     {
         $this->actingAs($this->admin())->get(route('dashboard'))->assertOk()
-            ->assertSee('id="si-loader"', false)->assertSee('Samagra Shiksha, Assam')->assertSee('id="si-net-banner"', false);
+            ->assertSee('id="si-loader"', false)->assertSee('Samagra Shiksha Axom')->assertSee('id="si-net-banner"', false);
     }
 
     public function test_heavy_actions_are_marked_for_the_full_loader(): void

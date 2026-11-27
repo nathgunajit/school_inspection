@@ -23,7 +23,7 @@
 <div id="si-loader" role="status" aria-live="polite" aria-label="Loading School Inspection">
     <div class="si-ld-logo"><span class="si-ld-ring"></span><img src="{{ asset('logo/SSA LOGO.png') }}" alt="Samagra Shiksha"></div>
     <p class="si-ld-title">School Inspection</p>
-    <p class="si-ld-sub">Samagra Shiksha, Assam</p>
+    <p class="si-ld-sub">Samagra Shiksha Axom</p>
     <p class="si-ld-msg" data-loader-msg></p>
     <div class="si-ld-dots" aria-hidden="true"><span></span><span></span><span></span></div>
 </div>

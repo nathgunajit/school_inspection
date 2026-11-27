@@ -141,7 +141,7 @@
         <td class="hd-logo">@if (! empty($logos['assam']))<img src="{{ $logos['assam'] }}" alt="Government of Assam">@endif</td>
         <td class="hd-center">
             <div class="hd-govt">GOVERNMENT OF ASSAM</div>
-            <div class="hd-ssa">Samagra Shiksha Abhiyan, Assam</div>
+            <div class="hd-ssa">Samagra Shiksha Axom</div>
             <div class="hd-title">SCHOOL INSPECTION REPORT</div>
             <div class="hd-sub">School Monitoring and Assessment System</div>
         </td>

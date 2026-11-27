@@ -104,7 +104,7 @@
 ## 3. Layout, header, footer and navigation
 
 - **Sidebar** (`aside.app-sidebar`):
-  - SSA logo and "School Inspection · Samagra Shiksha, Assam".
+  - SSA logo and "School Inspection · Samagra Shiksha Axom".
   - A green "New inspection" button.
   - Since 25-11-2026 a **smaller menu** of 9 items: Dashboard, Today's Schools, Schools (tabs Find School | My Schools), Inspections (tabs My Inspections | In My Area), Reports (tabs Coverage | Rating | Network Issues), Map View, Notices & Orders (unread count), Inspection Schedules, Holiday Calendar. The tabs are the component `<x-page-tabs>` at the top of those pages.
   - Under *Administration*, the folding groups **Users**, **Masters** and **Admin Settings** (Bootstrap collapse, open while one of their pages is open). Everything is filtered by permission.

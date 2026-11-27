@@ -3304,3 +3304,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Hints show "JPG, JPEG or PNG, max 2 MB" from config: profile, Gallery button titles and the step 7 photo note.
 - Files: config/inspection.php, resources/js/{image-shrink,register,app,camera,selfie}.js, app/Http/Controllers/ProfileController.php, app/Http/Requests/RegisterRequest.php, app/Services/EvidenceStorage.php, resources/views/{auth/register,profile,inspections/step}.blade.php, tests (RegistrationAndLogin, RegistrationV7, InspectionFlow), CLAUDE.md.
 - Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|RegistrationV7|InspectionFlow|IconSubset|QueryBudget"` 52 passed (793 assertions).
+
+## 27-11-2026 — Organisation name: "Samagra Shiksha Axom"
+- Replaced "Samagra Shiksha Abhiyan, Assam" and "Samagra Shiksha, Assam" with "Samagra Shiksha Axom" everywhere it is shown: top bar brand, sign-in / register header and footer, page loader, My Profile greeting, inspection report PDF, rating report PDF, master list PDFs, My Schools Excel (row 2), blank paper form, demo notice letter, product doc and the docx builder.
+- Left unchanged: "Government of Assam", the "SSA, ASSAM" watermark, plain "Samagra Shiksha" (logo alt text, fund source, questionnaire option) and past ACTION.md entries.
+- Files: resources/views/{inspections/pdf,reports/ratings/pdf,admin/exports/master-pdf,components/layouts/app,components/layouts/portal,components/page-loader,profile,inspections/blank-form}.blade.php, app/Exports/MySchoolsExport.php, database/seeders/DemoNoticeSeeder.php, tests/Feature/PageLoaderTest.php, Product Details/UI_Pages_and_Application_Modules.md, tools/docs/build-product-docx.cjs, CLAUDE.md.
+- Verified: grep finds no old name; tests below.

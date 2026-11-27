@@ -102,7 +102,7 @@
         <td class="hd-logo">@if (! empty($logos['assam']))<img src="{{ $logos['assam'] }}" alt="">@endif</td>
         <td class="hd-center">
             <div class="hd-govt">GOVERNMENT OF ASSAM</div>
-            <div class="hd-ssa">Samagra Shiksha Abhiyan, Assam</div>
+            <div class="hd-ssa">Samagra Shiksha Axom</div>
             <div class="hd-title">{{ mb_strtoupper($title) }}</div>
         </td>
         <td class="hd-logo ssa">@if (! empty($logos['ssa']))<img src="{{ $logos['ssa'] }}" alt="">@endif</td>
