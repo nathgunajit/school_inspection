@@ -36,17 +36,15 @@ class ApprovalAndUserManagementTest extends TestCase
         $this->assertTrue($resolver->canApprove($admin, $applicant));
         $this->assertFalse($resolver->canApprove($block, $applicant), 'block without permission');
 
-        // District with permission may act only while no block approver exists
-        $this->grant($district, Permission::APPROVE_REGISTRATIONS);
-        $this->assertTrue(app(ApproverResolver::class)->canApprove($district->fresh(), $applicant));
-
-        $this->grant($block, Permission::APPROVE_REGISTRATIONS);
-        $this->grant($otherBlock, Permission::APPROVE_REGISTRATIONS);
+        // V16: the District Programmer approves Cluster registrations; the Block MIS only views the user list
+        $this->assertFalse($resolver->canApprove($district, $applicant), 'an ordinary District officer');
+        $this->grant($district, Permission::APPROVE_REGISTRATIONS); // becomes the District Programmer
+        $this->grant($block, Permission::MANAGE_USERS);             // becomes the Block MIS
         app()->forgetScopedInstances(); // drop the per-request permission cache
         $r = app(ApproverResolver::class);
-        $this->assertTrue($r->canApprove($block->fresh(), $applicant));
-        $this->assertFalse($r->canApprove($otherBlock->fresh(), $applicant), 'outside jurisdiction');
-        $this->assertFalse($r->canApprove($district->fresh(), $applicant), 'block approver exists');
+        $this->assertTrue($r->canApprove($district->fresh(), $applicant), 'even though the block has a Block MIS');
+        $this->assertFalse($r->canApprove($block->fresh(), $applicant), 'the Block MIS does not approve');
+        $this->assertFalse($r->canApprove($otherBlock, $applicant), 'outside jurisdiction');
     }
 
     public function test_user_can_never_approve_self(): void

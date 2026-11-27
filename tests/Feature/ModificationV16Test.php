@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 /**
- * Modification V16 item 1 (27-11-2026): only the State Admin, District Programmers (District level) and Block MIS
- * (Block level) list users, approve registrations and reset passwords; they see the School Master and Location Master
+ * Modification V16 item 1 (27-11-2026): only the State Admin and District Programmers (District level) list users,
+ * approve registrations and reset passwords; the Block MIS (Block level) only views the user list of their block; they see the School Master and Location Master
  * (District / Block) of their own area read-only; one District Programmer per district and one Block MIS per block.
  */
 class ModificationV16Test extends TestCase
@@ -57,9 +57,12 @@ class ModificationV16Test extends TestCase
         }
         foreach ([$this->districtProgrammer($this->cluster), $this->blockMis($this->cluster)] as $manager) {
             $this->actingAs($manager)->get(route('admin.users.index'))->assertOk();
-            $this->get(route('admin.approvals.index'))->assertOk();
             $this->get(route('dashboard'))->assertOk()->assertSee(route('admin.users.index'), false)->assertSee(route('admin.schools.index'), false);
         }
+        $this->actingAs($this->districtProgrammer($this->cluster))->get(route('admin.approvals.index'))->assertOk();
+        // the Block MIS only views the user list: no approvals
+        $this->actingAs($this->blockMis($this->cluster))->get(route('admin.approvals.index'))->assertForbidden();
+        $this->get(route('dashboard'))->assertOk()->assertDontSee(route('admin.approvals.index'), false);
         $this->assertTrue(Gate::forUser($this->districtProgrammer($this->otherCluster($this->cluster)))->allows('configure_coverage'));
         $this->assertFalse(Gate::forUser($this->officer(UserLevel::District, $this->cluster))->allows('configure_coverage'));
         $this->assertFalse(Gate::forUser($this->blockMis($this->otherCluster($this->cluster)))->allows('configure_coverage'));
@@ -78,16 +81,15 @@ class ModificationV16Test extends TestCase
         $this->assertFalse($r->canApprove($mis, $block), 'not a Block MIS');
 
         $cluster = $this->applicant(UserLevel::Cluster, $this->cluster);
-        $this->assertTrue($r->canApprove($mis, $cluster), 'Cluster: the Block MIS of that block');
-        $this->assertFalse($r->canApprove($dp, $cluster), 'the District Programmer only when the block has no Block MIS');
-        $noMis = $this->applicant(UserLevel::Cluster, $this->otherBlockCluster());
-        $this->assertTrue($r->canApprove($dp, $noMis));
-        $this->assertFalse($r->canApprove($mis, $noMis), 'another block');
+        $this->assertTrue($r->canApprove($dp, $cluster), 'Cluster: the District Programmer, even where the block has a Block MIS');
+        $this->assertFalse($r->canApprove($mis, $cluster), 'the Block MIS only views the user list');
+        $this->assertFalse($r->canApprove($farDp, $cluster));
 
         $this->assertFalse($r->canApprove($dp, $this->applicant(UserLevel::District, $this->cluster)), 'District: State Admin only');
         $this->assertTrue($r->canApprove($this->admin(), $this->applicant(UserLevel::District, $this->cluster)));
 
-        $this->actingAs($mis)->post(route('admin.approvals.approve', RegistrationRequest::where('user_id', $cluster->id)->first()))->assertRedirect();
+        $this->actingAs($mis)->post(route('admin.approvals.approve', RegistrationRequest::where('user_id', $cluster->id)->first()))->assertForbidden();
+        $this->actingAs($dp)->post(route('admin.approvals.approve', RegistrationRequest::where('user_id', $cluster->id)->first()))->assertRedirect();
         $this->assertSame(UserStatus::Active, $cluster->fresh()->status);
     }
 
@@ -111,8 +113,11 @@ class ModificationV16Test extends TestCase
         $this->assertTrue($beo->fresh()->must_change_password);
         $this->post(route('admin.users.reset-password', $deo))->assertForbidden();
         $this->post(route('admin.users.reset-password', $far))->assertForbidden();
-        $this->actingAs($mis)->post(route('admin.users.reset-password', $crcc))->assertRedirect()->assertSessionHas('success');
+        // the Block MIS only views: the officer page opens, without Reset password
+        $this->actingAs($mis)->get(route('admin.users.show', $crcc))->assertOk()->assertDontSee(route('admin.users.reset-password', $crcc), false);
+        $this->post(route('admin.users.reset-password', $crcc))->assertForbidden();
         $this->post(route('admin.users.reset-password', $otherBlockCrcc))->assertForbidden();
+        $this->actingAs($mis)->get(route('admin.users.show', $otherBlockCrcc))->assertForbidden();
 
         // list, approve and reset only: no edit, status or transfer
         $this->actingAs($dp)->patch(route('admin.users.status', $crcc))->assertForbidden();

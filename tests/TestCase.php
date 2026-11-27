@@ -91,7 +91,8 @@ abstract class TestCase extends BaseTestCase
         if (in_array($slug, \App\Services\PermissionService::USER_MANAGER_SLUGS, true)) {
             $code = match ($user->level) {
                 UserLevel::District => User::DISTRICT_PROGRAMMER,
-                UserLevel::Block => User::BLOCK_MIS,
+                UserLevel::Block => $slug === Permission::MANAGE_USERS ? User::BLOCK_MIS
+                    : throw new \LogicException('V16: the Block MIS only views users; approvals are for the District Programmer.'),
                 default => throw new \LogicException('V16: only District Programmers and Block MIS approve or manage users.'),
             };
             $user->forceFill(['designation_id' => \App\Models\MasterValue::idFor('designation', $code)])->save();

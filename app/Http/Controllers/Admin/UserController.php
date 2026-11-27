@@ -178,6 +178,8 @@ class UserController extends Controller
     {
         $this->authorizeManage($request->user(), $user);
         abort_if($user->id === $request->user()->id, 403, 'Use Change password for your own account.');
+        // V16: the Block MIS only views the user list; resets are for the State Admin and the District Programmer
+        abort_unless($request->user()->isStateAdmin() || $request->user()->isDistrictProgrammer(), 403);
         $temp = 'Si@'.Str::upper(Str::random(3)).random_int(1000, 9999).Str::lower(Str::random(2));
         $user->forceFill([
             'password' => $temp, 'must_change_password' => true,

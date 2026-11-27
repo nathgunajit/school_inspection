@@ -33,7 +33,7 @@
                             @endif
                         </form>
                     @endif
-                    @if ($admin || auth()->user()->isUserManager()){{-- V16: District Programmer / Block MIS too --}}
+                    @if ($admin || auth()->user()->isDistrictProgrammer()){{-- V16: the District Programmer too (the Block MIS only views) --}}
                         <form method="POST" action="{{ route('admin.users.reset-password', $user) }}" class="d-grid" data-confirm="Generate a temporary password for this user?">
                             @csrf
                             <button class="btn btn-soft-primary"><i class="bi bi-key"></i>Reset password</button>

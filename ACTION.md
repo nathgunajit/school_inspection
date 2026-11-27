@@ -3417,3 +3417,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Tests: new `ModificationV16Test` (6), updated ApprovalAndUserManagementTest, UserTypeAccessTest, HolidayCalendarTest; `TestCase::districtProgrammer()` / `blockMis()`, `grant()` maps the two permissions to the designation. Full suite 399 passed.
 - Docs: CLAUDE.md (V16 block, rule 15, demo table, gates), PROJECT_DOCUMENT section 17 (and 16 renamed), Requirements copy, Word file rebuilt.
 - Next: items 2–4 (DP adds / edits Blocks with Admin approval; Block MIS adds / edits Clusters with Admin / DP approval; Today's Schools Settings for the DP).
+
+## 27-11-2026 · V16: the Block MIS only views the user list
+- User decision: "Block MIS only View the user List". The Block MIS keeps the user list (and an officer's page) of their block's Cluster officers, but no longer approves registrations or resets passwords. Cluster registrations now go to the District Programmer (or the State Admin), like Block ones.
+- Code: `PermissionService::has()` (`approve_registrations` District Programmer only; `manage_users` DP + Block MIS), `ApproverResolver` (Block and Cluster → DP; `hasPermittedApprover()` removed), `UserController::resetPassword()` (State Admin / DP only), `admin/users/show` (Reset button State Admin / DP). School / Location Master view and the one-per-block rule unchanged.
+- Tests: `ModificationV16Test`, `ApprovalAndUserManagementTest` updated; `TestCase::grant()` refuses `approve_registrations` for a Block officer. CLAUDE.md, PROJECT_DOCUMENT section 17, Word file updated.

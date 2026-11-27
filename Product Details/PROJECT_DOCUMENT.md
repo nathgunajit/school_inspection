@@ -1138,14 +1138,14 @@ Source: `Documents/Modification of the ApplicationV16.docx` (updated 27-11-2026,
 **Item 1, how it works**
 
 - **Who:** an officer is a District Programmer when their level is District and their designation is District Programmer; a Block MIS when the level is Block and the designation is Block MIS. Changing the designation (State Admin, user page) gives or removes the role.
-- **Users:** only these officers and the State Admin see Users. A District Programmer lists the Block and Cluster officers of their district, a Block MIS the Cluster officers of their block. They can open an officer and **reset the password** (temporary password, change at next sign-in). Editing, activating / deactivating, transfers and permissions stay with the State Admin.
+- **Users:** only these officers and the State Admin see Users. A District Programmer lists the Block and Cluster officers of their district and can open an officer and **reset the password** (temporary password, change at next sign-in). A Block MIS **only views** the user list of their block (Cluster officers): no approvals and no password reset (27-11-2026). Editing, activating / deactivating, transfers and permissions stay with the State Admin.
 - **Approvals:**
 
   | Applicant | Approved by |
   |---|---|
   | State or District officer (also a District Programmer) | State Admin |
   | Block officer (also a Block MIS) | District Programmer of the district, or the State Admin |
-  | Cluster officer | Block MIS of the block; where the block has none, the District Programmer; or the State Admin |
+  | Cluster officer | District Programmer of the district, or the State Admin |
 
 - **Masters (read-only):** School Master (list, Excel, PDF) and Location Master (District and Block tabs, Excel, PDF) limited to the officer's district (District Programmer) or block (Block MIS). No add, edit, delete or upload.
 - **One per area:** one active District Programmer per district and one active Block MIS per block, checked at registration, approval, re-activation, transfer and when the admin changes a designation. The message names the existing officer with a masked mobile.

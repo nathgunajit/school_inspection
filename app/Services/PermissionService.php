@@ -26,7 +26,10 @@ class PermissionService
             return true;
         }
         if (in_array($slug, self::USER_MANAGER_SLUGS, true)) {
-            return $user->isDistrictProgrammer() || $user->isBlockMis();
+            // V16: the District Programmer approves and manages; the Block MIS only views the user list
+            return $slug === Permission::MANAGE_USERS
+                ? $user->isDistrictProgrammer() || $user->isBlockMis()
+                : $user->isDistrictProgrammer();
         }
 
         return in_array($slug, $this->slugsFor($user), true);
