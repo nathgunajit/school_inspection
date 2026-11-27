@@ -27,6 +27,16 @@ class PageLoaderTest extends TestCase
         $this->get(route('admin.rating.index'))->assertSee('Re-rating all inspections');
     }
 
+    /** 27-11-2026: the splash hides when the page is readable, not after every image (the CAPTCHA) has loaded. */
+    public function test_register_page_loader_hides_when_the_page_is_ready(): void
+    {
+        config(['inspection.captcha_enabled' => true]);
+        $this->get(route('register'))->assertOk()
+            ->assertSee('id="si-loader"', false)
+            ->assertSee("addEventListener('DOMContentLoaded', ready)", false)
+            ->assertSee('id="captcha-img"', false);
+    }
+
     public function test_login_button_has_processing_text(): void
     {
         $this->get(route('login'))->assertSee('data-loading-text="Signing in…"', false);

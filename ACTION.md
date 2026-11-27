@@ -3258,3 +3258,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - The blank form links lost a `data-no-busy` that had no effect on links, so they get the busy look too.
 - Files: `resources/js/download-busy.js` (new), `resources/js/app.js`, `resources/scss/_button-busy.scss`, `app/Http/Middleware/MarkDownloadDone.php` (new), `bootstrap/app.php`, `schools/show.blade.php`, `inspections/step.blade.php`, `tests/Feature/DownloadBusyTest.php` (new), CLAUDE.md.
 - Verified: `npm run build`; full suite 371 passed (SQLite).
+
+## 27-11-2026 · Registration page: loading splash no longer appears over the visible page
+- Cause: `#si-loader` fades in after 1.5 s and was hidden only on `window.load`, which waits for every image. On `/register` the server-made CAPTCHA image (plus logos and the district request) often took longer, so the splash covered the form already on screen. A CAPTCHA slower than 8 s also marked the network "slow" for the next pages.
+- Fix: `components/page-loader.blade.php` hides the loader (and measures a slow load) at `DOMContentLoaded`; `load` stays as a fallback. `resources/js/register.js` binds the password, upload and consent handlers first and restores old district / block / cluster without awaiting it. `partials/captcha.blade.php` image `decoding="async"`.
+- Files: resources/views/components/page-loader.blade.php, resources/js/register.js, resources/views/partials/captcha.blade.php, tests/Feature/PageLoaderTest.php, CLAUDE.md.
+- Verified: `php artisan test --filter="PageLoader|RegistrationAndLogin"` 19 passed; `npm run build` OK.

@@ -1,5 +1,5 @@
 // Registration form: dynamic location fields (PRD 5.2) and password strength.
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('register-form');
     if (!form) return;
 
@@ -24,16 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     form.querySelectorAll('input[name="level"]').forEach((r) => r.addEventListener('change', applyLevel));
     applyLevel();
 
-    // Restore old() selections after a validation error, or prefill when there is a single state
-    const chain = ['#state_id', '#district_id', '#block_id', '#cluster_id'].map((s) => form.querySelector(s));
-    for (let i = 0; i < chain.length - 1; i++) {
-        const parent = chain[i];
-        const child = chain[i + 1];
-        if (!parent.value) break;
-        await window.siCascade(parent);
-        if (child.dataset.old) child.value = child.dataset.old;
-        else break;
-    }
+    // Restore old() selections after a validation error, or prefill when there is a single state.
+    // 27-11-2026: run last and not awaited, so the password, upload and consent handlers below never wait on the network.
+    const restoreLocations = async () => {
+        const chain = ['#state_id', '#district_id', '#block_id', '#cluster_id'].map((s) => form.querySelector(s));
+        for (let i = 0; i < chain.length - 1; i++) {
+            const parent = chain[i];
+            const child = chain[i + 1];
+            if (!parent.value) break;
+            await window.siCascade(parent);
+            if (child.dataset.old) child.value = child.dataset.old;
+            else break;
+        }
+    };
 
     // Password strength meter
     const pw = form.querySelector('#password');
@@ -172,4 +175,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    restoreLocations();
 });

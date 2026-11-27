@@ -49,11 +49,16 @@
     };
     var slow = function () { window.SI_LOADER.slowLoad = true; set('si-slow', '1'); document.dispatchEvent(new Event('si-slow-load')); };
     var safety = setTimeout(function () { slow(); window.SI_LOADER.hide(); }, 12000);
-    window.addEventListener('load', function () {
-        clearTimeout(safety);
+    // 27-11-2026: hide once the page is readable (DOMContentLoaded), not on "load": "load" also waits for every
+    // image (the registration CAPTCHA, logos, photos), so the splash came up over a page already on screen.
+    var ready = function () {
+        if (!safety) return;
+        clearTimeout(safety); safety = null;
         if (Date.now() - started > 8000) slow(); else { window.SI_LOADER.slowLoad = false; set('si-slow', null); }
         window.SI_LOADER.hide();
-    });
+    };
+    if (document.readyState !== 'loading') ready(); else document.addEventListener('DOMContentLoaded', ready);
+    window.addEventListener('load', ready);
     window.addEventListener('pageshow', function (e) { if (e.persisted) { window.SI_LOADER.hide(); set('si-loader-handoff', null); } });
 })();
 </script>
