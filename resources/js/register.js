@@ -1,6 +1,6 @@
 // Registration form: dynamic location fields (PRD 5.2) and password strength.
 import { initSelfie } from './selfie';
-import { shrinkPhotoFile, replaceInputFile } from './image-shrink';
+import { shrinkPhotoFile, replaceInputFile, checkPhotoFile } from './image-shrink';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('register-form');
@@ -133,8 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
             zone.classList.toggle('is-invalid', !!msg);
         };
         if (kept()) showKept();
-        // 27-11-2026 photo size standard: a JPG / PNG is fitted to data-max-side × data-short-side and compressed
-        // under the limit here (image-shrink.js), so a large phone photo is made smaller instead of refused.
+        // 27-11-2026 photo size standard: a JPG / PNG within the limit is fitted to data-max-side × data-short-side
+        // here (image-shrink.js); a file over the limit is refused with a warning above.
         const maxSide = Number(zone.dataset.maxSide || 0);
         const shortSide = Number(zone.dataset.shortSide || 0);
         let shrinking = 0;
@@ -143,7 +143,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!f) return kept() ? showKept() : reset(); // picker cancelled: keep what was there
             zone.classList.remove('is-kept');
             const ext = f.name.split('.').pop().toLowerCase();
-            if (!exts.includes(ext)) return reset(`Only ${exts.filter((e) => e !== 'jpeg').map((e) => e.toUpperCase()).join(', ')} files are allowed.`);
+            // 27-11-2026 photo rule: the photo zone takes JPG / JPEG / PNG of at most 2 MB, anything else gets a warning
+            if (maxSide && !exts.includes('pdf')) {
+                const problem = checkPhotoFile(f, maxKb);
+                if (problem) return reset(problem);
+            }
+            if (!exts.includes(ext)) return reset(`Only ${exts.map((e) => e.toUpperCase()).join(', ')} files are allowed. "${f.name}" is ${ext ? `a ${ext.toUpperCase()} file` : 'not one of them'}.`);
+            if (f.size > MAX) return reset(`This file is ${fmt(f.size)}. The maximum is ${limit}. Please choose a smaller file.`);
             let note = 'ready to upload';
             if (maxSide && ext !== 'pdf') {
                 const run = ++shrinking;

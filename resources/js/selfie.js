@@ -26,7 +26,7 @@ export function initSelfie(input) {
     const modalEl = document.getElementById('selfie-modal');
     if (!open || !modalEl) return;
     const fallback = col.querySelector('[data-selfie-fallback]');
-    const maxBytes = Number(input.closest('.upload-zone')?.dataset.maxKb || 1024) * 1024;
+    const maxBytes = Number(input.closest('.upload-zone')?.dataset.maxKb || 2048) * 1024;
 
     // No camera API (old browser, or http on a phone): the phone's own camera app through capture="user"
     if (!navigator.mediaDevices?.getUserMedia || typeof DataTransfer === 'undefined') {

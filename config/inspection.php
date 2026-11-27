@@ -22,10 +22,10 @@ return [
         'mimes' => ['pdf', 'jpg', 'jpeg', 'png'],
     ],
 
-    // 27-11-2026 photo size standard: the browser fits a chosen photo inside max_side × short_side (aspect kept,
-    // never enlarged) and compresses it under max_kb (resources/js/image-shrink.js), so a larger file is never refused.
+    // 27-11-2026 photo rule: JPG / JPEG / PNG only, at most max_kb (2 MB). A chosen file over it or of another type is
+    // refused with a warning (checkPhotoFile() in resources/js/image-shrink.js); one within it is fitted to max_side × short_side.
     'employee_photo' => [
-        'max_kb' => 1024,
+        'max_kb' => 2048,
         'max_side_px' => 800,            // standard 600 × 800 (portrait) / 800 × 600
         'short_side_px' => 600,
         'mimes' => ['jpg', 'jpeg', 'png'],
@@ -33,7 +33,7 @@ return [
 
     'evidence' => [
         'max_photos' => 20,              // total incl. mandatory set
-        'photo_max_kb' => 1024,          // after processing on phone
+        'photo_max_kb' => 2048,          // 27-11-2026: 2 MB; a gallery file over it is refused, camera photos are encoded under it
         'photo_max_side_px' => 1600,     // standard 1600 × 1200 (landscape) / 1200 × 1600 (portrait)
         'photo_short_side_px' => 1200,
         'max_documents' => 5,

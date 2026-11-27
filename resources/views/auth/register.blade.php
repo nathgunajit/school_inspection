@@ -86,7 +86,7 @@
                                         <div class="s"><span class="text-primary fw-semibold">Click to choose</span> or drag &amp; drop · clear face</div>
                                         <div class="upload-chips" id="photo-hint">
                                             <span><i class="bi bi-file-earmark-image"></i>{{ \App\Support\FileSize::types(config('inspection.employee_photo.mimes')) }}</span>
-                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }} (larger ones are made smaller)</span>
+                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }} </span>
                                         </div>
                                         {{-- 27-11-2026: or take it with the front camera (selfie.js); it goes into the same photo input --}}
                                         <button type="button" class="btn btn-soft-primary btn-sm selfie-open" data-selfie-open data-no-busy><i class="bi bi-camera-fill"></i>Take a selfie</button>

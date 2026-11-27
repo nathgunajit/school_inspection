@@ -43,10 +43,10 @@ class ProfileController extends Controller
             'photo' => ['required', 'image', 'mimes:'.implode(',', $cfg['mimes']), 'mimetypes:image/jpeg,image/png', 'max:'.$cfg['max_kb'], 'dimensions:min_width=100,min_height=100'],
         ], [
             'photo.required' => 'Please choose a photograph.',
-            'photo.max' => 'Photograph must be 1 MB or smaller.',
-            'photo.image' => 'The photograph must be a JPG or PNG image.',
-            'photo.mimes' => 'The photograph must be a JPG or PNG image.',
-            'photo.mimetypes' => 'The photograph must be a JPG or PNG image.',
+            'photo.max' => 'The photograph is larger than '.\App\Support\FileSize::human((int) $cfg['max_kb']).'. Please choose a photo of '.\App\Support\FileSize::human((int) $cfg['max_kb']).' or less.',
+            'photo.image' => 'Only JPG, JPEG or PNG photos are allowed.',
+            'photo.mimes' => 'Only JPG, JPEG or PNG photos are allowed.',
+            'photo.mimetypes' => 'Only JPG, JPEG or PNG photos are allowed.',
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
         ]);
 

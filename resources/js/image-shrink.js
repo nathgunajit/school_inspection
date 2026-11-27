@@ -1,12 +1,31 @@
 /**
  * Photo size standard (27-11-2026): every photo is brought to a standard size and kept under its limit
- * (1 MB for inspection and employee photos) in the browser before upload.
+ * (2 MB for inspection and employee photos) in the browser before upload.
+ *
+ * - checkPhotoFile(): the photo rule for a CHOSEN file: JPG / JPEG / PNG only and at most maxKb, else a warning text.
  *
  * - fitSize(): fit inside long × short (landscape long × short, portrait short × long), aspect kept, never enlarged.
  * - encodeUnder(): JPEG at quality 0.82, lowered to 0.5; still too big → 85 % smaller and again, until it fits.
  * - shrinkPhotoFile(): for a chosen JPG / PNG file (employee photo, ID proof image). A file already within the size
  *   and the limit is returned as it is (no second compression).
  */
+export const PHOTO_EXTS = ['jpg', 'jpeg', 'png'];
+const PHOTO_TYPES = ['image/jpeg', 'image/png'];
+
+export const fmtSize = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1).replace(/\.0$/, '')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+/** null when the chosen file is a JPG / JPEG / PNG of at most maxKb, else the warning to show. */
+export function checkPhotoFile(file, maxKb) {
+    const ext = (file.name.includes('.') ? file.name.split('.').pop() : '').toLowerCase();
+    if (!PHOTO_EXTS.includes(ext) || (file.type && !PHOTO_TYPES.includes(file.type))) {
+        return `Only JPG, JPEG or PNG photos are allowed. "${file.name}" is ${ext ? `a ${ext.toUpperCase()} file` : 'not a photo'}.`;
+    }
+    if (file.size > maxKb * 1024) {
+        return `This photo is ${fmtSize(file.size)}. The maximum is ${fmtSize(maxKb * 1024)}. Please choose a smaller photo.`;
+    }
+    return null;
+}
+
 export function fitSize(w, h, long, short) {
     const s = Math.min(1, long / Math.max(w, h), short / Math.min(w, h));
     return { w: Math.max(1, Math.round(w * s)), h: Math.max(1, Math.round(h * s)) };

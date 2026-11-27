@@ -3290,3 +3290,17 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `EvidenceStorage`: the photo type error no longer prints the raw mime ("This photo was not prepared by the app…"); the server still takes only the app's JPEG, up to 1 MB. ID proof (2 MB) and step 7 documents (5 MB) are unchanged (user decision).
 - Files: app/Http/Controllers/ProfileController.php, app/Http/Requests/RegisterRequest.php, app/Services/EvidenceStorage.php, resources/js/camera.js, resources/views/inspections/step.blade.php, resources/views/auth/register.blade.php, resources/views/profile.blade.php, tests/Feature/RegistrationAndLoginTest.php, tests/Feature/InspectionFlowTest.php, CLAUDE.md.
 - Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|RegistrationV7|InspectionFlow|IconSubset"` 51 passed (756 assertions).
+
+## 27-11-2026 Photos: JPG / JPEG / PNG only, max 2 MB, with a warning message
+- `employee_photo.max_kb` and `evidence.photo_max_kb` 1024 → 2048.
+- `checkPhotoFile()` (resources/js/image-shrink.js) is the one browser rule for a chosen photo. It refuses another type or extension ("Only JPG, JPEG or PNG photos are allowed. "x.webp" is a WEBP file.") and a file over the limit ("This photo is 3.4 MB. The maximum is 2 MB. Please choose a smaller photo."). Large files are no longer shrunk silently.
+  - Register photo zone: red message under the zone. The ID proof zone also refuses over 2 MB before any resizing.
+  - My Profile: message plus a warning toast.
+  - Inspection Gallery: warning toast.
+  - In-app camera and selfie photos are made by the app and encoded under 2 MB.
+- Server:
+  - `photo.max` = "The photograph is larger than 2 MB. Please choose a photo of 2 MB or less."; `photo.mimes|mimetypes|image` = "Only JPG, JPEG or PNG photos are allowed." (Register, Profile).
+  - EvidenceStorage: "The photo is larger than 2 MB."
+- Hints show "JPG, JPEG or PNG, max 2 MB" from config: profile, Gallery button titles and the step 7 photo note.
+- Files: config/inspection.php, resources/js/{image-shrink,register,app,camera,selfie}.js, app/Http/Controllers/ProfileController.php, app/Http/Requests/RegisterRequest.php, app/Services/EvidenceStorage.php, resources/views/{auth/register,profile,inspections/step}.blade.php, tests (RegistrationAndLogin, RegistrationV7, InspectionFlow), CLAUDE.md.
+- Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|RegistrationV7|InspectionFlow|IconSubset|QueryBudget"` 52 passed (793 assertions).

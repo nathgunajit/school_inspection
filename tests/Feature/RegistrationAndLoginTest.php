@@ -75,11 +75,11 @@ class RegistrationAndLoginTest extends TestCase
         $this->post(route('register'), $this->payload(['photo' => null]))->assertSessionHasErrors('photo');
         $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->create('photo.pdf', 100, 'application/pdf')]))
             ->assertSessionHasErrors('photo');
-        // 27-11-2026: JPG or PNG only, at most 1 MB
+        // 27-11-2026: JPG / JPEG / PNG only, at most 2 MB
         $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('me.gif', 300, 400)]))
-            ->assertSessionHasErrors(['photo' => 'The photograph must be a JPG or PNG image.']);
-        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('big.png', 300, 400)->size(1100)]))
-            ->assertSessionHasErrors('photo');
+            ->assertSessionHasErrors(['photo' => 'Only JPG, JPEG or PNG photos are allowed.']);
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('big.png', 300, 400)->size(2100)]))
+            ->assertSessionHasErrors(['photo' => 'The photograph is larger than 2 MB. Please choose a photo of 2 MB or less.']);
 
         $this->post(route('register'), $this->payload())->assertRedirect(route('login'));
         $user = User::where('mobile', '9876543210')->firstOrFail();
@@ -244,14 +244,17 @@ class RegistrationAndLoginTest extends TestCase
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->create('x.pdf', 50, 'application/pdf')])
             ->assertSessionHasErrors('photo');
 
-        // 27-11-2026: JPG or PNG only, at most 1 MB
+        // 27-11-2026: JPG / JPEG / PNG only, at most 2 MB
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.gif', 300, 400)])
-            ->assertSessionHasErrors(['photo' => 'The photograph must be a JPG or PNG image.']);
+            ->assertSessionHasErrors(['photo' => 'Only JPG, JPEG or PNG photos are allowed.']);
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.webp', 300, 400)])
             ->assertSessionHasErrors('photo');
-        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('big.jpg', 300, 400)->size(1100)])
-            ->assertSessionHasErrors(['photo' => 'Photograph must be 1 MB or smaller.']);
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('big.jpg', 300, 400)->size(2100)])
+            ->assertSessionHasErrors(['photo' => 'The photograph is larger than 2 MB. Please choose a photo of 2 MB or less.']);
         $this->assertNull($user->fresh()->photo_path);
+        $this->actingAs($user)->get(route('profile'))->assertSee('JPG, JPEG or PNG, max 2 MB');
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('mid.jpg', 300, 400)->size(1500)])
+            ->assertSessionHas('success');
 
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.jpg', 300, 400)])
             ->assertSessionHas('success');

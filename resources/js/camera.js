@@ -1,6 +1,6 @@
 // In-app camera, stamping, fingerprint and background upload with retry (PRD 9.2 – 9.6)
 import { offlineStore } from './offline-queue';
-import { fitSize, encodeUnder } from './image-shrink';
+import { fitSize, encodeUnder, checkPhotoFile } from './image-shrink';
 
 const SI = window.SI;
 const esc = window.escapeHtml;
@@ -306,7 +306,7 @@ setInterval(() => { if (modalEl?.classList.contains('show')) updateMeta(); }, 10
 
 /**
  * Standard size (27-11-2026): fit inside SI.maxSide × SI.shortSide (1600 × 1200 landscape, 1200 × 1600 portrait),
- * aspect kept, never enlarged; print the stamp strip and encode as JPEG under SI.photoMaxKb (1 MB, PRD 9.4).
+ * aspect kept, never enlarged; print the stamp strip and encode as JPEG under SI.photoMaxKb (2 MB since 27-11-2026).
  * When quality 0.5 is still too big the photo is made smaller until it fits (image-shrink.js), so it is never refused.
  * Used for camera shots and for gallery uploads.
  */
@@ -328,7 +328,7 @@ async function processImage(source, srcW, srcH, takenAt, g, fromGallery = false)
         ctx.textBaseline = 'top';
         lines.forEach((t, i) => ctx.fillText(t, Math.round(fs * 0.7), ch - stripH + Math.round(fs * 0.45) + i * Math.round(fs * 1.45), cw - fs * 1.4));
     };
-    const maxBytes = Math.floor((SI.photoMaxKb || 1024) * 1024 * 0.95);
+    const maxBytes = Math.floor((SI.photoMaxKb || 2048) * 1024 * 0.95);
     const { blob } = await encodeUnder(draw, w, h, maxBytes);
     return blob;
 }
@@ -470,12 +470,9 @@ $('#gallery-input')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    // 27-11-2026: school photos from the gallery are JPG or PNG only (then fitted and kept under 1 MB below)
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (!['image/jpeg', 'image/png'].includes(file.type) || !['jpg', 'jpeg', 'png'].includes(ext)) {
-        return window.toast('Only JPG or PNG photos are allowed.', 'danger');
-    }
-    if (file.size > 25 * 1024 * 1024) return window.toast('Image is too large (max 25 MB before resizing).', 'danger');
+    // 27-11-2026 photo rule: school photos from the gallery are JPG / JPEG / PNG of at most 2 MB, else a warning
+    const problem = checkPhotoFile(file, SI.photoMaxKb || 2048);
+    if (problem) return window.toast(problem, 'warning');
 
     let bitmap;
     try {

@@ -2,7 +2,7 @@
 import { Alert, Button, Collapse, Dropdown, Modal, Offcanvas, Tab, Toast, Tooltip } from './bootstrap-lite';
 import axios from 'axios';
 import { escapeHtml } from './util';
-import { shrinkPhotoFile, replaceInputFile } from './image-shrink'; // 27-11-2026: profile photo size standard
+import { shrinkPhotoFile, replaceInputFile, checkPhotoFile } from './image-shrink'; // 27-11-2026: profile photo size standard
 import './sidebar'; // 26-11-2026: phone menu + desktop icon rail, set up first and only once
 import './button-busy';
 import './download-busy'; // 26-11-2026: PDF / Excel links busy until the file arrives
@@ -155,7 +155,7 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
     const actions = form.querySelector('[data-photo-actions]');
     const error = form.querySelector('[data-photo-error]');
     const hint = form.querySelector('[data-photo-hint]');
-    const maxKb = Number(form.dataset.maxKb || 1024);
+    const maxKb = Number(form.dataset.maxKb || 2048);
     let url = null;
     const reset = (msg = '') => {
         input.value = '';
@@ -168,14 +168,18 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
         error.textContent = msg;
         error.classList.toggle('d-none', !msg);
     };
-    // 27-11-2026 photo size standard: fitted to 800 × 600 and compressed under the limit (image-shrink.js), not refused
+    // 27-11-2026 photo rule: JPG / JPEG / PNG of at most 2 MB (else a warning), then fitted to 800 × 600 (image-shrink.js)
     const maxSide = Number(form.dataset.maxSide || 800);
     const shortSide = Number(form.dataset.shortSide || 600);
     let run = 0;
     input.addEventListener('change', async () => {
         let f = input.files[0];
         if (!f) return reset();
-        if (!['jpg', 'jpeg', 'png'].includes(f.name.split('.').pop().toLowerCase())) return reset('Only JPG or PNG photos are allowed.');
+        const problem = checkPhotoFile(f, maxKb);
+        if (problem) {
+            window.toast?.(problem, 'warning');
+            return reset(problem);
+        }
         const mine = ++run;
         try {
             const out = await shrinkPhotoFile(f, { long: maxSide, short: shortSide, maxKb });
@@ -185,7 +189,7 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
             if (mine !== run) return;
             return reset('This picture cannot be read. Please choose another JPG or PNG photo.');
         }
-        if (f.size > maxKb * 1024) return reset(`This photo is ${(f.size / 1048576).toFixed(1)} MB. Please choose one of 1 MB or less.`);
+        if (f.size > maxKb * 1024) return reset(checkPhotoFile(f, maxKb) || 'This photo is too large.');
         if (url) URL.revokeObjectURL(url);
         url = URL.createObjectURL(f);
         preview.src = url;

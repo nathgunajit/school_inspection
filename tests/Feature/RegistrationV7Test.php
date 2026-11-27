@@ -172,7 +172,7 @@ class RegistrationV7Test extends TestCase
         config(['inspection.employee_photo.max_kb' => 1536]);
         $this->get(route('register'))->assertSee('Max 1.5 MB')->assertSee('Max 2 MB')->assertSee('reg-consent', false);
         $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('p.jpg', 300, 400)->size(1600)]))
-            ->assertSessionHasErrors(['photo' => 'Photograph must be 1.5 MB or smaller.']);
+            ->assertSessionHasErrors(['photo' => 'The photograph is larger than 1.5 MB. Please choose a photo of 1.5 MB or less.']);
     }
 
     /** V7-4: valid files survive a failed submit and are used by the next one. */

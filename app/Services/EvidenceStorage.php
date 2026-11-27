@@ -97,13 +97,13 @@ class EvidenceStorage
         if (! in_array($mime, $allowed, true)) {
             throw ValidationException::withMessages(['file' => $kind === 'photo'
                 // the app turns every camera / gallery JPG or PNG into a stamped JPEG, so anything else did not come through it
-                ? 'This photo was not prepared by the app. Please add it again with the camera or Gallery (JPG or PNG).'
+                ? 'This photo was not prepared by the app. Please add it again with the camera or Gallery (JPG, JPEG or PNG).'
                 : 'Only PDF, JPG or PNG documents are allowed.']);
         }
 
         $maxKb = $kind === 'photo' ? $cfg['photo_max_kb'] : $cfg['document_max_kb'];
         if ($file->getSize() > $maxKb * 1024) {
-            throw ValidationException::withMessages(['file' => "File is larger than {$maxKb} KB."]);
+            throw ValidationException::withMessages(['file' => ($kind === 'photo' ? 'The photo' : 'The document').' is larger than '.\App\Support\FileSize::human((int) $maxKb).'.']);
         }
 
         $hash = hash_file('sha256', $file->getRealPath());
