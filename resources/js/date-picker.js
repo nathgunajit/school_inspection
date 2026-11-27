@@ -36,13 +36,92 @@ function link(el) {
     }
 }
 
+// 27-11-2026: date of birth boxes (data-date-typing) also take a typed date, formatted as dd-mm-yyyy while typing.
+const pad = (n) => String(n).padStart(2, '0');
+const dmy = (d) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+const ymdToDmy = (s) => (s ? s.split('-').reverse().join('-') : '');
+
+/** Strict parser for Y-m-d (values, min / max) and d-m-Y (typed): an impossible date such as 31-02 gives undefined. */
+function strictParse(str) {
+    if (str instanceof Date) return str;
+    const s = String(str ?? '').trim();
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    let y; let mo; let d;
+    if (m) [, y, mo, d] = m.map(Number);
+    else if ((m = s.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/))) [, d, mo, y] = m.map(Number);
+    else return undefined;
+    const date = new Date(y, mo - 1, d);
+    return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d ? date : undefined;
+}
+
+/** Digits → "dd-mm-yyyy" (dashes after the day and the month); separators typed by the officer are allowed. */
+function maskDigits(text, deleting) {
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    let out = digits.slice(0, 2);
+    if (digits.length > 2 || (digits.length === 2 && !deleting)) out += '-';
+    out += digits.slice(2, 4);
+    if (digits.length > 4 || (digits.length === 4 && !deleting)) out += '-';
+    out += digits.slice(4);
+    return { out, digits };
+}
+
+function bindTyping(inst, el) {
+    const alt = inst.altInput;
+    alt.readOnly = false;
+    alt.setAttribute('inputmode', 'numeric');
+    alt.setAttribute('maxlength', '10');
+    alt.setAttribute('autocomplete', el.getAttribute('autocomplete') || 'off');
+    alt.placeholder = 'dd-mm-yyyy';
+
+    const msg = document.createElement('div');
+    msg.className = 'invalid-feedback d-block';
+    msg.dataset.dateMsg = '1';
+    msg.hidden = true;
+    alt.insertAdjacentElement('afterend', msg);
+    const show = (text) => { msg.textContent = text; msg.hidden = !text; alt.classList.toggle('is-invalid', !!text); };
+    inst.config.onChange.push(() => { if (el.value) show(''); });
+
+    const problem = (text) => {
+        const date = strictParse(text);
+        if (!date) return `“${text}” is not a real date. Enter it as dd-mm-yyyy.`;
+        const min = strictParse(el.min); const max = strictParse(el.max);
+        if ((min && date < min) || (max && date > max)) {
+            return `Date must be between ${ymdToDmy(el.min) || '…'} and ${ymdToDmy(el.max) || '…'}.`;
+        }
+        return null;
+    };
+
+    alt.addEventListener('input', (e) => {
+        const deleting = (e.inputType || '').startsWith('delete');
+        const { out, digits } = maskDigits(alt.value, deleting);
+        if (alt.value !== out) alt.value = out;
+        if (digits.length < 8) { show(''); return; }
+        const p = problem(out);
+        if (p) { show(p); return; }
+        inst.setDate(strictParse(out), true);
+        inst.jumpToDate(strictParse(out));
+        show('');
+    });
+    alt.addEventListener('blur', () => {
+        const text = alt.value.trim();
+        if (!text) { if (el.value) inst.clear(); show(''); return; }
+        if (el.value && text === dmy(strictParse(el.value))) return;
+        const p = text.replace(/\D/g, '').length < 8 ? `“${text}” is not complete. Enter the date as dd-mm-yyyy.` : problem(text);
+        // flatpickr's own blur parse (strict) clears a bad entry, so the message keeps what was typed
+        setTimeout(() => show(p || ''), 0);
+    });
+}
+
 export function enhanceDates(root = document) {
     const made = [];
     root.querySelectorAll('input[type="date"]:not([data-fp])').forEach((el) => {
         el.dataset.fp = '1';
+        const typing = el.hasAttribute('data-date-typing');
         const fp = flatpickr(el, {
             altInput: true,
-            altFormat: 'd M Y',
+            altFormat: typing ? 'd-m-Y' : 'd M Y',
+            allowInput: typing,
+            ...(typing ? { parseDate: strictParse } : {}),
             dateFormat: 'Y-m-d',
             minDate: el.min || null,
             maxDate: el.max || null,
@@ -55,6 +134,7 @@ export function enhanceDates(root = document) {
                 const alt = inst.altInput;
                 alt.setAttribute('aria-label', el.getAttribute('aria-label') || el.labels?.[0]?.textContent?.trim() || 'Date');
                 alt.placeholder = 'dd Mon yyyy';
+                if (typing) bindTyping(inst, el);
                 if (el.id) el.labels?.forEach((l) => l.addEventListener('click', (e) => { e.preventDefault(); alt.focus(); }));
                 const wrap = document.createElement('div');
                 wrap.className = 'fp-actions';

@@ -3387,3 +3387,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Removed the folded "Have an email on your account? Send a reset link instead" section from `/forgot-password`; the help note now reads "No date of birth on your account? Ask your State Administrator…". The `password.email` route, `PasswordController::sendLink()` and the email reset form are unchanged (can be shown again later).
 - Files: `resources/views/auth/forgot-password.blade.php`, `resources/scss/app.scss` (unused `.forgot-email` style removed), `tests/Feature/ForgotPasswordDobTest.php` (page no longer shows the link), CLAUDE.md rule 12.
 - Verification: full test suite and `npm run build`.
+
+## 27-11-2026 · Date of birth: type it or pick it
+- `resources/js/date-picker.js`: inputs with `data-date-typing` accept typed dates (`allowInput`, `d-m-Y`). `bindTyping()` formats digits as dd-mm-yyyy while typing (15061985 → 15-06-1985, Backspace-friendly), sets the date when complete and jumps the calendar there; impossible dates (31-02) and dates outside min / max (age 18–70) show a message under the box. `strictParse()` (flatpickr `parseDate`) never rolls an impossible date over.
+- Applied to the DOB boxes on register, forgot password and the admin user page, with a hint "Type it (e.g. 15061985) or pick from the calendar." Server validation unchanged.
+- Verification: `npm run build`, full test suite.

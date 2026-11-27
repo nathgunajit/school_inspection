@@ -54,10 +54,10 @@
                         {{-- 27-11-2026: date of birth (18 to 70 years old, User::dobRules()) --}}
                         <div class="col-6 col-md-3">
                             <label class="form-label" for="date_of_birth">Date of birth <span class="req">*</span></label>
-                            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth') }}" required autocomplete="bday" placeholder="Select date"
+                            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth') }}" required autocomplete="bday" placeholder="dd-mm-yyyy" data-date-typing
                                    min="{{ now()->subYears(\App\Models\User::MAX_AGE)->toDateString() }}" max="{{ now()->subYears(\App\Models\User::MIN_AGE)->toDateString() }}"
                                    class="form-control @error('date_of_birth') is-invalid @enderror">
-                            @error('date_of_birth')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            @error('date_of_birth')<div class="invalid-feedback">{{ $message }}</div>@enderror<div class="form-text">Type it (e.g. 15061985) or pick from the calendar.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
