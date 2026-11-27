@@ -178,42 +178,47 @@
                     <thead><tr>
                         @php $th = fn ($label, $tip, $attr = '') => '<th '.$attr.'><span class="cov-th" data-bs-toggle="tooltip" tabindex="0" title="'.e($tip).'">'.e($label).'<i class="bi bi-info-circle"></i></span></th>'; @endphp
                         <th>Sl.</th><th>{{ ucfirst($level) }}</th>
-                        {!! $th('Schools', 'Active schools in the School Master.', 'class="r"') !!}
-                        {!! $th('Visited', 'Schools with at least one counted visit in the period.', 'class="r"') !!}
-                        {!! $th('Visit coverage', 'Visited ÷ schools. The colour shows the band.', 'style="min-width:150px"') !!}
-                        {!! $th('Inspected this cycle', 'Schools with a submitted inspection in the inspection cycle.', 'class="r"') !!}
-                        {!! $th('Inspection coverage', 'Inspected this cycle ÷ schools.', 'style="min-width:130px"') !!}
-                        {!! $th('Not visited', 'Schools with no counted visit in the period.', 'class="r"') !!}
-                        {!! $th('Visits', 'All counted visits, with repeat visits and visits not counted (location missing or too far).', 'class="r"') !!}
-                        {!! $th('Officers', 'Officers who made at least one counted visit.', 'class="r"') !!}
-                        {!! $th('Last visit', 'Date of the latest counted visit.') !!}
+                        {!! $th('Schools', 'Active schools in the School Master.', 'class="c"') !!}
+                        {!! $th('Visited', 'Schools with at least one counted visit in the period.', 'class="c"') !!}
+                        {!! $th('Visit coverage', 'Visited ÷ schools. The colour shows the band.', 'class="c" style="min-width:150px"') !!}
+                        {!! $th('Inspected this cycle', 'Schools with a submitted inspection in the inspection cycle.', 'class="c"') !!}
+                        {!! $th('Inspection coverage', 'Inspected this cycle ÷ schools.', 'class="c" style="min-width:130px"') !!}
+                        {!! $th('Not visited', 'Schools with no counted visit in the period.', 'class="c"') !!}
+                        {!! $th('Visits', 'All counted visits, with repeat visits and visits not counted (location missing or too far).', 'class="c"') !!}
+                        {!! $th('Officers', 'Officers who made at least one counted visit.', 'class="c"') !!}
+                        {!! $th('Last visit', 'Date of the latest counted visit.', 'class="c"') !!}
                     </tr></thead>
                     <tbody>
                     @foreach ($rows as $i => $r)
                         <tr>
                             <td class="rv-sl">{{ $i + 1 }}</td>
                             <td class="rv-wide"><a href="{{ $drill($r) }}" class="cov-area">{{ $r['name'] }}<i class="bi bi-chevron-right"></i></a>@if ($r['parent'])<span class="rv-sub">{{ $r['parent'] }}</span>@endif</td>
-                            <td class="r" data-label="Schools"><b>{{ number_format($r['schools']) }}</b></td>
-                            <td class="r" data-label="Visited"><b class="text-primary">{{ number_format($r['visited']) }}</b></td>
-                            <td data-label="Visit coverage" class="rv-wide">
+                            <td class="c" data-label="Schools"><b>{{ number_format($r['schools']) }}</b></td>
+                            <td class="c" data-label="Visited"><b class="text-primary">{{ number_format($r['visited']) }}</b></td>
+                            <td data-label="Visit coverage" class="c rv-wide">
                                 <div class="cov-bar tone-{{ $r['band']['tone'] }}"><i style="width: {{ min(100, $r['visit_pct'] ?? 0) }}%"></i></div>
                                 <span class="cov-pct">{{ $pct($r['visit_pct']) }}</span> <span class="cov-band tone-{{ $r['band']['tone'] }}">{{ $r['band']['label'] }}</span>
                             </td>
-                            <td class="r" data-label="Inspected this cycle">{{ number_format($r['inspected']) }}</td>
-                            <td data-label="Inspection coverage">
+                            <td class="c" data-label="Inspected this cycle">{{ number_format($r['inspected']) }}</td>
+                            <td data-label="Inspection coverage" class="c">
                                 <div class="cov-bar thin tone-{{ $r['insp_band']['tone'] }}"><i style="width: {{ min(100, $r['insp_pct'] ?? 0) }}%"></i></div>
                                 <span class="cov-pct">{{ $pct($r['insp_pct']) }}</span>
                             </td>
-                            <td class="r" data-label="Not visited">@if ($r['not_visited'])<span class="text-danger fw-semibold">{{ number_format($r['not_visited']) }}</span>@else<span class="text-success"><i class="bi bi-check2-all"></i></span>@endif</td>
-                            <td class="r" data-label="Visits">{{ $r['visits'] }}@if ($r['repeat'])<span class="rv-sub">{{ $r['repeat'] }} repeat</span>@endif @if ($r['unverified'])<span class="rv-sub text-warning">{{ $r['unverified'] }} not counted</span>@endif</td>
-                            <td class="r" data-label="Officers">{{ $r['officers'] }}</td>
-                            <td data-label="Last visit">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}</td>
+                            <td class="c" data-label="Not visited">@if ($r['not_visited'])<span class="text-danger fw-semibold">{{ number_format($r['not_visited']) }}</span>@else<span class="text-success"><i class="bi bi-check2-all"></i></span>@endif</td>
+                            <td class="c" data-label="Visits">{{ $r['visits'] }}@if ($r['repeat'])<span class="rv-sub">{{ $r['repeat'] }} repeat</span>@endif @if ($r['unverified'])<span class="rv-sub text-warning">{{ $r['unverified'] }} not counted</span>@endif</td>
+                            <td class="c" data-label="Officers">{{ $r['officers'] }}</td>
+                            <td data-label="Last visit" class="c">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}</td>
                         </tr>
                     @endforeach
                     </tbody>
                     <tfoot><tr class="cov-total">
-                        <td></td><td>Total</td><td class="r">{{ number_format($s['schools']) }}</td><td class="r">{{ number_format($s['visited']) }}</td><td>{{ $pct($s['visit_pct']) }}</td>
-                        <td class="r">{{ number_format($s['inspected']) }}</td><td>{{ $pct($s['insp_pct']) }}</td><td class="r">{{ number_format($s['not_visited']) }}</td><td class="r">{{ $s['visits'] }}</td><td class="r">{{ $s['officers'] }}</td><td>{{ $s['last'] ? \Illuminate\Support\Carbon::parse($s['last'])->format('d M Y') : '—' }}</td>
+                        {{-- 27-11-2026: labelled, so the phone Total card says what each figure is --}}
+                        <td class="rv-sl"></td><td class="rv-wide cov-total-name">Total</td>
+                        <td class="c" data-label="Schools">{{ number_format($s['schools']) }}</td><td class="c" data-label="Visited">{{ number_format($s['visited']) }}</td>
+                        <td class="c" data-label="Visit coverage">{{ $pct($s['visit_pct']) }}</td><td class="c" data-label="Inspected this cycle">{{ number_format($s['inspected']) }}</td>
+                        <td class="c" data-label="Inspection coverage">{{ $pct($s['insp_pct']) }}</td><td class="c" data-label="Not visited">{{ number_format($s['not_visited']) }}</td>
+                        <td class="c" data-label="Visits">{{ $s['visits'] }}</td><td class="c" data-label="Officers">{{ $s['officers'] }}</td>
+                        <td class="c" data-label="Last visit">{{ $s['last'] ? \Illuminate\Support\Carbon::parse($s['last'])->format('d M Y') : '—' }}</td>
                     </tr></tfoot>
                 </table>
                 @if ($rows->isEmpty())<x-empty-state icon="bi-pie-chart" title="No areas found" text="There are no areas for the selected filters." />@endif
@@ -229,21 +234,21 @@
             <p class="cov-note"><i class="bi bi-info-circle"></i>Schools not visited are listed first. "Visit not counted" means the officer went, but the location was missing or more than {{ $radius }} m from the school.</p>
             <div class="rv-table-wrap cov-table-wrap">
                 <table class="rv-table cov-table">
-                    <thead><tr><th>Sl.</th><th>School</th><th>Visit in the period</th><th class="r">Counted visits</th><th>Last visit</th><th>Inspection this cycle</th></tr></thead>
+                    <thead><tr><th>Sl.</th><th>School</th><th class="c">Visit in the period</th><th class="c">Counted visits</th><th class="c">Last visit</th><th class="c">Inspection this cycle</th></tr></thead>
                     <tbody>
                     @forelse ($schools as $i => $r)
                         <tr class="{{ $r['verified'] ? '' : 'cov-missed' }}">
                             <td class="rv-sl">{{ $i + 1 }}</td>
                             <td class="rv-wide">@can('conduct_inspections')<a href="{{ route('schools.show', $r['school']) }}" class="rv-name">{{ $r['school']->name }}</a>@else<span class="rv-name">{{ $r['school']->name }}</span>@endcan
                                 <span class="rv-sub font-monospace">UDISE {{ $r['school']->udise_code }}@unless ($r['gps']) · <span class="text-warning">no GPS in master</span>@endunless</span></td>
-                            <td data-label="Visit status">
+                            <td data-label="Visit status" class="c">
                                 @if ($r['verified'])<span class="rs-chip ok"><i class="bi bi-geo-alt-fill"></i>Visited {{ $r['verified'] }} {{ $r['verified'] === 1 ? 'time' : 'times' }}</span>
                                 @elseif ($r['unverified'])<span class="rs-chip warn"><i class="bi bi-question-circle"></i>Visit not counted (location){{ $r['unverified'] > 1 ? ' · '.$r['unverified'] : '' }}</span>
                                 @else<span class="rs-chip bad"><i class="bi bi-x-circle"></i>Not visited</span>@endif
                             </td>
-                            <td class="r" data-label="Counted visits">{{ $r['verified'] }}</td>
-                            <td data-label="Last visit">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}@if ($r['last_officer'])<span class="rv-sub">{{ $r['last_officer'] }}</span>@endif</td>
-                            <td data-label="Inspection this cycle">@if ($r['inspected'])<span class="rs-chip ok"><i class="bi bi-patch-check-fill"></i>Inspected</span>@else<span class="rs-chip warn"><i class="bi bi-hourglass-split"></i>Not inspected yet</span>@endif</td>
+                            <td class="c" data-label="Counted visits">{{ $r['verified'] }}</td>
+                            <td data-label="Last visit" class="c">{{ $r['last'] ? \Illuminate\Support\Carbon::parse($r['last'])->format('d M Y') : '—' }}@if ($r['last_officer'])<span class="rv-sub">{{ $r['last_officer'] }}</span>@endif</td>
+                            <td data-label="Inspection this cycle" class="c">@if ($r['inspected'])<span class="rs-chip ok"><i class="bi bi-patch-check-fill"></i>Inspected</span>@else<span class="rs-chip warn"><i class="bi bi-hourglass-split"></i>Not inspected yet</span>@endif</td>
                         </tr>
                     @empty
                         <tr><td colspan="6"><x-empty-state icon="bi-building" title="No schools" text="This cluster has no active school in the School Master." /></td></tr>

@@ -2434,10 +2434,22 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     a { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .85rem; border-radius: 999px; font-size: .8rem; font-weight: 500; color: #475569; text-decoration: none; white-space: nowrap;
         span { font-size: .66rem; font-weight: 600; } span:empty { display: none; }
         &.active { background: #fff; color: #0d47a1; box-shadow: 0 1px 3px rgba(15, 23, 42, .12); span { background: rgba($primary, .1); padding: 0 .4rem; border-radius: 999px; } } } }
-.cov-table-wrap { border: 0; border-radius: 0 0 1rem 1rem; box-shadow: none; margin: 0; overflow-x: auto; }
-.cov-table { th.r, td.r { text-align: right; } td { vertical-align: middle; }
-    tfoot td { background: #eaf2fc; font-weight: 700; color: #0d47a1; border-top: 1px solid #c9d8ee; padding: .65rem .75rem; }
-    tr.cov-missed td { background: #fff8f7; } }
+// 27-11-2026: wide tables scroll (".rv-table-wrap { overflow: hidden }" used to clip the right-hand columns), figures centred,
+// Sl. + name stay in view while scrolling
+.rv-table-wrap.cov-table-wrap { border: 0; border-radius: 0 0 1rem 1rem; box-shadow: none; margin: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cov-table { th.c, td.c { text-align: center; } th.r, td.r { text-align: right; } td { vertical-align: middle; }
+    th.c .cov-th { justify-content: center; }
+    td.c .cov-bar { margin-inline: auto; max-width: 160px; }
+    td.c .rv-sub { text-align: center; }
+    tfoot td { background: #eaf2fc; font-weight: 700; color: #0d47a1; border-top: 1px solid #c9d8ee; padding: .65rem .75rem; white-space: nowrap; }
+    tr.cov-missed td { background: #fff8f7; }
+    @include media-breakpoint-up(md) {
+        th:nth-child(1), td:nth-child(1) { position: sticky; left: 0; z-index: 1; width: 3rem; min-width: 3rem; }
+        th:nth-child(2), td:nth-child(2) { position: sticky; left: 3rem; z-index: 1; min-width: 190px; box-shadow: inset -1px 0 0 #e3e8f0, 6px 0 8px -8px rgba(15, 23, 42, .25); }
+        tbody td:nth-child(-n+2) { background: #fff; }
+        tbody tr:hover td:nth-child(-n+2) { background: #f8fbff; }
+        tr.cov-missed td:nth-child(-n+2) { background: #fff8f7; }
+        thead th:nth-child(-n+2) { z-index: 2; } } }
 .cov-area { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; color: #0f172a; text-decoration: none;
     i { font-size: .7rem; color: #94a3b8; transition: transform .15s; } &:hover { color: $primary; i { transform: translateX(2px); color: $primary; } } }
 .cov-bar { height: 8px; border-radius: 999px; background: #eef2f7; overflow: hidden; margin-bottom: .25rem; min-width: 90px;
@@ -2504,8 +2516,15 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
         i { color: #64748b; } &:hover { border-color: $primary; } }
     .btn-check:checked + label { background: rgba($primary, .08); border-color: $primary; color: #0d47a1; font-weight: 600; i { color: $primary; } } }
 @include media-breakpoint-down(md) {
-    .cov-table-wrap { padding: .6rem; }
-    .cov-table tfoot { display: block; tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: .85rem; } td:empty { display: none; } }
+    .rv-table-wrap.cov-table-wrap { padding: .6rem; overflow: visible; }
+    .cov-table { th.c, td.c { text-align: left; } td.c .cov-bar { margin-inline: 0; max-width: none; } td.c .rv-sub { text-align: left; }
+        // 27-11-2026: the Sl. number shows as a chip in the card corner (was hidden)
+        tbody .rv-sl { display: block; position: absolute; top: .65rem; right: .75rem; width: auto; padding: .05rem .5rem; border-radius: 999px;
+            background: #f1f5f9; color: #64748b; font-size: .68rem; font-weight: 600;
+            &::before { content: '#'; } }
+        tbody td.rv-wide:nth-child(2) { padding-right: 3rem; }
+        tfoot { display: block; tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .75rem; border-radius: .85rem; } td { padding: 0; border: 0; background: transparent; }
+            tr { background: #eaf2fc; border-color: #c9d8ee; } td:empty { display: none; } .cov-total-name { font-size: .9rem; } } }
 }
 
 @import 'rating-settings';
