@@ -417,3 +417,18 @@ document.addEventListener('submit', (e) => {
         go();
     }, go, { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 });
 });
+
+// My Profile (27-11-2026): "Change mobile" / "Request a new number" fold the form open and scroll to it; Cancel folds it again
+document.addEventListener('click', (e) => {
+    const open = e.target.closest?.('[data-pf-open-mobile]');
+    const close = e.target.closest?.('[data-pf-close-mobile]');
+    const form = document.getElementById('mobile-form');
+    if ((!open && !close) || !form) return;
+    e.preventDefault();
+    const now = document.querySelector('[data-pf-mobile-now]');
+    if (close) { Collapse.getOrCreateInstance(form, { toggle: false }).hide(); now?.classList.remove('d-none'); return; }
+    now?.classList.add('d-none');
+    Collapse.getOrCreateInstance(form, { toggle: false }).show();
+    document.getElementById('mobile-change')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => form.querySelector('input[name="new_mobile"]')?.focus({ preventScroll: true }), 350);
+});

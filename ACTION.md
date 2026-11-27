@@ -3323,3 +3323,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `ApprovalController::idProof()` audits `id_proof_viewed` only when someone other than the officer opens it (the preview loads on every profile visit).
 - Files: resources/views/profile.blade.php, resources/views/partials/id-proof-modal.blade.php, resources/scss/app.scss (`.pf-proof*`), app/Http/Controllers/Admin/ApprovalController.php, tests/Feature/RegistrationV7Test.php, CLAUDE.md.
 - Verified: RegistrationV7, RegistrationAndLogin, IconSubset, QueryBudget tests pass; `npm run build` ok.
+
+## 27-11-2026 — My Profile: cards below the hero restyled (more elegant and clean)
+- **What:** each card has its own tone (thin accent on top, tinted icon; Details blue, Mobile green, Identity proof purple, Inspections orange, Postings slate), soft border and shadow, hairline under the head. Personal details is a clean two-column field list (no grey boxes; missing values muted; Mobile row has a **Change** link); the lock note is a light card footer. Change mobile shows the current number and **Request a new number**; the form folds open (Bootstrap collapse `#mobile-form`, open again after a validation error, Cancel folds it), and the hero **Change mobile** button opens it and scrolls to it (`[data-pf-open-mobile]`, end of `app.js`). My inspections: white tiles with a tinted icon and coloured number, **View all** link. Jurisdiction history: current posting highlighted with the Current pill on the same line, dates "from → to / Present".
+- **Files:** `resources/views/profile.blade.php`, `resources/scss/app.scss` (`.pf-card` … `.pf-tl-date`), `resources/js/app.js`.
+- **Result:** `npm run build` OK; RegistrationAndLogin, RegistrationV7, IconSubset, QueryBudget: 30 passed.
