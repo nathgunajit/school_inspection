@@ -115,6 +115,44 @@ class QueuedExportTest extends TestCase
         $this->assertSame(0, ExportJob::count());
     }
 
+    public function test_with_no_worker_running_the_download_is_made_at_once(): void
+    {
+        config(['queue.default' => 'database']);
+        \Illuminate\Support\Facades\Cache::forget(QueuedExports::HEARTBEAT);
+        $res = $this->actingAs($this->admin())->get(route('reports.ratings.export'))->assertOk();
+        $this->assertStringContainsString('attachment', (string) $res->headers->get('Content-Disposition'));
+        $this->assertSame(0, ExportJob::count());
+    }
+
+    public function test_a_stalled_download_is_made_by_the_browser_once_and_by_its_owner_only(): void
+    {
+        config(['queue.default' => 'database']);
+        QueuedExports::beat(); // a worker seems alive, so the click is queued
+        $admin = $this->admin();
+        $this->actingAs($admin)->from(route('dashboard'))->get(route('reports.ratings.export'))->assertRedirect();
+        $job = ExportJob::sole();
+        $this->assertSame('queued', $job->status);
+        $this->assertNull($job->toClientArray()['run_url']);
+
+        // not stalled yet: nothing runs
+        $this->actingAs($admin)->postJson(route('downloads.run', $job))->assertStatus(409);
+        $this->assertSame('queued', $job->fresh()->status);
+
+        $job->forceFill(['created_at' => now()->subMinute()])->save();
+        $this->assertNotNull($job->fresh()->toClientArray()['run_url']);
+        $this->actingAs($this->officer(UserLevel::District))->postJson(route('downloads.run', $job))->assertNotFound();
+
+        $this->actingAs($admin)->postJson(route('downloads.run', $job))->assertOk()->assertJsonPath('item.status', 'done');
+        $job->refresh();
+        $this->assertSame('done', $job->status, (string) $job->error);
+        Storage::disk('private')->assertExists($job->file_path);
+
+        // the worker finding it later does nothing
+        $finished = $job->finished_at;
+        (new \App\Jobs\GenerateExport($job->id))->handle();
+        $this->assertEquals($finished, $job->fresh()->finished_at);
+    }
+
     public function test_purge_removes_old_downloads_and_fails_stuck_ones(): void
     {
         $admin = $this->admin();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\GenerateExport;
 use App\Models\ExportJob;
 use App\Services\AuditLogger;
 use App\Support\QueuedExports;
@@ -49,6 +50,39 @@ class DownloadController extends Controller
         AuditLogger::log('export_downloaded', $exportJob, ['title' => $exportJob->title, 'file' => $exportJob->file_name]);
 
         return $disk->download($exportJob->file_path, $exportJob->file_name, ['Cache-Control' => 'private, no-store']);
+    }
+
+    /**
+     * 27-11-2026: a job that has waited over 30 s (no queue worker running) is made here, in the officer's own
+     * request. GenerateExport claims it atomically, so a worker that starts meanwhile does not make it twice.
+     */
+    public function run(Request $request, ExportJob $exportJob)
+    {
+        $this->own($request, $exportJob);
+        if (! $exportJob->isStalled()) {
+            return $this->runAnswer($request, $exportJob->fresh(), 409);
+        }
+        QueuedExports::allowLongRequest();
+        $job = new GenerateExport($exportJob->id);
+        try {
+            $job->handle();
+        } catch (\Throwable $e) {
+            report($e);
+            $job->failed($e);
+        }
+
+        return $this->runAnswer($request, $exportJob->fresh());
+    }
+
+    private function runAnswer(Request $request, ExportJob $job, int $status = 200)
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['item' => $job->toClientArray()], $status)->header('Cache-Control', 'no-store, private');
+        }
+
+        return $job->status === 'failed'
+            ? back()->with('warning', $job->title.' could not be made: '.$job->error)
+            : back()->with('success', $job->status === 'done' ? $job->title.' is ready.' : $job->title.' is being prepared.');
     }
 
     public function destroy(Request $request, ExportJob $exportJob)

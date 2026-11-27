@@ -32,6 +32,12 @@ class ExportJob extends Model
         return $this->status === 'done' && $this->file_path;
     }
 
+    /** Still waiting after half a minute: usually no queue worker is running. */
+    public function isStalled(): bool
+    {
+        return $this->status === 'queued' && $this->created_at->lt(now()->subSeconds(30));
+    }
+
     public function expiresAt(): \Illuminate\Support\Carbon
     {
         return $this->created_at->copy()->addHours(\App\Support\QueuedExports::keepHours());
@@ -40,6 +46,8 @@ class ExportJob extends Model
     /** Shape sent to downloads.js. */
     public function toClientArray(): array
     {
+        $stalled = $this->isStalled();
+
         return [
             'key' => $this->getRouteKey(),
             'title' => $this->title,
@@ -47,8 +55,9 @@ class ExportJob extends Model
             'file_name' => $this->file_name,
             'size' => $this->size_bytes ? \App\Support\FileSize::human((int) ceil($this->size_bytes / 1024)) : null,
             'error' => $this->error,
-            // a job still waiting after half a minute usually means no queue worker is running
-            'stalled' => $this->status === 'queued' && $this->created_at->lt(now()->subSeconds(30)),
+            'stalled' => $stalled,
+            // 27-11-2026: the browser asks the server to make a stalled job itself (DownloadController::run)
+            'run_url' => $stalled ? route('downloads.run', $this) : null,
             'url' => $this->isReady() ? route('downloads.file', $this) : null,
         ];
     }

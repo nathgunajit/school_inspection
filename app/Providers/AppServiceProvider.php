@@ -34,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
 
+        // 27-11-2026: a running queue worker leaves a heartbeat, so downloads know whether to queue (QueuedExports::workerAlive())
+        Event::listen([\Illuminate\Queue\Events\Looping::class, \Illuminate\Queue\Events\JobProcessed::class], fn () => \App\Support\QueuedExports::beat());
+
         // V15: a new in-app alert makes the bell's cached unread count stale
         Event::listen(\Illuminate\Notifications\Events\NotificationSent::class, function ($e) {
             if ($e->channel === 'database' && $e->notifiable instanceof User) {

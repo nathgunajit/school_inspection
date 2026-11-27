@@ -23,6 +23,12 @@ class QueueLargeExports
             || ! QueuedExports::handles($route) || ! $request->user()) {
             return $next($request);
         }
+        if (! QueuedExports::workerAlive()) {
+            // 27-11-2026: no queue worker is running, so a queued job would wait for ever: make the file here, as before
+            QueuedExports::allowLongRequest();
+
+            return $next($request);
+        }
 
         $allowed = new Response('', 204);
         $check = QueuedExports::throughRouteMiddleware($request, $route, true, fn () => $allowed);

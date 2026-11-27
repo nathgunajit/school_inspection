@@ -36,17 +36,17 @@ class GenerateExport implements ShouldQueue
 
     public function handle(): void
     {
-        $job = ExportJob::find($this->exportJobId);
-        if (! $job || $job->status !== 'queued') {
+        // claimed atomically: the worker and the officer's browser (DownloadController::run) never both make it
+        if (! ExportJob::whereKey($this->exportJobId)->where('status', 'queued')->update(['status' => 'running', 'started_at' => now()])) {
             return; // deleted by the officer, or already handled
         }
+        $job = ExportJob::find($this->exportJobId);
         $user = User::find($job->user_id);
         if (! $user || $user->status !== UserStatus::Active) {
             $job->update(['status' => 'failed', 'error' => 'Your account is not active.', 'finished_at' => now()]);
 
             return;
         }
-        $job->update(['status' => 'running', 'started_at' => now()]);
         if ($mem = config('inspection.import_memory')) {
             @ini_set('memory_limit', (string) $mem);
         }

@@ -167,6 +167,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [\App\Http\Controllers\DownloadController::class, 'index'])->name('index');
             Route::get('/status', [\App\Http\Controllers\DownloadController::class, 'status'])->middleware('throttle:120,1')->name('status');
             Route::get('/{exportJob}/file', [\App\Http\Controllers\DownloadController::class, 'file'])->name('file');
+            Route::post('/{exportJob}/run', [\App\Http\Controllers\DownloadController::class, 'run'])->middleware('throttle:20,1')->name('run');
             Route::delete('/{exportJob}', [\App\Http\Controllers\DownloadController::class, 'destroy'])->name('destroy');
         });
 

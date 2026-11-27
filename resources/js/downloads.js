@@ -35,6 +35,31 @@ if (body.dataset.exportJob && !jobs.some((j) => j.key === body.dataset.exportJob
 }
 
 let box;
+const running = new Set(); // stalled jobs this page asked the server to make (DownloadController::run)
+
+/** 27-11-2026: no queue worker took the job, so the server makes it inside this request. */
+async function runHere(item) {
+    if (!item.run_url || running.has(item.key)) return;
+    running.add(item.key);
+    try {
+        await fetch(item.run_url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        });
+    } catch {
+        // the next poll shows what happened
+    }
+    poll();
+}
+
+/** The × on the box: stop following these jobs here (they stay on the Downloads page). */
+function hide() {
+    jobs = [];
+    save(jobs);
+    render([]);
+}
+
 function render(items) {
     const active = items.filter((i) => i.status === 'queued' || i.status === 'running');
     if (!active.length) {
@@ -47,11 +72,13 @@ function render(items) {
         box.className = 'si-export-box';
         box.setAttribute('role', 'status');
         box.setAttribute('aria-live', 'polite');
+        box.addEventListener('click', (e) => { if (e.target.closest('[data-export-hide]')) hide(); });
         document.body.appendChild(box);
     }
     box.innerHTML = active.map((i) => `<div class="si-export-item"><span class="spinner-border spinner-border-sm"></span>
-        <span class="min-w-0"><b class="d-block text-truncate">${escapeHtml(i.title)}</b><span class="text-xs">${i.stalled ? 'Still waiting to start: the background worker may not be running. Please tell your administrator.' : 'Preparing your file…'}</span></span></div>`).join('')
-        + `<a class="si-export-link" href="${escapeHtml(statusUrl.replace(/\/status$/, ''))}">Downloads</a>`;
+        <span class="min-w-0"><b class="d-block text-truncate">${escapeHtml(i.title)}</b><span class="text-xs">${i.stalled || running.has(i.key) ? 'Preparing your file here…' : 'Preparing your file…'}</span></span></div>`).join('')
+        + `<a class="si-export-link" href="${escapeHtml(statusUrl.replace(/\/status$/, ''))}">Downloads</a>`
+        + '<button type="button" class="si-export-hide" data-export-hide aria-label="Hide" title="Hide"><i class="bi bi-x-lg" aria-hidden="true"></i></button>';
 }
 
 function notify(text, kind) {
@@ -99,7 +126,9 @@ async function poll() {
             const i = byKey[r.dataset.downloadRow];
             if (!i || i.status !== r.dataset.status) reloadPage = true;
         });
-        render(items.filter((i) => jobs.some((j) => j.key === i.key)));
+        const followed = items.filter((i) => jobs.some((j) => j.key === i.key));
+        render(followed);
+        followed.filter((i) => i.stalled).forEach(runHere);
         if (reloadPage) {
             setTimeout(() => window.location.reload(), 800); // after the download has started
             return;

@@ -49,6 +49,40 @@ final class QueuedExports
         return (bool) config('inspection.export_queue.enabled');
     }
 
+    public const HEARTBEAT = 'si:queue-heartbeat';
+
+    /** Called by the queue worker on every loop (AppServiceProvider): "a worker is running". At most one write per 20 s. */
+    public static function beat(): void
+    {
+        $last = (int) \Illuminate\Support\Facades\Cache::get(self::HEARTBEAT, 0);
+        if (time() - $last >= 20) {
+            \Illuminate\Support\Facades\Cache::put(self::HEARTBEAT, time(), 120);
+        }
+    }
+
+    /**
+     * 27-11-2026: is a queue worker running? On the sync queue the job runs at once, so yes. Otherwise a worker must
+     * have beaten in the last 90 s; when none has, downloads are made directly in the request (QueueLargeExports).
+     */
+    public static function workerAlive(): bool
+    {
+        if (config('queue.default') === 'sync') {
+            return true;
+        }
+
+        return time() - (int) \Illuminate\Support\Facades\Cache::get(self::HEARTBEAT, 0) < 90;
+    }
+
+    /** A large file made inside a web request: no time limit, the import memory limit. */
+    public static function allowLongRequest(): void
+    {
+        @set_time_limit(0);
+        ignore_user_abort(true);
+        if ($mem = config('inspection.import_memory')) {
+            @ini_set('memory_limit', (string) $mem);
+        }
+    }
+
     public static function keepHours(): int
     {
         return max(1, (int) config('inspection.export_queue.keep_hours', 24));

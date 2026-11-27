@@ -2924,7 +2924,9 @@ $half-holiday: #0284c7;
 
 /* 26-11-2026 performance, module B: background downloads (resources/js/downloads.js, Downloads page) */
 .si-export-box { position: fixed; right: 1rem; bottom: 1rem; z-index: 1080; width: min(320px, calc(100vw - 2rem)); background: #fff; border-radius: $border-radius-lg;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, .18); padding: .75rem .9rem; display: grid; gap: .55rem; font-size: .85rem; }
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .18); padding: .75rem 2.2rem .75rem .9rem; display: grid; gap: .55rem; font-size: .85rem; }
+.si-export-hide { position: absolute; top: .35rem; right: .35rem; width: 1.75rem; height: 1.75rem; display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: transparent; color: $secondary; font-size: .8rem; &:hover, &:focus-visible { background: #f1f5f9; color: #0f172a; } }
 .si-export-item { display: flex; gap: .6rem; align-items: center; color: #0f172a; .spinner-border { color: $primary; flex: 0 0 auto; } }
 .si-export-link { justify-self: end; font-size: .8rem; font-weight: 600; text-decoration: none; }
 .si-export-note { position: fixed; right: 1rem; bottom: 1rem; z-index: 1081; max-width: min(360px, calc(100vw - 2rem)); padding: .7rem .9rem; border-radius: $border-radius;

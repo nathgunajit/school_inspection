@@ -24,13 +24,19 @@
                                 {{ $job->created_at->format('d M Y, h:i A') }}
                                 @if ($job->status === 'done') · {{ $job->file_name }} · {{ \App\Support\FileSize::human((int) ceil(($job->size_bytes ?: 0) / 1024)) }} · until {{ $job->expiresAt()->format('d M, h:i A') }}
                                 @elseif ($job->status === 'failed') · <span class="text-danger">{{ $job->error }}</span>
-                                @else · {{ $job->status === 'running' ? 'Preparing…' : ($job->toClientArray()['stalled'] ? 'Still waiting to start: the background worker may not be running (php artisan queue:work).' : 'Waiting to start…') }}
+                                @else · {{ $job->status === 'running' ? 'Preparing…' : ($job->isStalled() ? 'The background worker is not running, so this file is made here: press Make it now.' : 'Waiting to start…') }}
                                 @endif
                             </span>
                         </span>
                         <span class="d-flex gap-2 ms-auto">
                             @if ($job->isReady())
                                 <a href="{{ route('downloads.file', $job) }}" class="btn btn-primary btn-sm" data-no-loader><i class="bi bi-download"></i> Download</a>
+                            @endif
+                            @if ($job->isStalled())
+                                <form method="POST" action="{{ route('downloads.run', $job) }}" data-loader="heavy" data-loader-text="Preparing {{ $job->title }}…">
+                                    @csrf
+                                    <button class="btn btn-primary btn-sm" data-loading-text="Preparing…"><i class="bi bi-play-fill"></i> Make it now</button>
+                                </form>
                             @endif
                             <form method="POST" action="{{ route('downloads.destroy', $job) }}" data-confirm="Remove this download?">
                                 @csrf @method('DELETE')
