@@ -50,6 +50,14 @@ class RegisterRequest extends FormRequest
         return $id !== null && (int) $id === MasterValue::idFor('designation', User::OTHER_DESIGNATION);
     }
 
+    /** 27-11-2026: the email is compared trimmed and in lower case (as it is stored). */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email'))) ?: null]);
+        }
+    }
+
     public function rules(): array
     {
         $ignore = $this->reapplyingUser()?->id;
@@ -74,7 +82,7 @@ class RegisterRequest extends FormRequest
             'block_id' => [$level?->needsBlock() ? 'required' : 'nullable', 'integer'],
             'cluster_id' => [$level?->needsCluster() ? 'required' : 'nullable', 'integer'],
             'mobile' => ['required', 'digits:10', 'regex:/^[6-9]\d{9}$/', Rule::unique('users', 'mobile')->ignore($ignore)],
-            'email' => ['nullable', 'email:rfc', 'max:150'],
+            'email' => ['nullable', 'email:rfc', 'max:150', Rule::unique('users', 'email')->ignore($ignore)], // 27-11-2026: no duplicate
             'password' => ['required', 'confirmed', 'max:64', Password::min(8)->mixedCase()->numbers()->symbols()],
             'privacy' => ['accepted'],
         ];
@@ -91,6 +99,7 @@ class RegisterRequest extends FormRequest
             'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.',
             'mobile.unique' => 'This mobile number is already registered.',
             'employee_id.unique' => 'This Employee ID is already registered.',
+            'email.unique' => 'This email address is already registered.',
             'id_proof.max' => 'Identity proof must be '.FileSize::human(config('inspection.id_proof.max_kb')).' or smaller.',
             'photo.required' => 'Please upload your photograph.',
             'gender.required' => 'Please select your gender.',

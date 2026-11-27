@@ -60,7 +60,7 @@
                                 </div></div>
                             <div class="col-md-6"><label class="form-label">Employee ID</label><input name="employee_id" value="{{ old('employee_id', $user->employee_id) }}" class="form-control @error('employee_id') is-invalid @enderror" maxlength="40" pattern="[A-Za-z0-9/._\-]+" placeholder="Optional">
                                 @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                            <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control"></div>
+                            <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" value="{{ old('email', $user->email) }}" maxlength="150" class="form-control @error('email') is-invalid @enderror">@error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
                             <div class="col-12"><button class="btn btn-primary"><i class="bi bi-check2"></i>Save changes</button></div>
                         </form>
                     </div>

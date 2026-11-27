@@ -51,7 +51,14 @@ class User extends Authenticatable
     /** Master value code of the "Other" designation (Modification V7). */
     public const OTHER_DESIGNATION = 'other';
 
-    /** The designation to show: the typed text when "Other" was chosen, else the master label. */
+    /** 27-11-2026: emails are unique; stored trimmed and lower case, an empty one as null. */
+    public function setEmailAttribute($value): void
+    {
+        $value = is_string($value) ? mb_strtolower(trim($value)) : $value;
+        $this->attributes['email'] = $value === '' ? null : $value;
+    }
+
+    /** The designation to show:the typed text when "Other" was chosen, else the master label. */
     public function getDesignationLabelAttribute(): ?string
     {
         if ($this->designation?->code === self::OTHER_DESIGNATION && filled($this->designation_other)) {

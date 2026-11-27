@@ -153,7 +153,7 @@
                             <input type="radio" name="level" id="level_{{ $l->value }}" value="{{ $l->value }}" @checked(old('level') === $l->value)
                                    data-needs-district="{{ $l->needsDistrict() ? 1 : 0 }}" data-needs-block="{{ $l->needsBlock() ? 1 : 0 }}" data-needs-cluster="{{ $l->needsCluster() ? 1 : 0 }}">
                             <label for="level_{{ $l->value }}">
-                                <i class="bi bi-{{ ['state' => 'globe2', 'district' => 'buildings', 'block' => 'grid-3x3-gap', 'cluster' => 'pin-map'][$l->value] }}"></i>
+                                <i class="bi {{ $l->icon() }}" aria-hidden="true"></i>
                                 <span>{{ str_replace(' Level', '', $l->label()) }}</span>
                             </label>
                         @endforeach

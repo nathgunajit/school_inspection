@@ -21,6 +21,18 @@ enum UserLevel: string
         };
     }
 
+    /** Bootstrap icon class (full `bi-` name, so tools/build-icons.cjs keeps it). */
+    public function icon(): string
+    {
+        return match ($this) {
+            self::StateAdmin => 'bi-shield-lock',
+            self::State => 'bi-globe2',
+            self::District => 'bi-buildings',
+            self::Block => 'bi-grid-3x3-gap',
+            self::Cluster => 'bi-pin-map',
+        };
+    }
+
     /** Hierarchy rank: lower number = higher authority. */
     public function rank(): int
     {

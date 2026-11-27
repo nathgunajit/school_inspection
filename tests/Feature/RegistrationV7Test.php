@@ -88,6 +88,46 @@ class RegistrationV7Test extends TestCase
         Storage::disk('private')->assertExists($proof);
     }
 
+    /** 27-11-2026: an email address belongs to one user (case and spaces ignored); none is fine for many. */
+    public function test_email_address_is_not_duplicated(): void
+    {
+        $this->registers(['email' => ' Asha@X.org ']);
+        $user = User::where('mobile', '9876543210')->firstOrFail();
+        $this->assertSame('asha@x.org', $user->email);
+
+        $this->post(route('register'), $this->payload(['mobile' => '8876543210', 'email' => 'ASHA@x.org']))
+            ->assertSessionHasErrors(['email' => 'This email address is already registered.']);
+
+        // no email: any number of officers
+        $this->registers(['mobile' => '8876543210']);
+        $this->registers(['mobile' => '7876543210', 'email' => '']);
+        $this->assertSame(2, User::whereNull('email')->count());
+
+        // a rejected officer re-applies with their own address
+        $user->update(['status' => UserStatus::Rejected]);
+        $this->registers(['email' => 'asha@x.org', 'name' => 'Asha Devi B']);
+
+        // the admin cannot give another user that address
+        $other = User::where('mobile', '8876543210')->firstOrFail();
+        $this->actingAs($this->admin())->put(route('admin.users.update', $other), [
+            'name' => $other->name, 'designation_id' => $other->designation_id, 'email' => 'Asha@x.org',
+        ])->assertSessionHasErrors(['email' => 'This email address is already registered.']);
+        $this->actingAs($this->admin())->put(route('admin.users.update', $user), [
+            'name' => $user->name, 'designation_id' => $user->designation_id, 'email' => 'ASHA@X.ORG',
+        ])->assertSessionHasNoErrors();
+    }
+
+    /** 27-11-2026: every User level tile has its icon (and the icon is in the subset). */
+    public function test_every_level_tile_has_an_icon(): void
+    {
+        $page = $this->get(route('register'))->assertOk();
+        $icons = file_get_contents(resource_path('scss/_icons.scss'));
+        foreach (['bi-globe2', 'bi-buildings', 'bi-grid-3x3-gap', 'bi-pin-map'] as $icon) {
+            $page->assertSee('<i class="bi '.$icon.'"', false);
+            $this->assertStringContainsString('.'.$icon.'::before', $icons);
+        }
+    }
+
     /** V7-1: the State Admin may clear the Employee ID. */
     public function test_admin_can_clear_the_employee_id(): void
     {
