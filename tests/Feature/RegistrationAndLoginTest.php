@@ -75,6 +75,11 @@ class RegistrationAndLoginTest extends TestCase
         $this->post(route('register'), $this->payload(['photo' => null]))->assertSessionHasErrors('photo');
         $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->create('photo.pdf', 100, 'application/pdf')]))
             ->assertSessionHasErrors('photo');
+        // 27-11-2026: JPG or PNG only, at most 1 MB
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('me.gif', 300, 400)]))
+            ->assertSessionHasErrors(['photo' => 'The photograph must be a JPG or PNG image.']);
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('big.png', 300, 400)->size(1100)]))
+            ->assertSessionHasErrors('photo');
 
         $this->post(route('register'), $this->payload())->assertRedirect(route('login'));
         $user = User::where('mobile', '9876543210')->firstOrFail();
@@ -238,6 +243,15 @@ class RegistrationAndLoginTest extends TestCase
             ->assertSee('Submitted this month')->assertSee('account-link', false)->assertSee('Photo, details and postings');
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->create('x.pdf', 50, 'application/pdf')])
             ->assertSessionHasErrors('photo');
+
+        // 27-11-2026: JPG or PNG only, at most 1 MB
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.gif', 300, 400)])
+            ->assertSessionHasErrors(['photo' => 'The photograph must be a JPG or PNG image.']);
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.webp', 300, 400)])
+            ->assertSessionHasErrors('photo');
+        $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('big.jpg', 300, 400)->size(1100)])
+            ->assertSessionHasErrors(['photo' => 'Photograph must be 1 MB or smaller.']);
+        $this->assertNull($user->fresh()->photo_path);
 
         $this->actingAs($user)->post(route('profile.photo'), ['photo' => UploadedFile::fake()->image('me.jpg', 300, 400)])
             ->assertSessionHas('success');

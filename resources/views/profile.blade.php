@@ -23,7 +23,7 @@
                     <input type="file" id="profile-photo-input" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="d-none">
                 </div>
                 @unless ($user->photo_path)
-                    <div class="pf-photo-hint" data-photo-hint><i class="bi bi-exclamation-circle me-1"></i>No photo yet. Tap <i class="bi bi-camera-fill"></i> to add your passport-size photo.</div>
+                    <div class="pf-photo-hint" data-photo-hint><i class="bi bi-exclamation-circle me-1"></i>No photo yet. Tap <i class="bi bi-camera-fill"></i> to add your passport-size photo (JPG or PNG, max 1 MB).</div>
                 @endunless
                 <div class="text-danger text-xs mt-2 d-none" data-photo-error></div>
                 @error('photo')<div class="text-danger text-xs mt-2">{{ $message }}</div>@enderror

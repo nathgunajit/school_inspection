@@ -66,7 +66,7 @@ class RegisterRequest extends FormRequest
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($ignore)],
             'id_proof' => ['nullable', 'file', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb']],
             // Modification V7: a photo kept from the last attempt counts as uploaded
-            'photo' => [app(RegisterUploadStash::class)->wanted($this, 'photo') ? 'nullable' : 'required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
+            'photo' => [app(RegisterUploadStash::class)->wanted($this, 'photo') ? 'nullable' : 'required', 'image', 'mimes:'.implode(',', config('inspection.employee_photo.mimes')), 'mimetypes:image/jpeg,image/png', 'max:'.config('inspection.employee_photo.max_kb'), 'dimensions:min_width=100,min_height=100'],
             'level' => ['required', new Enum(UserLevel::class), Rule::in(array_map(fn ($l) => $l->value, UserLevel::registrable()))],
             'state_id' => ['required', Rule::exists('states', 'id')->where('is_active', true)],
             'district_id' => [$level?->needsDistrict() ? 'required' : 'nullable', 'integer'],
@@ -95,6 +95,9 @@ class RegisterRequest extends FormRequest
             'gender.required' => 'Please select your gender.',
             'photo.max' => 'Photograph must be '.FileSize::human(config('inspection.employee_photo.max_kb')).' or smaller.',
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
+            'photo.image' => 'The photograph must be a JPG or PNG image.',
+            'photo.mimes' => 'The photograph must be a JPG or PNG image.',
+            'photo.mimetypes' => 'The photograph must be a JPG or PNG image.',
             'captcha.captcha' => 'The CAPTCHA code is incorrect.',
             'privacy.accepted' => 'Please accept the privacy notice.',
             'designation_other.required' => 'Please enter your designation.',

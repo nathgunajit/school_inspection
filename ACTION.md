@@ -3283,3 +3283,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `Admin\ApprovalController::idProof()` now also lets the officer view their own proof (like the photo); others outside the approver / user manager rule still get 404.
 - Files: app/Http/Controllers/Admin/ApprovalController.php, resources/views/partials/id-proof-modal.blade.php (new), resources/views/profile.blade.php, resources/views/admin/users/show.blade.php, resources/js/app.js, tests/Feature/RegistrationV7Test.php, CLAUDE.md.
 - Verified: `npm run build`; `php artisan test --filter="RegistrationV7|RegistrationAndLogin|IconSubset|QueryBudget|Profile"` 29 passed.
+
+## 27-11-2026 Photos: JPG / PNG only, 1 MB cap (profile and school photos)
+- Employee photo (register, My Profile): server adds `mimetypes:image/jpeg,image/png` (content check) next to `mimes:jpg,jpeg,png` and `max:1024`, with the message "The photograph must be a JPG or PNG image." The selfie fallback input accepts only `image/jpeg,image/png`; the profile hint says "JPG or PNG, max 1 MB".
+- School (inspection) gallery photos: `#gallery-input` accepts only JPG / PNG, and `camera.js` refuses any other type or extension ("Only JPG or PNG photos are allowed.") before processing. Gallery buttons have a "JPG or PNG photo" title. Larger photos are still fitted and compressed under 1 MB in the browser (user decision: keep shrinking).
+- `EvidenceStorage`: the photo type error no longer prints the raw mime ("This photo was not prepared by the app…"); the server still takes only the app's JPEG, up to 1 MB. ID proof (2 MB) and step 7 documents (5 MB) are unchanged (user decision).
+- Files: app/Http/Controllers/ProfileController.php, app/Http/Requests/RegisterRequest.php, app/Services/EvidenceStorage.php, resources/js/camera.js, resources/views/inspections/step.blade.php, resources/views/auth/register.blade.php, resources/views/profile.blade.php, tests/Feature/RegistrationAndLoginTest.php, tests/Feature/InspectionFlowTest.php, CLAUDE.md.
+- Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|RegistrationV7|InspectionFlow|IconSubset"` 51 passed (756 assertions).

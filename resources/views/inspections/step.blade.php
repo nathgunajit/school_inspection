@@ -342,7 +342,7 @@
                                         <div class="photo-slot-title"><i class="bi bi-circle me-1"></i><span>{{ $catLabels[$cat] ?? $cat }} <span class="text-danger">*</span><small>Required · at least {{ $min }}</small></span></div>
                                         <div class="photo-slot-actions">
                                             <button type="button" class="btn btn-sm btn-soft-primary" data-camera data-category="{{ $cat }}" aria-label="Take photo"><i class="bi bi-camera"></i><span>Camera</span></button>
-                                            <button type="button" class="btn btn-sm btn-light" data-gallery data-category="{{ $cat }}" aria-label="Upload from gallery"><i class="bi bi-images"></i><span>Gallery</span></button>
+                                            <button type="button" class="btn btn-sm btn-light" data-gallery data-category="{{ $cat }}" aria-label="Upload from gallery (JPG or PNG)" title="JPG or PNG photo"><i class="bi bi-images"></i><span>Gallery</span></button>
                                         </div>
                                     </div>
                                     <div class="photo-grid" data-photo-grid data-category="{{ $cat }}"></div>
@@ -353,7 +353,7 @@
                         <div class="q-group"><span class="q-group-icon"><i class="bi bi-images"></i></span><span>Additional photographs <span class="text-secondary fw-normal text-lowercase">(optional · up to {{ config('inspection.evidence.max_photos') }} in total)</span></span></div>
                         <div class="photo-grid mb-2" data-photo-grid data-extra>
                             <button type="button" class="photo-add" data-camera data-category-picker><i class="bi bi-camera"></i>Camera</button>
-                            <button type="button" class="photo-add" data-gallery data-category="other"><i class="bi bi-images"></i>Gallery</button>
+                            <button type="button" class="photo-add" data-gallery data-category="other" title="JPG or PNG photo"><i class="bi bi-images"></i>Gallery</button>
                         </div>
 
                         <div class="q-group"><span class="q-group-icon"><i class="bi bi-paperclip"></i></span><span>Supporting documents <span class="text-secondary fw-normal">(optional · PDF/JPG/PNG · max 5 MB · up to {{ config('inspection.evidence.max_documents') }})</span></span></div>
@@ -362,7 +362,7 @@
                             <input type="file" id="doc-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="d-none"></label>
                     @endif
 
-                    <input type="file" id="gallery-input" accept="image/*" class="d-none">
+                    <input type="file" id="gallery-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="d-none">
                 </div>
             </div>
 

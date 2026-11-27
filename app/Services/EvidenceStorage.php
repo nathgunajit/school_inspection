@@ -95,7 +95,10 @@ class EvidenceStorage
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath());
         $allowed = $kind === 'photo' ? $cfg['photo_mimes'] : $cfg['document_mimes'];
         if (! in_array($mime, $allowed, true)) {
-            throw ValidationException::withMessages(['file' => 'File type not allowed ('.$mime.').']);
+            throw ValidationException::withMessages(['file' => $kind === 'photo'
+                // the app turns every camera / gallery JPG or PNG into a stamped JPEG, so anything else did not come through it
+                ? 'This photo was not prepared by the app. Please add it again with the camera or Gallery (JPG or PNG).'
+                : 'Only PDF, JPG or PNG documents are allowed.']);
         }
 
         $maxKb = $kind === 'photo' ? $cfg['photo_max_kb'] : $cfg['document_max_kb'];

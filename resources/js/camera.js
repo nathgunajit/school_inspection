@@ -470,7 +470,11 @@ $('#gallery-input')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    if (!file.type.startsWith('image/')) return window.toast('Please choose an image file.', 'danger');
+    // 27-11-2026: school photos from the gallery are JPG or PNG only (then fitted and kept under 1 MB below)
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!['image/jpeg', 'image/png'].includes(file.type) || !['jpg', 'jpeg', 'png'].includes(ext)) {
+        return window.toast('Only JPG or PNG photos are allowed.', 'danger');
+    }
     if (file.size > 25 * 1024 * 1024) return window.toast('Image is too large (max 25 MB before resizing).', 'danger');
 
     let bitmap;

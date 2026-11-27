@@ -505,7 +505,12 @@ class InspectionFlowTest extends TestCase
 
         // PNG is not accepted as an in-app photo, only JPEG
         $png = UploadedFile::fake()->image('x.png');
-        $this->photo($i, 'toilet_block', null, ['file' => $png, 'sha256' => null])->assertStatus(422);
+        $this->photo($i, 'toilet_block', null, ['file' => $png, 'sha256' => null])->assertStatus(422)
+            ->assertJsonValidationErrors(['file' => 'not prepared by the app']);
+        $gif = UploadedFile::fake()->image('x.gif');
+        $this->photo($i, 'toilet_block', null, ['file' => $gif, 'sha256' => null])->assertStatus(422);
+        // over 1 MB after processing
+        $this->photo($i, 'toilet_block', null, ['file' => UploadedFile::fake()->image('big.jpg', 400, 300)->size(1100), 'sha256' => null])->assertStatus(422);
 
         // oversize document
         $big = UploadedFile::fake()->create('big.pdf', 6000, 'application/pdf');

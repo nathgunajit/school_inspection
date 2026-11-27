@@ -103,7 +103,7 @@
                             </div>
                             <div class="upload-error text-danger text-xs mt-1 d-none"></div>
                             @error('photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                            <input type="file" accept="image/*" capture="user" class="d-none" data-selfie-fallback tabindex="-1" aria-hidden="true">
+                            <input type="file" accept="image/jpeg,image/png" capture="user" class="d-none" data-selfie-fallback tabindex="-1" aria-hidden="true">
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="id_proof">Identity proof <span class="opt">(optional)</span></label>

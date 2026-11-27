@@ -40,10 +40,13 @@ class ProfileController extends Controller
     {
         $cfg = config('inspection.employee_photo');
         $request->validate([
-            'photo' => ['required', 'image', 'mimes:'.implode(',', $cfg['mimes']), 'max:'.$cfg['max_kb'], 'dimensions:min_width=100,min_height=100'],
+            'photo' => ['required', 'image', 'mimes:'.implode(',', $cfg['mimes']), 'mimetypes:image/jpeg,image/png', 'max:'.$cfg['max_kb'], 'dimensions:min_width=100,min_height=100'],
         ], [
             'photo.required' => 'Please choose a photograph.',
             'photo.max' => 'Photograph must be 1 MB or smaller.',
+            'photo.image' => 'The photograph must be a JPG or PNG image.',
+            'photo.mimes' => 'The photograph must be a JPG or PNG image.',
+            'photo.mimetypes' => 'The photograph must be a JPG or PNG image.',
             'photo.dimensions' => 'Photograph must be at least 100 × 100 pixels.',
         ]);
 
