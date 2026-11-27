@@ -36,6 +36,7 @@ class RegistrationV7Test extends TestCase
 
         return array_merge([
             'gender' => 'female',
+            'date_of_birth' => '1985-06-15',
             'name' => 'Asha Devi',
             'designation_id' => MasterValue::idFor('designation', 'cluster_resource_coordinator'),
             'photo' => UploadedFile::fake()->image('photo.jpg', 300, 400),
@@ -115,6 +116,32 @@ class RegistrationV7Test extends TestCase
         $this->actingAs($this->admin())->put(route('admin.users.update', $user), [
             'name' => $user->name, 'designation_id' => $user->designation_id, 'email' => 'ASHA@X.ORG',
         ])->assertSessionHasNoErrors();
+    }
+
+    /** 27-11-2026: date of birth is asked (18 to 70 years old), stored and editable by the State Admin. */
+    public function test_date_of_birth_is_required_and_checked(): void
+    {
+        $this->get(route('register'))->assertOk()->assertSee('name="date_of_birth"', false)
+            ->assertSee('data-pw-toggle', false);
+
+        $this->post(route('register'), $this->payload(['date_of_birth' => '']))->assertSessionHasErrors(['date_of_birth' => 'Please enter your date of birth.']);
+        $this->post(route('register'), $this->payload(['date_of_birth' => now()->subYears(17)->toDateString()]))
+            ->assertSessionHasErrors(['date_of_birth' => 'You must be at least 18 years old.']);
+        $this->post(route('register'), $this->payload(['date_of_birth' => now()->subYears(71)->toDateString()]))->assertSessionHasErrors('date_of_birth');
+        $this->post(route('register'), $this->payload(['date_of_birth' => '15/06/1985']))->assertSessionHasErrors('date_of_birth');
+
+        $this->registers();
+        $user = User::where('mobile', '9876543210')->firstOrFail();
+        $this->assertSame('1985-06-15', $user->date_of_birth->toDateString());
+
+        $admin = $this->admin();
+        $this->actingAs($admin)->put(route('admin.users.update', $user), ['name' => $user->name, 'designation_id' => $user->designation_id, 'date_of_birth' => '1980-01-02'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('1980-01-02', $user->fresh()->date_of_birth->toDateString());
+        $this->actingAs($admin)->get(route('admin.users.show', $user))->assertOk()->assertSee('02 Jan 1980');
+        $this->actingAs($admin)->put(route('admin.users.update', $user), ['name' => $user->name, 'designation_id' => $user->designation_id, 'date_of_birth' => ''])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($user->fresh()->date_of_birth);
     }
 
     /** 27-11-2026: every User level tile has its icon (and the icon is in the subset). */

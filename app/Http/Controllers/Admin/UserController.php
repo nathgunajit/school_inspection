@@ -81,12 +81,13 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'gender' => ['nullable', Rule::in(array_keys(User::GENDERS))], // Modification V13
+            'date_of_birth' => User::dobRules(false), // 27-11-2026
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')],
             'designation_other' => [Rule::requiredIf(fn () => (int) $request->input('designation_id') === MasterValue::idFor('designation', User::OTHER_DESIGNATION)), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u",
                 fn ($a, $v, $fail) => DesignationMaster::isJustOther($v) ? $fail('Please type the actual designation.') : null],
             'employee_id' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\/\-_.]+$/', Rule::unique('users', 'employee_id')->ignore($user->id)],
             'email' => ['nullable', 'email', 'max:150', Rule::unique('users', 'email')->ignore($user->id)],
-        ], ['email.unique' => 'This email address is already registered.']);
+        ], ['email.unique' => 'This email address is already registered.'] + User::dobMessages());
         if ((int) $data['designation_id'] === MasterValue::idFor('designation', User::OTHER_DESIGNATION)) {
             // 27-11-2026: the typed designation joins the master list (an existing one is reused)
             [$data['designation_id']] = DesignationMaster::resolve($data['designation_other'], $request->user());

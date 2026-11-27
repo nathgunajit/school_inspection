@@ -23,6 +23,7 @@ class RegistrationAndLoginTest extends TestCase
 
         return array_merge([
             'gender' => 'female',
+            'date_of_birth' => '1985-06-15',
             'name' => 'Asha Devi',
             'designation_id' => MasterValue::idFor('designation', 'cluster_resource_coordinator'),
             'employee_id' => 'EMP-1001',

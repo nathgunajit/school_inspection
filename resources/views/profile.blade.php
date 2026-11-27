@@ -83,6 +83,8 @@
                     <div class="pf-field"><i class="bi bi-phone"></i><dt>Mobile</dt><dd>+91 {{ $user->mobile }}@unless ($pendingMobile) <a href="#mobile-change" class="pf-field-link" data-pf-open-mobile>Change</a>@endunless</dd></div>
                     <div class="pf-field"><i class="bi bi-envelope"></i><dt>Email</dt><dd class="{{ $user->email ? '' : 'is-empty' }}">{{ $user->email ?: 'Not added' }}</dd></div>
                     <div class="pf-field"><i class="bi bi-briefcase"></i><dt>Designation</dt><dd class="{{ $user->designation_label ? '' : 'is-empty' }}">{{ $user->designation_label ?? '—' }}</dd></div>
+                    <div class="pf-field"><i class="bi bi-gender-ambiguous"></i><dt>Gender</dt><dd class="{{ $user->gender ? '' : 'is-empty' }}">{{ \App\Models\User::GENDERS[$user->gender] ?? 'Not added' }}</dd></div>
+                    <div class="pf-field"><i class="bi bi-calendar-event"></i><dt>Date of birth</dt><dd class="{{ $user->date_of_birth ? '' : 'is-empty' }}">{{ $user->date_of_birth?->format('d M Y') ?? 'Not added' }}</dd></div>
                     <div class="pf-field wide"><i class="bi bi-geo-alt"></i><dt>Jurisdiction</dt><dd>{{ $jur?->label() ?: 'State' }}</dd></div>
                     @if ($user->directPermissions->isNotEmpty())
                         <div class="pf-field wide"><i class="bi bi-shield-plus"></i><dt>Extra rights</dt><dd class="text-capitalize">{{ $user->directPermissions->pluck('name')->map(fn ($p) => str_replace('_', ' ', $p))->implode(', ') }}</dd></div>

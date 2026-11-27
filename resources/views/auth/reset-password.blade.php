@@ -25,12 +25,18 @@
             </div>
             <div class="mb-3">
                 <label class="form-label" for="password">New password <span class="req">*</span></label>
-                <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
-                @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <div class="input-group">
+                    <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" required autocomplete="new-password">
+                    @include('partials.pw-toggle')
+                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
             </div>
             <div class="mb-4">
                 <label class="form-label" for="password_confirmation">Confirm password <span class="req">*</span></label>
-                <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required autocomplete="new-password">
+                <div class="input-group">
+                    <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required autocomplete="new-password">
+                    @include('partials.pw-toggle')
+                </div>
             </div>
             <button class="btn btn-primary w-100" data-loading-text="Resetting password…"><i class="bi bi-check2"></i>Reset password</button>
         </form>

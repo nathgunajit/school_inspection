@@ -43,13 +43,21 @@
                             <input id="name" name="name" value="{{ old('name') }}" class="form-control @error('name') is-invalid @enderror" required minlength="3" maxlength="120" pattern="[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'\-]*" title="Letters, spaces, dots, apostrophes and hyphens" autocomplete="name" placeholder="e.g. Ananya Sharma">
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-6 col-md-3">
                             <label class="form-label" for="gender">Gender <span class="req">*</span></label>
                             <select id="gender" name="gender" class="form-select @error('gender') is-invalid @enderror" required>
-                                <option value="">Select gender</option>
+                                <option value="">Select</option>
                                 @foreach (\App\Models\User::GENDERS as $k => $l)<option value="{{ $k }}" @selected(old('gender') === $k)>{{ $l }}</option>@endforeach
                             </select>
                             @error('gender')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        {{-- 27-11-2026: date of birth (18 to 70 years old, User::dobRules()) --}}
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="date_of_birth">Date of birth <span class="req">*</span></label>
+                            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth') }}" required autocomplete="bday" placeholder="Select date"
+                                   min="{{ now()->subYears(\App\Models\User::MAX_AGE)->toDateString() }}" max="{{ now()->subYears(\App\Models\User::MIN_AGE)->toDateString() }}"
+                                   class="form-control @error('date_of_birth') is-invalid @enderror">
+                            @error('date_of_birth')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="designation_id">Designation <span class="req">*</span></label>
@@ -215,7 +223,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="password">Password <span class="req">*</span></label>
-                            <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" required minlength="8" maxlength="64" autocomplete="new-password">
+                            <div class="input-group">
+                                <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" required minlength="8" maxlength="64" autocomplete="new-password">
+                                @include('partials.pw-toggle')
+                            </div>
                             <div class="progress-thin progress mt-2" style="height:4px"><div class="progress-bar" id="pw-meter" style="width:0"></div></div>
                             {{-- 26-11-2026: live checklist of the password rules (register.js) --}}
                             <ul class="pw-rules" id="pw-rules" aria-live="polite" aria-label="Password rules">
@@ -227,7 +238,10 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="password_confirmation">Confirm password <span class="req">*</span></label>
-                            <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required maxlength="64" autocomplete="new-password">
+                            <div class="input-group">
+                                <input type="password" id="password_confirmation" name="password_confirmation" class="form-control" required maxlength="64" autocomplete="new-password">
+                                @include('partials.pw-toggle')
+                            </div>
                             <div class="pw-match d-none" id="pw-match" aria-live="polite"></div>
                         </div>
                         @if (config('inspection.captcha_enabled'))

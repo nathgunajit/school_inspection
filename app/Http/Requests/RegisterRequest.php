@@ -67,6 +67,7 @@ class RegisterRequest extends FormRequest
         $rules = [
             'name' => ['required', 'string', 'min:3', 'max:120', "regex:/^[\pL][\pL\pM .'\-]*$/u"],
             'gender' => ['required', Rule::in(array_keys(\App\Models\User::GENDERS))], // Modification V13
+            'date_of_birth' => User::dobRules(true), // 27-11-2026
             'designation_id' => ['required', Rule::exists('master_values', 'id')->where('type', 'designation')->where('is_active', true)],
             // Modification V7: "Other" designation is typed in
             'designation_other' => [Rule::requiredIf(fn () => $this->isOtherDesignation()), 'nullable', 'string', 'max:120', "regex:/^[\pL][\pL\pM .,()\/&'\-]*$/u",
@@ -95,7 +96,7 @@ class RegisterRequest extends FormRequest
 
     public function messages(): array
     {
-        return [
+        return User::dobMessages() + [
             'mobile.regex' => 'Mobile number must be 10 digits starting with 6, 7, 8 or 9.',
             'mobile.unique' => 'This mobile number is already registered.',
             'employee_id.unique' => 'This Employee ID is already registered.',

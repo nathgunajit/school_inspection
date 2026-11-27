@@ -73,6 +73,7 @@ class RegisterController extends Controller
             $attrs = [
                 'name' => $data['name'],
                 'gender' => $data['gender'],
+                'date_of_birth' => $data['date_of_birth'],
                 'designation_id' => $designationId,
                 'designation_other' => null,
                 'employee_id' => $data['employee_id'] ?? null,

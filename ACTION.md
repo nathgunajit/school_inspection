@@ -3369,3 +3369,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Fix: a worker heartbeat (`QueuedExports::beat()` / `workerAlive()`, listeners in `AppServiceProvider`); with no worker, `QueueLargeExports` makes the file directly in the request. A stalled job (over 30 s) is made through `POST downloads/{job}/run` (`DownloadController::run()`), called by `downloads.js` itself and by the Downloads page's **Make it now** button. `GenerateExport` claims the job atomically, so it is never made twice. The box has a × (Hide).
 - Files: `app/Support/QueuedExports.php`, `app/Http/Middleware/QueueLargeExports.php`, `app/Jobs/GenerateExport.php`, `app/Models/ExportJob.php`, `app/Http/Controllers/DownloadController.php`, `app/Providers/AppServiceProvider.php`, `routes/web.php`, `resources/js/downloads.js`, `resources/scss/app.scss`, `resources/views/downloads/index.blade.php`, `tests/Feature/QueuedExportTest.php`, CLAUDE.md.
 - Verified: 2 new tests; full suite 382 passed; the stuck MySQL jobs 5 and 6 were made (xlsx 7.5 KB, pdf 981 KB).
+
+## 27-11-2026: Registration date of birth and password eye
+- Date of birth: `users.date_of_birth` (migration `2026_11_27_000003`, run on MySQL); required at registration, 18 to 70 years old (`User::dobRules()` / `dobMessages()`); saved by `RegisterController` (re-application too); optional and editable on the admin user page (also shown there), shown on My Profile with Gender.
+- Layout: Full name (half) | Gender (quarter) | Date of birth (quarter); on phones Gender and DOB side by side. Flatpickr calendar from `date-picker.js`, min / max from the age rule.
+- Password eye: `partials/pw-toggle.blade.php` + `resources/js/password-toggle.js` (delegated, aria-pressed / label, back to type password on submit) on Register (both boxes), Login (replaces the inline onclick), Change Password (3) and Reset Password (2).
+- Files: User, RegisterRequest, RegisterController, Admin\UserController, register / login / change-password / reset-password / admin users show / profile views, app.js, tests (payloads + `test_date_of_birth_is_required_and_checked`).
+- Verified: full suite 383 passed; npm run build.
