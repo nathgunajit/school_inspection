@@ -1630,17 +1630,61 @@ button.fy-tr { cursor: pointer; &:hover { background: #f6f9fd; } &.is-active { b
     &.r2 { width: 160px; height: 160px; right: 120px; top: 40px; border-color: rgba(255, 255, 255, .14); } }
 .pf-hero-mark { position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); height: 84px; opacity: .16; filter: brightness(0) invert(1); z-index: 1;
     @include media-breakpoint-down(sm) { height: 60px; right: .75rem; } }
-.pf-hero-greet { position: absolute; left: calc(1.5rem + 136px + 1.25rem); top: 1.1rem; z-index: 1; font-size: .78rem; letter-spacing: .02em; color: rgba(255, 255, 255, .8);
+.pf-hero-greet { position: absolute; left: calc(1.5rem + 150px + 1.25rem); top: 1.1rem; z-index: 1; font-size: .78rem; letter-spacing: .02em; color: rgba(255, 255, 255, .8);
     span { display: block; font-size: 1.05rem; font-weight: 600; color: #fff; letter-spacing: 0; }
     @include media-breakpoint-down(sm) { left: 1rem; top: .8rem; } }
 .pf-hero-body { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 1.25rem; padding: 0 1.5rem 1.25rem; margin-top: -60px; position: relative; z-index: 2;
     @include media-breakpoint-down(lg) { grid-template-columns: auto minmax(0, 1fr); .pf-actions { grid-column: 1 / -1; } }
     @include media-breakpoint-down(sm) { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 0 1rem 1rem; margin-top: -54px;
         .pf-chips { justify-content: center; } } }
-.pf-photo { text-align: center;
-    .profile-photo-frame { padding: 4px; border-radius: 50%; background: conic-gradient(from 210deg, #f39223, #1e9b4b, #1565c0, #f39223); box-shadow: 0 14px 30px -12px rgba(15, 23, 42, .55); }
-    .avatar-xl { width: 128px; height: 128px; font-size: 2.1rem; border: 4px solid #fff; display: block; } }
-.pf-photo-hint { max-width: 220px; margin: .5rem auto 0; font-size: .7rem; color: #a35a05; }
+// 27-11-2026: profile photo restyled: white ring on a thin soft halo, hover "Change photo", status dot,
+// dashed ring when there is no photo, orange dashed ring + "not saved" tag while a new photo is previewed
+.pf-photo { --ring: linear-gradient(135deg, rgba(#1565c0, .75), rgba(#1e9b4b, .7) 55%, rgba(#f39223, .75)); position: relative; text-align: center;
+    .profile-photo-frame { padding: 5px; border-radius: 50%; background: #fff; isolation: isolate;
+        box-shadow: 0 18px 36px -18px rgba(13, 71, 161, .55), 0 2px 6px rgba(15, 23, 42, .08);
+        // thin outer halo, 3 px away from the white ring
+        &::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; padding: 2px; background: var(--ring); z-index: -1;
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; } }
+    .avatar-xl { width: 140px; height: 140px; font-size: 2.2rem; border: 0; box-shadow: none; display: block;
+        @include media-breakpoint-down(sm) { width: 120px; height: 120px; font-size: 1.9rem; } }
+    .profile-photo-btn { right: 2px; bottom: 2px; width: 38px; height: 38px; background: #fff; color: $primary; border: 1px solid #e3e8f0; font-size: .95rem; z-index: 2;
+        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, .25); transition: background .15s, color .15s, transform .15s;
+        &::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; } // 44 px touch area
+        &:hover { background: $primary; color: #fff; border-color: $primary; transform: scale(1.06); } }
+    // &.is-empty: dashed primary ring with a gentle pulse
+    &.is-empty .profile-photo-frame::before { background: none; padding: 0; border: 2px dashed rgba($primary, .55); -webkit-mask: none; mask: none;
+        animation: pf-photo-pulse 2.4s ease-in-out infinite; }
+    &.is-preview .profile-photo-frame::before { background: none; padding: 0; border: 2px dashed #f39223; -webkit-mask: none; mask: none; animation: none; }
+    &.is-preview .pf-photo-dot { display: none; } }
+@keyframes pf-photo-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .pf-photo.is-empty .profile-photo-frame::before { animation: none; } }
+// hover overlay on the photo (mouse only; phones use the camera button)
+.pf-photo-overlay { position: absolute; inset: 5px; border-radius: 50%; display: none; z-index: 1; cursor: pointer; margin: 0;
+    flex-direction: column; align-items: center; justify-content: center; gap: .15rem; font-size: .7rem; font-weight: 500; color: #fff;
+    background: rgba(15, 23, 42, .5); opacity: 0; transition: opacity .2s; backdrop-filter: blur(1px);
+    i { font-size: 1.35rem; }
+    @media (hover: hover) { display: flex; .profile-photo-frame:hover & { opacity: 1; } } }
+.pf-photo.is-preview .pf-photo-overlay { display: none; }
+.pf-photo-dot { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; z-index: 2;
+    border: 3px solid #fff; color: #fff; font-size: .7rem; box-shadow: 0 2px 6px rgba(15, 23, 42, .2);
+    &.is-active { background: $success; } &.is-pending { background: $warning; }
+    @include media-breakpoint-down(sm) { top: 4px; right: 4px; } }
+.pf-photo-unsaved { display: none; margin-top: .55rem; padding: .2rem .65rem .2rem .3rem; border-radius: 999px; font-size: .7rem; font-weight: 600;
+    color: #b45309; background: rgba(#f39223, .12); border: 1px solid rgba(#f39223, .3);
+    i { font-size: 1.1rem; vertical-align: -.2em; }
+    .pf-photo.is-preview & { display: inline-block; } }
+.pf-photo-hint { display: flex; align-items: center; gap: .55rem; max-width: 240px; margin: .7rem auto 0; padding: .45rem .8rem .45rem .5rem; border-radius: 999px;
+    text-align: left; cursor: pointer; background: #fff; border: 1px solid rgba($primary, .2); box-shadow: 0 4px 12px -8px rgba($primary, .6); transition: border-color .15s;
+    > i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; background: rgba($primary, .1); color: $primary; font-size: .85rem; }
+    strong { display: block; font-size: .74rem; color: #0f172a; font-weight: 600; line-height: 1.2; }
+    small { display: block; font-size: .66rem; color: #64748b; }
+    &:hover { border-color: rgba($primary, .5); } }
+.pf-photo-error { max-width: 240px; margin: .6rem auto 0; padding: .35rem .7rem; border-radius: .6rem; font-size: .72rem; color: #b42318;
+    background: rgba($danger, .07); border: 1px solid rgba($danger, .2); }
+.pf-photo-actions { display: flex; justify-content: center; gap: .5rem; margin-top: .6rem;
+    &.d-none { display: none !important; }
+    .btn { border-radius: 999px; padding-inline: .9rem; min-height: 36px; }
+    .btn-light { background: #fff; border: 1px solid #e3e8f0; } }
 .pf-identity { min-width: 0; padding-bottom: .2rem; }
 .pf-name { font-size: 1.55rem; font-weight: 700; color: #0f172a; margin: 0; letter-spacing: -.01em; overflow-wrap: anywhere; line-height: 1.2; }
 .pf-role { font-size: .9rem; color: $primary; font-weight: 500; margin-top: .15rem; }

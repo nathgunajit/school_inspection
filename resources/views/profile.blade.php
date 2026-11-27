@@ -11,23 +11,34 @@
             <div class="pf-hero-greet"><span>{{ now()->hour < 12 ? 'Good morning' : (now()->hour < 17 ? 'Good afternoon' : 'Good evening') }}</span>Samagra Shiksha Axom</div>
         </div>
         <div class="pf-hero-body">
-            <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo pf-photo" data-photo-form
+            {{-- 27-11-2026: photo restyled (white ring + soft halo, hover "Change photo", status dot, dashed ring when empty, orange "Not saved" preview) --}}
+            @php
+                $photoLabel = $user->photo_path ? 'Change photo' : 'Upload photo';
+                $statusDot = match ($user->status) { \App\Enums\UserStatus::Active => 'is-active', \App\Enums\UserStatus::Pending => 'is-pending', default => null };
+            @endphp
+            <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo pf-photo {{ $user->photo_path ? '' : 'is-empty' }}" data-photo-form
                   data-max-kb="{{ config('inspection.employee_photo.max_kb') }}" data-max-side="{{ config('inspection.employee_photo.max_side_px') }}" data-short-side="{{ config('inspection.employee_photo.short_side_px') }}">
                 @csrf
                 <div class="profile-photo-frame">
                     <x-user-avatar :user="$user" size="xl" data-photo-current />
                     <img alt="New photo preview" class="avatar avatar-xl avatar-img d-none" data-photo-preview>
-                    <label class="profile-photo-btn" for="profile-photo-input" title="{{ $user->photo_path ? 'Change photo' : 'Upload photo' }}">
-                        <i class="bi bi-camera-fill"></i><span class="visually-hidden">{{ $user->photo_path ? 'Change photo' : 'Upload photo' }}</span>
+                    <label class="pf-photo-overlay" for="profile-photo-input" aria-hidden="true"><i class="bi bi-camera"></i>{{ $photoLabel }}</label>
+                    @if ($statusDot)<span class="pf-photo-dot {{ $statusDot }}" aria-hidden="true"><i class="bi {{ $statusDot === 'is-active' ? 'bi-check-lg' : 'bi-hourglass-split' }}"></i></span>@endif
+                    <label class="profile-photo-btn" for="profile-photo-input" title="{{ $photoLabel }}">
+                        <i class="bi bi-camera-fill"></i><span class="visually-hidden">{{ $photoLabel }}</span>
                     </label>
                     <input type="file" id="profile-photo-input" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="d-none">
                 </div>
+                <span class="pf-photo-unsaved"><i class="bi bi-dot"></i>New photo · not saved yet</span>
                 @unless ($user->photo_path)
-                    <div class="pf-photo-hint" data-photo-hint><i class="bi bi-exclamation-circle me-1"></i>No photo yet. Tap <i class="bi bi-camera-fill"></i> to add your passport-size photo (JPG, JPEG or PNG, max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }}).</div>
+                    <label class="pf-photo-hint" for="profile-photo-input" data-photo-hint>
+                        <i class="bi bi-camera"></i>
+                        <span><strong>Add your passport-size photo</strong><small>JPG, JPEG or PNG, max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }}</small></span>
+                    </label>
                 @endunless
-                <div class="text-danger text-xs mt-2 d-none" data-photo-error></div>
-                @error('photo')<div class="text-danger text-xs mt-2">{{ $message }}</div>@enderror
-                <div class="d-flex justify-content-center gap-2 mt-2 d-none" data-photo-actions>
+                <div class="pf-photo-error d-none" data-photo-error></div>
+                @error('photo')<div class="pf-photo-error">{{ $message }}</div>@enderror
+                <div class="pf-photo-actions d-none" data-photo-actions>
                     <button type="button" class="btn btn-light btn-sm" data-photo-cancel><i class="bi bi-x-lg"></i>Cancel</button>
                     <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check2"></i>Save photo</button>
                 </div>

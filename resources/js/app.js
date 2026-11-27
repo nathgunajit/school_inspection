@@ -165,6 +165,7 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
         current.classList.remove('d-none');
         actions.classList.add('d-none');
         hint?.classList.remove('d-none');
+        form.classList.remove('is-preview');
         error.textContent = msg;
         error.classList.toggle('d-none', !msg);
     };
@@ -197,6 +198,7 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
         current.classList.add('d-none');
         actions.classList.remove('d-none');
         hint?.classList.add('d-none');
+        form.classList.add('is-preview');
         error.classList.add('d-none');
     });
     form.querySelector('[data-photo-cancel]').addEventListener('click', () => reset());
