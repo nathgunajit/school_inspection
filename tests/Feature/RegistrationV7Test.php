@@ -248,14 +248,35 @@ class RegistrationV7Test extends TestCase
 
         $this->actingAs($u)->get(route('profile'))->assertOk()
             ->assertSee('id="id-proof-modal"', false)->assertSee('data-lazy-src="'.route('admin.users.id-proof', $u).'"', false)
-            ->assertSee('voter-card.jpg');
+            ->assertSee('voter-card.jpg')
+            // shown on the page itself, tap to enlarge; no separate button in the hero
+            ->assertSee('data-proof-preview', false)->assertSee('src="'.route('admin.users.id-proof', $u).'"', false)
+            ->assertSee('Tap to enlarge')->assertDontSee('View identity proof');
+        // the officer's own views are not audited (the preview loads on every visit)
         $this->actingAs($u)->get(route('admin.users.id-proof', $u))->assertOk();
+        $this->assertDatabaseMissing('audit_logs', ['action' => 'id_proof_viewed', 'user_id' => $u->id]);
 
         $other = $this->officer(UserLevel::Cluster, $this->otherCluster(Cluster::orderBy('id')->first()));
         $this->actingAs($other)->get(route('admin.users.id-proof', $u))->assertNotFound();
-        $this->actingAs($other)->get(route('profile'))->assertOk()->assertDontSee('id="id-proof-modal"', false)->assertSee('Not uploaded (optional)');
+        $this->actingAs($other)->get(route('profile'))->assertOk()->assertDontSee('id="id-proof-modal"', false)
+            ->assertDontSee('data-proof-preview', false)->assertSee('No identity proof uploaded (optional).');
 
-        $this->actingAs($this->admin())->get(route('admin.users.show', $u))->assertOk()
-            ->assertSee('id="id-proof-modal"', false)->assertSee('data-bs-target="#id-proof-modal"', false);
+        $admin = $this->admin();
+        $this->actingAs($admin)->get(route('admin.users.show', $u))->assertOk()
+            ->assertSee('id="id-proof-modal"', false)->assertSee('data-bs-target="#id-proof-modal"', false)->assertSee('View identity proof');
+        $this->actingAs($admin)->get(route('admin.users.id-proof', $u))->assertOk();
+        $this->assertDatabaseHas('audit_logs', ['action' => 'id_proof_viewed', 'user_id' => $admin->id]);
+    }
+
+    /** 27-11-2026: a PDF identity proof shows as a document tile with View, not as an image. */
+    public function test_pdf_identity_proof_shows_a_document_tile_on_my_profile(): void
+    {
+        $this->registers(['id_proof' => UploadedFile::fake()->create('posting-order.pdf', 100, 'application/pdf')]);
+        $u = User::where('mobile', '9876543210')->firstOrFail();
+        $u->forceFill(['status' => UserStatus::Active, 'must_change_password' => false])->save();
+
+        $this->actingAs($u)->get(route('profile'))->assertOk()
+            ->assertSee('pf-proof-doc', false)->assertSee('posting-order.pdf')->assertSee('PDF document')
+            ->assertDontSee('data-proof-preview', false)->assertSee('id="id-proof-modal"', false);
     }
 }

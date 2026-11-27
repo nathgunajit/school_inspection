@@ -5,7 +5,10 @@
         $proofUrl = route('admin.users.id-proof', $user);
         $proofPdf = str_ends_with(strtolower($user->id_proof_path), '.pdf');
     @endphp
+    {{-- trigger => false: only the popup (My Profile opens it from its Identity proof card) --}}
+    @if ($trigger ?? true)
     <button type="button" class="btn btn-light {{ $class ?? '' }}" data-bs-toggle="modal" data-bs-target="#id-proof-modal" data-no-loader data-no-busy><i class="bi bi-person-vcard"></i>View identity proof</button>
+    @endif
     @push('scripts')
         <div class="modal fade" id="id-proof-modal" tabindex="-1" aria-labelledby="id-proof-title" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">

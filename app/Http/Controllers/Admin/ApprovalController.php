@@ -82,7 +82,9 @@ class ApprovalController extends Controller
             || ($viewer->can('manage_users') && $j->contains($viewer, $user->currentJurisdiction()->first()));
         abort_unless($allowed && $user->id_proof_path && Storage::disk('private')->exists($user->id_proof_path), 404);
 
-        AuditLogger::log('id_proof_viewed', $user);
+        if (! $viewer->is($user)) { // 27-11-2026: My Profile shows the proof on every visit; only views by others are audited
+            AuditLogger::log('id_proof_viewed', $user);
+        }
 
         return Storage::disk('private')->response($user->id_proof_path, $user->id_proof_original_name, [
             'Content-Disposition' => 'inline',

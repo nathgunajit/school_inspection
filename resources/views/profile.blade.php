@@ -46,7 +46,6 @@
             <div class="pf-actions">
                 <a href="{{ route('password.change') }}" class="btn btn-light"><i class="bi bi-key"></i>Change password</a>
                 <a href="#mobile-change" class="btn btn-light"><i class="bi bi-phone"></i>Change mobile</a>
-                @include('partials.id-proof-modal', ['user' => $user])
                 <form method="POST" action="{{ route('logout') }}" class="d-lg-none" data-si-signout>@csrf<button class="btn btn-light text-danger w-100"><i class="bi bi-box-arrow-right"></i>Sign out</button></form>
             </div>
         </div>
@@ -72,7 +71,6 @@
                     <div class="pf-tile"><i class="bi bi-phone"></i><span>Mobile</span><strong>+91 {{ $user->mobile }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-envelope"></i><span>Email</span><strong>{{ $user->email ?: 'Not added' }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-briefcase"></i><span>Designation</span><strong>{{ $user->designation_label ?? '—' }}</strong></div>
-                    <div class="pf-tile"><i class="bi bi-person-vcard"></i><span>Identity proof</span><strong>@if ($user->id_proof_path)Uploaded @else<span class="text-secondary fw-normal">Not uploaded (optional)</span>@endif</strong></div>
                     <div class="pf-tile wide"><i class="bi bi-geo-alt"></i><span>Jurisdiction</span><strong>{{ $jur?->label() ?: 'State' }}</strong></div>
                     @if ($user->directPermissions->isNotEmpty())
                         <div class="pf-tile wide"><i class="bi bi-shield-plus"></i><span>Extra rights</span><strong>{{ $user->directPermissions->pluck('name')->map(fn ($p) => str_replace('_', ' ', $p))->implode(', ') }}</strong></div>
@@ -83,7 +81,7 @@
 
             {{-- ============ Change mobile ============ --}}
             <section class="card pf-card mb-4" id="mobile-change">
-                <div class="pf-card-head"><span class="pf-card-icon tone-green"><i class="bi bi-phone-vibrate"></i></span><div><h3>Change mobile number</h3><p>Current number <strong>+91 {{ $user->mobile }}</strong> · the State Administrator approves the change</p></div></div>
+                <div class="pf-card-head"><span class="pf-card-icon tone-green"><i class="bi bi-phone-vibrate"></i></span><div><h3>Change mobile number</h3><p>The State Administrator approves the change</p></div></div>
                 <div class="pf-card-body">
                     @if ($pendingMobile)
                         <div class="pf-pending">
@@ -117,6 +115,30 @@
         </div>
 
         <div class="col-lg-5">
+            {{-- ============ Identity proof (27-11-2026: shown on the page; tap to enlarge in the popup) ============ --}}
+            @php $proofPdf = $user->id_proof_path && str_ends_with(strtolower($user->id_proof_path), '.pdf'); @endphp
+            <section class="card pf-card mb-4">
+                <div class="pf-card-head"><span class="pf-card-icon"><i class="bi bi-person-vcard"></i></span><div><h3>Identity proof</h3><p>Optional · visible to you and your approving officers</p></div></div>
+                <div class="pf-card-body">
+                    @if (! $user->id_proof_path)
+                        <div class="pf-proof-empty"><i class="bi bi-file-earmark-person"></i>No identity proof uploaded (optional).</div>
+                    @elseif ($proofPdf)
+                        <div class="pf-proof-doc">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            <div class="min-w-0"><strong class="text-truncate d-block">{{ $user->id_proof_original_name ?: 'Identity proof.pdf' }}</strong><span>PDF document</span></div>
+                            <button type="button" class="btn btn-soft-primary btn-sm" data-bs-toggle="modal" data-bs-target="#id-proof-modal" data-no-loader data-no-busy><i class="bi bi-eye"></i>View</button>
+                        </div>
+                    @else
+                        <button type="button" class="pf-proof" data-bs-toggle="modal" data-bs-target="#id-proof-modal" data-no-loader data-no-busy aria-label="Enlarge identity proof">
+                            <img src="{{ route('admin.users.id-proof', $user) }}" alt="Identity proof of {{ $user->name }}" loading="lazy" data-proof-preview>
+                            <span class="pf-proof-zoom"><i class="bi bi-zoom-in"></i>Tap to enlarge</span>
+                        </button>
+                        @if ($user->id_proof_original_name)<div class="text-xs text-secondary text-truncate mt-2">{{ $user->id_proof_original_name }}</div>@endif
+                    @endif
+                </div>
+                @include('partials.id-proof-modal', ['user' => $user, 'trigger' => false])
+            </section>
+
             {{-- ============ Activity ============ --}}
             @if ($canInspect)
                 <section class="card pf-card mb-4">

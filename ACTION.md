@@ -3315,3 +3315,11 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Subtraction sums could come out negative ("5 − 9"). `MathCaptcha::refresh()` now uses 10–20 minus 1–9, so every answer is 1 or more; `check()` and the answer box accept digits only.
 - Files: app/Support/MathCaptcha.php, resources/views/partials/math-captcha.blade.php, tests/Feature/LoginMathCaptchaTest.php (new `test_the_answer_is_never_negative`, 300 sums), CLAUDE.md.
 - Verified: LoginMathCaptchaTest passes.
+
+## 27-11-2026 — My Profile: identity proof shown on the page, cleaner layout
+- New **Identity proof** card (right column, first): an image proof is shown as a preview (tap to enlarge in the existing popup), a PDF as a document tile with View, none as "No identity proof uploaded (optional)."
+- Cleaner page: View identity proof button removed from the hero (two actions left, plus Sign out on phones), the "Identity proof" tile removed from Personal details, the duplicate mobile number removed from the Change mobile subtitle.
+- `partials/id-proof-modal` takes `trigger => false` (popup only); the admin user page is unchanged.
+- `ApprovalController::idProof()` audits `id_proof_viewed` only when someone other than the officer opens it (the preview loads on every profile visit).
+- Files: resources/views/profile.blade.php, resources/views/partials/id-proof-modal.blade.php, resources/scss/app.scss (`.pf-proof*`), app/Http/Controllers/Admin/ApprovalController.php, tests/Feature/RegistrationV7Test.php, CLAUDE.md.
+- Verified: RegistrationV7, RegistrationAndLogin, IconSubset, QueryBudget tests pass; `npm run build` ok.
