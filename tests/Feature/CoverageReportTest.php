@@ -213,8 +213,9 @@ class CoverageReportTest extends TestCase
         $say = $res->viewData('explain');
         $this->assertStringStartsWith('1 of 3 schools (33.3 %)', $say['visit']);
         $this->assertStringContainsString('November 2026', $say['visit']);
-        $this->assertStringContainsString('2 schools were not visited.', $say['visit']);
-        $this->assertStringContainsString('1 of 3 schools (33.3 %) have a submitted inspection in the current quarterly cycle (01 Oct 2026 – 31 Dec 2026). 2 schools are still due.', $say['inspection']);
+        $this->assertStringContainsString('(01 Nov to 30 Nov 2026)', $say['visit']);
+        $this->assertStringContainsString('2 schools had no visit.', $say['visit']);
+        $this->assertStringContainsString('1 of 3 schools (33.3 %) has a submitted inspection in the quarterly cycle (01 Oct 2026 to 31 Dec 2026). 2 schools still need one.', $say['inspection']);
         $res->assertSee($say['visit']);
 
         // downloads carry the same sentences in a "What it means" column

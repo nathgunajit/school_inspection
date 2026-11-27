@@ -82,7 +82,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Areas use the school's own district / block / cluster. Verification runs in PHP (`Inspection::haversine()`), and the query count is fixed.
   - **Plain words** (26-11-2026):
     - `CoverageReportService::explain()` turns the view's figures into the "1 of 3 schools (33.3 %) … were visited" sentences. `bandsText()` builds the band line from `config('inspection.coverage.bands')`.
-    - Both feed the page's **What this report shows** card (foldable, `localStorage` `si-cov-help`) and the Summary sheet / PDF's third column, **What it means** (`SUMMARY_HEADS`). Change the wording there, not in the view.
+    - Both feed the page's **What this report shows** card (since 27-11-2026 a native `<details>`, **folded by default**, with Visit / Inspection % chips in its header and colour-key chips; opening is remembered in `localStorage` `si-cov-explain`) and the Summary sheet / PDF's third column, **What it means** (`SUMMARY_HEADS`). Change the wording there, not in the view.
     - Tiles and headings carry tooltips. `app.js` initialises `[data-bs-toggle="tooltip"]` on hover / focus too, so swapped sections work.
     - The settings page gets its "With these settings" dates from `CoverageReportController::preview()`.
     - User-facing names: "Schools in this area", "Schools visited", "not counted" (= unverified), "Not inspected yet" (= due).

@@ -525,22 +525,24 @@ class CoverageReportService
         $area = $this->areaTitle($f);
         $n = fn ($v) => number_format($v);
         $schools = fn ($v) => $n($v).' school'.($v === 1 ? '' : 's');
-        $range = $period->from->isSameDay($period->to) ? $period->from->format('d M Y') : $period->from->format('d M').' – '.$period->to->format('d M Y');
+        // 27-11-2026: wording made plainer (humanizer); ranges read "to", not a dash
+        $range = $period->from->isSameDay($period->to) ? $period->from->format('d M Y') : $period->from->format('d M').' to '.$period->to->format('d M Y');
         $when = match ($period->type) {
             'daily' => 'on '.$range,
             'weekly' => 'in the week '.$range,
             'custom' => 'from '.$period->from->format('d M Y').' to '.$period->to->format('d M Y'),
             default => 'in '.$period->label().' ('.$range.')',
         };
+        $needs = fn ($v) => $v === 1 ? 'still needs one' : 'still need one';
 
         return [
             'visit' => $n($s['visited']).' of '.$schools($s['schools']).' ('.$pct($s['visit_pct']).') in '.$area
-                .' were visited at least once '.$when.'. '
-                .'A visit counts only when the officer\'s location was within '.$this->radius().' m of the school. '
-                .($s['not_visited'] ? $schools($s['not_visited']).' were not visited.' : 'Every school was visited.'),
-            'inspection' => $n($s['inspected']).' of '.$schools($s['schools']).' ('.$pct($s['insp_pct']).') have a submitted inspection in the current '
-                .strtolower($setting->cycleLabel()).' cycle ('.$cycle->from->format('d M Y').' – '.$cycle->to->format('d M Y').'). '
-                .($s['due'] ? $schools($s['due']).' are still due.' : 'No school is due.'),
+                .' had at least one visit '.$when.'. '
+                .($s['not_visited'] ? $schools($s['not_visited']).' had no visit. ' : 'Every school had a visit. ')
+                .'A visit counts only if the officer was within '.$this->radius().' m of the school.',
+            'inspection' => $n($s['inspected']).' of '.$schools($s['schools']).' ('.$pct($s['insp_pct']).') '.($s['inspected'] === 1 ? 'has' : 'have')
+                .' a submitted inspection in the '.strtolower($setting->cycleLabel()).' cycle ('.$cycle->from->format('d M Y').' to '.$cycle->to->format('d M Y').'). '
+                .($s['due'] ? $schools($s['due']).' '.$needs($s['due']).'.' : 'Every school has one.'),
             'bands' => self::bandsText(),
         ];
     }

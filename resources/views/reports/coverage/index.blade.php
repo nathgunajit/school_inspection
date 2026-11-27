@@ -102,11 +102,23 @@
 
     <div id="cov-results" data-filter-region data-filter-results>
     {{-- ============ 26-11-2026: the two figures in plain words (same sentences as the downloads) ============ --}}
-    <section class="cov-explain mb-3" data-cov-explain>
-        <div class="cov-explain-head">
-            <h3><i class="bi bi-lightbulb"></i>What this report shows</h3>
-            <button type="button" class="btn btn-sm btn-light" data-cov-explain-toggle aria-expanded="true"><span data-show-text>Hide</span></button>
-        </div>
+    {{-- 27-11-2026: a native <details>, folded by default (no flash, works without JS); opening is remembered (si-cov-explain) --}}
+    @php
+        $bandChips = collect(config('inspection.coverage.bands'))->sortKeysDesc();
+        $bandUpper = null;
+    @endphp
+    <details class="cov-explain mb-3" data-cov-explain>
+        <summary class="cov-explain-head">
+            <span class="cov-explain-icon"><i class="bi bi-lightbulb"></i></span>
+            <span class="cov-explain-heading">
+                <h3>What this report shows</h3>
+                <span class="cov-explain-teaser">
+                    <span class="cov-chip tone-{{ $s['band']['tone'] }}"><i class="bi bi-geo-alt"></i>Visit {{ $pct($s['visit_pct']) }}</span>
+                    <span class="cov-chip tone-{{ $s['insp_band']['tone'] }}"><i class="bi bi-patch-check"></i>Inspection {{ $pct($s['insp_pct']) }}</span>
+                </span>
+            </span>
+            <span class="cov-explain-toggle" aria-hidden="true"><span class="when-closed">Show</span><span class="when-open">Hide</span><i class="bi bi-chevron-down"></i></span>
+        </summary>
         <div class="cov-explain-body">
             <div class="cov-explain-item tone-{{ $s['band']['tone'] }}">
                 <span class="cov-explain-title"><i class="bi bi-geo-alt"></i>Visit coverage · {{ $pct($s['visit_pct']) }}</span>
@@ -117,8 +129,16 @@
                 <p>{{ $explain['inspection'] }}</p>
             </div>
         </div>
-        <div class="cov-explain-foot"><i class="bi bi-palette"></i>Colours: {{ $explain['bands'] }}. Tap a district, block or cluster name to see the areas inside it.</div>
-    </section>
+        <div class="cov-explain-foot">
+            <span class="cov-explain-key">
+                @foreach ($bandChips as $min => [$label, $tone])
+                    <span class="cov-key tone-{{ $tone }}"><i></i>{{ $label }} <small>{{ $bandUpper === null ? $min.'%+' : ((int) $min === 0 ? 'under '.$bandUpper.'%' : $min.' to '.($bandUpper - 1).'%') }}</small></span>
+                    @php $bandUpper = (int) $min; @endphp
+                @endforeach
+            </span>
+            <span class="cov-explain-tip"><i class="bi bi-hand-index"></i>Tap a district, block or cluster name to open it.</span>
+        </div>
+    </details>
 
     {{-- ============ KPIs (hover or tap a tile for its meaning) ============ --}}
     <div class="row g-2 g-md-3 mb-3">
@@ -254,21 +274,19 @@
 
     @push('scripts')
         <script>
-            // 26-11-2026: "What this report shows" can be folded away; the choice is remembered (sections swapped by the filters too)
+            // 27-11-2026: "What this report shows" starts folded; opening it is remembered (also for sections swapped by the filters)
             (() => {
-                const KEY = 'si-cov-help';
-                const apply = () => document.querySelectorAll('[data-cov-explain]').forEach((box) => {
-                    const hidden = localStorage.getItem(KEY) === 'hidden';
-                    box.classList.toggle('is-folded', hidden);
-                    const btn = box.querySelector('[data-cov-explain-toggle]');
-                    btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
-                    btn.querySelector('[data-show-text]').textContent = hidden ? 'Show' : 'Hide';
-                });
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('[data-cov-explain-toggle]')) return;
-                    localStorage.setItem(KEY, localStorage.getItem(KEY) === 'hidden' ? 'shown' : 'hidden');
-                    apply();
-                });
+                const KEY = 'si-cov-explain';
+                // setting open from the stored value fires a toggle that stores the same value again (harmless)
+                const apply = () => {
+                    let open = false;
+                    try { open = localStorage.getItem(KEY) === 'open'; } catch (e) {}
+                    document.querySelectorAll('[data-cov-explain]').forEach((box) => { if (box.open !== open) box.open = open; });
+                };
+                document.addEventListener('toggle', (e) => {
+                    if (!e.target.matches?.('[data-cov-explain]')) return;
+                    try { localStorage.setItem(KEY, e.target.open ? 'open' : 'closed'); } catch (err) {}
+                }, true);
                 document.addEventListener('si:content', apply);
                 apply();
             })();
