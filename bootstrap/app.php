@@ -21,7 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // V6 Module 5: password fields arrive RSA-encrypted from the browser
         $middleware->web(append: [\App\Http\Middleware\DecryptPasswordFields::class, \App\Http\Middleware\TouchLastSeen::class,
             \App\Http\Middleware\EnsurePageUser::class, \App\Http\Middleware\CompactHtml::class, // 25-11-2026: one user per browser; smaller HTML
-            \App\Http\Middleware\QueueLargeExports::class]); // 26-11-2026: large downloads are made by the queue (Downloads page)
+            \App\Http\Middleware\QueueLargeExports::class, // 26-11-2026: large downloads are made by the queue (Downloads page)
+            \App\Http\Middleware\RunDueAlerts::class]); // V16: Today's Schools alerts from page views when the scheduler is not running
         // V12 item 8: named routes, so the redirects also work when the app runs in a sub-folder (e.g. XAMPP /SCHOOLINSPECTION/public)
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));

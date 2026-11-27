@@ -109,6 +109,8 @@ return [
     // V14 item 5: Today's schools. The settings (limit, priorities, …) are in the daily_display_settings table (admin screen);
     // these answers on a school's latest submitted inspection count as open issues ("Issue-based priority").
     'daily_list' => [
+        // V16 (27-11-2026): with no scheduler seen, page views run today:notify (at most every 5 minutes)
+        'alert_fallback' => (bool) env('TODAY_ALERT_FALLBACK', true),
         'issue_answers' => [
             'CND_03' => ['no'], // Functional Toilet for Girls
             'CND_05' => ['no'], // Functional Toilet for Boys

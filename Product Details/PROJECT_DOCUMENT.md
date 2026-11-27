@@ -1100,3 +1100,26 @@ Source: `Documents/Modification of the ApplicationV15.docx` (11 items, all about
 - **Audit:** `daily_list_replaced`, `daily_list_unlocked`, `today_notifications_sent`, `daily_list_generated` (with `ahead`), plus the V14 entries.
 - **Code:** migration `2026_11_26_000009_v15_today_schools`; `DailySchoolListService` (`prepare()`, `rebuildAhead()`, `lockOnStart()`, `isLocked()`, `unlock()`, `replace()`, `carry()` for skipped rows); `App\Console\Commands\TodayNotify`; `App\Jobs\RefreshDailyLists`; `App\Notifications\*`; `AlertService`, `AlertController`, `resources/js/alert-badge.js`.
 - **Tests:** `tests/Feature/TodaySchoolsV15Test.php` (8 tests) and the updated `TodaySchoolsTest`.
+
+## 16. Modification V16: review of the Today's Schools rules (27-11-2026)
+
+Source: `Documents/Modification of the ApplicationV16.docx`. The document is the same file as V15 (the same 11 items). Every item was already built on 26-11-2026 (section 15); the review checked each one again and fixed the two that did nothing on a plain XAMPP server with no queue worker and no scheduler.
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Skip on / off for all users | Done (V15): Allow Skip, State only |
+| 2 | Lists made from the State Admin's settings | Done (V15) |
+| 3 | A skipped school goes to the next working day | Done (V15): carried once |
+| 4 | Skipped and pending first | Done (V15): Priority tag, extra to the limit |
+| 5 | No schools on state / district holidays | Done (V14 / V15) |
+| 6 | Advance alert of the next day's list | Done (V15). **V16:** also sent without the scheduler (below) |
+| 7 | Daily reminder for pending schools | Done (V15). **V16:** also sent without the scheduler |
+| 8 | Settings change updates everyone | Done (V15). **V16:** also without a queue worker (below) |
+| 9 | Change assignments before the start | Done (V15): Remove / Replace |
+| 10 | Lock once an inspection starts | Done (V15) |
+| 11 | Exceptional changes only with State Admin authorization | Done (V15): Allow changes with a reason |
+
+- **Settings refresh without a worker (item 8):** `TodaySchoolsController::refreshLists()` queues `RefreshDailyLists` when a worker is running (`QueuedExports::workerAlive()`); otherwise the job runs right after the save page is sent (`dispatchAfterResponse`), so every list follows the change at once either way.
+- **Alerts without the scheduler (items 6–7):** each scheduled task that starts leaves a heartbeat (`App\Support\SchedulerHeartbeat`). When none is seen in 10 minutes, `App\Http\Middleware\RunDueAlerts` runs `today:notify` after a signed-in page view, at most once every 5 minutes for the whole site. The command sends each alert once, so nothing is sent twice if the scheduler is started later. Switch: `TODAY_ALERT_FALLBACK` (default on).
+- `php artisan cache:status` shows whether the queue worker and the scheduler are running.
+- **Tests:** `tests/Feature/TodaySchoolsV16Test.php` (4 tests).

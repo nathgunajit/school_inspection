@@ -37,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
         // 27-11-2026: a running queue worker leaves a heartbeat, so downloads know whether to queue (QueuedExports::workerAlive())
         Event::listen([\Illuminate\Queue\Events\Looping::class, \Illuminate\Queue\Events\JobProcessed::class], fn () => \App\Support\QueuedExports::beat());
 
+        // V16: any scheduled task that starts shows the scheduler is running (SchedulerHeartbeat; else RunDueAlerts sends the alerts)
+        Event::listen(\Illuminate\Console\Events\ScheduledTaskStarting::class, fn () => \App\Support\SchedulerHeartbeat::beat());
+
         // V15: a new in-app alert makes the bell's cached unread count stale
         Event::listen(\Illuminate\Notifications\Events\NotificationSent::class, function ($e) {
             if ($e->channel === 'database' && $e->notifiable instanceof User) {

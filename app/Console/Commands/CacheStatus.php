@@ -66,6 +66,10 @@ class CacheStatus extends Command
     {
         $conn = config('queue.default');
         $rows = [['Queue connection', $conn.($conn === 'sync' ? ' (jobs run inside the request: no worker needed, but large files are slow)' : '')]];
+        // V16 (27-11-2026): without the scheduler the Today's Schools alerts are sent from page views (RunDueAlerts)
+        $seen = \App\Support\SchedulerHeartbeat::lastSeen();
+        $rows[] = ['Queue worker', \App\Support\QueuedExports::workerAlive() ? 'running' : 'not seen (downloads and settings refreshes run inside the request)'];
+        $rows[] = ['Scheduler', \App\Support\SchedulerHeartbeat::alive() ? 'running (last task '.date('H:i', $seen).')' : "not seen (Today's Schools alerts are sent on page views)"];
         if ($conn !== 'database') {
             return $rows;
         }

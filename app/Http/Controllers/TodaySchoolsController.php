@@ -158,7 +158,7 @@ class TodaySchoolsController extends Controller
         if ($districtId && $request->boolean('reset')) {
             DailyDisplaySetting::where('district_id', $districtId)->delete();
             AuditLogger::log('daily_settings_reset', null, ['district_id' => $districtId]);
-            \App\Jobs\RefreshDailyLists::dispatch($districtId);
+            $this->refreshLists($districtId);
 
             return back()->with('success', 'This district now follows the state default.');
         }
@@ -199,9 +199,24 @@ class TodaySchoolsController extends Controller
 
         $row = DailyDisplaySetting::updateOrCreate(['district_id' => $districtId], $data + ['updated_by' => $user->id]);
         AuditLogger::log('daily_settings_updated', $row, ['district_id' => $districtId] + $data);
-        \App\Jobs\RefreshDailyLists::dispatch($districtId); // V15 item 8: every list made already follows the change at once
+        $this->refreshLists($districtId); // V15 item 8: every list made already follows the change at once
 
         return back()->with('success', "Today's schools settings saved".($districtId ? ' for the district' : '').'. Lists already made for today and the next day follow at once (schools already visited, skipped, started or assigned stay; a list locked by a started inspection is not changed).');
+    }
+
+    /**
+     * V15 item 8 / V16 (27-11-2026): bring the lists in line with new settings. With a queue worker running the job is
+     * queued; without one it runs right after this response is sent, so the change still reaches everyone at once.
+     */
+    private function refreshLists(?int $districtId): void
+    {
+        if (\App\Support\QueuedExports::workerAlive()) {
+            \App\Jobs\RefreshDailyLists::dispatch($districtId);
+
+            return;
+        }
+        \App\Support\QueuedExports::allowLongRequest();
+        \App\Jobs\RefreshDailyLists::dispatchAfterResponse($districtId);
     }
 
     /** Active officers below the user in their area (not the user). */
