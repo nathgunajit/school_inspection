@@ -78,8 +78,12 @@ function bindTyping(inst, el) {
     msg.dataset.dateMsg = '1';
     msg.hidden = true;
     alt.insertAdjacentElement('afterend', msg);
-    const show = (text) => { msg.textContent = text; msg.hidden = !text; alt.classList.toggle('is-invalid', !!text); };
-    inst.config.onChange.push(() => { if (el.value) show(''); });
+    // 27-11-2026: the hint under the box shows only while it helps (focus without a full date), never beside an error
+    const hint = el.closest('[class*="col"], .mb-3, form')?.querySelector('[data-date-hint]');
+    const setHint = (on) => { if (hint) hint.hidden = !on; };
+    const show = (text) => { msg.textContent = text; msg.hidden = !text; alt.classList.toggle('is-invalid', !!text); if (text) setHint(false); };
+    inst.config.onChange.push(() => { if (el.value) { show(''); setHint(false); } });
+    alt.addEventListener('focus', () => { if (!el.value && msg.hidden) setHint(true); });
 
     const problem = (text) => {
         const date = strictParse(text);
@@ -95,7 +99,7 @@ function bindTyping(inst, el) {
         const deleting = (e.inputType || '').startsWith('delete');
         const { out, digits } = maskDigits(alt.value, deleting);
         if (alt.value !== out) alt.value = out;
-        if (digits.length < 8) { show(''); return; }
+        if (digits.length < 8) { show(''); setHint(true); return; }
         const p = problem(out);
         if (p) { show(p); return; }
         inst.setDate(strictParse(out), true);

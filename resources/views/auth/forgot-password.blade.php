@@ -27,7 +27,7 @@
                     <input type="date" id="date_of_birth" name="date_of_birth" value="{{ old('date_of_birth') }}" required autocomplete="bday" placeholder="dd-mm-yyyy" data-date-typing
                            min="{{ now()->subYears(\App\Models\User::MAX_AGE)->toDateString() }}" max="{{ now()->subYears(\App\Models\User::MIN_AGE)->toDateString() }}"
                            class="form-control @error('date_of_birth') is-invalid @enderror">
-                    @error('date_of_birth')<div class="invalid-feedback">{{ $message }}</div>@enderror<div class="form-text">Type it (e.g. 15061985) or pick from the calendar.</div>
+                    @error('date_of_birth')<div class="invalid-feedback">{{ $message }}</div>@enderror<div class="form-text" data-date-hint hidden>Type it (e.g. 15061985) or pick from the calendar.</div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="password">New password <span class="req">*</span></label>

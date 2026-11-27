@@ -3392,3 +3392,7 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `resources/js/date-picker.js`: inputs with `data-date-typing` accept typed dates (`allowInput`, `d-m-Y`). `bindTyping()` formats digits as dd-mm-yyyy while typing (15061985 → 15-06-1985, Backspace-friendly), sets the date when complete and jumps the calendar there; impossible dates (31-02) and dates outside min / max (age 18–70) show a message under the box. `strictParse()` (flatpickr `parseDate`) never rolls an impossible date over.
 - Applied to the DOB boxes on register, forgot password and the admin user page, with a hint "Type it (e.g. 15061985) or pick from the calendar." Server validation unchanged.
 - Verification: `npm run build`, full test suite.
+
+## 27-11-2026 · DOB hint shown only when needed
+- The "Type it (e.g. 15061985) or pick from the calendar." hint is hidden on load (`data-date-hint hidden`, register and forgot password) and shown by `bindTyping()` while the DOB box has focus without a full date; hidden once a valid date is typed or picked, and whenever an error message shows.
+- Files: `resources/js/date-picker.js`, `resources/views/auth/register.blade.php`, `resources/views/auth/forgot-password.blade.php`, CLAUDE.md. Verification: `npm run build`, full test suite.
