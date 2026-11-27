@@ -7,6 +7,7 @@ use Illuminate\Contracts\Session\Session;
 /**
  * Math CAPTCHA for the login page: a small sum ("7 + 4 = ?") drawn as an image, answer kept in the session only.
  * A question is used once: every check (right or wrong) issues a new one, so an answer cannot be replayed.
+ * Every answer is a positive whole number (27-11-2026: subtraction never gives a negative result).
  */
 class MathCaptcha
 {
@@ -25,7 +26,7 @@ class MathCaptcha
         $op = random_int(0, 2);
         [$a, $b] = match ($op) {
             0 => [random_int(1, 20), random_int(1, 20)],
-            1 => [random_int(5, 20), random_int(1, 9)],
+            1 => [random_int(10, 20), random_int(1, 9)], // a ≥ 10 > b: never a negative (or zero) answer
             default => [random_int(2, 9), random_int(2, 5)],
         };
         [$sign, $answer] = match ($op) {
@@ -52,7 +53,7 @@ class MathCaptcha
         $this->refresh();
         $answer = trim((string) $answer);
 
-        return $hash !== null && preg_match('/^-?\d{1,4}$/', $answer)
+        return $hash !== null && preg_match('/^\d{1,4}$/', $answer)
             && hash_equals($hash, hash_hmac('sha256', (string) (int) $answer, (string) config('app.key')));
     }
 

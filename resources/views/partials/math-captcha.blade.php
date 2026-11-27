@@ -6,7 +6,7 @@
             <img src="{{ route('login.math-captcha') }}?t={{ now()->timestamp }}" alt="A short sum to solve" width="200" height="56" data-math-img>
             <button type="button" class="math-captcha-refresh" aria-label="Show a new sum" title="New sum" data-math-refresh><i class="bi bi-arrow-clockwise"></i></button>
         </div>
-        <input type="text" id="math_answer" name="math_answer" inputmode="numeric" pattern="-?[0-9]*" maxlength="4"
+        <input type="text" id="math_answer" name="math_answer" inputmode="numeric" pattern="[0-9]*" maxlength="4"
                class="form-control math-captcha-input @error('math_answer') is-invalid @enderror" placeholder="Answer" autocomplete="off" required>
     </div>
     @error('math_answer')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror

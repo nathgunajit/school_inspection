@@ -3310,3 +3310,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Left unchanged: "Government of Assam", the "SSA, ASSAM" watermark, plain "Samagra Shiksha" (logo alt text, fund source, questionnaire option) and past ACTION.md entries.
 - Files: resources/views/{inspections/pdf,reports/ratings/pdf,admin/exports/master-pdf,components/layouts/app,components/layouts/portal,components/page-loader,profile,inspections/blank-form}.blade.php, app/Exports/MySchoolsExport.php, database/seeders/DemoNoticeSeeder.php, tests/Feature/PageLoaderTest.php, Product Details/UI_Pages_and_Application_Modules.md, tools/docs/build-product-docx.cjs, CLAUDE.md.
 - Verified: grep finds no old name; tests below.
+
+## 27-11-2026 — Login math CAPTCHA: no negative answers
+- Subtraction sums could come out negative ("5 − 9"). `MathCaptcha::refresh()` now uses 10–20 minus 1–9, so every answer is 1 or more; `check()` and the answer box accept digits only.
+- Files: app/Support/MathCaptcha.php, resources/views/partials/math-captcha.blade.php, tests/Feature/LoginMathCaptchaTest.php (new `test_the_answer_is_never_negative`, 300 sums), CLAUDE.md.
+- Verified: LoginMathCaptchaTest passes.

@@ -51,6 +51,15 @@ class LoginMathCaptchaTest extends TestCase
         $this->assertAuthenticated();
     }
 
+    public function test_the_answer_is_never_negative(): void
+    {
+        $c = app(MathCaptcha::class);
+        for ($i = 0; $i < 300; $i++) {
+            $c->refresh();
+            $this->assertGreaterThanOrEqual(1, $this->answer(), 'sum '.session('math_captcha.q'));
+        }
+    }
+
     public function test_an_answer_cannot_be_reused(): void
     {
         $c = app(MathCaptcha::class);
