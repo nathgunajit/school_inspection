@@ -1,5 +1,6 @@
 // In-app camera, stamping, fingerprint and background upload with retry (PRD 9.2 – 9.6)
 import { offlineStore } from './offline-queue';
+import { fitSize, encodeUnder } from './image-shrink';
 
 const SI = window.SI;
 const esc = window.escapeHtml;
@@ -38,7 +39,6 @@ async function sha256(blob) {
 
 const pad = (n) => String(n).padStart(2, '0');
 const fmtDate = (d) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-const toBlob = (canvas, q) => new Promise((res) => canvas.toBlob(res, 'image/jpeg', q));
 
 /* ---------------- Rendering ---------------- */
 function tile(e) {
@@ -305,35 +305,31 @@ function updateMeta() {
 setInterval(() => { if (modalEl?.classList.contains('show')) updateMeta(); }, 1000);
 
 /**
- * Resize (longer side ≤ maxSide), print the stamp strip and encode as JPEG ≤ ~1 MB (PRD 9.4).
+ * Standard size (27-11-2026): fit inside SI.maxSide × SI.shortSide (1600 × 1200 landscape, 1200 × 1600 portrait),
+ * aspect kept, never enlarged; print the stamp strip and encode as JPEG under SI.photoMaxKb (1 MB, PRD 9.4).
+ * When quality 0.5 is still too big the photo is made smaller until it fits (image-shrink.js), so it is never refused.
  * Used for camera shots and for gallery uploads.
  */
 async function processImage(source, srcW, srcH, takenAt, g, fromGallery = false) {
-    const scale = Math.min(1, SI.maxSide / Math.max(srcW, srcH));
-    const w = Math.round(srcW * scale);
-    const h = Math.round(srcH * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(source, 0, 0, w, h);
-
-    const fs = Math.max(14, Math.round(w / 55));
+    const { w, h } = fitSize(srcW, srcH, SI.maxSide || 1600, SI.shortSide || 1200);
     const lines = [
         `UDISE ${SI.stamp.udise} · ${SI.stamp.school}`,
         `${fmtDate(takenAt)} · ${g ? `Lat ${g.lat.toFixed(6)}, Lng ${g.lng.toFixed(6)} (±${g.acc} m)` : 'No location'}`,
         `Officer: ${SI.stamp.officer}${fromGallery ? ' · From gallery' : ''}`,
     ];
-    const stripH = Math.round(fs * 1.45 * lines.length + fs * 0.9);
-    ctx.fillStyle = 'rgba(0,0,0,0.62)';
-    ctx.fillRect(0, h - stripH, w, stripH);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
-    ctx.textBaseline = 'top';
-    lines.forEach((t, i) => ctx.fillText(t, Math.round(fs * 0.7), h - stripH + Math.round(fs * 0.45) + i * Math.round(fs * 1.45), w - fs * 1.4));
-
-    let q = 0.82;
-    let blob = await toBlob(canvas, q);
-    while (blob.size > 950 * 1024 && q > 0.4) { q -= 0.12; blob = await toBlob(canvas, q); }
+    const draw = (ctx, cw, ch) => {
+        ctx.drawImage(source, 0, 0, cw, ch);
+        const fs = Math.max(14, Math.round(cw / 55));
+        const stripH = Math.round(fs * 1.45 * lines.length + fs * 0.9);
+        ctx.fillStyle = 'rgba(0,0,0,0.62)';
+        ctx.fillRect(0, ch - stripH, cw, stripH);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `600 ${fs}px Inter, system-ui, sans-serif`;
+        ctx.textBaseline = 'top';
+        lines.forEach((t, i) => ctx.fillText(t, Math.round(fs * 0.7), ch - stripH + Math.round(fs * 0.45) + i * Math.round(fs * 1.45), cw - fs * 1.4));
+    };
+    const maxBytes = Math.floor((SI.photoMaxKb || 1024) * 1024 * 0.95);
+    const { blob } = await encodeUnder(draw, w, h, maxBytes);
     return blob;
 }
 

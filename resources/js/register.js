@@ -1,5 +1,6 @@
 // Registration form: dynamic location fields (PRD 5.2) and password strength.
 import { initSelfie } from './selfie';
+import { shrinkPhotoFile, replaceInputFile } from './image-shrink';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('register-form');
@@ -132,19 +133,39 @@ document.addEventListener('DOMContentLoaded', () => {
             zone.classList.toggle('is-invalid', !!msg);
         };
         if (kept()) showKept();
-        input.addEventListener('change', () => {
-            const f = input.files[0];
+        // 27-11-2026 photo size standard: a JPG / PNG is fitted to data-max-side × data-short-side and compressed
+        // under the limit here (image-shrink.js), so a large phone photo is made smaller instead of refused.
+        const maxSide = Number(zone.dataset.maxSide || 0);
+        const shortSide = Number(zone.dataset.shortSide || 0);
+        let shrinking = 0;
+        input.addEventListener('change', async () => {
+            let f = input.files[0];
             if (!f) return kept() ? showKept() : reset(); // picker cancelled: keep what was there
             zone.classList.remove('is-kept');
             const ext = f.name.split('.').pop().toLowerCase();
             if (!exts.includes(ext)) return reset(`Only ${exts.filter((e) => e !== 'jpeg').map((e) => e.toUpperCase()).join(', ')} files are allowed.`);
+            let note = 'ready to upload';
+            if (maxSide && ext !== 'pdf') {
+                const run = ++shrinking;
+                try {
+                    const out = await shrinkPhotoFile(f, { long: maxSide, short: shortSide || maxSide, maxKb });
+                    if (run !== shrinking) return; // another file was chosen meanwhile
+                    if (out.changed && replaceInputFile(input, out.file)) {
+                        f = out.file;
+                        note = `resized to ${out.w} × ${out.h} · ready to upload`;
+                    }
+                } catch {
+                    if (run !== shrinking) return;
+                    return reset('This picture cannot be read. Please choose another JPG or PNG photo.');
+                }
+            }
             if (f.size > MAX) return reset(`This file is ${fmt(f.size)}. Please choose a file of ${limit} or less.`);
             err.classList.add('d-none');
             zone.classList.remove('is-invalid');
             const isPdf = ext === 'pdf';
             if (url) URL.revokeObjectURL(url);
             url = isPdf ? null : URL.createObjectURL(f);
-            showDone(f.name, `${isPdf ? 'PDF document' : 'Image'} · ${fmt(f.size)} · ready to upload`, url, isPdf);
+            showDone(f.name, `${isPdf ? 'PDF document' : 'Image'} · ${fmt(f.size)} · ${note}`, url, isPdf);
         });
         done.querySelector('.upload-remove').addEventListener('click', (e) => { e.preventDefault(); reset(); });
         ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.add('is-drag')));

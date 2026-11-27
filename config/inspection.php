@@ -16,19 +16,26 @@ return [
     ],
 
     'id_proof' => [
-        'max_kb' => 2048,
+        'max_kb' => 2048,                // a JPG / PNG over this is made smaller in the browser (fit 2000 × 1500)
+        'max_side_px' => 2000,
+        'short_side_px' => 1500,
         'mimes' => ['pdf', 'jpg', 'jpeg', 'png'],
     ],
 
+    // 27-11-2026 photo size standard: the browser fits a chosen photo inside max_side × short_side (aspect kept,
+    // never enlarged) and compresses it under max_kb (resources/js/image-shrink.js), so a larger file is never refused.
     'employee_photo' => [
         'max_kb' => 1024,
+        'max_side_px' => 800,            // standard 600 × 800 (portrait) / 800 × 600
+        'short_side_px' => 600,
         'mimes' => ['jpg', 'jpeg', 'png'],
     ],
 
     'evidence' => [
         'max_photos' => 20,              // total incl. mandatory set
         'photo_max_kb' => 1024,          // after processing on phone
-        'photo_max_side_px' => 1600,
+        'photo_max_side_px' => 1600,     // standard 1600 × 1200 (landscape) / 1200 × 1600 (portrait)
+        'photo_short_side_px' => 1200,
         'max_documents' => 5,
         'document_max_kb' => 5120,
         'document_mimes' => ['application/pdf', 'image/jpeg', 'image/png'],

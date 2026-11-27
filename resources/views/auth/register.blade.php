@@ -76,7 +76,7 @@
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="photo">Employee photo <span class="req">*</span></label>
-                            <div class="upload-zone upload-zone-photo @error('photo') is-invalid @enderror" data-exts="jpg,jpeg,png" data-max-kb="{{ config('inspection.employee_photo.max_kb') }}" @if ($kept['photo']) data-kept-url="{{ route('register.kept', 'photo') }}" data-kept-name="{{ $kept['photo']['name'] }}" data-kept-size="{{ $kept['photo']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['photo']['path']), '.pdf') ? 1 : 0 }}"@endif>
+                            <div class="upload-zone upload-zone-photo @error('photo') is-invalid @enderror" data-exts="jpg,jpeg,png" data-max-kb="{{ config('inspection.employee_photo.max_kb') }}" data-max-side="{{ config('inspection.employee_photo.max_side_px') }}" data-short-side="{{ config('inspection.employee_photo.short_side_px') }}" @if ($kept['photo']) data-kept-url="{{ route('register.kept', 'photo') }}" data-kept-name="{{ $kept['photo']['name'] }}" data-kept-size="{{ $kept['photo']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['photo']['path']), '.pdf') ? 1 : 0 }}"@endif>
                                 @if ($kept['photo'])<input type="hidden" name="keep_photo" value="1" class="keep-flag">@endif
                                 <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png" @required(! $kept['photo']) aria-describedby="photo-hint">
                                 <div class="upload-empty">
@@ -86,7 +86,7 @@
                                         <div class="s"><span class="text-primary fw-semibold">Click to choose</span> or drag &amp; drop · clear face</div>
                                         <div class="upload-chips" id="photo-hint">
                                             <span><i class="bi bi-file-earmark-image"></i>{{ \App\Support\FileSize::types(config('inspection.employee_photo.mimes')) }}</span>
-                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }}</span>
+                                            <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }} (larger ones are made smaller)</span>
                                         </div>
                                         {{-- 27-11-2026: or take it with the front camera (selfie.js); it goes into the same photo input --}}
                                         <button type="button" class="btn btn-soft-primary btn-sm selfie-open" data-selfie-open data-no-busy><i class="bi bi-camera-fill"></i>Take a selfie</button>
@@ -107,7 +107,7 @@
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="id_proof">Identity proof <span class="opt">(optional)</span></label>
-                            <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}" @if ($kept['id_proof']) data-kept-url="{{ route('register.kept', 'id_proof') }}" data-kept-name="{{ $kept['id_proof']['name'] }}" data-kept-size="{{ $kept['id_proof']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['id_proof']['path']), '.pdf') ? 1 : 0 }}"@endif>
+                            <div class="upload-zone @error('id_proof') is-invalid @enderror" data-exts="pdf,jpg,jpeg,png" data-max-kb="{{ config('inspection.id_proof.max_kb') }}" data-max-side="{{ config('inspection.id_proof.max_side_px') }}" data-short-side="{{ config('inspection.id_proof.short_side_px') }}" @if ($kept['id_proof']) data-kept-url="{{ route('register.kept', 'id_proof') }}" data-kept-name="{{ $kept['id_proof']['name'] }}" data-kept-size="{{ $kept['id_proof']['size'] }}" data-kept-pdf="{{ str_ends_with(strtolower($kept['id_proof']['path']), '.pdf') ? 1 : 0 }}"@endif>
                                 @if ($kept['id_proof'])<input type="hidden" name="keep_id_proof" value="1" class="keep-flag">@endif
                                 <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png" aria-describedby="id-proof-hint">
                                 {{-- Empty state --}}

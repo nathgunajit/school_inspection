@@ -12,7 +12,7 @@
         </div>
         <div class="pf-hero-body">
             <form method="POST" action="{{ route('profile.photo') }}" enctype="multipart/form-data" class="profile-photo pf-photo" data-photo-form
-                  data-max-kb="{{ config('inspection.employee_photo.max_kb') }}">
+                  data-max-kb="{{ config('inspection.employee_photo.max_kb') }}" data-max-side="{{ config('inspection.employee_photo.max_side_px') }}" data-short-side="{{ config('inspection.employee_photo.short_side_px') }}">
                 @csrf
                 <div class="profile-photo-frame">
                     <x-user-avatar :user="$user" size="xl" data-photo-current />

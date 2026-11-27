@@ -2,6 +2,7 @@
 import { Alert, Button, Collapse, Dropdown, Modal, Offcanvas, Tab, Toast, Tooltip } from './bootstrap-lite';
 import axios from 'axios';
 import { escapeHtml } from './util';
+import { shrinkPhotoFile, replaceInputFile } from './image-shrink'; // 27-11-2026: profile photo size standard
 import './sidebar'; // 26-11-2026: phone menu + desktop icon rail, set up first and only once
 import './button-busy';
 import './download-busy'; // 26-11-2026: PDF / Excel links busy until the file arrives
@@ -156,10 +157,23 @@ document.querySelectorAll('[data-photo-form]').forEach((form) => {
         error.textContent = msg;
         error.classList.toggle('d-none', !msg);
     };
-    input.addEventListener('change', () => {
-        const f = input.files[0];
+    // 27-11-2026 photo size standard: fitted to 800 × 600 and compressed under the limit (image-shrink.js), not refused
+    const maxSide = Number(form.dataset.maxSide || 800);
+    const shortSide = Number(form.dataset.shortSide || 600);
+    let run = 0;
+    input.addEventListener('change', async () => {
+        let f = input.files[0];
         if (!f) return reset();
         if (!['jpg', 'jpeg', 'png'].includes(f.name.split('.').pop().toLowerCase())) return reset('Only JPG or PNG photos are allowed.');
+        const mine = ++run;
+        try {
+            const out = await shrinkPhotoFile(f, { long: maxSide, short: shortSide, maxKb });
+            if (mine !== run) return;
+            if (out.changed && replaceInputFile(input, out.file)) f = out.file;
+        } catch {
+            if (mine !== run) return;
+            return reset('This picture cannot be read. Please choose another JPG or PNG photo.');
+        }
         if (f.size > maxKb * 1024) return reset(`This photo is ${(f.size / 1048576).toFixed(1)} MB. Please choose one of 1 MB or less.`);
         if (url) URL.revokeObjectURL(url);
         url = URL.createObjectURL(f);

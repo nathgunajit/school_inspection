@@ -3270,3 +3270,10 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - The camera stops when the window closes or the page is left. Clear messages for denied permission, no camera, camera busy and http. Without the camera API the button opens the phone camera through `capture="user"`.
 - Files: resources/js/selfie.js (new), resources/js/register.js, resources/views/auth/register.blade.php, resources/scss/app.scss, tests/Feature/RegistrationAndLoginTest.php, CLAUDE.md.
 - Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|PageLoader|IconSubset"` 22 passed.
+
+## 27-11-2026 · Photo size standard: every photo under 1 MB at a standard size
+- New `resources/js/image-shrink.js`: `fitSize()` (fit inside long × short, aspect kept, never enlarged), `encodeUnder()` (JPEG 0.82 down to 0.5, then 85 % smaller and again until under the limit; white background for PNG), `shrinkPhotoFile()` (a file already within size and limit is kept as it is), `replaceInputFile()`.
+- Inspection photos (camera and gallery, `camera.js processImage()`): standard **1600 × 1200** (portrait 1200 × 1600), under `photo_max_kb` (1 MB) with 5 % room, so a photo is no longer refused for size; the stamp strip is redrawn at the smaller size. Config `evidence.photo_short_side_px` (1200); `SI.shortSide` / `SI.photoMaxKb` from `step.blade.php`.
+- Employee photo (registration upload / selfie and profile): standard **800 × 600** (`employee_photo.max_side_px` / `short_side_px`), compressed under 1 MB instead of "choose one of 1 MB or less". Identity proof JPG / PNG: fit 2000 × 1500 under 2 MB. The upload zone shows "resized to W × H". Server limits unchanged (still the safety net).
+- Files: resources/js/image-shrink.js, resources/js/camera.js, resources/js/register.js, resources/js/app.js, config/inspection.php, resources/views/inspections/step.blade.php, resources/views/auth/register.blade.php, resources/views/profile.blade.php.
+- Verified: `npm run build`; `php artisan test --filter="Registration|Evidence|Profile|Photo|IconSubset"` 44 passed.

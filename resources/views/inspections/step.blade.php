@@ -38,6 +38,8 @@
         'maxDocuments' => config('inspection.evidence.max_documents'),
         'absentNames' => $inspection->absentTeachers->pluck('teacher_name')->values(), // 26-11-2026: an absent teacher cannot be observed (step 4)
         'maxSide' => config('inspection.evidence.photo_max_side_px'),
+        'shortSide' => config('inspection.evidence.photo_short_side_px'), // 27-11-2026: standard 1600 × 1200
+        'photoMaxKb' => config('inspection.evidence.photo_max_kb'),
         'stamp' => ['udise' => $inspection->school->udise_code, 'school' => $inspection->school->name, 'officer' => $inspection->officer->name],
     ];
 @endphp
