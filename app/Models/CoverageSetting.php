@@ -36,15 +36,15 @@ class CoverageSetting extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /** The state default row (created with config defaults if it is missing). */
+    /** The state default row (created with config defaults if it is missing). 27-11-2026: remembered for the request. */
     public static function state(): self
     {
-        return static::whereNull('district_id')->first() ?? static::create([
+        return \App\Support\RequestMemo::remember('coverage.state', fn () => static::whereNull('district_id')->first() ?? static::create([
             'district_id' => null,
             'period_type' => config('inspection.coverage.period_type', 'monthly'),
             'inspection_cycle' => config('inspection.coverage.inspection_cycle', 'quarterly'),
             'verify_radius_m' => config('inspection.coverage.verify_radius_m', 500),
-        ]);
+        ]));
     }
 
     /** The setting that applies to a district: its own row, else the state default. */

@@ -36,6 +36,7 @@ class CoverageReportController extends Controller
             'radius' => $this->report->radius(),
             'summary' => $this->report->summary($user, $f),
             'explain' => $this->report->explain($user, $f), // 26-11-2026: the figures in plain sentences
+            'how' => $this->report->howCounted($f), // 27-11-2026: how the report is counted, for every user
             'levels' => $this->report->levels($user, $f),
             'level' => $level,
             'viewLabel' => $this->report->viewLabel($user, $f),
@@ -116,7 +117,7 @@ class CoverageReportController extends Controller
     public static function preview(): array
     {
         $range = fn (CoveragePeriod $p) => $p->from->isSameDay($p->to) ? $p->from->format('d M Y') : $p->from->format('d M Y').' – '.$p->to->format('d M Y');
-        $names = ['daily' => 'today', 'weekly' => 'this week', 'monthly' => 'this month', 'quarterly' => 'this quarter'];
+        $names = CoveragePeriod::CURRENT_NAMES;
 
         return [
             'periods' => collect($names)->map(fn ($n, $t) => $n.' ('.$range(CoveragePeriod::forType($t, today())).')')->all() + ['custom' => 'the custom dates'],

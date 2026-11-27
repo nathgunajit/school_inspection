@@ -11,6 +11,9 @@ use Carbon\CarbonInterface;
  */
 final class CoveragePeriod
 {
+    /** 27-11-2026: how the current period of each type is named in plain sentences (settings preview, report). */
+    public const CURRENT_NAMES = ['daily' => 'today', 'weekly' => 'this week', 'monthly' => 'this month', 'quarterly' => 'this quarter'];
+
     private function __construct(
         public readonly string $type,
         public readonly CarbonImmutable $from,

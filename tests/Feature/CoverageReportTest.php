@@ -67,6 +67,27 @@ class CoverageReportTest extends TestCase
         return School::where('cluster_id', $this->north->id)->orderBy('id')->get()->all(); // 3 schools; the 3rd has no GPS
     }
 
+    /** 27-11-2026: every report user sees how the report is counted, in the words of the Coverage Settings preview. */
+    public function test_report_users_see_how_the_report_is_counted(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster, $this->north);
+        $this->actingAs($officer)->get(route('reports.coverage'))->assertOk()
+            ->assertSee('How this report is counted:')
+            ->assertSeeInOrder(['It shows', 'this month (01 Nov 2026 – 30 Nov 2026)', 'counts the visits made then', 'quarterly', 'cycle, now', '01 Oct 2026 – 31 Dec 2026', 'within', '500 m']);
+
+        $past = $this->get(route('reports.coverage', ['type' => 'monthly', 'ref' => '2026-10-05']))->assertOk();
+        $past->assertSee('01 Oct 2026 – 31 Oct 2026')->assertDontSee('this month (');
+        $this->assertStringContainsString('October', app(\App\Services\CoverageReportService::class)->howCounted(['type' => 'monthly', 'ref' => '2026-10-05', 'from' => null, 'to' => null, 'district_id' => null])['period_name']);
+
+        // the downloads' Summary carries the same sentence; the District Ranking page shows the line too
+        $text = app(\App\Services\CoverageReportService::class)->howCountedText(['type' => null, 'ref' => null, 'from' => null, 'to' => null, 'district_id' => null]);
+        $this->assertSame('It shows this month (01 Nov 2026 – 30 Nov 2026) and counts the visits made then. A school counts as inspected when an inspection is submitted in the quarterly cycle, now 01 Oct 2026 – 31 Dec 2026. A visit counts when the officer is within 500 m of the school.', $text);
+        $svc = app(\App\Services\CoverageReportService::class);
+        $admin = $this->admin();
+        $this->assertSame(['How it is counted', $text, 'The rules behind every figure below.'], $svc->pdfSections($admin, $svc->filters(new \Illuminate\Http\Request, $admin))[0]['rows'][0]);
+        $this->actingAs($this->admin())->get(route('reports.ranking'))->assertOk()->assertSee('How this report is counted:');
+    }
+
     public function test_periods_and_cycles(): void
     {
         $ref = Carbon::parse('2026-11-20'); // a Friday

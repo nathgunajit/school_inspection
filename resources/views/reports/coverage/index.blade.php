@@ -68,6 +68,7 @@
             </div>
         </form>
     </section>
+    @include('reports.coverage.partials.how-counted', ['how' => $how])
     </div>
 
     {{-- ============ Area filters ============ --}}

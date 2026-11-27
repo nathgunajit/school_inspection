@@ -60,6 +60,7 @@
             </div>
         </form>
     </section>
+    @include('reports.coverage.partials.how-counted', ['how' => $how])
     </div>
 
     <div id="rk-results" class="row g-3" data-filter-region data-filter-results data-loader-text="Ranking districts…">

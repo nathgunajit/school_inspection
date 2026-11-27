@@ -30,6 +30,7 @@ class DistrictRankingController extends Controller
             'coverage' => $this->ranking->coverageRanking($user, $f),
             'rating' => $showRating ? $this->ranking->ratingRanking($user, $f) : collect(),
             'showRating' => $showRating,
+            'how' => app(\App\Services\CoverageReportService::class)->howCounted($f), // the Coverage ranking uses the same rules
             'categories' => MasterValue::where('type', 'category')->orderBy('sort')->get(['id', 'label']),
         ]);
     }

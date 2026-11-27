@@ -564,6 +564,38 @@ class CoverageReportService
     }
 
     /** Summary as Item / Value / What it means rows (Excel Summary sheet and PDF). */
+    /**
+     * 27-11-2026: the "how this report is counted" sentence for the period in view (shown to every report user, and in
+     * the Summary of the downloads), in the words of the Coverage Settings preview. Pieces, so the page can bold them.
+     */
+    public function howCounted(array $f): array
+    {
+        $period = $this->period($f);
+        $cycle = $this->cycle($f);
+        $current = $period->type !== 'custom' && $period->fromDate() === CoveragePeriod::forType($period->type, today())->fromDate();
+        $name = match (true) {
+            $period->type === 'custom' => 'the custom dates',
+            $current => CoveragePeriod::CURRENT_NAMES[$period->type] ?? $period->label(),
+            default => $period->label(),
+        };
+
+        return [
+            'period_name' => $name,
+            'period_dates' => $period->from->isSameDay($period->to) ? $period->from->format('d M Y') : $period->from->format('d M Y').' – '.$period->to->format('d M Y'),
+            'cycle_name' => mb_strtolower($this->setting($f)->cycleLabel()),
+            'cycle_dates' => $cycle->from->format('d M Y').' – '.$cycle->to->format('d M Y'),
+            'radius' => $this->radius(),
+        ];
+    }
+
+    /** The same sentence as plain text (Excel / PDF Summary). */
+    public function howCountedText(array $f): string
+    {
+        $h = $this->howCounted($f);
+
+        return "It shows {$h['period_name']} ({$h['period_dates']}) and counts the visits made then. A school counts as inspected when an inspection is submitted in the {$h['cycle_name']} cycle, now {$h['cycle_dates']}. A visit counts when the officer is within {$h['radius']} m of the school.";
+    }
+
     private function summaryRows(User $user, array $f): array
     {
         $period = $this->period($f);
@@ -574,6 +606,7 @@ class CoverageReportService
         $say = $this->explain($user, $f);
 
         return [
+            ['How it is counted', $this->howCountedText($f), 'The rules behind every figure below.'], // 27-11-2026
             ['Report period type', $period->typeLabel(), 'The period picked on the report screen.'], // 25-11-2026
             ['Area', $this->areaTitle($f), 'The schools of this area are counted.'],
             ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')', 'Visits made between these dates are counted for Visit coverage.'],

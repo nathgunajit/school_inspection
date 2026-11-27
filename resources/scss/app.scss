@@ -2985,3 +2985,10 @@ $half-holiday: #0284c7;
     &.is-bronze { background: linear-gradient(135deg, #fed7aa, #c2410c); color: #fff; } }
 .rank-band { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 2rem; font-size: .7rem; font-weight: 600;
     color: var(--rb); background: color-mix(in srgb, var(--rb) 12%, #fff); border: 1px solid color-mix(in srgb, var(--rb) 35%, #fff); }
+
+// 27-11-2026: "How this report is counted" line under the coverage / ranking period bar (every report user)
+.cov-how { display: flex; gap: .5rem; align-items: flex-start; margin: -.35rem 0 1rem; padding: .6rem .85rem; border-radius: .6rem;
+    background: rgba($primary, .06); border: 1px solid rgba($primary, .16); color: #334155; font-size: .8rem; line-height: 1.5;
+    > i { color: $primary; margin-top: .1rem; }
+    b { color: #0f172a; font-weight: 600; }
+    .cov-how-title { color: $primary; } }
