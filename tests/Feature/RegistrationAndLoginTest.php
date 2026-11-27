@@ -56,6 +56,19 @@ class RegistrationAndLoginTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'registration_submitted')->exists());
     }
 
+    /** 27-11-2026: the employee photo can be taken as a selfie; it is posted as a JPEG in the same photo field. */
+    public function test_register_page_offers_a_selfie_and_a_selfie_photo_registers(): void
+    {
+        $this->get(route('register'))->assertOk()
+            ->assertSee('data-selfie-open', false)->assertSee('id="selfie-modal"', false)
+            ->assertSee('capture="user"', false)->assertSee('Take a selfie');
+
+        Storage::fake('private');
+        $this->post(route('register'), $this->payload(['photo' => UploadedFile::fake()->image('selfie-20261127-1030.jpg', 600, 600)]))
+            ->assertRedirect(route('login'));
+        Storage::disk('private')->assertExists(User::where('mobile', '9876543210')->value('photo_path'));
+    }
+
     public function test_employee_photo_is_required_and_served_only_to_permitted_users(): void
     {
         Storage::fake('private');

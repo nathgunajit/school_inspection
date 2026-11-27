@@ -88,6 +88,8 @@
                                             <span><i class="bi bi-file-earmark-image"></i>{{ \App\Support\FileSize::types(config('inspection.employee_photo.mimes')) }}</span>
                                             <span><i class="bi bi-hdd"></i>Max {{ \App\Support\FileSize::human(config('inspection.employee_photo.max_kb')) }}</span>
                                         </div>
+                                        {{-- 27-11-2026: or take it with the front camera (selfie.js); it goes into the same photo input --}}
+                                        <button type="button" class="btn btn-soft-primary btn-sm selfie-open" data-selfie-open data-no-busy><i class="bi bi-camera-fill"></i>Take a selfie</button>
                                     </div>
                                 </div>
                                 <div class="upload-done d-none">
@@ -101,6 +103,7 @@
                             </div>
                             <div class="upload-error text-danger text-xs mt-1 d-none"></div>
                             @error('photo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <input type="file" accept="image/*" capture="user" class="d-none" data-selfie-fallback tabindex="-1" aria-hidden="true">
                         </div>
                         <div class="col-md-6 upload-col">
                             <label class="form-label" for="id_proof">Identity proof <span class="opt">(optional)</span></label>
@@ -253,6 +256,34 @@
                 </div>
             </div>
         </form>
+    </div>
+
+    {{-- Selfie camera (27-11-2026, resources/js/selfie.js) --}}
+    <div class="modal fade" id="selfie-modal" tabindex="-1" data-bs-backdrop="static" aria-labelledby="selfie-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-6" id="selfie-title"><i class="bi bi-camera-fill me-1 text-primary"></i>Take a selfie</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="selfie-stage">
+                        <video class="selfie-video" playsinline muted autoplay data-selfie-video></video>
+                        <canvas class="selfie-shot d-none" data-selfie-shot></canvas>
+                        <span class="selfie-guide" aria-hidden="true"></span>
+                        <div class="selfie-wait" data-selfie-wait><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Starting the camera…</div>
+                    </div>
+                    <div class="alert alert-warning d-none mt-3 mb-0" role="alert" data-selfie-error></div>
+                    <p class="text-secondary text-xs mt-2 mb-0" data-selfie-tip>Face the camera in good light and keep your face inside the circle.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-light d-none" data-selfie-retake><i class="bi bi-arrow-repeat"></i>Retake</button>
+                    <button type="button" class="btn btn-primary" data-selfie-capture disabled><i class="bi bi-camera-fill"></i>Capture</button>
+                    <button type="button" class="btn btn-success d-none" data-selfie-use><i class="bi bi-check-lg"></i>Use photo</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     @push('scripts') @vite('resources/js/register.js') @endpush

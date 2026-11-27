@@ -655,6 +655,14 @@ $q-choice-col: 230px;   // all short answers line up in one column
 .upload-thumb-round { border: 3px solid #fff; box-shadow: 0 0 0 2px #1e9b4b; }
 .upload-text .t, .upload-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 575.98px) { .upload-icon, .upload-thumb { width: 52px; height: 52px; } }
+// 27-11-2026: Take a selfie (selfie.js). The button sits above the zone's transparent file input, like Remove.
+.selfie-open { position: relative; z-index: 2; margin-top: .5rem; display: inline-flex; align-items: center; gap: .35rem; }
+.selfie-stage { position: relative; width: 100%; max-width: 360px; aspect-ratio: 1; margin: 0 auto; border-radius: 16px; overflow: hidden; background: #0f172a; }
+.selfie-video, .selfie-shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.selfie-video { transform: scaleX(-1); } // mirror, like a mirror; the saved photo is mirrored the same way
+.selfie-guide { position: absolute; inset: 10%; border-radius: 50%; border: 2px dashed rgba(255,255,255,.75); box-shadow: 0 0 0 999px rgba(15,23,42,.35); pointer-events: none; }
+.selfie-wait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: .85rem; }
+#selfie-modal .modal-footer { flex-wrap: wrap; gap: .5rem; > .btn { margin: 0; } }
 
 // Profile photo with camera button
 .profile-photo-frame { position: relative; display: inline-block; }

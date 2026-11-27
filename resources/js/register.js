@@ -1,4 +1,6 @@
 // Registration form: dynamic location fields (PRD 5.2) and password strength.
+import { initSelfie } from './selfie';
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('register-form');
     if (!form) return;
@@ -148,6 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.add('is-drag')));
         ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, () => zone.classList.remove('is-drag')));
     });
+
+    // 27-11-2026: employee photo by selfie (front camera), into the same photo input
+    initSelfie(form.querySelector('#photo'));
 
     // Consent panel (Modification V7): green when ticked; an unticked submit is stopped and the panel flagged
     const consent = document.getElementById('reg-consent');

@@ -3264,3 +3264,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Fix: `components/page-loader.blade.php` hides the loader (and measures a slow load) at `DOMContentLoaded`; `load` stays as a fallback. `resources/js/register.js` binds the password, upload and consent handlers first and restores old district / block / cluster without awaiting it. `partials/captcha.blade.php` image `decoding="async"`.
 - Files: resources/views/components/page-loader.blade.php, resources/js/register.js, resources/views/partials/captcha.blade.php, tests/Feature/PageLoaderTest.php, CLAUDE.md.
 - Verified: `php artisan test --filter="PageLoader|RegistrationAndLogin"` 19 passed; `npm run build` OK.
+
+## 27-11-2026 · Registration: employee photo by selfie
+- The photo upload zone has a **Take a selfie** button. It opens a camera window (front camera, mirrored live view, round face guide) with Capture, Retake, Use photo and Cancel. The picture is a 600 × 600 JPEG (quality lowered if it would pass the 1 MB limit), named `selfie-YYYYMMDD-HHmm.jpg`, put into the same `photo` input, so the existing preview, size check, Remove and the server rules (`RegisterRequest`, `RegisterUploadStash`) apply unchanged.
+- The camera stops when the window closes or the page is left. Clear messages for denied permission, no camera, camera busy and http. Without the camera API the button opens the phone camera through `capture="user"`.
+- Files: resources/js/selfie.js (new), resources/js/register.js, resources/views/auth/register.blade.php, resources/scss/app.scss, tests/Feature/RegistrationAndLoginTest.php, CLAUDE.md.
+- Verified: `npm run build`; `php artisan test --filter="RegistrationAndLogin|PageLoader|IconSubset"` 22 passed.

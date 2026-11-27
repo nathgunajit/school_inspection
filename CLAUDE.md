@@ -93,7 +93,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - The **Rating Report** (`/reports/ratings*`, sidebar link) is for the **State Administrator only**: anyone else gets 403 (`can:state_admin` in the `RatingReportController` middleware). It is shown to the State Admin even with the switch off.
   - Rating Settings stays for admins.
   - The inspection PDF never prints the rating.
-- Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK).
+- Modification V7 (registration): `employee_id` and the ID proof are optional. Mobile numbers must match `^[6-9]\d{9}$` (UI `resources/js/mobile-input.js` on `input[data-mobile]`, server regex, MySQL CHECK). **Employee photo by selfie** (27-11-2026): the photo zone has **Take a selfie** (`resources/js/selfie.js`, `#selfie-modal`): front camera, 600 px square mirrored JPEG put into the same `photo` input (no server change); without the camera API it uses `capture="user"`.
   - Designation "Other" stores text in `users.designation_other`; always print `$user->designation_label`, never `designation?->label`.
   - `App\Support\FileSize::human()` formats size limits from config.
   - `App\Services\RegisterUploadStash` keeps valid uploads across a failed submit (`register-tmp/`, route `register.kept`, `register:purge-tmp`).
