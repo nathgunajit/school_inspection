@@ -2517,7 +2517,12 @@ $cov-tones: (success: $success, primary: $primary, warning: $warning, danger: $d
     .btn-check:checked + label { background: rgba($primary, .08); border-color: $primary; color: #0d47a1; font-weight: 600; i { color: $primary; } } }
 @include media-breakpoint-down(md) {
     .rv-table-wrap.cov-table-wrap { padding: .6rem; overflow: visible; }
-    .cov-table { th.c, td.c { text-align: left; } td.c .cov-bar { margin-inline: 0; max-width: none; } td.c .rv-sub { text-align: left; }
+    // 27-11-2026: figures centred in the phone cards too, each in a light tile (the name row stays left)
+    .cov-table { td.c { padding: .45rem .5rem; border-radius: .6rem; background: #f8fafc; }
+        tbody tr:hover td.c { background: #f8fafc; }
+        tr.cov-missed td.c { background: #fff; }
+        td.c[data-label]::before { text-align: center; }
+        tfoot td.c { padding: .45rem .5rem; background: rgba(#fff, .65); }
         // 27-11-2026: the Sl. number shows as a chip in the card corner (was hidden)
         tbody .rv-sl { display: block; position: absolute; top: .65rem; right: .75rem; width: auto; padding: .05rem .5rem; border-radius: 999px;
             background: #f1f5f9; color: #64748b; font-size: .68rem; font-weight: 600;

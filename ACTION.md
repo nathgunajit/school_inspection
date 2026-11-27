@@ -3343,3 +3343,8 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - **What:** the area tables and a cluster's Schools table were clipped on laptop widths (`.rv-table-wrap { overflow: hidden }` came later in app.scss and beat `.cov-table-wrap { overflow-x: auto }`); now `.rv-table-wrap.cov-table-wrap` scrolls sideways, and on tablet / desktop the Sl. and area name columns stay in view (sticky). All figures, the coverage bars, % and band, and their headings are centred (`class="c"`). Phones: the Sl. number shows as a "#3" chip in each card's corner (was hidden), and the Total card labels every figure (`data-label` on the `tfoot` cells).
 - **Files:** `resources/views/reports/coverage/index.blade.php`, `resources/scss/app.scss` (`.cov-table*`).
 - **Result:** `npm run build` OK; CoverageReport, IconSubset, QueryBudget: 13 passed. Not yet checked in a browser.
+
+## 27-11-2026 — Coverage Report: figures centred on phone cards too
+- **What:** on phones the District / Block / Cluster cards (and a cluster's Schools cards) now centre Schools, Visited, the coverage bars and %, Not visited, Visits, Officers and Last visit, each in a light tile with its label above; the Total card the same. The name row stays left with the Sl. chip.
+- **Files:** `resources/scss/app.scss` (phone `.cov-table` block).
+- **Result:** `npm run build` OK; CoverageReport, IconSubset, QueryBudget: 13 passed. Not yet checked in a browser.
