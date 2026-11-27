@@ -28,6 +28,14 @@
                         </div>
                         <button class="btn btn-primary w-100" data-loading-text="Updating password…"><i class="bi bi-check2"></i>Update password</button>
                     </form>
+                    @if (session('pw_prompt'))
+                        {{-- 27-11-2026: first sign-in: the change may be skipped (not asked again) --}}
+                        <form method="POST" action="{{ route('password.skip') }}" class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-light w-100" data-loading-text="Skipping…">Skip for now</button>
+                        </form>
+                        <p class="text-center text-secondary text-xs mt-2 mb-0">You can change it later from My Profile.</p>
+                    @endif
                 </div>
             </div>
         </div>

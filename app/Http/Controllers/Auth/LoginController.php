@@ -122,11 +122,16 @@ class LoginController extends Controller
             throw ValidationException::withMessages(['mobile' => $message]);
         }
 
+        // 27-11-2026: the first sign-in (or a temporary password) offers a password change, which may be skipped
+        $promptPassword = $user->last_login_at === null || $user->must_change_password;
         $user->forceFill(['failed_login_attempts' => 0, 'locked_until' => null, 'last_login_at' => now()])->save();
         $request->session()->forget('login_failures');
 
         Auth::login($user);
         $request->session()->regenerate();
+        if ($promptPassword) {
+            $request->session()->put('pw_prompt', true);
+        }
         AuditLogger::log('login', $user, [], $user);
         $this->monitor->success($request, $user);
 

@@ -50,6 +50,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/session/ping', fn () => response()->noContent())->middleware('throttle:30,1')->name('session.ping');
     Route::get('/password/change', [PasswordController::class, 'edit'])->name('password.change');
     Route::put('/password/change', [PasswordController::class, 'update'])->name('password.change.update');
+    Route::post('/password/skip', [PasswordController::class, 'skip'])->name('password.skip'); // 27-11-2026: first-sign-in popup
 
     Route::middleware('password.fresh')->group(function () {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');

@@ -216,10 +216,33 @@ class RegistrationAndLoginTest extends TestCase
         $this->get(route('login', ['expired' => 1]))->assertOk()->assertSee('signed out after 20 minutes without activity');
     }
 
-    public function test_temporary_password_forces_change(): void
+    /** 27-11-2026: a temporary password opens the "Change your password?" popup, which may be skipped (was a forced redirect). */
+    public function test_temporary_password_asks_for_a_change_and_can_be_skipped(): void
     {
         $user = $this->officer(UserLevel::Block, null, ['must_change_password' => true]);
-        $this->actingAs($user)->get(route('dashboard'))->assertRedirect(route('password.change'));
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertSee('Change your password?')->assertSee('temporary password')->assertSee(route('password.skip'), false);
+        $this->get(route('password.change'))->assertOk()->assertSee('Skip for now')->assertDontSee('id="pw-prompt"', false);
+
+        $this->from(route('dashboard'))->post(route('password.skip'))->assertRedirect(route('dashboard'))->assertSessionMissing('pw_prompt');
+        $this->assertFalse($user->fresh()->must_change_password);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'password_change_skipped']);
+        $this->get(route('dashboard'))->assertOk()->assertDontSee('Change your password?');
+    }
+
+    /** 27-11-2026: only the first sign-in asks; Skip is not asked again. */
+    public function test_first_sign_in_offers_a_password_change_once(): void
+    {
+        $user = $this->officer(UserLevel::Cluster);
+        $user->forceFill(['last_login_at' => null])->save();
+
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'Secret@123'])->assertRedirect(route('dashboard'))->assertSessionHas('pw_prompt', true);
+        $this->get(route('dashboard'))->assertOk()->assertSee('Change your password?')->assertSee('This is your first sign-in');
+        $this->post(route('password.skip'))->assertSessionMissing('pw_prompt');
+        $this->get(route('dashboard'))->assertDontSee('Change your password?');
+
+        $this->post(route('logout'));
+        $this->post(route('login'), ['mobile' => $user->mobile, 'password' => 'Secret@123'])->assertRedirect(route('dashboard'))->assertSessionMissing('pw_prompt');
     }
 
     public function test_user_cannot_change_own_level_via_profile(): void

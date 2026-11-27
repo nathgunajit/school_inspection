@@ -32,9 +32,27 @@ class PasswordController extends Controller
         ]);
 
         $user->forceFill(['password' => $request->password, 'must_change_password' => false])->save();
+        $request->session()->forget('pw_prompt');
         AuditLogger::log('password_changed', $user);
 
         return redirect()->route('dashboard')->with('success', 'Your password has been changed.');
+    }
+
+    /** 27-11-2026: "Skip for now" on the first-sign-in popup; it is not asked again. */
+    public function skip(Request $request)
+    {
+        $user = $request->user();
+        $temporary = (bool) $user->must_change_password;
+        if ($temporary) {
+            $user->forceFill(['must_change_password' => false])->save();
+        }
+        $request->session()->forget('pw_prompt');
+        AuditLogger::log('password_change_skipped', $user, ['temporary' => $temporary]);
+
+        $back = url()->previous();
+
+        return redirect()->to(str_contains($back, '/password/change') ? route('dashboard') : $back)
+            ->with('info', 'You can change your password any time from My Profile.');
     }
 
     public function forgot()

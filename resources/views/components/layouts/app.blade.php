@@ -185,6 +185,7 @@
         {{ $slot }}
     </main>
 </div>
+@include('partials.password-prompt')
 
 <nav class="bottom-nav" aria-label="Quick navigation">
     <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="bi bi-house{{ request()->routeIs('dashboard') ? '-fill' : '' }}"></i>Home</a>

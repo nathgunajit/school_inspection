@@ -2951,3 +2951,12 @@ $half-holiday: #0284c7;
 .today-lock { display: flex; gap: .6rem; align-items: flex-start; }
 .today-reason.is-carried_skipped { background: #fff3e0; color: #b45309; }
 .today-priority { background: #fde8e8; color: #b91c1c; font-size: .6875rem; font-weight: 600; border-radius: 999px; padding: 1px 8px; }
+
+// 27-11-2026: first-sign-in "Change your password?" popup
+.pw-prompt {
+    .modal-dialog { max-width: 400px; }
+    .modal-content { border: 0; border-radius: 1.25rem; box-shadow: 0 24px 60px -20px rgba(13, 71, 161, .45); }
+    .pw-prompt-icon { width: 64px; height: 64px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 1.7rem; color: $primary;
+        background: rgba($primary, .1); box-shadow: 0 0 0 8px rgba($primary, .05); }
+    .pw-prompt-text { font-size: .86rem; color: #475569; line-height: 1.55; margin-bottom: 1.25rem; }
+    .pw-prompt-actions { display: grid; gap: .5rem; .btn { border-radius: 999px; } .btn-light { background: #fff; border: 1px solid #e3e8f0; } } }
