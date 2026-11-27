@@ -18,6 +18,7 @@ use App\Services\AuditLogger;
 use App\Services\JurisdictionService;
 use App\Services\PermissionService;
 use App\Support\DesignationMaster;
+use App\Support\InspectionVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -35,6 +36,8 @@ class UserController extends Controller
         $users = $this->j->users($request->user())
             ->with(['designation', 'currentJurisdiction.district', 'currentJurisdiction.block', 'currentJurisdiction.cluster', 'currentJurisdiction.state'])
             ->where('level', '!=', UserLevel::StateAdmin->value)
+            // V16: a District Programmer lists the Block / Cluster officers of their district, a Block MIS the Cluster officers of their block
+            ->when(InspectionVisibility::levelsBelow($request->user()), fn ($q, $levels) => $q->whereIn('level', $levels))
             ->when($f['q'] ?? null, fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('mobile', 'like', "%$s%")->orWhere('employee_id', 'like', "%$s%")))
             ->when($f['level'] ?? null, fn ($q, $v) => $q->where('level', $v))
             ->when($f['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
@@ -93,6 +96,13 @@ class UserController extends Controller
             [$data['designation_id']] = DesignationMaster::resolve($data['designation_other'], $request->user());
         }
         $data['designation_other'] = null;
+        // V16: making an officer the District Programmer / Block MIS must not give the area a second one
+        $loc = $user->currentJurisdiction()->first()?->only(['district_id', 'block_id', 'cluster_id']) ?? [];
+        if (in_array($user->status, [UserStatus::Active, UserStatus::Locked], true)
+            && in_array($this->guard->rule($user->level, (int) $data['designation_id']), ['district', 'block'], true)
+            && ($holder = $this->guard->holder($user->level, $loc, $user->id, (int) $data['designation_id']))) {
+            return back()->with('error', $this->guard->message($holder, $loc, false))->withInput();
+        }
         $before = $user->only(array_keys($data));
         $user->update($data);
         AuditLogger::log('user_updated', $user, ['before' => $before, 'after' => $data]);
@@ -100,10 +110,10 @@ class UserController extends Controller
         return back()->with('success', 'User details updated.');
     }
 
-    /** Activate / deactivate: State Admin, or District if permitted. */
+    /** Activate / deactivate: State Admin only (V16: District Programmers and Block MIS list, approve and reset passwords only). */
     public function toggleStatus(Request $request, User $user)
     {
-        $this->authorizeManage($request->user(), $user);
+        $this->authorizeAdmin($request->user(), $user);
         abort_if($user->id === $request->user()->id, 403, 'You cannot change your own status.');
         abort_unless(in_array($user->status, [UserStatus::Active, UserStatus::Inactive, UserStatus::Locked], true), 422);
 
@@ -139,9 +149,9 @@ class UserController extends Controller
             return back()->withErrors(['district_id' => 'The selected locations do not belong together.']);
         }
 
-        // Modification V9: the new cluster must not already have an active officer
+        // Modification V9: the new cluster must not already have an active officer (V16: nor the new district / block its DP / MIS)
         if (in_array($user->status, [UserStatus::Active, UserStatus::Locked], true)
-            && ($holder = $this->guard->holder($level, $data, $user->id))) {
+            && ($holder = $this->guard->holder($level, $data, $user->id, $user->designation_id ? (int) $user->designation_id : null))) {
             return back()->with('error', $this->guard->message($holder, $data, false))->withInput();
         }
 
@@ -163,10 +173,11 @@ class UserController extends Controller
         return back()->with('success', 'Jurisdiction changed. Past inspections remain with the old jurisdiction.');
     }
 
-    /** Admin reset: temporary password, forced change at next login. */
+    /** Reset: temporary password, forced change at next login. V16: also a District Programmer / Block MIS for the officers they list. */
     public function resetPassword(Request $request, User $user)
     {
-        $this->authorizeAdmin($request->user(), $user);
+        $this->authorizeManage($request->user(), $user);
+        abort_if($user->id === $request->user()->id, 403, 'Use Change password for your own account.');
         $temp = 'Si@'.Str::upper(Str::random(3)).random_int(1000, 9999).Str::lower(Str::random(2));
         $user->forceFill([
             'password' => $temp, 'must_change_password' => true,
@@ -192,9 +203,12 @@ class UserController extends Controller
         return back()->with('success', 'Permissions updated.');
     }
 
+    /** View a user / reset their password: the State Admin, or a District Programmer / Block MIS for an officer below them in their area. */
     private function authorizeManage(User $actor, User $target): void
     {
+        $below = InspectionVisibility::levelsBelow($actor);
         abort_unless($actor->can('manage_users') && ! $target->isStateAdmin()
+            && ($below === null || in_array($target->level->value, $below, true))
             && $this->j->contains($actor, $target->currentJurisdiction()->first() ?? new UserJurisdiction), 403);
     }
 

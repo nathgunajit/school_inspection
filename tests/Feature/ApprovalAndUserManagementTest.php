@@ -57,14 +57,13 @@ class ApprovalAndUserManagementTest extends TestCase
 
     public function test_district_and_state_applicants(): void
     {
+        // V16 (27-11-2026): District and State applicants are approved by the State Admin only
         $r = app(ApproverResolver::class);
         $state = $this->officer(UserLevel::State);
-        $this->grant($state, Permission::APPROVE_REGISTRATIONS);
-        app()->forgetScopedInstances();
-        $r = app(ApproverResolver::class);
-
-        $this->assertTrue($r->canApprove($state->fresh(), $this->applicant(UserLevel::District)));
-        $this->assertFalse($r->canApprove($state->fresh(), $this->applicant(UserLevel::State)), 'State applicants: State Admin only');
+        $this->assertFalse($r->canApprove($state, $this->applicant(UserLevel::District)), 'a State officer no longer approves District registrations');
+        $this->assertFalse($r->canApprove($state, $this->applicant(UserLevel::State)), 'State applicants: State Admin only');
+        $this->assertFalse($r->canApprove($this->districtProgrammer(), $this->applicant(UserLevel::District)), 'nor a District Programmer');
+        $this->assertTrue($r->canApprove($this->admin(), $this->applicant(UserLevel::District)));
     }
 
     public function test_admin_approves_and_rejects_registrations(): void

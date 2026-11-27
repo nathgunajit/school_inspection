@@ -44,6 +44,7 @@
         $u->can('state_admin') ? ['admin.mobile-requests.index', 'admin.mobile-requests.*', 'bi-phone', 'Mobile Changes', null] : null,
     ]));
     // 25-11-2026: Masters (data) and Admin Settings (settings and monitoring) are separate groups
+    // V16 (27-11-2026): District Programmers / Block MIS see the Location and School Master of their area (read-only)
     $mastersNav = $u->can('manage_masters') ? [
         ['admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master', null],
         ['admin.constituencies.index', 'admin.constituencies.*', 'bi-bank', 'AC / PC Master', null],
@@ -51,7 +52,10 @@
         ['admin.tlm.index', 'admin.tlm.*', 'bi-box-seam', 'TLM Master', null],
         ['admin.notice-types.index', 'admin.notice-types.*', 'bi-tags', 'Notice Types', null], // 25-11-2026
         ['admin.imports.index', 'admin.imports.*', 'bi-file-earmark-spreadsheet', 'Excel Upload', null],
-    ] : [];
+    ] : ($u->can('view_masters') ? [
+        ['admin.locations.index', 'admin.locations.*', 'bi-geo-alt', 'Location Master', null],
+        ['admin.schools.index', 'admin.schools.*', 'bi-building', 'School Master', null],
+    ] : []);
     $settingsNav = array_values(array_filter([
         $u->can('manage_masters') ? ['admin.rating.index', 'admin.rating.*', 'bi-star-half', 'Rating Settings', null] : null,
         $u->can('configure_coverage') ? ['reports.coverage.settings', 'reports.coverage.settings*', 'bi-sliders', 'Coverage Settings', null] : null,

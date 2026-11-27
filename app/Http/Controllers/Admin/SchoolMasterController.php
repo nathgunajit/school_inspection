@@ -22,6 +22,7 @@ class SchoolMasterController extends Controller
 
     public function index(Request $request)
     {
+        [$lockDistrict, $lockBlock] = $this->lockArea($request);
         $base = $this->filtered($request);
         $schools = (clone $base)->with(['district:id,name', 'block:id,name', 'cluster:id,name', 'category:id,label', 'management:id,label', 'ac:id,code,name', 'pc:id,code,name'])
             ->orderBy('name')->orderBy('id')->paginate(config('inspection.per_page'))->withQueryString();
@@ -31,10 +32,11 @@ class SchoolMasterController extends Controller
 
         return view('admin.schools.index', [
             'schools' => $schools,
-            'total' => School::count(),
+            'total' => School::query()->when($lockDistrict, fn ($q, $v) => $q->where('district_id', $v))->when($lockBlock, fn ($q, $v) => $q->where('block_id', $v))->count(),
             'filtered' => collect(self::FILTERS)->contains(fn ($k) => filled($request->query($k))),
-            'districts' => District::orderBy('name')->get(['id', 'code', 'name']),
-            'blocks' => $districtId ? Block::where('district_id', $districtId)->orderBy('name')->get(['id', 'code', 'name']) : collect(),
+            'districts' => District::when($lockDistrict, fn ($q, $v) => $q->whereKey($v))->orderBy('name')->get(['id', 'code', 'name']),
+            'blocks' => $districtId ? Block::where('district_id', $districtId)->when($lockBlock, fn ($q, $v) => $q->whereKey($v))->orderBy('name')->get(['id', 'code', 'name']) : collect(),
+            'locked' => (bool) $lockDistrict,
             'clusters' => $blockId ? Cluster::where('block_id', $blockId)->orderBy('name')->get(['id', 'code', 'name']) : collect(),
             'acs' => AssemblyConstituency::orderBy('code')->get(['id', 'code', 'name']),
             'pcs' => ParliamentaryConstituency::orderBy('code')->get(['id', 'code', 'name']),
@@ -46,6 +48,7 @@ class SchoolMasterController extends Controller
     /** Modification V13 item 2: the filtered list as Excel, in the upload column order (edit and upload again). */
     public function export(Request $request)
     {
+        $this->lockArea($request);
         // a state-wide list (44,000 rows) takes about 2–3 minutes and ~650 MB
         set_time_limit((int) config('inspection.import_timeout', 0));
         if ($mem = config('inspection.import_memory')) {
@@ -62,6 +65,7 @@ class SchoolMasterController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        $this->lockArea($request);
         $base = $this->filtered($request);
         $count = (clone $base)->count();
         $max = (int) config('inspection.master_pdf_max_rows', 3000);
@@ -136,6 +140,27 @@ class SchoolMasterController extends Controller
     }
 
     /** The list query with the filters applied (numeric IDs from the query string). */
+    /**
+     * V16 item 1 (27-11-2026): below the State Admin (District Programmer / Block MIS, read-only) the list is fixed to the
+     * officer's own district, and for a Block MIS their block, whatever the query string says. Returns [district, block].
+     */
+    private function lockArea(Request $request): array
+    {
+        $user = $request->user();
+        if ($user->can('manage_masters')) {
+            return [null, null];
+        }
+        $j = app(\App\Services\JurisdictionService::class)->current($user);
+        $district = (int) $j?->district_id ?: -1; // no posting: nothing
+        $block = $user->isBlockMis() ? ((int) $j?->block_id ?: -1) : null;
+        $request->query->set('district_id', $district);
+        if ($block) {
+            $request->query->set('block_id', $block);
+        }
+
+        return [$district, $block];
+    }
+
     private function filtered(Request $request)
     {
         $id = fn (string $k) => (int) $request->query($k) ?: null;

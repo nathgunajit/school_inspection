@@ -23,7 +23,7 @@
                 </div>
                 <div class="card-footer bg-white d-grid gap-2">
                     @include('partials.id-proof-modal', ['user' => $user])
-                    @if (in_array($user->status->value, ['active', 'inactive', 'locked']))
+                    @if ($admin && in_array($user->status->value, ['active', 'inactive', 'locked'])){{-- V16: State Admin only --}}
                         <form method="POST" action="{{ route('admin.users.status', $user) }}" class="d-grid" data-confirm="{{ $user->status->value === 'inactive' ? 'Activate' : 'Deactivate' }} this user?">
                             @csrf @method('PATCH')
                             @if ($user->status->value === 'inactive')
@@ -33,7 +33,7 @@
                             @endif
                         </form>
                     @endif
-                    @if ($admin)
+                    @if ($admin || auth()->user()->isUserManager()){{-- V16: District Programmer / Block MIS too --}}
                         <form method="POST" action="{{ route('admin.users.reset-password', $user) }}" class="d-grid" data-confirm="Generate a temporary password for this user?">
                             @csrf
                             <button class="btn btn-soft-primary"><i class="bi bi-key"></i>Reset password</button>

@@ -2,14 +2,14 @@
     <x-slot:actions>
         <span id="sm-actions" class="d-contents" data-filter-region><a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="The whole state (44,000 schools) takes 2–3 minutes; filter by district for a quicker file"><i class="bi bi-file-earmark-excel"></i>Export Excel</a>
         <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary d-none d-sm-inline-flex" data-no-loader title="PDF of the filtered list (up to {{ number_format(config('inspection.master_pdf_max_rows')) }} schools)"><i class="bi bi-file-earmark-pdf"></i>Export PDF</a></span>
-        <a href="{{ route('admin.schools.create') }}" class="btn btn-primary d-none d-sm-inline-flex"><i class="bi bi-plus-lg"></i>Add school</a>
+        @can('manage_masters')<a href="{{ route('admin.schools.create') }}" class="btn btn-primary d-none d-sm-inline-flex"><i class="bi bi-plus-lg"></i>Add school</a>@endcan
     </x-slot:actions>
 
     {{-- Modification V13 item 2: filters by location, AC / PC, management, category and area --}}
     <form method="GET" id="sm-form" class="filter-bar mb-3 row g-2" data-filter data-filter-region data-loader-text="Loading schools…">
         <div class="col-12 col-md-4"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="UDISE code or school name" aria-label="Search" maxlength="100" data-school-suggest="{{ route('schools.suggest', ['all' => 1]) }}"></div>
         <div class="col-6 col-md-2">
-            <select name="district_id" class="form-select" data-autosubmit aria-label="District"><option value="">All districts</option>
+            <select name="district_id" class="form-select" data-autosubmit aria-label="District">@unless ($locked)<option value="">All districts</option>@endunless
                 @foreach ($districts as $d)<option value="{{ $d->id }}" @selected(request('district_id') == $d->id)>{{ $d->label }}</option>@endforeach</select>
         </div>
         <div class="col-6 col-md-2">
@@ -52,7 +52,7 @@
     </form>
     <div id="sm-results" data-filter-region data-filter-results>
     <div class="d-flex flex-wrap gap-2 mb-3 d-sm-none">
-        <a href="{{ route('admin.schools.create') }}" class="btn btn-primary flex-grow-1"><i class="bi bi-plus-lg"></i>Add school</a>
+        @can('manage_masters')<a href="{{ route('admin.schools.create') }}" class="btn btn-primary flex-grow-1"><i class="bi bi-plus-lg"></i>Add school</a>@endcan
         <a href="{{ route('admin.schools.export', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
         <a href="{{ route('admin.schools.export-pdf', request()->only(\App\Http\Controllers\Admin\SchoolMasterController::FILTERS)) }}" class="btn btn-soft-primary flex-grow-1" data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
     </div>
@@ -80,6 +80,7 @@
                         <td class="d-none d-xl-table-cell text-sm">{{ $s->ac?->name ?? '—' }}<div class="text-xs text-secondary">{{ $s->pc?->name }}</div></td>
                         <td><span class="badge-soft badge-soft-{{ $s->status === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($s->status) }}</span></td>
                         <td class="text-end">
+                            @can('manage_masters'){{-- V16: read-only for District Programmers / Block MIS --}}
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Actions for {{ $s->name }}"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 row-actions">
@@ -93,6 +94,7 @@
                                     </li>
                                 </ul>
                             </div>
+                            @endcan
                         </td>
                     </tr>
                 @empty

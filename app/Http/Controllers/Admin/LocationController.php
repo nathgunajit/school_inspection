@@ -28,9 +28,14 @@ class LocationController extends Controller
     /** Location types that carry latitude / longitude. */
     public const WITH_COORDINATES = ['districts', 'blocks'];
 
+    /** V16 item 1 (27-11-2026): below the State Admin (District Programmer / Block MIS) only these lists, own area, read-only. */
+    public const AREA_TYPES = ['districts', 'blocks'];
+
     public function index(Request $request, string $type = 'districts')
     {
         abort_unless(isset(self::TYPES[$type]), 404);
+        $canEdit = $request->user()->can('manage_masters');
+        abort_unless($canEdit || in_array($type, self::AREA_TYPES, true), 403);
         [$model, $parentModel, $fk, $label] = self::TYPES[$type];
 
         $items = $this->listQuery($request, $type)
@@ -40,8 +45,10 @@ class LocationController extends Controller
         return view('admin.locations.index', [
             'type' => $type, 'label' => $label, 'items' => $items, 'fk' => $fk,
             'geo' => in_array($type, self::WITH_COORDINATES, true),
-            'parents' => $parentModel ? $parentModel::orderBy('name')->get() : collect(),
-            'counts' => collect(self::TYPES)->map(fn ($t) => $t[0]::count()),
+            'parents' => $parentModel ? $this->scoped($request, $parentModel === District::class ? 'districts' : null, $parentModel::query())->orderBy('name')->get() : collect(),
+            'counts' => collect(self::TYPES)->map(fn ($t, $k) => $this->scoped($request, $k, $t[0]::query())->count()),
+            'tabs' => $canEdit ? array_keys(self::TYPES) : self::AREA_TYPES,
+            'canEdit' => $canEdit,
             // V6 Module 7: KML district outlines that a district can be linked to
             'boundaries' => app(DistrictBoundaryService::class),
             'boundaryNames' => $type === 'districts' ? app(DistrictBoundaryService::class)->names() : [],
@@ -53,16 +60,34 @@ class LocationController extends Controller
     {
         [$model, , $fk] = self::TYPES[$type];
 
-        return $model::query()
+        return $this->scoped($request, $type, $model::query())
             ->when(trim((string) $request->query('q')), fn ($q, $s) => $q->where(fn ($w) => $w->where('name', 'like', "%$s%")->orWhere('code', 'like', "%$s%")))
             ->when($fk && (int) $request->query('parent'), fn ($q) => $q->where($fk, (int) $request->query('parent')))
             ->orderBy('name')->orderBy('id');
+    }
+
+    /** V16: a District Programmer sees their district and its blocks, a Block MIS their district and their block. */
+    private function scoped(Request $request, ?string $type, $query)
+    {
+        $user = $request->user();
+        if ($type === null || $user->can('manage_masters')) {
+            return $query;
+        }
+        $j = app(\App\Services\JurisdictionService::class)->current($user);
+        $district = (int) $j?->district_id ?: -1;
+
+        return match ($type) {
+            'districts' => $query->whereKey($district),
+            'blocks' => $query->where('district_id', $district)->when($user->isBlockMis(), fn ($q) => $q->whereKey((int) $j?->block_id ?: -1)),
+            default => $query->whereRaw('1 = 0'),
+        };
     }
 
     /** 23-11-2026: the State / District / Block / Cluster Master list (with the screen's filters) as Excel or PDF. */
     public function export(Request $request, string $type, string $format)
     {
         abort_unless(isset(self::TYPES[$type]) && in_array($format, ['excel', 'pdf'], true), 404);
+        abort_unless($request->user()->can('manage_masters') || in_array($type, self::AREA_TYPES, true), 403);
         [, $parentModel, $fk, $label] = self::TYPES[$type];
         $status = fn ($r) => $r->is_active ? 'Active' : 'Inactive';
         $coord = fn ($v) => $v === null ? '' : number_format((float) $v, 6, '.', '');

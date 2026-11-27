@@ -1101,9 +1101,9 @@ Source: `Documents/Modification of the ApplicationV15.docx` (11 items, all about
 - **Code:** migration `2026_11_26_000009_v15_today_schools`; `DailySchoolListService` (`prepare()`, `rebuildAhead()`, `lockOnStart()`, `isLocked()`, `unlock()`, `replace()`, `carry()` for skipped rows); `App\Console\Commands\TodayNotify`; `App\Jobs\RefreshDailyLists`; `App\Notifications\*`; `AlertService`, `AlertController`, `resources/js/alert-badge.js`.
 - **Tests:** `tests/Feature/TodaySchoolsV15Test.php` (8 tests) and the updated `TodaySchoolsTest`.
 
-## 16. Modification V16: review of the Today's Schools rules (27-11-2026)
+## 16. Today's Schools without a worker or scheduler (27-11-2026)
 
-Source: `Documents/Modification of the ApplicationV16.docx`. The document is the same file as V15 (the same 11 items). Every item was already built on 26-11-2026 (section 15); the review checked each one again and fixed the two that did nothing on a plain XAMPP server with no queue worker and no scheduler.
+Source: the first copy of `Documents/Modification of the ApplicationV16.docx`, which was the same file as V15 (the same 11 items). Every item was already built on 26-11-2026 (section 15); the review checked each one again and fixed the two that did nothing on a plain XAMPP server with no queue worker and no scheduler.
 
 | # | Item | Status |
 |---|---|---|
@@ -1123,3 +1123,32 @@ Source: `Documents/Modification of the ApplicationV16.docx`. The document is the
 - **Alerts without the scheduler (items 6–7):** each scheduled task that starts leaves a heartbeat (`App\Support\SchedulerHeartbeat`). When none is seen in 10 minutes, `App\Http\Middleware\RunDueAlerts` runs `today:notify` after a signed-in page view, at most once every 5 minutes for the whole site. The command sends each alert once, so nothing is sent twice if the scheduler is started later. Switch: `TODAY_ALERT_FALLBACK` (default on).
 - `php artisan cache:status` shows whether the queue worker and the scheduler are running.
 - **Tests:** `tests/Feature/TodaySchoolsV16Test.php` (4 tests).
+
+## 17. Modification V16: District Programmer and Block MIS (27-11-2026)
+
+Source: `Documents/Modification of the ApplicationV16.docx` (updated 27-11-2026, four items).
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Only the State Administrator, the District Programmer (District level) and the Block MIS (Block level) handle the user list, user approval and password reset, and see the School list and the District / Block lists; one per district / block | **Done** (below) |
+| 2 | District Programmer: all masters of the district shown (schools, blocks, clusters, users); add / edit Blocks, approved by the Admin | Next |
+| 3 | Block MIS: masters of the block shown (users, schools); add / edit Clusters, approved by the Admin or the District Programmer | Next |
+| 4 | Today's Schools Settings shown and set by the District Programmer | Settings already open to the District Programmer through item 1 (`configure_coverage`); to be confirmed with item 2 |
+
+**Item 1, how it works**
+
+- **Who:** an officer is a District Programmer when their level is District and their designation is District Programmer; a Block MIS when the level is Block and the designation is Block MIS. Changing the designation (State Admin, user page) gives or removes the role.
+- **Users:** only these officers and the State Admin see Users. A District Programmer lists the Block and Cluster officers of their district, a Block MIS the Cluster officers of their block. They can open an officer and **reset the password** (temporary password, change at next sign-in). Editing, activating / deactivating, transfers and permissions stay with the State Admin.
+- **Approvals:**
+
+  | Applicant | Approved by |
+  |---|---|
+  | State or District officer (also a District Programmer) | State Admin |
+  | Block officer (also a Block MIS) | District Programmer of the district, or the State Admin |
+  | Cluster officer | Block MIS of the block; where the block has none, the District Programmer; or the State Admin |
+
+- **Masters (read-only):** School Master (list, Excel, PDF) and Location Master (District and Block tabs, Excel, PDF) limited to the officer's district (District Programmer) or block (Block MIS). No add, edit, delete or upload.
+- **One per area:** one active District Programmer per district and one active Block MIS per block, checked at registration, approval, re-activation, transfer and when the admin changes a designation. The message names the existing officer with a masked mobile.
+- **Retired:** the "If permitted" grants (approve registrations, manage users) given to individual officers. They were removed by migration `2026_11_27_000004_v16_user_managers` (each one is in the audit log as `permissions_retired`). Coverage, holiday, notice and Today's Schools settings that used to follow "District officer with Manage users" now follow the District Programmer.
+- **Demo:** 9000000015 Pranjal Bhuyan (District Programmer, KOKRAJHAR) and 9000000025 Nisha Talukdar (Block MIS, DOTMA); the other demo officers no longer approve.
+- **Tests:** `tests/Feature/ModificationV16Test.php` (6 tests).

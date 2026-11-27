@@ -1,13 +1,13 @@
 @php $addOld = fn ($f, $d = null) => old('_edit') ? $d : old($f, $d); /* a failed Edit must not fill the Add form */ @endphp
 <x-layouts.app title="Location Master">
     <ul class="nav nav-pills gap-2 mb-3 flex-nowrap overflow-auto pb-1">
-        @foreach (['states' => 'States', 'districts' => 'Districts', 'blocks' => 'Blocks', 'clusters' => 'Clusters'] as $t => $l)
+        @foreach (array_intersect_key(['states' => 'States', 'districts' => 'Districts', 'blocks' => 'Blocks', 'clusters' => 'Clusters'], array_flip($tabs)) as $t => $l)
             <li class="nav-item"><a class="nav-link {{ $type === $t ? 'active' : 'bg-white border' }}" href="{{ route('admin.locations.index', $t) }}">{{ $l }} <span class="badge {{ $type === $t ? 'bg-white text-primary' : 'text-bg-light' }} ms-1">{{ $counts[$t] }}</span></a></li>
         @endforeach
     </ul>
 
     <div class="row g-4">
-        <div class="col-lg-8">
+        <div class="{{ $canEdit ? 'col-lg-8' : 'col-12' }}">{{-- V16: read-only for District Programmers / Block MIS --}}
             <form method="GET" class="filter-bar mb-3 row g-2">
                 <div class="col"><input name="q" value="{{ request('q') }}" class="form-control" placeholder="Search {{ strtolower($label) }} by name or code"></div>
                 @if ($fk)
@@ -52,6 +52,7 @@
                             @endif
                             <span class="badge-soft badge-soft-{{ $item->is_active ? 'success' : 'secondary' }}">{{ $item->is_active ? 'Active' : 'Inactive' }}</span>
                             {{-- V12 item 7: the three-dot menu holds only actions; Edit opens a window --}}
+                            @if ($canEdit)
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light btn-icon" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Actions for {{ $item->name }}"><i class="bi bi-three-dots-vertical"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 row-actions">
@@ -73,6 +74,7 @@
 @endif
                                 </ul>
                             </div>
+                            @endif
                         </div>
                     @empty
                         <x-empty-state icon="bi-geo-alt" title="No {{ strtolower($label) }}s found" text="Add one here or upload the Location Master from Excel." />
@@ -81,7 +83,7 @@
             </div>
             <div class="mt-3">{{ $items->links() }}</div>
             {{-- V12 item 7: one Edit window per row, outside the list so nothing clips or closes it --}}
-            @foreach ($items as $item)
+            @foreach ($canEdit ? $items : [] as $item)
                 @php
                     $mine = (string) old('_edit') === (string) $item->id;
                     $v = fn ($f, $d) => $mine ? old($f, $d) : $d;
@@ -140,6 +142,7 @@
 
         </div>
 
+        @if ($canEdit)
         <div class="col-lg-4">
             <div class="card card-elevated">
                 <div class="card-header"><i class="bi bi-plus-circle me-2 text-primary"></i>Add {{ strtolower($label) }}</div>
@@ -182,5 +185,6 @@
             </div>
             <div class="alert alert-light border text-sm mt-3"><i class="bi bi-info-circle me-1"></i>Locations that have schools or users cannot be deleted. Make them inactive instead.</div>
         </div>
+        @endif
     </div>
 </x-layouts.app>

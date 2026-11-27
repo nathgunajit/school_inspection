@@ -119,6 +119,39 @@ class User extends Authenticatable
         return $this->status === UserStatus::Active;
     }
 
+    /* ---------- V16 (27-11-2026): user managers by designation ---------- */
+
+    /** Designation codes that make an officer the user manager of their area. */
+    public const DISTRICT_PROGRAMMER = 'district_programmer';
+
+    public const BLOCK_MIS = 'block_mis';
+
+    /** Designation id for a code, remembered for the request (no lazy load of the relation). */
+    public static function designationIdFor(string $code): ?int
+    {
+        return \App\Support\RequestMemo::remember('designation-id:'.$code, fn () => MasterValue::idFor('designation', $code));
+    }
+
+    /** District level with the designation District Programmer. */
+    public function isDistrictProgrammer(): bool
+    {
+        return $this->level === UserLevel::District && $this->designation_id
+            && (int) $this->designation_id === static::designationIdFor(self::DISTRICT_PROGRAMMER);
+    }
+
+    /** Block level with the designation Block MIS. */
+    public function isBlockMis(): bool
+    {
+        return $this->level === UserLevel::Block && $this->designation_id
+            && (int) $this->designation_id === static::designationIdFor(self::BLOCK_MIS);
+    }
+
+    /** V16 item 1: only the State Admin, District Programmers and Block MIS handle users (list, approvals, reset password). */
+    public function isUserManager(): bool
+    {
+        return $this->isStateAdmin() || $this->isDistrictProgrammer() || $this->isBlockMis();
+    }
+
     public function hasPermission(string $slug): bool
     {
         return app(\App\Services\PermissionService::class)->has($this, $slug);

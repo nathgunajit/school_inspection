@@ -49,7 +49,10 @@ class UserTypeAccessTest extends TestCase
         $this->actingAs($district->fresh())->get(route('admin.approvals.index'))->assertOk();
         $this->actingAs($district->fresh())->get(route('admin.users.index'))->assertOk();
         $this->actingAs($district->fresh())->get(route('admin.audit.index'))->assertForbidden();
-        $this->actingAs($district->fresh())->get(route('admin.schools.index'))->assertForbidden();
+        // V16: the District Programmer sees the School Master of their district read-only, never the edit screens
+        $this->actingAs($district->fresh())->get(route('admin.schools.index'))->assertOk()->assertDontSee(route('admin.schools.create'), false);
+        $this->actingAs($district->fresh())->get(route('admin.schools.create'))->assertForbidden();
+        $this->actingAs($district->fresh())->get(route('admin.imports.index'))->assertForbidden();
     }
 
     public function test_each_level_sees_submitted_inspections_of_its_own_area_only(): void

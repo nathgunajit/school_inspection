@@ -174,12 +174,12 @@ class HolidayCalendarTest extends TestCase
         $this->get(route('inspections.mine'))->assertOk()->assertSeeInOrder(['page-tabs', 'My Inspections', 'In My Area'], false);
         $this->get(route('reports.coverage'))->assertOk()->assertDontSee(route('reports.ratings'), false); // no Rating tab for officers
 
-        // a District officer with Manage users: Admin Settings with their own settings pages, no Masters
-        $dpo = $this->officer(UserLevel::District, Cluster::orderBy('id')->first());
-        $this->grant($dpo, 'manage_users');
+        // V16: the District Programmer: Admin Settings with their own settings pages, Masters with only the Location / School Master
+        $dpo = $this->districtProgrammer(Cluster::orderBy('id')->first());
         $this->actingAs($dpo)->get(route('dashboard'))->assertOk()->assertSee('id="nav-settings"', false)
             ->assertSee(route('reports.coverage.settings'), false)->assertSee(route('today.settings'), false)
-            ->assertDontSee('id="nav-masters"', false)->assertDontSee(route('admin.audit.index'), false);
+            ->assertSee('id="nav-masters"', false)->assertSee(route('admin.schools.index'), false)
+            ->assertDontSee(route('admin.imports.index'), false)->assertDontSee(route('admin.audit.index'), false);
     }
 
     public function test_import_reads_the_type_column_and_templates_download(): void

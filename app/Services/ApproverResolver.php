@@ -13,11 +13,12 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Registration approval chain (PRD 3.3).
  *
+ * V16 item 1 (27-11-2026): only the State Admin, District Programmers and Block MIS approve.
  *  State    -> State Admin
- *  District -> State Admin, or State user with approval permission
- *  Block    -> District user (same district) with permission, otherwise State Admin
- *  Cluster  -> Block user (same block) with permission, otherwise District user with permission,
- *              otherwise State Admin
+ *  District -> State Admin
+ *  Block    -> the District Programmer of that district, otherwise the State Admin
+ *  Cluster  -> the Block MIS of that block, otherwise the District Programmer of the district,
+ *              otherwise the State Admin
  */
 class ApproverResolver
 {
@@ -48,15 +49,11 @@ class ApproverResolver
         }
 
         return match ($applicant->level) {
-            UserLevel::District => $approver->level === UserLevel::State,
-            UserLevel::Block => $approver->level === UserLevel::District,
-            UserLevel::Cluster => match ($approver->level) {
-                UserLevel::Block => true,
-                // District acts only if no Block approver exists for that block
-                UserLevel::District => ! $this->hasPermittedApprover(UserLevel::Block, 'block_id', $target->block_id),
-                default => false,
-            },
-            default => false, // State level: State Admin only
+            UserLevel::Block => $approver->isDistrictProgrammer(),
+            UserLevel::Cluster => $approver->isBlockMis()
+                // the District Programmer acts only when that block has no active Block MIS
+                || ($approver->isDistrictProgrammer() && ! $this->hasPermittedApprover(UserLevel::Block, 'block_id', $target->block_id)),
+            default => false, // State and District level: State Admin only
         };
     }
 
@@ -104,7 +101,7 @@ class ApproverResolver
             ->where('level', $level->value)
             ->where('status', UserStatus::Active->value)
             ->whereHas('currentJurisdiction', fn ($q) => $q->where($column, $id))
-            ->whereHas('directPermissions', fn ($q) => $q->where('slug', Permission::APPROVE_REGISTRATIONS))
+            ->where('designation_id', User::designationIdFor($level === UserLevel::Block ? User::BLOCK_MIS : User::DISTRICT_PROGRAMMER))
             ->exists();
     }
 }

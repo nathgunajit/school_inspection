@@ -14,6 +14,9 @@ class PermissionService
     /** Per-request cache: user id => slugs */
     private array $cache = [];
 
+    /** V16 item 1 (27-11-2026): these two come from the officer's designation only, never from a role row or a grant. */
+    public const USER_MANAGER_SLUGS = [Permission::APPROVE_REGISTRATIONS, Permission::MANAGE_USERS];
+
     public function has(User $user, string $slug): bool
     {
         if (! $user->isActive()) {
@@ -21,6 +24,9 @@ class PermissionService
         }
         if ($user->isStateAdmin()) {
             return true;
+        }
+        if (in_array($slug, self::USER_MANAGER_SLUGS, true)) {
+            return $user->isDistrictProgrammer() || $user->isBlockMis();
         }
 
         return in_array($slug, $this->slugsFor($user), true);
@@ -38,14 +44,10 @@ class PermissionService
         )));
     }
 
-    /** Which individually grantable permissions are valid for a level (PRD 3.2). */
+    /** Which individually grantable permissions are valid for a level. V16 (27-11-2026): none; approving and managing users follow the designation (District Programmer, Block MIS). */
     public static function grantableFor(UserLevel $level): array
     {
-        return match ($level) {
-            UserLevel::State, UserLevel::Block => [Permission::APPROVE_REGISTRATIONS],
-            UserLevel::District => [Permission::APPROVE_REGISTRATIONS, Permission::MANAGE_USERS],
-            default => [],
-        };
+        return [];
     }
 
     public function flush(): void

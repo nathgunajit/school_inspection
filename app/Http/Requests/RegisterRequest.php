@@ -158,11 +158,20 @@ class RegisterRequest extends FormRequest
                 }
             }
 
-            // Modification V9: one active officer per cluster (Cluster level only; other levels are not limited)
+            // Modification V9: one active officer per cluster; V16 (27-11-2026): one District Programmer per district, one Block MIS per block
             $guard = app(AreaOfficerGuard::class);
-            $loc = $this->only(['cluster_id']);
-            if ($holder = $guard->holder($level, $loc, $this->reapplyingUser()?->id)) {
-                $v->errors()->add('cluster_id', 'An active officer is already registered for this cluster.');
+            $designationId = (int) $this->input('designation_id') ?: null;
+            if ($designationId === \App\Models\MasterValue::idFor('designation', \App\Models\User::OTHER_DESIGNATION) && filled($this->input('designation_other'))) {
+                // "Other" typed as an existing designation (e.g. "District Programmer") counts as that designation
+                $typed = mb_strtolower(\Illuminate\Support\Str::squish((string) $this->input('designation_other')));
+                $designationId = \App\Models\MasterValue::where('type', 'designation')->get(['id', 'label'])
+                    ->first(fn ($m) => mb_strtolower(\Illuminate\Support\Str::squish($m->label)) === $typed)?->id ?? $designationId;
+            }
+            $rule = $guard->rule($level, $designationId);
+            $loc = $this->only(['district_id', 'block_id', 'cluster_id']);
+            if ($holder = $guard->holder($level, $loc, $this->reapplyingUser()?->id, $designationId)) {
+                $field = ($rule ?? 'cluster').'_id';
+                $v->errors()->add($field, 'An active '.match ($rule) { 'district' => 'District Programmer', 'block' => 'Block MIS', default => 'officer' }.' is already registered for this '.($rule ?? 'cluster').'.');
                 $v->errors()->add('area_taken', $guard->message($holder, $loc));
                 AuditLogger::log('registration_blocked_area_taken', $holder, ['level' => $level->value, 'area' => $loc, 'mobile_tail' => substr((string) $this->input('mobile'), -4)]);
             }

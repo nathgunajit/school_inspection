@@ -49,23 +49,22 @@ class DemoUserSeeder extends Seeder
         [$d1, $d2] = [$districts[0], $districts[1]];
         $b = fn (int $i) => $blocks[$i % $blocks->count()];
         $c = fn (int $i) => $clusters[$i % $clusters->count()];
-        $A = Permission::APPROVE_REGISTRATIONS;
-        $M = Permission::MANAGE_USERS;
+        // V16 (27-11-2026): approving and managing users follow the designation (9000000015 District Programmer, 9000000025 Block MIS), no grants
 
         $users = [
             // mobile, name, gender, level, designation, location, status, extra permissions
-            ['9000000001', 'Ananya Sharma',    'female', UserLevel::State,    'joint_director',               null,  UserStatus::Active, [$A]],
+            ['9000000001', 'Ananya Sharma',    'female', UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
             ['9000000002', 'Bikash Kalita',    'male',   UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
             ['9000000003', 'Chandana Bora',    'female', UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
             ['9000000004', 'Dipankar Saikia',  'male',   UserLevel::State,    'joint_director',               null,  UserStatus::Active, []],
-            ['9000000011', 'Rakesh Baruah',    'male',   UserLevel::District, 'district_education_officer',   $d1,   UserStatus::Active, [$A, $M]],
+            ['9000000011', 'Rakesh Baruah',    'male',   UserLevel::District, 'district_education_officer',   $d1,   UserStatus::Active, []],
             ['9000000012', 'Meera Kalita',     'female', UserLevel::District, 'inspector_of_schools',         $d1,   UserStatus::Active, []],
-            ['9000000013', 'Nabajit Deka',     'male',   UserLevel::District, 'district_education_officer',   $d2,   UserStatus::Active, [$A, $M]],
+            ['9000000013', 'Nabajit Deka',     'male',   UserLevel::District, 'district_education_officer',   $d2,   UserStatus::Active, []],
             ['9000000014', 'Rupali Das',       'female', UserLevel::District, 'district_project_coordinator', $d2,   UserStatus::Active, []],
-            ['9000000021', 'Sanjay Das',       'male',   UserLevel::Block,    'block_education_officer',      $b(0), UserStatus::Active, [$A]],
-            ['9000000022', 'Priya Gogoi',      'female', UserLevel::Block,    'block_education_officer',      $b(1), UserStatus::Active, [$A]],
-            ['9000000023', 'Imran Hussain',    'male',   UserLevel::Block,    'block_mission_coordinator',    $b(2), UserStatus::Active, [$A]],
-            ['9000000024', 'Deepa Bora',       'female', UserLevel::Block,    'block_resource_person',        $b(3), UserStatus::Active, [$A]],
+            ['9000000021', 'Sanjay Das',       'male',   UserLevel::Block,    'block_education_officer',      $b(0), UserStatus::Active, []],
+            ['9000000022', 'Priya Gogoi',      'female', UserLevel::Block,    'block_education_officer',      $b(1), UserStatus::Active, []],
+            ['9000000023', 'Imran Hussain',    'male',   UserLevel::Block,    'block_mission_coordinator',    $b(2), UserStatus::Active, []],
+            ['9000000024', 'Deepa Bora',       'female', UserLevel::Block,    'block_resource_person',        $b(3), UserStatus::Active, []],
             ['9000000031', 'Arjun Saikia',     'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(0), UserStatus::Active, []],
             ['9000000032', 'Kavita Deka',      'female', UserLevel::Cluster,  'cluster_resource_coordinator', $c(1), UserStatus::Active, []],
             ['9000000033', 'Rohit Nath',       'male',   UserLevel::Cluster,  'cluster_resource_coordinator', $c(2), UserStatus::Active, []],

@@ -70,8 +70,35 @@ abstract class TestCase extends BaseTestCase
         return $this->officer(UserLevel::StateAdmin);
     }
 
+    /** V16 (27-11-2026): the District Programmer of $cluster's district (approves Block registrations, manages its users). */
+    protected function districtProgrammer(?Cluster $cluster = null, array $attrs = []): User
+    {
+        return $this->officer(UserLevel::District, $cluster, ['designation_id' => \App\Models\MasterValue::idFor('designation', User::DISTRICT_PROGRAMMER)] + $attrs);
+    }
+
+    /** V16: the Block MIS of $cluster's block (approves Cluster registrations, manages its users). */
+    protected function blockMis(?Cluster $cluster = null, array $attrs = []): User
+    {
+        return $this->officer(UserLevel::Block, $cluster, ['designation_id' => \App\Models\MasterValue::idFor('designation', User::BLOCK_MIS)] + $attrs);
+    }
+
+    /**
+     * Give a permission. V16: approve_registrations / manage_users follow the designation, so for those two the
+     * officer becomes the District Programmer (District level) or Block MIS (Block level) of their area.
+     */
     protected function grant(User $user, string $slug): void
     {
+        if (in_array($slug, \App\Services\PermissionService::USER_MANAGER_SLUGS, true)) {
+            $code = match ($user->level) {
+                UserLevel::District => User::DISTRICT_PROGRAMMER,
+                UserLevel::Block => User::BLOCK_MIS,
+                default => throw new \LogicException('V16: only District Programmers and Block MIS approve or manage users.'),
+            };
+            $user->forceFill(['designation_id' => \App\Models\MasterValue::idFor('designation', $code)])->save();
+            app(\App\Services\PermissionService::class)->flush();
+
+            return;
+        }
         $user->directPermissions()->attach(Permission::where('slug', $slug)->value('id'), ['granted_by' => null, 'granted_at' => now()]);
     }
 
