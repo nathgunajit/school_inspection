@@ -3277,3 +3277,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Employee photo (registration upload / selfie and profile): standard **800 × 600** (`employee_photo.max_side_px` / `short_side_px`), compressed under 1 MB instead of "choose one of 1 MB or less". Identity proof JPG / PNG: fit 2000 × 1500 under 2 MB. The upload zone shows "resized to W × H". Server limits unchanged (still the safety net).
 - Files: resources/js/image-shrink.js, resources/js/camera.js, resources/js/register.js, resources/js/app.js, config/inspection.php, resources/views/inspections/step.blade.php, resources/views/auth/register.blade.php, resources/views/profile.blade.php.
 - Verified: `npm run build`; `php artisan test --filter="Registration|Evidence|Profile|Photo|IconSubset"` 44 passed.
+## 27-11-2026 · Profile: View identity proof in a popup
+- **My Profile** has a **View identity proof** button (when one was uploaded) and an "Identity proof" tile (Uploaded / Not uploaded (optional)). The admin user page's button now opens the same popup instead of a new tab.
+- Popup (`partials/id-proof-modal.blade.php`): image or PDF, file name, spinner, **Open in new tab** and Close. The file loads only when the popup opens (`[data-lazy-src]`, delegated `show.bs.modal` in `app.js`), so `id_proof_viewed` is logged only then.
+- `Admin\ApprovalController::idProof()` now also lets the officer view their own proof (like the photo); others outside the approver / user manager rule still get 404.
+- Files: app/Http/Controllers/Admin/ApprovalController.php, resources/views/partials/id-proof-modal.blade.php (new), resources/views/profile.blade.php, resources/views/admin/users/show.blade.php, resources/js/app.js, tests/Feature/RegistrationV7Test.php, CLAUDE.md.
+- Verified: `npm run build`; `php artisan test --filter="RegistrationV7|RegistrationAndLogin|IconSubset|QueryBudget|Profile"` 29 passed.

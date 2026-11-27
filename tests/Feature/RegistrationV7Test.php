@@ -238,4 +238,24 @@ class RegistrationV7Test extends TestCase
         $disk->assertMissing('register-tmp/old.jpg');
         $disk->assertExists('register-tmp/new.jpg');
     }
+
+    /** 27-11-2026: the officer sees their own identity proof in a popup on My Profile; others in the area cannot open it. */
+    public function test_identity_proof_opens_in_a_popup_on_both_profile_pages(): void
+    {
+        $this->registers(['id_proof' => UploadedFile::fake()->image('voter-card.jpg', 400, 300)]);
+        $u = User::where('mobile', '9876543210')->firstOrFail();
+        $u->forceFill(['status' => UserStatus::Active, 'must_change_password' => false])->save();
+
+        $this->actingAs($u)->get(route('profile'))->assertOk()
+            ->assertSee('id="id-proof-modal"', false)->assertSee('data-lazy-src="'.route('admin.users.id-proof', $u).'"', false)
+            ->assertSee('voter-card.jpg');
+        $this->actingAs($u)->get(route('admin.users.id-proof', $u))->assertOk();
+
+        $other = $this->officer(UserLevel::Cluster, $this->otherCluster(Cluster::orderBy('id')->first()));
+        $this->actingAs($other)->get(route('admin.users.id-proof', $u))->assertNotFound();
+        $this->actingAs($other)->get(route('profile'))->assertOk()->assertDontSee('id="id-proof-modal"', false)->assertSee('Not uploaded (optional)');
+
+        $this->actingAs($this->admin())->get(route('admin.users.show', $u))->assertOk()
+            ->assertSee('id="id-proof-modal"', false)->assertSee('data-bs-target="#id-proof-modal"', false);
+    }
 }

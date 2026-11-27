@@ -46,6 +46,7 @@
             <div class="pf-actions">
                 <a href="{{ route('password.change') }}" class="btn btn-light"><i class="bi bi-key"></i>Change password</a>
                 <a href="#mobile-change" class="btn btn-light"><i class="bi bi-phone"></i>Change mobile</a>
+                @include('partials.id-proof-modal', ['user' => $user])
                 <form method="POST" action="{{ route('logout') }}" class="d-lg-none" data-si-signout>@csrf<button class="btn btn-light text-danger w-100"><i class="bi bi-box-arrow-right"></i>Sign out</button></form>
             </div>
         </div>
@@ -71,6 +72,7 @@
                     <div class="pf-tile"><i class="bi bi-phone"></i><span>Mobile</span><strong>+91 {{ $user->mobile }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-envelope"></i><span>Email</span><strong>{{ $user->email ?: 'Not added' }}</strong></div>
                     <div class="pf-tile"><i class="bi bi-briefcase"></i><span>Designation</span><strong>{{ $user->designation_label ?? '—' }}</strong></div>
+                    <div class="pf-tile"><i class="bi bi-person-vcard"></i><span>Identity proof</span><strong>@if ($user->id_proof_path)Uploaded @else<span class="text-secondary fw-normal">Not uploaded (optional)</span>@endif</strong></div>
                     <div class="pf-tile wide"><i class="bi bi-geo-alt"></i><span>Jurisdiction</span><strong>{{ $jur?->label() ?: 'State' }}</strong></div>
                     @if ($user->directPermissions->isNotEmpty())
                         <div class="pf-tile wide"><i class="bi bi-shield-plus"></i><span>Extra rights</span><strong>{{ $user->directPermissions->pluck('name')->map(fn ($p) => str_replace('_', ' ', $p))->implode(', ') }}</strong></div>

@@ -21,9 +21,7 @@
                     </dl>
                 </div>
                 <div class="card-footer bg-white d-grid gap-2">
-                    @if ($user->id_proof_path)
-                        <a href="{{ route('admin.users.id-proof', $user) }}" target="_blank" rel="noopener" class="btn btn-light"><i class="bi bi-person-vcard"></i>View identity proof</a>
-                    @endif
+                    @include('partials.id-proof-modal', ['user' => $user])
                     @if (in_array($user->status->value, ['active', 'inactive', 'locked']))
                         <form method="POST" action="{{ route('admin.users.status', $user) }}" class="d-grid" data-confirm="{{ $user->status->value === 'inactive' ? 'Activate' : 'Deactivate' }} this user?">
                             @csrf @method('PATCH')

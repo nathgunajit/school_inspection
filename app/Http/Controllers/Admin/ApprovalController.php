@@ -73,11 +73,12 @@ class ApprovalController extends Controller
         return redirect()->route('admin.approvals.index')->with('success', 'Registration rejected.');
     }
 
-    /** Stream an identity proof to an approver or user manager. */
+    /** Stream an identity proof to the officer themselves (My Profile, 27-11-2026), their approver or a user manager. */
     public function idProof(Request $request, User $user, JurisdictionService $j)
     {
         $viewer = $request->user();
-        $allowed = $this->resolver->canApprove($viewer, $user)
+        $allowed = $viewer->is($user)
+            || $this->resolver->canApprove($viewer, $user)
             || ($viewer->can('manage_users') && $j->contains($viewer, $user->currentJurisdiction()->first()));
         abort_unless($allowed && $user->id_proof_path && Storage::disk('private')->exists($user->id_proof_path), 404);
 

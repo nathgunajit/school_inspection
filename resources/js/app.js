@@ -77,6 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const reopen = document.querySelector('.modal[data-reopen]');
     if (reopen) bootstrap.Modal.getOrCreateInstance(reopen).show();
 
+    /* ---------- 27-11-2026: a modal's [data-lazy-src] file (identity proof) loads only when the modal opens ---------- */
+    document.addEventListener('show.bs.modal', (e) => {
+        e.target.querySelectorAll?.('[data-lazy-src]').forEach((el) => {
+            if (el.getAttribute('src')) return;
+            const done = () => e.target.querySelectorAll('[data-lazy-wait]').forEach((w) => w.classList.add('d-none'));
+            el.addEventListener('load', done, { once: true });
+            el.addEventListener('error', done, { once: true });
+            el.setAttribute('src', el.dataset.lazySrc);
+        });
+    });
+
     /* ---------- Tooltips ---------- */
     // 26-11-2026: delegated, so tooltips in sections swapped in by filter-partial.js work too
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => bootstrap.Tooltip.getOrCreateInstance(el));
