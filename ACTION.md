@@ -3570,3 +3570,18 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - `MapController::netScope()` now holds the jurisdiction checks shared by the list and both downloads.
 - Files: app/Http/Controllers/MapController.php, app/Support/QueuedExports.php, routes/web.php, resources/views/map/index.blade.php, resources/js/map.js, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 423 passed (new test: xlsx and PDF attachments, two audit rows, PDF cap warning, 403 outside the officer's area). Not yet checked in a browser.
+
+## 28-11-2026 · Map View: compact report list, icons-only map
+- Report list below the map, merged columns (user choice: the "Merged columns" layout):
+  - Area list: 11–12 columns → 6–7.
+    - **Inspected** shows the count with its % pill and a coverage bar.
+    - **Not done** = pending + in progress, with "n in progress" below.
+    - **Officers** shows the total, with "D x · B y · C z" below.
+    - Schools, Avg rating (when shown) and No internet are kept.
+  - School list: 8–9 columns → 5–6. **School** has UDISE below, and **Last inspection** has the officer below.
+  - The empty-row colspan follows the column count. The first column is sticky when the table scrolls sideways.
+- Map (user choice: icons only):
+  - Districts, blocks and clusters are round `bi-buildings` icons (`areaIcon()`, `.si-area-pin`) coloured by coverage or internet and sized by school count. They replace the sized circles that carried always-on labels.
+  - Areas, school pins (name · status / rating / internet) and offices show a tooltip on hover and the details popup on click. No permanent labels.
+- Files: resources/js/map.js, resources/scss/app.scss, CLAUDE.md.
+- Verification: `npm run build` (`bi-buildings` in the icon subset); full suite 423 passed. Not yet checked in a browser.

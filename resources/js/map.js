@@ -73,6 +73,9 @@ if (el) {
         if (!n || n.no_pct === null || n.no_pct === undefined) return { fillColor: '#94a3b8', color: '#64748b' };
         return n.no_pct >= 50 ? { fillColor: '#d93025', color: '#a8231b' } : n.no_pct >= 25 ? { fillColor: '#f39223', color: '#c96f0c' } : { fillColor: '#1e9b4b', color: '#167a3a' };
     };
+    // 28-11-2026: an area (district / block / cluster) is a round icon in its coverage / internet colour, no text
+    const areaIcon = (colour, size) => L.divIcon({ className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+        html: `<span class="si-area-pin" style="--c:${esc(colour)};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px"><i class="bi bi-buildings"></i></span>` });
     const areaColors = (r) => (colourBy === 'net' ? netColors(r.net) : coverageColors(r.coverage));
     const pinIcon = (s) => (colourBy === 'rating' ? ratingIcon(s.rating) : colourBy === 'net' ? netIcon(s) : schoolIcon(s.status));
 
@@ -263,12 +266,14 @@ if (el) {
         }
         rows.forEach((r) => {
             if (r.lat === null || r.lng === null) return;
-            const radius = 10 + 18 * Math.sqrt(r.schools / max);
-            const m = L.circleMarker([r.lat, r.lng], { radius, ...areaColors(r), weight: 2, fillOpacity: 0.6 })
+            // 28-11-2026: icons only; the name / figures show on hover (tooltip) and the details on click (popup)
+            const size = Math.round(26 + 14 * Math.sqrt(r.schools / max));
+            const m = L.marker([r.lat, r.lng], { icon: areaIcon(areaColors(r).fillColor, size), alt: r.label ?? r.name, riseOnHover: true })
                 .bindTooltip(colourBy === 'net' && r.net
                     ? `${esc(r.label ?? r.name)} · ${fmt(r.net.no)} of ${fmt(r.net.no + r.net.ok)} surveyed: no internet`
-                    : `${esc(r.label ?? r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
-                .bindPopup(areaPopup(r, level));
+                    : `${esc(r.label ?? r.name)} · ${fmt(r.inspected)} of ${fmt(r.schools)} inspected (${r.coverage} %)${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`,
+                { direction: 'top', offset: [0, -size / 2], className: 'si-area-label' })
+                .bindPopup(areaPopup(r, level), { offset: [0, -size / 2 + 6] });
             m.addTo(areaLayer);
             markers.set(r.id, m);
             pts.push([r.lat, r.lng]);
@@ -311,7 +316,7 @@ if (el) {
         if (!on) return;
         offices.forEach((o) => {
             L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
-                .bindTooltip(`${OFFICE[o.type].short} · ${esc(o.name)}`, { permanent: offices.length <= 40, direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
+                .bindTooltip(`${OFFICE[o.type].short} · ${esc(o.name)}`, { direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
                 .bindPopup(officePopup(o))
                 .addTo(officeLayer);
         });
@@ -372,7 +377,13 @@ if (el) {
         const pts = [];
         rows.forEach((s) => {
             if (s.lat === null || s.lng === null) return;
-            const m = L.marker([s.lat, s.lng], { icon: pinIcon(s), title: s.name, siStatus: s.status, siRating: s.rating, siNet: s.net?.state || 'none' }).bindPopup(schoolPopup(s));
+            // 28-11-2026: icon only; name + what the colour means on hover, the details on click
+            const hint = colourBy === 'net' ? netOf(s).label
+                : colourBy === 'rating' ? (s.rating ? `${pct(s.rating.score)} · ${s.rating.band || ''}` : 'Not rated yet')
+                    : { inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status];
+            const m = L.marker([s.lat, s.lng], { icon: pinIcon(s), alt: s.name, siStatus: s.status, siRating: s.rating, siNet: s.net?.state || 'none' })
+                .bindTooltip(`${esc(s.name)} · ${esc(hint || '')}`, { direction: 'top', offset: [0, -32], className: 'si-area-label' })
+                .bindPopup(schoolPopup(s));
             schoolLayer.addLayer(m);
             markers.set(s.id, m);
             pts.push([s.lat, s.lng]);
@@ -447,27 +458,35 @@ if (el) {
                 const o = officeOf('block', s.block_id);
                 return o && s.lat !== null && s.lng !== null ? fmtKm(haversineKm([o.lat, o.lng], [s.lat, s.lng])) : '—';
             };
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + '<th>Internet</th>' + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            // 28-11-2026: merged columns: School + UDISE, Last inspection + officer
+            const heads = ['<th>School</th>', '<th>Status</th>', showRating && '<th>Rating</th>', '<th>Internet</th>',
+                hasBlockOffice && '<th class="text-end text-nowrap">Block office</th>', '<th class="text-nowrap">Last inspection</th>'].filter(Boolean);
+            head.innerHTML = `<tr>${heads.join('')}</tr>`;
             body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
-                <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
+                <td><div class="fw-semibold">${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</div><div class="map-cell-sub">UDISE ${esc(s.udise)}</div></td>
                 <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
                 ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
                 <td>${netPill(s)}</td>
                 ${hasBlockOffice ? `<td class="text-end text-nowrap">${blockKm(s)}</td>` : ''}
-                <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
-                : '<tr><td colspan="9" class="text-muted p-3">No schools match the filters.</td></tr>';
+                <td class="text-nowrap">${s.last ? `${esc(s.last.date)}<div class="map-cell-sub">${esc(s.last.officer || '—')}</div>` : '—'}</td></tr>`).join('')
+                : `<tr><td colspan="${heads.length}" class="text-muted p-3">No schools match the filters.</td></tr>`;
         } else {
-            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}<th class="text-end" title="Schools with no internet (of the schools surveyed)">No internet</th>
-                <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
+            // 28-11-2026: merged columns: Inspected = count · % with the bar; Not done = pending (+ in progress); Officers = total (D · B · C)
+            const heads = [`<th>${levelName[level]}</th>`, '<th class="text-end">Schools</th>', '<th class="map-cov-head">Inspected</th>',
+                '<th class="text-end" title="Not inspected yet in the period (of them, in progress shown below)">Not done</th>', showRating && '<th class="text-end">Avg rating</th>',
+                '<th class="text-end" title="Schools with no internet (of the schools surveyed)">No internet</th>', '<th class="text-end">Officers</th>'].filter(Boolean);
+            const officers = (o) => [['D', o.district], ['B', o.block], ['C', o.cluster]].filter(([, n]) => n).map(([k, n]) => `${k} ${fmt(n)}`).join(' · ');
+            head.innerHTML = `<tr>${heads.join('')}</tr>`;
             body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
-                <td><a href="#" data-drill="${r.id}">${esc(r.label ?? r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
-                <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
-                <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
+                <td><a href="#" data-drill="${r.id}" class="fw-semibold">${esc(r.label ?? r.name)}</a></td>
+                <td class="text-end">${fmt(r.schools)}</td>
+                <td class="map-cov"><div class="d-flex justify-content-between gap-2"><b>${fmt(r.inspected)}</b><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></div>
+                    <div class="mp-bar"><span class="${coverageClass(r.coverage)}" style="width:${Math.min(100, r.coverage)}%"></span></div></td>
+                <td class="text-end">${fmt(r.pending + r.in_progress)}${r.in_progress ? `<div class="map-cell-sub">${fmt(r.in_progress)} in progress</div>` : ''}</td>
                 ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
                 <td class="text-end">${r.net ? `<span class="${r.net.no ? 'text-danger fw-semibold' : ''}">${fmt(r.net.no)}</span><span class="text-muted"> / ${fmt(r.net.no + r.net.ok)}</span>` : '—'}</td>
-                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
-                <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
-                : '<tr><td colspan="12" class="text-muted p-3">No areas with schools here.</td></tr>';
+                <td class="text-end"><b>${fmt(r.officers.total)}</b>${officers(r.officers) ? `<div class="map-cell-sub">${officers(r.officers)}</div>` : ''}</td></tr>`).join('')
+                : `<tr><td colspan="${heads.length}" class="text-muted p-3">No areas with schools here.</td></tr>`;
         }
     }
 
