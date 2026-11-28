@@ -352,7 +352,7 @@ html, body { overflow-x: clip; }
 .reg-icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 1.15rem; flex-shrink: 0; }
 .reg-block-body .form-label { font-size: .8rem; font-weight: 500; margin-bottom: .3rem; }
 .reg-block-body .form-text { font-size: .72rem; margin-top: .3rem; }
-.req { color: $danger; }
+.req { color: $danger; font-weight: 600; margin-left: .1rem; } // 28-11-2026: also added by required-star.js to the label of every required field
 .opt { color: #94a3b8; font-weight: 500; font-size: .72rem; }
 .reg-submit { display: flex; flex-direction: column; gap: 1rem;
     @include media-breakpoint-up(md) { flex-direction: row; align-items: center; } }

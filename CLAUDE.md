@@ -405,6 +405,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
 - **Never import from `./app`** in a module that `app.js` imports. Shared helpers go in `resources/js/util.js` (`escapeHtml`). `downloads.js` imported `./app`; Vite bundled `app.js` twice, every handler ran twice, and the sidebar button folded and unfolded on one click (fixed 26-11-2026).
 - Production: see the checklist at the bottom of `.env.example`. With `APP_ENV=production`, URLs are forced to HTTPS.
 - Lists paginate at 25 rows.
+- **Mandatory fields** (28-11-2026): put `required` on the field and give it a label (`for=id`, a wrapping `<label>`, or a `.form-label` just above it / above its `.input-group`); `resources/js/required-star.js` adds the red `*` (`.req.req-auto`) to that label, and removes it when the field stops being required (MutationObserver: swapped sections, modals, conditional fields). Radios / checkboxes, `[data-no-star]` and wizard questions (`.q-req`) are skipped; a label that already has `.req` keeps it. Don't hand-write new stars, and use `class="req"` (not `text-danger`) where one exists. `RequiredStarTest` renders the main forms and fails when a required field has no label.
 
 ## Testing safety
 - Tests must run on in-memory SQLite only. `tests/TestCase.php` aborts if the connection is anything else.

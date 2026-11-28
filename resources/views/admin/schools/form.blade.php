@@ -6,30 +6,30 @@
                 <div class="card-body p-4">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">UDISE Code <span class="text-danger">*</span></label>
+                            <label class="form-label">UDISE Code <span class="req">*</span></label>
                             <input name="udise_code" value="{{ old('udise_code', $school->udise_code) }}" maxlength="11" inputmode="numeric" class="form-control font-monospace @error('udise_code') is-invalid @enderror" required>
                             @error('udise_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-8">
-                            <label class="form-label">School name <span class="text-danger">*</span></label>
+                            <label class="form-label">School name <span class="req">*</span></label>
                             <input name="name" value="{{ old('name', $school->name) }}" class="form-control @error('name') is-invalid @enderror" required>
                             @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">District <span class="text-danger">*</span></label>
+                            <label class="form-label">District <span class="req">*</span></label>
                             <select name="district_id" id="s_district" class="form-select @error('district_id') is-invalid @enderror" data-cascade-child="#s_block" data-cascade-url="{{ route('locations', 'blocks') }}" required>
                                 <option value="">Select</option>@foreach ($districts as $d)<option value="{{ $d->id }}" @selected(old('district_id', $school->district_id) == $d->id)>{{ $d->label }}</option>@endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Block <span class="text-danger">*</span></label>
+                            <label class="form-label">Block <span class="req">*</span></label>
                             <select name="block_id" id="s_block" class="form-select @error('block_id') is-invalid @enderror" data-placeholder="Select" data-cascade-child="#s_cluster" data-cascade-url="{{ route('locations', 'clusters') }}" required>
                                 <option value="">Select</option>@foreach ($blocks as $b)<option value="{{ $b->id }}" @selected(old('block_id', $school->block_id) == $b->id)>{{ $b->label }}</option>@endforeach
                             </select>
                             @error('block_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cluster <span class="text-danger">*</span></label>
+                            <label class="form-label">Cluster <span class="req">*</span></label>
                             <select name="cluster_id" id="s_cluster" class="form-select @error('cluster_id') is-invalid @enderror" data-placeholder="Select" required>
                                 <option value="">Select</option>@foreach ($clusters as $c)<option value="{{ $c->id }}" @selected(old('cluster_id', $school->cluster_id) == $c->id)>{{ $c->label }}</option>@endforeach
                             </select>

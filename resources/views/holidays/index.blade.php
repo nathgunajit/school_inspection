@@ -277,7 +277,8 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-sm text-secondary">Columns: <code>date</code> (YYYY-MM-DD), <code>name</code>, <code>type</code> (gazetted, restricted or half; blank = gazetted), <code>district_code</code>{{ auth()->user()->isStateAdmin() ? ' (leave blank for a state holiday)' : ' (your district code)' }}. Every row is checked first: nothing is saved while any row has a problem. Holidays already in the calendar are skipped.</p>
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="form-control @error('file') is-invalid @enderror" required>
+                        <label class="form-label" for="holiday-import-file">Excel file</label>
+                        <input type="file" id="holiday-import-file" name="file" accept=".xlsx,.xls,.csv" class="form-control @error('file') is-invalid @enderror" required>
                         @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         <a href="{{ route('holidays.template') }}" class="d-inline-block mt-2 text-sm" data-no-loader><i class="bi bi-download me-1"></i>Download the template</a>
                         <a href="{{ route('holidays.template', ['fill' => 'assam-2026']) }}" class="d-inline-block mt-2 ms-3 text-sm" data-no-loader><i class="bi bi-file-earmark-spreadsheet me-1"></i>Assam list 2026</a>

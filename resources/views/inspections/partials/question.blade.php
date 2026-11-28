@@ -74,7 +74,7 @@
     {{-- Remarks (mandatory for some answers, optional when remarks_optional) --}}
     @if (! empty($q['remarks_if']))
         <div class="q-extra q-remarks {{ $remarksOn ? '' : 'd-none' }}">
-            <label class="form-label text-sm mb-1" for="{{ $code }}__remarks">Remarks @if ($remarksOptional)<span class="text-secondary fw-normal">(optional)</span>@else<span class="text-danger">*</span>@endif</label>
+            <label class="form-label text-sm mb-1" for="{{ $code }}__remarks">Remarks @if ($remarksOptional)<span class="text-secondary fw-normal">(optional)</span>@else<span class="req">*</span>@endif</label>
             <textarea id="{{ $code }}__remarks" rows="2" maxlength="2000" class="form-control" data-remarks="{{ $code }}" placeholder="{{ $remarksOptional ? 'Describe the problem (optional)' : 'Describe the problem' }}">{{ $remarks[$code] ?? '' }}</textarea>
         </div>
     @endif

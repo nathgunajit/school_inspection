@@ -9,6 +9,7 @@ import './download-busy'; // 26-11-2026: PDF / Excel links busy until the file a
 import './password-encrypt';
 import './password-toggle'; // 27-11-2026: show / hide password eye
 import './mobile-input';
+import './required-star'; // 28-11-2026: red * on the label of every required field
 import './date-picker';
 import './rating-settings';
 import './imports';

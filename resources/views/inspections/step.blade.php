@@ -341,7 +341,7 @@
                             @foreach ($mandatory as $cat => $min)
                                 <div class="photo-slot" data-req-cat="{{ $cat }}" data-min="{{ $min }}">
                                     <div class="photo-slot-head">
-                                        <div class="photo-slot-title"><i class="bi bi-circle me-1"></i><span>{{ $catLabels[$cat] ?? $cat }} <span class="text-danger">*</span><small>Required · at least {{ $min }}</small></span></div>
+                                        <div class="photo-slot-title"><i class="bi bi-circle me-1"></i><span>{{ $catLabels[$cat] ?? $cat }} <span class="req">*</span><small>Required · at least {{ $min }}</small></span></div>
                                         <div class="photo-slot-actions">
                                             <button type="button" class="btn btn-sm btn-soft-primary" data-camera data-category="{{ $cat }}" aria-label="Take photo"><i class="bi bi-camera"></i><span>Camera</span></button>
                                             <button type="button" class="btn btn-sm btn-light" data-gallery data-category="{{ $cat }}" aria-label="Upload from gallery (JPG, JPEG or PNG)" title="JPG, JPEG or PNG photo, max {{ \App\Support\FileSize::human(config('inspection.evidence.photo_max_kb')) }}"><i class="bi bi-images"></i><span>Gallery</span></button>

@@ -3503,3 +3503,14 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Step 4: schools of other categories (Upper Primary only, Secondary, Higher Secondary…) get no TLM list. With TLM = Yes the form shows "No TLM list for this school's category: the FLN and ECCE TLM lists are for lower primary (Class 1–5)" (`#tlm-none`, `renderTlm()` in wizard.js), and the row saves without a tick, as the server already allowed.
 - Files: app/Models/TlmItem.php, database/migrations/2026_11_28_000003_tlm_items_lower_primary.php, resources/views/admin/tlm/index.blade.php, resources/views/inspections/step.blade.php, resources/js/wizard.js, tests/Feature/TlmCategoryTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 413 passed (new test: the four ids, default applied once and narrowed items kept, Upper Primary school gets no list and saves TLM = Yes, Add form pre-ticked). Not yet checked in a browser.
+
+## 28-11-2026 · Mandatory fields show a red * in their label, everywhere
+- The user asked for every mandatory field to show the required symbol in its label. Before this, only 44 of the 101 required fields had a hand-written star, in two styles.
+- New `resources/js/required-star.js` (imported by app.js, so it runs on every page, guest pages included). For every `input|select|textarea[required]` it finds the label (`label[for=id]`, a wrapping label, or the `.form-label` just above the field or its `.input-group` / `.num-stepper`) and adds `<span class="req req-auto">*</span>` unless the label already has a star.
+  - Skipped: radios / checkboxes, hidden fields (except the date picker's original input, `data-fp`), `[data-no-star]` and wizard questions (they keep `.q-req`).
+  - A MutationObserver (batched per frame) follows swapped filter sections, modals and fields that become required or stop being required; an automatic star is removed when its field is no longer required.
+- One look: `.req` is red, semi-bold, with a small gap. The 7 `<span class="text-danger">*</span>` stars (School Master form, wizard remarks / photo slots) are now `class="req"`.
+- The holiday import file box had no label: it now has "Excel file" (`for="holiday-import-file"`).
+- New `RequiredStarTest`: renders login, register, TLM / School / Location / AC-PC / Notice type masters, holidays, notice compose, coverage and Today's Schools settings and the profile, and checks, with the script's rules, that every required field has a label. It also checks that no red-text star remains.
+- Files: resources/js/required-star.js, resources/js/app.js, resources/scss/app.scss, resources/views/admin/schools/form.blade.php, resources/views/inspections/{step,partials/question}.blade.php, resources/views/holidays/index.blade.php, tests/Feature/RequiredStarTest.php, CLAUDE.md.
+- Verification: `npm run build`; full suite 415 passed. Not yet checked in a browser.
