@@ -103,6 +103,9 @@ class ConnectivitySurveyTest extends TestCase
         $this->assertSame([1, 1, 2], [$json['no'], $json['ok'], $json['total']]);
         $this->assertSame('No tower', $json['rows'][0]['last_remark']);
         $this->assertNotEmpty($json['rows'][0]['key']);
+        // 28-11-2026: the Internet map draws these rows as pins
+        $this->assertArrayHasKey('lat', $json['rows'][0]);
+        $this->assertSame($b->latitude !== null ? (float) $b->latitude : null, $json['rows'][0]['lat']);
         // state level (no parent) for the State Admin
         $this->getJson(route('map.net-schools', ['level' => 'district'] + $period))->assertOk()->assertJsonPath('total', 2);
 

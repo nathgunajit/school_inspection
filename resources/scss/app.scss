@@ -3068,3 +3068,6 @@ $half-holiday: #0284c7;
     > i { font-size: .8rem; }
     > b { top: -7px; right: -9px; min-width: 18px; height: 16px; padding: 0 4px; font-size: .6rem; line-height: 13px; border-width: 1.5px; } }
 .si-area-pin { font-size: 12px; }
+// 28-11-2026: Map View offices 20 px, icon only: a smaller pointer
+.si-office[style*="--pin"]:not(:has(b)) { border-radius: 6px;
+    &::after { bottom: -4px; margin-left: -3px; border-width: 3px; border-bottom: 0; } }

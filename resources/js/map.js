@@ -61,7 +61,7 @@ if (el) {
     const pct = (v) => `${Number(v).toFixed(1).replace(/\.0$/, '')}%`;
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
     // 28-11-2026: one small standard size for every Map View marker
-    const PIN = 24; const AREA = 26; const GROUP = 30; const OFFICE_PX = 26;
+    const PIN = 24; const AREA = 26; const GROUP = 30; const OFFICE_PX = 20; // 28-11-2026: offices small, icon only (no HQ / B text)
     const pinBox = { iconSize: [PIN, PIN + 8], iconAnchor: [PIN / 2, PIN + 6], popupAnchor: [0, -(PIN + 2)] };
     const ratingIcon = (r) => L.divIcon({ className: '', ...pinBox,
         html: `<span class="si-pin rt-${esc(r?.color || 'none')}" style="--pin:${PIN}px">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
@@ -175,7 +175,8 @@ if (el) {
         key('net_unknown', t.net_unknown || 0);
         const day = (v) => (v ? new Date(`${v}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '');
         $('mapKeyPeriod').textContent = `${day($('fFrom').value)} – ${day($('fTo').value)}`;
-        $('mapNoGps').textContent = t.no_gps ? `${fmt(t.no_gps)} school(s) without GPS are counted but not drawn` : '';
+        noGpsText = t.no_gps ? `${fmt(t.no_gps)} school(s) without GPS are counted but not drawn` : '';
+        $('mapNoGps').textContent = noGpsText;
     }
 
     function renderCrumbs(crumbs, level) {
@@ -229,12 +230,13 @@ if (el) {
 
     function renderAreas(rows, level) {
         if (level === 'district' && !districtsLoading && cfg.geojson?.districts) {
-            loadDistricts().then(() => { if (geo.districts && current.level === 'district') renderAreas(rows, level); });
+            loadDistricts().then(() => { if (geo.districts && current.level === 'district' && colourBy !== 'net') renderAreas(rows, level); }); // never over the Internet pins
         }
         schoolLayer.clearLayers();
         areaLayer.clearLayers();
         markers.clear();
         if (boundaries) { map.removeLayer(boundaries); boundaries = null; }
+        if (colourBy === 'net') return; // 28-11-2026: Internet shows no districts / area icons, only the school pins (renderNetPins)
         const pts = [];
 
         // District polygons (from `php artisan map:boundaries`), coloured by the coverage of the matching District Master row
@@ -315,7 +317,7 @@ if (el) {
         if (note) note.textContent = offices.length ? `${offices.length} office(s) in this view` : '';
         if (!on) return;
         offices.forEach((o) => {
-            L.marker([o.lat, o.lng], { icon: officeIcon(o.type, OFFICE_PX), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
+            L.marker([o.lat, o.lng], { icon: officeIcon(o.type, OFFICE_PX, false), pane: 'offices', alt: `${officeName(o)} · ${o.label}` })
                 .bindTooltip(`${OFFICE[o.type].short} · ${esc(o.name)}`, { direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
                 .bindPopup(officePopup(o))
                 .addTo(officeLayer);
@@ -374,6 +376,7 @@ if (el) {
         schoolLayer.clearLayers();
         markers.clear();
         if (boundaries) { map.removeLayer(boundaries); boundaries = null; }
+        if (colourBy === 'net') return; // 28-11-2026: the Internet list draws the cluster's surveyed schools (renderNetPins)
         const pts = [];
         rows.forEach((s) => {
             if (s.lat === null || s.lng === null) return;
@@ -396,6 +399,7 @@ if (el) {
 
     /* ---- 28-11-2026: Internet colour → the list is the surveyed schools of the area in view, No internet first ---- */
     let netSeq = 0;
+    let noGpsText = ''; // the level's own note (renderStats), put back when leaving the Internet colour
     // Excel / PDF of the list on screen (same level, parent and filters); hidden for the other colours
     const netDownloads = (show, empty = false) => {
         const box = document.querySelector('[data-net-downloads]');
@@ -409,6 +413,44 @@ if (el) {
             a.setAttribute('aria-disabled', empty ? 'true' : 'false');
         });
     };
+    // 28-11-2026: with the Internet colour the map shows only the schools of this list (red = no internet, green = OK)
+    function netPopup(s) {
+        const no = s.state === 'no';
+        return `<div class="map-pop">
+            <div class="mp-head"><div class="mp-icon"><i class="bi ${netOf({ net: s }).icon}"></i></div>
+                <div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">UDISE ${esc(s.udise)}</div></div></div>
+            <div class="mp-body">
+                <div class="mp-chips">${netPill({ net: s })}</div>
+                ${no ? `<div class="mp-row"><i class="bi bi-wifi-off text-danger"></i><span>No internet reported ${fmt(s.reports)}× · last ${esc(s.last_date || '')}${s.last_remark ? ` · “${esc(s.last_remark)}”` : ''} · signed declaration ${s.signed_pdf ? 'attached' : 'missing'}</span></div>`
+                    : `<div class="mp-row"><i class="bi bi-wifi text-success"></i><span>Internet available (checked ${esc(s.checked)})${s.reports ? ` · no internet reported ${fmt(s.reports)}× before` : ''}</span></div>`}
+                <div class="mp-row"><i class="bi bi-geo-alt"></i><span>${esc(s.area)}</span></div>
+                <div class="mp-actions">
+                    ${cfg.canOpenSchool ? `<a class="btn btn-primary btn-sm" href="${cfg.urls.school.replace('__ID__', s.key)}"><i class="bi bi-building"></i>Open school</a>` : ''}
+                    ${current.level !== 'school' ? `<button type="button" class="btn btn-soft-primary btn-sm" data-net-cluster="${s.cluster_id}" data-net-id="${s.id}"><i class="bi bi-zoom-in"></i>Show cluster</button>` : ''}
+                </div>
+            </div></div>`;
+    }
+    function renderNetPins(rows) {
+        areaLayer.clearLayers();
+        schoolLayer.clearLayers();
+        markers.clear();
+        const pts = [];
+        let noGps = 0;
+        rows.forEach((s) => {
+            if (s.lat === null || s.lng === null) { noGps++; return; }
+            const m = L.marker([s.lat, s.lng], { icon: netIcon({ net: s }), alt: s.name, siNet: s.state || 'none' })
+                .bindTooltip(`${esc(s.name)} · ${esc(netOf({ net: s }).label)}`, { direction: 'top', offset: [0, -(PIN + 2)], className: 'si-area-label' })
+                .bindPopup(netPopup(s));
+            schoolLayer.addLayer(m);
+            markers.set(s.id, m);
+            pts.push([s.lat, s.lng]);
+        });
+        $('mapNoGps').textContent = noGps ? `${fmt(noGps)} surveyed school(s) without GPS are listed but not drawn` : '';
+        if (pts.length) fitTo(map, pts, cfg, 15);
+        else if (current.level === 'district' && stateLayer) fitTo(map, stateLayer.getBounds(), cfg);
+        if (picked && markers.has(picked.id)) { const m = markers.get(picked.id); setTimeout(() => schoolLayer.zoomToShowLayer(m, () => m.openPopup()), 300); }
+    }
+
     async function renderNetTable() {
         const seq = ++netSeq;
         netDownloads(true, true);
@@ -427,6 +469,7 @@ if (el) {
         }
         if (seq !== netSeq || colourBy !== 'net') return; // a newer view or the colour changed meanwhile
         netDownloads(true, !data.rows.length);
+        renderNetPins(data.rows);
         $('mapTableTitle').innerHTML = `Schools surveyed for internet · ${esc(where)}
             <span class="text-xs text-muted fw-normal ms-1"><b class="text-danger">${fmt(data.no)}</b> no internet · <b class="text-success">${fmt(data.ok)}</b> OK${data.total > data.rows.length ? ` · showing the first ${fmt(data.rows.length)} of ${fmt(data.total)}` : ''}</span>`;
         const decl = (s) => (s.state !== 'no' && !s.last_date ? '—'
@@ -448,6 +491,7 @@ if (el) {
         if (colourBy === 'net') { renderNetTable(); return; }
         netSeq++; // drop a list still loading
         netDownloads(false);
+        $('mapNoGps').textContent = noGpsText;
         $('mapTableTitle').textContent = level === 'school' ? 'Schools in this cluster' : `${levelName[level]}-wise coverage and registered officers`;
         const head = $('mapTableHead');
         const body = $('mapTableBody');
@@ -577,6 +621,12 @@ if (el) {
     map.on('popupopen', (e) => {
         e.popup.getElement()?.querySelector('[data-drill]')?.addEventListener('click', (ev) => drill(+ev.currentTarget.dataset.drill));
         bindDirectionsPanel(e.popup.getElement()?.querySelector('.si-dir'), directions);
+        // 28-11-2026: Internet pin popup → open the school's cluster with that school focused
+        e.popup.getElement()?.querySelector('[data-net-cluster]')?.addEventListener('click', (ev) => {
+            const b = ev.currentTarget;
+            picked = { id: +b.dataset.netId, name: e.popup.getElement().querySelector('.mp-title')?.textContent || '' };
+            load('school', +b.dataset.netCluster, +b.dataset.netId);
+        });
     });
     $('mapTableBody').addEventListener('click', (e) => {
         const a = e.target.closest('[data-drill]');
@@ -586,7 +636,7 @@ if (el) {
         if (ns) {
             const id = +ns.dataset.netSchool;
             document.getElementById('mapCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            const m = current.level === 'school' && markers.get(id);
+            const m = markers.get(id); // the Internet pins are drawn at every level
             if (m) { schoolLayer.zoomToShowLayer(m, () => m.openPopup()); return; }
             picked = { id, name: ns.querySelector('.fw-semibold')?.textContent || '' };
             load('school', +ns.dataset.cluster, id);

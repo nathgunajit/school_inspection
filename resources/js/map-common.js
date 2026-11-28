@@ -96,11 +96,11 @@ export const OFFICE = {
     block: { name: 'Block office', short: 'Block office', icon: 'bi-house-door-fill', badge: 'B' },
 };
 
-export function officeIcon(type, px = 34) {
+export function officeIcon(type, px = 34, badge = true) {
     const o = OFFICE[type] || OFFICE.block;
     return L.divIcon({
         className: '',
-        html: `<span class="si-office office-${type}"${px !== 34 ? ` style="--pin:${px}px"` : ''} title="${o.name}"><i class="bi ${o.icon}"></i><b>${o.badge}</b></span>`,
+        html: `<span class="si-office office-${type}"${px !== 34 ? ` style="--pin:${px}px"` : ''}${badge ? ` title="${o.name}"` : ''}><i class="bi ${o.icon}"></i>${badge ? `<b>${o.badge}</b>` : ''}</span>`,
         iconSize: [px, px + 6],
         iconAnchor: [px / 2, px + 4],
         popupAnchor: [0, -px],

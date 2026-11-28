@@ -62,7 +62,7 @@ class ConnectivitySurvey
 
         $schools = School::query()->whereIn('id', array_keys($top))
             ->with(['cluster:id,name,code,block_id', 'cluster.block:id,name,code'])
-            ->get(['id', 'name', 'udise_code', 'cluster_id'])->keyBy('id');
+            ->get(['id', 'name', 'udise_code', 'cluster_id', 'latitude', 'longitude'])->keyBy('id');
 
         $out = [];
         foreach ($top as $id => $s) {
@@ -75,6 +75,8 @@ class ConnectivitySurvey
                 'name' => $school->name,
                 'udise' => $school->udise_code,
                 'cluster_id' => $school->cluster_id,
+                'lat' => $school->latitude !== null ? (float) $school->latitude : null, // 28-11-2026: map pins in Internet mode
+                'lng' => $school->longitude !== null ? (float) $school->longitude : null,
                 'area' => collect([$school->cluster?->label, $school->cluster?->block?->label])->filter()->implode(' · '),
                 'state' => $s['state'],
                 'reports' => $s['reports'],

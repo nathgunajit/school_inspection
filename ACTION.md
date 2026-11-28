@@ -3594,3 +3594,13 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - With the default sizes the output is the same as before, so the planner, schedule and school-page maps are unchanged.
 - Files: resources/js/map.js, resources/js/map-common.js, resources/scss/app.scss, CLAUDE.md.
 - Verification: `npm run build`; full suite 423 passed. Not yet checked in a browser.
+
+## 28-11-2026 · Map View: Internet shows school pins only; small office icons without text
+- With the **Internet** colour the map draws no district shapes and no district / block / cluster icons. It shows only the surveyed schools of the list below as pins, red = no internet and green = OK, at every level.
+  - `renderNetPins()` uses the `map.net-schools` rows, which now carry `lat` / `lng` (`ConnectivitySurvey::surveyedSchools()`).
+  - Hover shows the name and state. Click opens `netPopup()`: internet details, area, **Open school**, **Show cluster**.
+  - A list-row click opens the pin. Schools without GPS are counted in the note.
+  - The late district-outline callback no longer redraws areas over the pins. Status / Rating bring the area view back.
+- Offices (District HQ / Block office) on Map View: 20 px, icon only. `officeIcon(type, px, badge = false)` drops the "HQ" / "B" text and the duplicate title, and the name shows on hover. The defaults are unchanged for the other maps.
+- Files: app/Services/ConnectivitySurvey.php, resources/js/map.js, resources/js/map-common.js, resources/scss/app.scss, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
+- Verification: `npm run build`; full suite 423 passed (the test checks `lat` on the list rows). Not yet checked in a browser.
