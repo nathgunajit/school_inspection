@@ -3514,3 +3514,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - New `RequiredStarTest`: renders login, register, TLM / School / Location / AC-PC / Notice type masters, holidays, notice compose, coverage and Today's Schools settings and the profile, and checks, with the script's rules, that every required field has a label. It also checks that no red-text star remains.
 - Files: resources/js/required-star.js, resources/js/app.js, resources/scss/app.scss, resources/views/admin/schools/form.blade.php, resources/views/inspections/{step,partials/question}.blade.php, resources/views/holidays/index.blade.php, tests/Feature/RequiredStarTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 415 passed. Not yet checked in a browser.
+
+## 28-11-2026 · Map View: Exit full screen no longer disappears after zooming
+- Problem: in Full screen, after zooming in or out, the header row with the Full screen / Exit button was no longer visible.
+- Cause: the map had a fixed height (`calc(100vh - 9.5rem)`). Zooming changes the level, so the breadcrumb, the selected-filter chips and the key bar grow, and header + chips + key bar + map became taller than the screen. When Leaflet focused the map (`#map` tabindex -1), the browser scrolled the `overflow: hidden` full-screen layout to show the whole map, which pushed the header above the top edge with no way back.
+- Fix:
+  - `app.scss` `.map-layout.is-full`: the map column and card are a flex column filling the screen. The header, chips and key bar keep their size and `.si-map` takes the rest (`flex: 1`, `height: auto`, min 240 px), so the content never exceeds the screen.
+  - `map.js`: on lg and up the full-screen layout is held at `scrollTop = 0`, and a ResizeObserver on `#map` calls `invalidateSize()` while in full screen, as the map's height now follows the chips.
+- Files: resources/scss/app.scss, resources/js/map.js, CLAUDE.md.
+- Verification: `npm run build`; full suite 415 passed. Not yet checked in a browser.

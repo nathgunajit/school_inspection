@@ -1935,8 +1935,14 @@ $cov-mid: #e0a800;
 @include media-breakpoint-down(lg) { .map-card-full .si-map { height: max(360px, calc(100vh - 13rem)); } }
 .map-layout.is-full { position: fixed; inset: 0; z-index: 1035; margin: 0; padding: .75rem; background: $body-bg; overflow: auto;
     > [class*="col-"] { padding-top: 0; }
-    .map-card { height: 100%; scroll-margin-top: 0; }
-    .map-card-full .si-map, .si-map { height: calc(100vh - 9.5rem); }
+    // 28-11-2026: the map column is a flex column that fills the screen: the header (with Exit full screen), the filter
+    // chips and the colour key keep their size and the map takes what is left. A fixed map height let header + chips +
+    // map grow taller than the screen after zooming (more chips), and focusing the map then scrolled the header away.
+    > .col-lg-9 { height: calc(100vh - 1.5rem); height: calc(100dvh - 1.5rem); display: flex; flex-direction: column; min-height: 0; }
+    .map-card { flex: 1 1 auto; height: auto; min-height: 0; scroll-margin-top: 0; display: flex; flex-direction: column; }
+    .map-card > .card-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; position: relative;
+        > * { flex: 0 0 auto; } }
+    .map-card-full .si-map, .si-map { flex: 1 1 auto !important; height: auto !important; min-height: 240px; }
     .map-filters { max-height: calc(100vh - 1.5rem); overflow: auto; } }
 // 27-11-2026: in Full screen (desktop) nothing scrolls visibly: the page is fixed to the screen and the filter sidebar
 // stays in place without a scrollbar (a very short screen can still wheel / swipe through the filters)

@@ -556,6 +556,13 @@ if (el) {
         paintFull();
     });
     document.addEventListener('fullscreenchange', paintFull);
+    // 28-11-2026: in Full screen the layout never scrolls on wide screens (the map focusing itself after a zoom used to
+    // scroll the header with Exit full screen out of sight); phones keep their own scrolling for the filter panel
+    layout.addEventListener('scroll', () => {
+        if (isFull() && window.matchMedia('(min-width: 992px)').matches && layout.scrollTop) layout.scrollTop = 0;
+    }, { passive: true });
+    // the map's height follows the chips / key bar above it (they wrap to more lines when a level is picked)
+    if (window.ResizeObserver) new ResizeObserver(() => { if (isFull()) map.invalidateSize(); }).observe($('map'));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && layout.classList.contains('map-full-fixed')) { layout.classList.remove('map-full-fixed'); paintFull(); } });
     window.addEventListener('resize', () => map.invalidateSize());
 
