@@ -245,9 +245,6 @@ function refreshRules() {
         block.querySelector('.q-req')?.classList.toggle('d-none', !isRequired(q));
         const rem = block.querySelector('.q-remarks');
         if (rem) rem.classList.toggle('d-none', !(filled(v) && matches(v, q.remarks_if || [])));
-        // 28-11-2026: the signed-document box (NET_02) follows its answer
-        const dc = block.querySelector('.q-docs');
-        if (dc) dc.classList.toggle('d-none', !(filled(v) && q.document?.required_if && matches(v, q.document.required_if)));
         const ph = block.querySelector('.q-photos');
         if (ph) {
             const req = filled(v) && photoRequired(q, v);

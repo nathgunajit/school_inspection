@@ -59,6 +59,12 @@ class QuestionnaireDefinition
                 // Modification V9: no longer asked (hidden, not required). Codes kept so earlier answers stay readable.
                 ['code' => 'BAS_PERSON_NAME', 'label' => 'Name of the person met at the school', 'type' => 'text', 'hidden' => true],
                 ['code' => 'BAS_PERSON_DESIG', 'label' => 'Designation of the person met', 'type' => 'text', 'hidden' => true],
+                // Modification V11 item 2: optional; Yes opens a remarks box (reports.network). Never pre-filled.
+                // 25-11-2026: the remark is optional too (remarks_optional).
+                // 28-11-2026: asked first, when the form starts; Yes adds the Declaration section at the end of the form (NET_02, step 7).
+                ['code' => 'NET_01', 'label' => 'Internet / network problem at the school during this inspection', 'type' => 'radio', 'required' => false,
+                    'options' => self::YN, 'remarks_if' => ['yes'], 'remarks_optional' => true,
+                    'hint' => 'Tick Yes if the school has no internet / network now. You will then make a declaration at the end of the form.'],
                 ['code' => 'CND_01', 'label' => 'Type of School Building', 'type' => 'radio', 'required' => true,
                     'options' => ['pucca' => 'Pucca', 'semi_pucca' => 'Semi Pucca', 'others' => 'Others']],
                 $yn('CND_02', 'Boundary Wall'),
@@ -90,18 +96,6 @@ class QuestionnaireDefinition
                 ['code' => 'CND_26', 'label' => 'Tinkering Lab is Functional', 'type' => 'radio',
                     'options' => ['yes' => 'Yes', 'no' => 'No', 'na' => 'Not Applicable'],
                     'show_if' => ['CND_24', ['yes']], 'required_if' => ['CND_24', ['yes']]],
-                // Modification V11 item 2: optional; Yes opens a remarks box (reports.network). Never pre-filled.
-                // 25-11-2026: the remark is optional too (remarks_optional).
-                ['code' => 'NET_01', 'label' => 'Internet / network problem at the school during this inspection', 'type' => 'radio', 'required' => false,
-                    'options' => self::YN, 'remarks_if' => ['yes'], 'remarks_optional' => true,
-                    'hint' => 'Optional · if Yes, you may describe the problem (no signal, slow data, …)'],
-                // 28-11-2026: on Yes the officer ticks a declaration and attaches the declaration signed by the
-                // Block / District officer as a PDF (document evidence with question_code NET_02). Never pre-filled.
-                ['code' => 'NET_02', 'label' => 'Declaration: there was no internet / network at the school during this inspection, and the declaration signed by the Block / District officer is attached',
-                    'type' => 'multi', 'options' => ['agree' => 'I declare'],
-                    'show_if' => ['NET_01', ['yes']], 'required_if' => ['NET_01', ['yes']],
-                    'document' => ['required_if' => ['agree'], 'pdf_only' => true, 'label' => 'Signed declaration (PDF)'],
-                    'hint' => 'Download the declaration form, get it signed by the Block / District officer, then attach the scanned PDF'],
             ],
 
             2 => [
@@ -160,7 +154,16 @@ class QuestionnaireDefinition
                 $su('GOVR_24', 'TLM'),
             ],
 
-            7 => [],
+            // 28-11-2026: Declaration section at the end (shown only when NET_01 = Yes): the officer ticks the declaration and
+            // attaches the declaration form signed by the Block / District officer as a PDF (document evidence, question_code NET_02).
+            // Never pre-filled. Rendered after the photographs (step.blade.php), not with the photo questions.
+            7 => [
+                ['code' => 'NET_02', 'label' => 'Declaration: there was no internet / network at the school during this inspection; the details in this form are true, and the declaration signed by the Block / District officer is attached',
+                    'type' => 'multi', 'options' => ['agree' => 'I declare'],
+                    'show_if' => ['NET_01', ['yes']], 'required_if' => ['NET_01', ['yes']],
+                    'document' => ['required_if' => ['agree'], 'pdf_only' => true, 'label' => 'Signed declaration (PDF)'],
+                    'hint' => 'Download the declaration form (it holds everything you entered), get it signed by the Block / District officer, then attach the scanned PDF'],
+            ],
         ];
     }
 

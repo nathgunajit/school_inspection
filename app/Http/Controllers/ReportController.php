@@ -117,21 +117,19 @@ class ReportController extends Controller
     public function networkDeclaration(Inspection $inspection)
     {
         $this->authorize('view', $inspection);
-        $inspection->loadMissing(['school.district:id,code,name', 'school.block:id,code,name', 'school.cluster:id,code,name', 'officer.designation']);
-        $remark = $inspection->answers()->where('question_code', 'NET_01')->value('remarks');
-
-        $pdf = Pdf::loadView('inspections.network-declaration', [
-            'inspection' => $inspection,
-            'school' => $inspection->school,
-            'officer' => $inspection->officer,
-            'remark' => $remark,
-            'logos' => \App\Support\PdfLogos::all(),
-        ])->setPaper('a4');
+        // 28-11-2026: the inspection report itself (every detail entered, no photos) ending with the Declaration section
+        $data = $this->reportData($inspection) + ['logos' => \App\Support\PdfLogos::all(), 'generatedAt' => now(), 'declaration' => true];
 
         AuditLogger::log('network_declaration_downloaded', $inspection);
         $name = 'No-internet-declaration-'.($inspection->school?->udise_code ?? $inspection->id).'-'.substr((string) $inspection->inspection_date, 0, 10).'.pdf';
 
-        return response($pdf->output(), 200, [
+        $dompdf = Pdf::loadView('inspections.pdf', $data)->setPaper('a4')->getDomPDF();
+        $dompdf->render();
+        $font = $dompdf->getFontMetrics()->getFont('DejaVu Sans');
+        $canvas = $dompdf->getCanvas();
+        $canvas->page_text($canvas->get_width() - 40 - 62, $canvas->get_height() - 30, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7.5, [0.28, 0.33, 0.41]);
+
+        return response($dompdf->output(), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$name.'"',
             'Cache-Control' => 'private, no-store',

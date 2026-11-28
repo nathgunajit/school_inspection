@@ -8,6 +8,14 @@
     // answer tone dot: green / amber / red, from the same mapping as the web report
     $dot = fn ($v) => match (QD::tone(is_array($v) ? ($v[0] ?? null) : $v)) { 'tone-good' => 'g', 'tone-mid' => 'm', 'tone-bad' => 'b', default => '' };
     $sec = 0; // running section number
+    // 28-11-2026: declaration mode (ReportController::networkDeclaration()): the same entered details, no photos, then the
+    // no-internet declaration with the signature boxes of the officer and the Block / District officer
+    $declaration ??= false;
+    $docTitle = $declaration ? 'NO-INTERNET DECLARATION' : 'SCHOOL INSPECTION REPORT';
+    if ($declaration) { $photos = collect(); }
+    $netYes = in_array('yes', (array) ($answers['NET_01'] ?? null), true);
+    $declared = in_array('agree', (array) ($answers['NET_02'] ?? null), true);
+    $declDocs = $inspection->evidence->where('kind', 'document')->where('question_code', 'NET_02');
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -128,6 +136,19 @@
     .note { padding: 2mm 3mm; background: #f8fafc; border: .6px dashed #cbd5e1; border-radius: 1.4mm; color: #475569; }
 
     /* Signature */
+    /* 28-11-2026: no-internet declaration */
+    .decl { border: .8px solid #c9d8ee; border-left: 1.4mm solid #f39223; border-radius: 1.6mm; padding: 2.4mm 3mm; font-size: 8.6pt; }
+    .decl-tick td { vertical-align: top; }
+    .decl-tick td.bxw { width: 7mm; }
+    .decl-tick .bx { width: 5.4mm; height: 5.4mm; line-height: 5.4mm; border: 1px solid #334155; text-align: center; font-weight: bold; font-size: 10pt; color: #14532d; }
+    .decl-tick td + td { padding-left: 2.6mm; line-height: 1.45; }
+    .decl-sig { margin-top: 5mm; }
+    .decl-sig > tbody > tr > td, .decl-sig td { width: 50%; padding: 0 1.6mm; vertical-align: top; }
+    .decl-sig .box { border: .8px solid #64748b; border-radius: 1.4mm; padding: 2.4mm 3mm; height: 56mm; }
+    .decl-sig .role { font-size: 7.6pt; text-transform: uppercase; letter-spacing: .6pt; color: #0d47a1; font-weight: bold; margin-bottom: 1.4mm; }
+    .decl-sig .space { height: 17mm; border-bottom: .8px solid #334155; margin-bottom: 1.6mm; }
+    .decl-sig .row { padding: 1.1mm 0; border-bottom: .5px dotted #64748b; font-size: 8.4pt; }
+    .decl-note { margin-top: 3mm; font-size: 8pt; color: #334155; }
     .sig { margin-top: 16mm; page-break-inside: avoid; }
     .sig td { vertical-align: bottom; }
     .sig td.box { width: 42%; border-top: .8px solid #64748b; text-align: center; padding-top: 2mm; font-size: 8.5pt; }
@@ -142,7 +163,7 @@
         <td class="hd-center">
             <div class="hd-govt">GOVERNMENT OF ASSAM</div>
             <div class="hd-ssa">Samagra Shiksha Axom</div>
-            <div class="hd-title">SCHOOL INSPECTION REPORT</div>
+            <div class="hd-title">{{ $docTitle }}</div>
             <div class="hd-sub">School Monitoring and Assessment System</div>
         </td>
         <td class="hd-logo ssa">@if (! empty($logos['ssa']))<img src="{{ $logos['ssa'] }}" alt="Samagra Shiksha">@endif</td>
@@ -154,7 +175,7 @@
 </header>
 
 {{-- Background on every page (23-11-2026): faint SSA logo, title and SSA, ASSAM --}}
-@include('inspections.partials.pdf-watermark', ['logo' => $logos['ssa'] ?? null, 'title' => 'SCHOOL INSPECTION REPORT', 'top' => 82])
+@include('inspections.partials.pdf-watermark', ['logo' => $logos['ssa'] ?? null, 'title' => $docTitle, 'top' => 82])
 
 {{-- Footer, repeated on every page; "Page X of Y" is stamped by ReportController::pdf() --}}
 <footer>
@@ -249,9 +270,7 @@
                 @if ($i === $lead)</table></div>@php $open = false; @endphp<table class="qa">@endif
                 <tr class="{{ $i % 2 ? 'z' : '' }}">
                     <td class="no">{{ $i + 1 }}</td>
-                    <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif
-                        @if (is_array($q['document'] ?? null) && V::isFilled($a))@php $qDocs = $inspection->evidence->where('kind', 'document')->where('question_code', $q['code']); @endphp
-                            <div class="rem">{{ $q['document']['label'] ?? 'Document' }}: {{ $qDocs->isNotEmpty() ? 'attached ('.$qDocs->pluck('original_name')->implode(', ').')' : 'not attached' }}</div>@endif</td>
+                    <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif</td>
                     <td class="v">@if ($tone)<span class="d {{ $tone }}">●</span>@endif{{ QD::optionLabel($q['code'], $a) }}</td>
                 </tr>
             @endforeach
@@ -362,9 +381,52 @@
 
 {{-- Modification V9: the automatic rating is no longer printed --}}
 
+@if ($declaration || $netYes)
+    {{-- 28-11-2026: the no-internet Declaration, the last section (the declaration form ends with it; the report shows it when NET_01 = Yes) --}}
+    @php $sec++; @endphp
+    <div class="keep">
+    <table class="h"><tr><td class="n">{{ $sec }}</td><td class="t">Declaration · No internet at the school</td></tr></table><div class="h-rule"></div>
+    <div class="decl">
+        <table class="decl-tick"><tr>
+            <td class="bxw"><div class="bx">{{ $declared ? '✔' : '' }}</div></td>
+            <td>I, <b>{{ $inspection->officer->name }}</b>@if ($inspection->officer->designation_label), {{ $inspection->officer->designation_label }}@endif, declare that during this inspection of
+                <b>{{ $s->name }}</b> (UDISE {{ $s->udise_code }}) on <b>{{ \Illuminate\Support\Carbon::parse($inspection->inspection_date)->format('d-m-Y') }}</b> there was
+                <b>no internet / mobile network</b> at the school, and that the details recorded in this form are true to the best of my knowledge.</td>
+        </tr></table>
+        @if (! empty($remarks['NET_01']))<div class="rem" style="margin-top:1.6mm">Problem observed: {{ $remarks['NET_01'] }}</div>@endif
+        @unless ($declaration)
+            <div class="rem" style="margin-top:1.6mm">Declaration ticked: {{ $declared ? 'Yes' : 'No' }} · Signed declaration (PDF): {{ $declDocs->isNotEmpty() ? 'attached ('.$declDocs->pluck('original_name')->implode(', ').')' : 'not attached' }}</div>
+        @endunless
+    </div>
+    @if ($declaration)
+        <table class="decl-sig"><tr>
+            <td><div class="box">
+                <div class="role">Inspecting officer</div>
+                <div class="space"></div>
+                <div class="row">Name: <b>{{ $inspection->officer->name }}</b></div>
+                <div class="row">Designation: {{ $inspection->officer->designation_label ?? '—' }}</div>
+                <div class="row">Level: {{ $inspection->officer->level?->label() ?? '—' }}</div>
+                <div class="row">Date:</div>
+            </div></td>
+            <td><div class="box">
+                <div class="role">Verified by the Block / District officer</div>
+                <div class="space"></div>
+                <div class="row">Name:</div>
+                <div class="row">Designation:</div>
+                <div class="row">Office seal:</div>
+                <div class="row">Date:</div>
+            </div></td>
+        </tr></table>
+        <div class="decl-note">After signing, scan this form as a PDF and attach it in the app: last step, <b>Declaration</b> → Attach signed PDF. The inspection cannot be submitted without it.</div>
+    @endif
+    </div>
+@endif
+
+@unless ($declaration)
 <table class="sig"><tr>
     <td style="width:58%" class="muted">Date: {{ ($inspection->submitted_at ?? $generatedAt ?? now())->format('d M Y') }}</td>
     <td class="box"><div class="role">Signature of Inspecting Officer</div><b>{{ $inspection->officer->name }}</b><br><span class="muted">{{ $inspection->officer->designation_label }}</span></td>
 </tr></table>
+@endunless
 </body>
 </html>

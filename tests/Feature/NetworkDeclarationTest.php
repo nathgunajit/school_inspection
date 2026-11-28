@@ -39,9 +39,10 @@ class NetworkDeclarationTest extends TestCase
         return UploadedFile::fake()->createWithContent('signed.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
     }
 
+    /** Missing items of the last step, where the Declaration section is (28-11-2026). */
     private function step1(Inspection $i): \Illuminate\Support\Collection
     {
-        return collect((new InspectionValidator($i->fresh()))->missing()[1] ?? []);
+        return collect((new InspectionValidator($i->fresh()))->missing()[7] ?? []);
     }
 
     public function test_no_internet_needs_the_declaration_and_the_signed_pdf(): void
@@ -64,9 +65,14 @@ class NetworkDeclarationTest extends TestCase
         $this->attach($i, $this->pdf())->assertCreated()->assertJsonPath('question_code', 'NET_02');
         $this->assertFalse($this->step1($i)->pluck('code')->contains('NET_02'));
 
-        // shown on the wizard (the box), the review page and the Network Issues list
-        $this->get(route('inspections.step', [$i, 1]))->assertOk()->assertSee('data-doc-question="NET_02"', false)
-            ->assertSee(route('inspections.network-declaration', $i), false);
+        $this->assertSame(7, $i->answers()->where('question_code', 'NET_02')->value('step'));
+
+        // 28-11-2026: NET_01 is the first question of step 1; the Declaration section is the end of the last step
+        $step1 = $this->get(route('inspections.step', [$i, 1]))->assertOk()->assertDontSee('data-doc-question="NET_02"', false)->getContent();
+        $this->assertLessThan(strpos($step1, 'id="q-CND_01"'), strpos($step1, 'id="q-NET_01"'));
+        $step7 = $this->get(route('inspections.step', [$i, 7]))->assertOk()->assertSee('id="declaration"', false)
+            ->assertSee('data-doc-question="NET_02"', false)->assertSee(route('inspections.network-declaration', $i), false)->getContent();
+        $this->assertLessThan(strpos($step7, 'id="declaration"'), strpos($step7, 'id="doc-list"'), 'after the photographs and documents');
         $this->get(route('inspections.review', $i))->assertOk()->assertSee('Signed declaration (PDF)')->assertSee('signed.pdf');
         $district = $this->officer(UserLevel::District, $officer->currentJurisdiction->cluster);
         $this->actingAs($district)->get(route('reports.network'))->assertOk()->assertSee('Declared')->assertSee('Signed PDF');
@@ -81,6 +87,7 @@ class NetworkDeclarationTest extends TestCase
         $this->answer($i, 'NET_02', ['agree'])->assertOk();
         $this->answer($i, 'NET_01', 'no')->assertOk();
         $this->assertArrayNotHasKey('NET_02', array_filter($i->fresh()->answerMap()));
+        $this->get(route('inspections.step', [$i, 7]))->assertOk()->assertDontSee('id="declaration"', false);
         $this->assertFalse($this->step1($i)->pluck('code')->contains('NET_02'));
 
         // next visit: NET_01 / NET_02 are never copied
@@ -98,16 +105,34 @@ class NetworkDeclarationTest extends TestCase
         $officer = $this->officer(UserLevel::Cluster);
         $cluster = $officer->currentJurisdiction->cluster;
         $i = $this->startInspection($officer, $this->schoolIn($cluster));
-        $res = $this->actingAs($officer)->get(route('inspections.network-declaration', $i))->assertOk();
+        $this->actingAs($officer);
+        $this->postJson(route('inspections.answers', $i), ['code' => 'NET_01', 'value' => 'yes', 'remarks' => 'No signal'])->assertOk();
+        $this->answer($i, 'NET_02', ['agree'])->assertOk();
+        $this->answer($i, 'CND_01', 'pucca')->assertOk();
+        $this->answer($i, 'TSI_04', 3)->assertOk();
+        $this->answer($i, 'TSI_09', 2)->assertOk();
+        $this->postJson(route('inspections.teachers.store', $i), ['teacher_name' => 'Rina Kalita', 'teacher_type' => 'regular', 'reason' => 'CL'])->assertOk();
+
+        $res = $this->get(route('inspections.network-declaration', $i))->assertOk();
         $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
         $this->assertStringStartsWith('attachment;', $res->headers->get('Content-Disposition'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'network_declaration_downloaded', 'auditable_id' => $i->id]);
 
-        $html = view('inspections.network-declaration', ['inspection' => $i, 'school' => $i->school, 'officer' => $officer, 'remark' => 'No signal',
-            'logos' => ['assam' => null, 'ssa' => null]])->render();
-        foreach (['NO INTERNET', $i->school->udise_code, $officer->name, 'Verified by the Block / District officer', 'No signal', 'Samagra Shiksha Axom'] as $text) {
+        // the declaration form = every detail entered (no photos), then the Declaration with the tick and both signature boxes
+        $view = new \ReflectionMethod(\App\Http\Controllers\ReportController::class, 'reportData');
+        $data = $view->invoke(app(\App\Http\Controllers\ReportController::class), $i->fresh());
+        $html = view('inspections.pdf', $data + ['logos' => ['assam' => null, 'ssa' => null], 'generatedAt' => now(), 'declaration' => true])->render();
+        foreach (['NO-INTERNET DECLARATION', $i->school->udise_code, $officer->name, 'Pucca', 'Rina Kalita', 'Declaration · No internet at the school',
+            'Verified by the Block / District officer', 'No signal', '✔', 'Samagra Shiksha Axom'] as $text) {
             $this->assertStringContainsString(e($text), $html);
         }
+        $this->assertStringNotContainsString('Photographs of School', $html);
+        $this->assertStringNotContainsString('Signature of Inspecting Officer', $html);
+
+        // the normal report PDF also ends with the Declaration (tick + signed PDF status), without the sign-off boxes
+        $report = view('inspections.pdf', $data + ['logos' => ['assam' => null, 'ssa' => null], 'generatedAt' => now()])->render();
+        $this->assertStringContainsString('Declaration ticked: Yes · Signed declaration (PDF): not attached', $report);
+        $this->assertStringNotContainsString('Verified by the Block / District officer', $report);
 
         $outside = $this->officer(UserLevel::Cluster, $this->otherCluster($cluster));
         $this->actingAs($outside)->get(route('inspections.network-declaration', $i))->assertForbidden();

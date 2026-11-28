@@ -144,7 +144,7 @@
                                 @endif
                             @endforeach
                         </div>
-                    @elseif ($step !== 3) {{-- step 3 has no questions (ABS_00 hidden); it follows the step 2 numbers --}}
+                    @elseif ($step !== 3 && $step !== $lastStep) {{-- step 3 has no questions (ABS_00 hidden); the last step's (NET_02) go into the Declaration section below the photos --}}
                         @foreach ($questions as $i => $q)
                             {!! $groupHead($q['code']) !!}
                             @include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])
@@ -360,6 +360,22 @@
                         <div class="list-card border rounded-3 mb-2" id="doc-list"></div>
                         <label class="btn btn-soft-primary btn-sm"><i class="bi bi-paperclip"></i>Attach document
                             <input type="file" id="doc-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" class="d-none"></label>
+
+                        {{-- 28-11-2026: Declaration section, the last part of the form, only when step 1 says there is no internet (NET_01 = Yes) --}}
+                        @php $declQs = collect($questions)->filter(fn ($q) => \App\Questionnaire\InspectionValidator::visible($q, $answers))->values(); @endphp
+                        @if ($declQs->isNotEmpty())
+                            <section class="decl-card mt-4" id="declaration">
+                                <div class="q-group"><span class="q-group-icon"><i class="bi bi-pen"></i></span><span>Declaration <span class="text-secondary fw-normal">(no internet at the school · required)</span></span></div>
+                                <ol class="decl-steps text-sm">
+                                    <li><b>Download the declaration form.</b> It holds everything you entered in this inspection, the declaration and the signature boxes.</li>
+                                    <li>Print it, sign it, and get it <b>signed and sealed by the Block / District officer</b>.</li>
+                                    <li>Scan the signed form as a <b>PDF</b>, tick <b>I declare</b> below and attach the PDF.</li>
+                                </ol>
+                                @foreach ($declQs as $i => $q)
+                                    @include('inspections.partials.question', ['q' => $q, 'n' => $i + 1])
+                                @endforeach
+                            </section>
+                        @endif
                     @endif
 
                     <input type="file" id="gallery-input" accept=".jpg,.jpeg,.png,image/jpeg,image/png" class="d-none">
