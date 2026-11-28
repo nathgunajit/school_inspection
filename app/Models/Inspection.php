@@ -49,6 +49,7 @@ class Inspection extends Model
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'unlocked_at' => 'datetime',
+            'declaration_first_at' => 'datetime', 'declaration_last_at' => 'datetime', // 28-11-2026
             'start_lat' => 'float', 'start_lng' => 'float',
             'submit_lat' => 'float', 'submit_lng' => 'float',
         ];
@@ -146,6 +147,51 @@ class Inspection extends Model
         }
 
         return $this->verify_token;
+    }
+
+    /**
+     * 28-11-2026: the printed reference code of this inspection (SI-<district code>-<6 characters>), the same on the
+     * report PDF and the no-internet declaration form and shown on the scanned page. Made once; letters and digits
+     * that are easy to confuse (0/O, 1/I/L) are left out.
+     */
+    public function refCode(): string
+    {
+        if (! $this->ref_code) {
+            $district = (string) ($this->district_code ?: \App\Models\District::whereKey($this->district_id)->value('code') ?: 'XX');
+            do {
+                $code = 'SI-'.$district.'-'.collect(range(1, 6))->map(fn () => '23456789ABCDEFGHJKMNPQRSTUVWXYZ'[random_int(0, 30)])->implode('');
+            } while (static::withTrashed()->where('ref_code', $code)->exists());
+            \Illuminate\Support\Facades\DB::table($this->getTable())->where('id', $this->id)->update(['ref_code' => $code]); // no updated_at change
+            $this->setAttribute('ref_code', $code);
+            $this->syncOriginalAttribute('ref_code');
+        }
+
+        return $this->ref_code;
+    }
+
+    /** 28-11-2026: note a download of the no-internet declaration form (first / last time, count), without touching updated_at. */
+    public function markDeclarationDownloaded(): void
+    {
+        $now = now();
+        $first = $this->declaration_first_at ?? $now;
+        $count = (int) $this->declaration_downloads + 1;
+        \Illuminate\Support\Facades\DB::table($this->getTable())->where('id', $this->id)
+            ->update(['declaration_first_at' => $first, 'declaration_last_at' => $now, 'declaration_downloads' => $count]);
+        foreach (['declaration_first_at' => $first, 'declaration_last_at' => $now, 'declaration_downloads' => $count] as $k => $v) {
+            $this->setAttribute($k, $v);
+            $this->syncOriginalAttribute($k);
+        }
+    }
+
+    /**
+     * 28-11-2026: other, not-cancelled inspections of the same school on the same day (a possible duplicate entry),
+     * for the scanned page.
+     */
+    public function sameDayRecords()
+    {
+        return static::query()->where('school_id', $this->school_id)->where('inspection_date', $this->getRawOriginal('inspection_date'))
+            ->whereKeyNot($this->id)->where('status', '!=', InspectionStatus::Cancelled)
+            ->with('officer:id,name')->orderBy('id')->get(['id', 'officer_id', 'officer_level', 'status', 'ref_code', 'inspection_no', 'started_at']);
     }
 
     /** Absolute link of the public, view-only page (the QR on the inspection PDF). */

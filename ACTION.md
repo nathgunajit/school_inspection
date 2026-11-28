@@ -3617,3 +3617,17 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - new test: notice for tomorrow, then the District Programmer adds a local holiday tomorrow. Tomorrow's list and alert are gone, the list and alert are for the day after, another district's officer is untouched, and deleting the holiday gives tomorrow its list and notice again;
   - the same test fails with the switch off (4 schools left on the holiday);
   - full suite 424 passed.
+
+## 28-11-2026 · Reference code on both PDFs, declaration download time, school category on the form, Find School lists all schools
+- **Reference code** (user choice: printed reference code):
+  - `inspections.ref_code`, `SI-<district code>-<6 characters>` without look-alike characters, made once. It is printed under the QR on the inspection report PDF and on the no-internet declaration form ("Ref. …"), so both papers for the school carry the same code.
+  - The scanned (public) page shows it, plus a **Check for duplicate entry** warning that lists other not-cancelled records of the same school that day.
+- **Declaration download time:**
+  - Each download of the no-internet declaration form is kept against the record (first / last time, count), also for drafts that are not submitted.
+  - The form prints "Form downloaded: …, Inspection status, Reference code". The audit entry carries the time, the download number and the status.
+  - Network Issues list: new column **Form downloaded** (time, count, status, code), with the start time under the date. Its PDF has "Date & time" and "Declaration form downloaded".
+- **School category** on the inspection form: wizard step 1 info card ("School category", management below).
+- **Find School bug:** the page showed no school until something was typed or a filter was picked, so it looked like schools were missing. It now lists every school of the officer's area (paginated, not inspected first). The search and filters still narrow it.
+- Migration `2026_11_28_000005` (run on MySQL; the new datetime columns have no ON UPDATE).
+- Files: database/migrations/2026_11_28_000005_*.php, app/Models/Inspection.php, app/Http/Controllers/{ReportController,InspectionVerifyController,NetworkIssueController,SchoolController}.php, resources/views/inspections/{pdf,verify,step}.blade.php, resources/views/reports/network/index.blade.php, tests/Feature/{DeclarationRefCodeTest,InspectionVerifyTest}.php, CLAUDE.md.
+- Verification: full suite 428 passed (new `DeclarationRefCodeTest`). Not yet checked in a browser or on paper.

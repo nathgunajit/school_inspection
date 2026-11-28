@@ -26,20 +26,18 @@ class SchoolController extends Controller
     {
         $user = $request->user();
         $q = trim((string) $request->q);
-        $searched = $q !== '' || $request->filled('district_id') || $request->filled('block_id') || $request->filled('cluster_id');
-
-        $schools = $searched
-            ? $this->listQuery($user, $request)
-                ->with(['block', 'cluster', 'category', 'latestRatedInspection.rating']) // V6 Module 9: current rating
-                // badges in the result list: my inspection today, last submitted inspection
-                ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
-                    ->where('inspection_date', today()->toDateString())->where('status', '!=', InspectionStatus::Cancelled)])
-                // Modification V3: another officer's open draft / completed by another officer this month
-                ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
-                ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherInWindow($user)])
-                ->withExists(['inspections as other_level_today' => InspectionStartGuard::otherLevelToday($user)]) // 26-11-2026
-                ->paginate(config('inspection.per_page'))->withQueryString()
-            : null;
+        // 28-11-2026: every school of the officer's area is listed (paginated, not inspected first) even without a
+        // search; the search and the filters narrow it. Before, the page showed no school until something was typed.
+        $schools = $this->listQuery($user, $request)
+            ->with(['block', 'cluster', 'category', 'latestRatedInspection.rating']) // V6 Module 9: current rating
+            // badges in the result list: my inspection today, last submitted inspection
+            ->withExists(['inspections as mine_today' => fn ($w) => $w->where('officer_id', $user->id)
+                ->where('inspection_date', today()->toDateString())->where('status', '!=', InspectionStatus::Cancelled)])
+            // Modification V3: another officer's open draft / completed by another officer this month
+            ->withExists(['inspections as other_draft' => InspectionStartGuard::otherDraft($user)])
+            ->withExists(['inspections as other_this_month' => InspectionStartGuard::otherInWindow($user)])
+            ->withExists(['inspections as other_level_today' => InspectionStartGuard::otherLevelToday($user)]) // 26-11-2026
+            ->paginate(config('inspection.per_page'))->withQueryString();
 
         // Live search (typing): return only the result list
         if ($request->ajax()) {

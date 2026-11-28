@@ -63,9 +63,11 @@ class NetworkIssueController extends Controller
         $remarks = InspectionAnswer::whereIn('inspection_id', $list->pluck('id'))->where('question_code', 'NET_01')->pluck('remarks', 'inspection_id');
         $decl = self::declarations($list->pluck('id')->all());
         $rows = $list->values()->map(fn ($i, $n) => [
-            $n + 1, $i->inspection_date->format('d-m-Y'), $i->school->udise_code, $i->school->name, $i->block?->label, $i->district?->label,
+            // 28-11-2026: date with the start time; Status says when it is not submitted; when the declaration form was downloaded
+            $n + 1, $i->inspection_date->format('d-m-Y').($i->started_at ? ' '.$i->started_at->format('h:i A') : ''), $i->school->udise_code, $i->school->name, $i->block?->label, $i->district?->label,
             $i->officer->name, $i->status->label(), filled($remarks[$i->id] ?? null) ? $remarks[$i->id] : 'No remark',
             self::declarationText($decl[$i->id] ?? null),
+            $i->declaration_last_at ? $i->declaration_last_at->format('d-m-Y h:i A').' ('.(int) $i->declaration_downloads.'×)'.($i->ref_code ? ' · '.$i->ref_code : '') : 'Not downloaded',
         ])->all();
 
         $chips = array_values(array_filter([
@@ -78,7 +80,7 @@ class NetworkIssueController extends Controller
         AuditLogger::log('network_issues_exported', null, ['format' => 'pdf', 'filters' => array_filter($f), 'rows' => count($rows)]);
 
         return MasterPdf::download('Network Issues at Schools',
-            ['Sl', 'Date', 'UDISE', 'School', 'Block', 'District', 'Officer', 'Status', 'Problem reported', 'Declaration'],
+            ['Sl', 'Date & time', 'UDISE', 'School', 'Block', 'District', 'Officer', 'Status', 'Problem reported', 'Declaration', 'Declaration form downloaded'],
             $rows, $chips, 'network-issues-'.now()->format('Y-m-d').'.pdf');
     }
 

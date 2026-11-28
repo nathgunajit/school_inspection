@@ -56,6 +56,7 @@
     .sc-top td.sc-qr { width: 25mm; text-align: center; padding-left: 3mm; }
     .sc-qr img { width: 22mm; height: 22mm; background: #fff; border: .5px solid #cbd5e1; }
     .sc-qr-cap { font-size: 6.2pt; color: #334155; line-height: 1.25; margin-top: .6mm; }
+    .sc-ref { font-size: 6.8pt; font-weight: bold; color: #0f172a; margin-top: .5mm; font-family: DejaVu Sans Mono, monospace; } /* 28-11-2026 */
     .sc-label { font-size: 6.8pt; letter-spacing: 1.6pt; color: #1565c0; font-weight: bold; }
     .sc-name { font-size: 14.5pt; font-weight: bold; color: #0f172a; line-height: 1.2; margin-top: .6mm; }
     .sc-chip { display: inline-block; padding: .3mm 2mm; margin: 1.4mm 1.2mm 0 0; border-radius: 2mm; background: #fff; border: .5px solid #cbd5e1; color: #334155; font-size: 7.5pt; }
@@ -202,7 +203,7 @@
         </td>
         {{-- 28-11-2026: scan to open this report online (public, view-only page; ReportController::qrData()) --}}
         @if (! empty($qr))
-            <td class="sc-qr"><img src="{{ $qr }}" alt="QR code"><div class="sc-qr-cap">Scan to view this<br>report online</div></td>
+            <td class="sc-qr"><img src="{{ $qr }}" alt="QR code"><div class="sc-qr-cap">Scan to view this<br>report online</div>@if (! empty($refCode))<div class="sc-ref">Ref. {{ $refCode }}</div>@endif</td>
         @endif
     </tr></table></div>
     <table class="sc-grid"><tr>
@@ -426,6 +427,8 @@
                 <div class="row">Date:</div>
             </div></td>
         </tr></table>
+        {{-- 28-11-2026: when this form was downloaded for the school (kept with the record, drafts too) and the shared reference code --}}
+        <div class="decl-note">Form downloaded: <b>{{ $inspection->declaration_last_at?->format('d-m-Y h:i A') ?? now()->format('d-m-Y h:i A') }}</b>@if ((int) $inspection->declaration_downloads > 1) (download {{ $inspection->declaration_downloads }}, first {{ $inspection->declaration_first_at?->format('d-m-Y h:i A') }})@endif · Inspection status: <b>{{ $inspection->status->label() }}</b>@if (! empty($refCode)) · Reference code: <b>{{ $refCode }}</b> (the same code is printed on the inspection report of this school)@endif</div>
         <div class="decl-note">After signing, scan this form as a PDF and attach it in the app: last step, <b>Declaration</b> → Attach signed PDF. The inspection cannot be submitted without it.</div>
     @endif
     </div>

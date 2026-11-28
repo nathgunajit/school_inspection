@@ -118,11 +118,15 @@ class ReportController extends Controller
     public function networkDeclaration(Inspection $inspection)
     {
         $this->authorize('view', $inspection);
+        // 28-11-2026: the time of this download is kept against the school's record (first / last / count), drafts too
+        $inspection->markDeclarationDownloaded();
         // 28-11-2026: the inspection report itself (every detail entered, no photos) ending with the Declaration section
         $data = $this->reportData($inspection) + ['logos' => \App\Support\PdfLogos::all(), 'generatedAt' => now(), 'declaration' => true]
             + self::qrData($inspection);
 
-        AuditLogger::log('network_declaration_downloaded', $inspection);
+        AuditLogger::log('network_declaration_downloaded', $inspection, ['ref_code' => $data['refCode'] ?? null,
+            'downloaded_at' => $inspection->declaration_last_at?->toDateTimeString(), 'download_no' => $inspection->declaration_downloads,
+            'status' => $inspection->status->value]);
         $name = 'No-internet-declaration-'.($inspection->school?->udise_code ?? $inspection->id).'-'.substr((string) $inspection->inspection_date, 0, 10).'.pdf';
 
         $dompdf = Pdf::loadView('inspections.pdf', $data)->setPaper('a4')->getDomPDF();
@@ -229,11 +233,12 @@ class ReportController extends Controller
     public static function qrData(Inspection $inspection): array
     {
         if ($inspection->status === \App\Enums\InspectionStatus::Cancelled) {
-            return ['verifyUrl' => null, 'qr' => null];
+            return ['verifyUrl' => null, 'qr' => null, 'refCode' => null];
         }
         $url = $inspection->verifyUrl();
 
-        return ['verifyUrl' => $url, 'qr' => \App\Support\QrCode::dataUri($url)];
+        // 28-11-2026: the same printed reference code on the report PDF and the declaration form (and the scanned page)
+        return ['verifyUrl' => $url, 'qr' => \App\Support\QrCode::dataUri($url), 'refCode' => $inspection->refCode()];
     }
 
     /** The report data (web report, PDF, declaration form). */

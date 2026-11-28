@@ -29,12 +29,19 @@
                 </div>
                 <dl class="verify-facts">
                     <div><dt>Inspection ID</dt><dd class="font-monospace">{{ $inspection->inspection_no ?? 'Draft · not submitted' }}</dd></div>
+                    @if ($refCode ?? null)<div><dt>Reference code</dt><dd class="font-monospace">{{ $refCode }}<small>Same code on the report and the declaration form</small></dd></div>@endif
+                    @if ($inspection->declaration_last_at)<div><dt>Declaration form downloaded</dt><dd>{{ $inspection->declaration_last_at->format('d M Y, h:i A') }}<small>{{ (int) $inspection->declaration_downloads }} time(s)</small></dd></div>@endif
                     <div><dt>Inspection date</dt><dd>{{ $inspection->inspection_date->format('d M Y') }}</dd></div>
                     @unless ($cancelled)
                         <div><dt>Inspecting officer</dt><dd>{{ $inspection->officer?->name }}<small>{{ $inspection->officer?->designation_label ?? $inspection->officer?->level?->label() }}</small></dd></div>
                         <div><dt>Submitted</dt><dd>{{ $inspection->submitted_at?->format('d M Y, h:i A') ?? 'Not yet' }}</dd></div>
                     @endunless
                 </dl>
+                {{-- 28-11-2026: possible duplicate entry: another record of the same school on the same day --}}
+                @if (($sameDay ?? collect())->isNotEmpty())
+                    <div class="verify-note is-warn"><i class="bi bi-files"></i><span><b>Check for duplicate entry:</b> {{ $sameDay->count() }} other record(s) of this school on this day:
+                        @foreach ($sameDay as $o){{ $o->ref_code ?? $o->inspection_no ?? 'draft' }} ({{ $o->status->label() }}, {{ $o->officer_level ? ucfirst($o->officer_level) : '' }} level){{ $loop->last ? '.' : '; ' }}@endforeach</span></div>
+                @endif
                 @if ($inspection->status->value === 'draft')
                     <div class="verify-note is-warn"><i class="bi bi-exclamation-triangle"></i>This inspection is a <b>draft</b>: it was not submitted yet, so the details below may still change.</div>
                 @elseif ($inspection->status->value === 'unlocked')

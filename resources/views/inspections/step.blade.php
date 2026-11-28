@@ -82,6 +82,8 @@
                         <div class="info-card mt-2 mb-1">
                             <div><span>Officer</span><strong>{{ $inspection->officer_id === auth()->id() ? 'You' : $inspection->officer->name }}</strong><small>{{ $inspection->officer->designation_label ?? $inspection->officer->level->label() }}</small></div>
                             <div><span>School</span><strong>{{ $inspection->school->name }}</strong><small class="font-monospace">UDISE {{ $inspection->school->udise_code }}</small></div>
+                            {{-- 28-11-2026: the school category on the inspection form --}}
+                            <div><span>School category</span><strong>{{ $inspection->school->category?->label ?? 'Not set' }}</strong><small>{{ $inspection->school->management?->label ?? 'Management not set' }}</small></div>
                             <div><span>Date &amp; time</span><strong>{{ $inspection->started_at->format('d M Y, h:i A') }}</strong><small>Recorded by server</small></div>
                             <div><span>Location</span>
                                 @if ($inspection->start_lat)

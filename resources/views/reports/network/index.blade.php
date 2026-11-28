@@ -38,11 +38,11 @@
     <div class="card">
         <div class="table-responsive">
             <table class="table align-middle mb-0">
-                <thead><tr><th>Date</th><th>School</th><th>Block / District</th><th>Officer</th><th>Problem reported</th><th>Declaration</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>School</th><th>Block / District</th><th>Officer</th><th>Problem reported</th><th>Declaration</th><th class="text-nowrap">Form downloaded</th><th></th></tr></thead>
                 <tbody>
                 @forelse ($rows as $i)
                     <tr>
-                        <td class="text-sm text-nowrap">{{ $i->inspection_date->format('d M Y') }}</td>
+                        <td class="text-sm text-nowrap">{{ $i->inspection_date->format('d M Y') }}<div class="text-xs text-secondary">{{ $i->started_at?->format('h:i A') }}</div></td>
                         <td><div class="fw-semibold">{{ $i->school->name }}</div><div class="text-xs text-secondary font-monospace">UDISE {{ $i->school->udise_code }}</div></td>
                         <td class="text-sm">{{ $i->block?->label }}<div class="text-xs text-secondary">{{ $i->district?->label }}</div></td>
                         <td class="text-sm">{{ $i->officer->name }}</td>
@@ -52,13 +52,15 @@
                             @if ($dc && $dc['ticked'])<span class="rs-chip ok"><i class="bi bi-check2"></i>Declared</span>@else<span class="rs-chip bad"><i class="bi bi-x-circle"></i>Not declared</span>@endif
                             <div class="mt-1">@forelse ($dc['docs'] ?? [] as $d)<a href="{{ route('evidence.show', [$d, 'download' => 1]) }}" download data-no-loader class="text-xs"><i class="bi bi-file-earmark-pdf text-danger"></i> Signed PDF</a>@empty<span class="text-xs text-danger">Signed PDF missing</span>@endforelse</div>
                         </td>
+                        {{-- 28-11-2026: when the no-internet declaration form was downloaded for this school (drafts too) --}}
+                        <td class="text-sm text-nowrap">@if ($i->declaration_last_at){{ $i->declaration_last_at->format('d M Y, h:i A') }}<div class="text-xs text-secondary">{{ (int) $i->declaration_downloads }}× · {{ $i->status->label() }}@if ($i->ref_code) · {{ $i->ref_code }}@endif</div>@else<span class="text-xs text-secondary">Not downloaded</span>@endif</td>
                         <td class="text-end text-nowrap">
                             @if ($i->status->value === 'draft')<x-status-badge :status="$i->status" />
                             @else<a href="{{ route('inspections.show', $i) }}" class="btn btn-sm btn-soft-primary">View</a>@endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7"><x-empty-state icon="bi-wifi" title="No network issues reported" text="Officers report them on step 1 of the inspection." /></td></tr>
+                    <tr><td colspan="8"><x-empty-state icon="bi-wifi" title="No network issues reported" text="Officers report them on step 1 of the inspection." /></td></tr>
                 @endforelse
                 </tbody>
             </table>

@@ -35,6 +35,9 @@ class InspectionVerifyController extends Controller
             'photos' => collect(), // photographs stay private
             'photoCategories' => collect(),
             'suggestions' => $inspection->remarks->where('type', 'suggestion')->pluck('body')->filter()->values(),
+            // 28-11-2026: the printed reference code (report PDF + declaration form) and other records of this school that day
+            'refCode' => $inspection->ref_code,
+            'sameDay' => $inspection->status === InspectionStatus::Cancelled ? collect() : $inspection->sameDayRecords(),
         ]));
     }
 

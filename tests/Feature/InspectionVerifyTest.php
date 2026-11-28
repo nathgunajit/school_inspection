@@ -46,7 +46,7 @@ class InspectionVerifyTest extends TestCase
 
         // a cancelled inspection gets no QR
         $i->forceFill(['status' => InspectionStatus::Cancelled])->save();
-        $this->assertSame(['verifyUrl' => null, 'qr' => null], ReportController::qrData($i));
+        $this->assertSame(['verifyUrl' => null, 'qr' => null, 'refCode' => null], ReportController::qrData($i));
     }
 
     public function test_anyone_scanning_sees_the_report_read_only_without_photos(): void
