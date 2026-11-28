@@ -165,7 +165,7 @@
                         </div>
                         <label class="form-label">Remarks <span class="opt">optional</span></label>
                         <input name="remarks" value="{{ $addOld('remarks') }}" maxlength="200" class="form-control mb-3" placeholder="e.g. One copy per child">
-                        <div class="mb-3">@include('admin.tlm.partials.categories', ['idp' => 'tlm-cat-new', 'selected' => $addOld('category_ids', []), 'error' => old('_edit') ? null : $errors->first('category_ids.*')])</div>
+                        <div class="mb-3">@include('admin.tlm.partials.categories', ['idp' => 'tlm-cat-new', 'selected' => old('_edit') ? \App\Models\TlmItem::lowerPrimaryCategoryIds() : old('category_ids', session()->hasOldInput() ? [] : \App\Models\TlmItem::lowerPrimaryCategoryIds()), 'error' => old('_edit') ? null : $errors->first('category_ids.*')])</div>
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>
                 </div>

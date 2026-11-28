@@ -438,6 +438,7 @@ function renderTlm(keep) {
     const yes = form.querySelector('input[name="tlm_used"]:checked')?.value === 'yes';
     const all = SI.tlmItems || [];
     tlmBlock.classList.toggle('d-none', !yes || !all.length);
+    document.getElementById('tlm-none')?.classList.toggle('d-none', !yes || all.length > 0); // 28-11-2026: no list for this category
     const labels = SI.tlmClasses || {};
     const lists = SI.tlmLists || { fln: 'FLN TLM' };
     const chip = (t) => `<input type="checkbox" class="btn-check" name="tlm_items[]" id="tlm_i_${esc(t.id)}" value="${esc(t.id)}"${ticked.includes(String(t.id)) ? ' checked' : ''}>`

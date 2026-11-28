@@ -233,6 +233,8 @@
                                     <label class="form-label text-sm d-block">Which TLM was used? <span class="req">*</span> <span class="text-xs text-secondary">tick all that apply</span></label>
                                     <div class="tlm-pick" role="group" aria-label="TLM items used" data-field="tlm_items" data-tlm-list></div>
                                 </div>
+                                {{-- 28-11-2026: TLM lists are for lower primary (school categories with Class 1–5) --}}
+                                <div class="col-12 d-none" id="tlm-none"><div class="text-xs text-secondary"><i class="bi bi-info-circle me-1"></i>No TLM list for this school's category: the FLN and ECCE TLM lists are for lower primary (Class 1–5).</div></div>
                                 <div class="col-md-6"><label class="form-label text-sm d-block">Participation of students <span class="req">*</span></label>
                                     <div class="choice-group seg" data-field="participation">@foreach (CO::PARTICIPATION as $k => $l)<input type="radio" name="participation" id="part_{{ $k }}" value="{{ $k }}" required><label for="part_{{ $k }}" class="{{ $k === 'satisfactory' ? 'tone-good' : 'tone-bad' }}">{{ $l }}</label>@endforeach</div></div>
                                 <div class="col-12"><label class="form-label text-sm" for="c_remarks">Remarks</label><input id="c_remarks" name="remarks" class="form-control" maxlength="500" placeholder="Optional"></div>

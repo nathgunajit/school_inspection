@@ -20,6 +20,36 @@ class TlmItem extends Model
 
     protected $casts = ['is_active' => 'boolean', 'variety' => 'integer', 'sort' => 'integer', 'category_ids' => 'array'];
 
+    /** 28-11-2026: every TLM list (FLN and ECCE) is for lower primary: the school categories that have Class 1–5. */
+    public const LOWER_PRIMARY_CATEGORIES = ['primary', 'primary_upper', 'secondary_full', 'pr_to_hsec'];
+
+    /** @return int[] the master_values ids of LOWER_PRIMARY_CATEGORIES, sorted */
+    public static function lowerPrimaryCategoryIds(): array
+    {
+        $ids = MasterValue::where('type', 'category')->whereIn('code', self::LOWER_PRIMARY_CATEGORIES)->pluck('id')->map(fn ($v) => (int) $v)->all();
+        sort($ids);
+
+        return $ids;
+    }
+
+    /** Tag every item that has no category with the lower-primary categories (items already narrowed are left alone). Returns the rows changed. */
+    public static function applyLowerPrimaryDefault(): int
+    {
+        $ids = self::lowerPrimaryCategoryIds();
+        if (! $ids) {
+            return 0; // the category master is not loaded yet
+        }
+        $n = 0;
+        foreach (static::query()->get(['id', 'category_ids']) as $item) {
+            if (empty($item->category_ids)) {
+                $item->forceFill(['category_ids' => $ids])->saveQuietly();
+                $n++;
+            }
+        }
+
+        return $n;
+    }
+
     /**
      * 28-11-2026: is this item used for schools of this category? No category ticked = every category;
      * a school without a category gets every item.

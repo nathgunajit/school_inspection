@@ -41,6 +41,38 @@ class TlmCategoryTest extends TestCase
             ->assertSessionHasErrorsIn('edit', 'category_ids.0');
     }
 
+    /** 28-11-2026: every TLM list is for lower primary (the categories with Class 1–5). */
+    public function test_tlm_items_default_to_lower_primary_categories(): void
+    {
+        $lower = array_map(fn ($c) => $this->cat($c), ['primary', 'primary_upper', 'secondary_full', 'pr_to_hsec']);
+        sort($lower);
+        $this->assertSame($lower, TlmItem::lowerPrimaryCategoryIds());
+
+        $narrowed = TlmItem::create(['list' => 'fln', 'class' => null, 'name' => 'Primary Chart', 'category_ids' => [$this->cat('primary')], 'is_active' => true]);
+        $untagged = TlmItem::whereNull('category_ids')->count();
+        $this->assertGreaterThan(0, $untagged);
+        $this->assertSame($untagged, TlmItem::applyLowerPrimaryDefault());
+        $this->assertSame(0, TlmItem::whereNull('category_ids')->count());
+        $this->assertSame([$this->cat('primary')], $narrowed->fresh()->category_ids, 'an item already narrowed is left alone');
+        $this->assertSame(0, TlmItem::applyLowerPrimaryDefault(), 'runs once');
+
+        // an Upper Primary only school gets no TLM list; TLM = Yes then needs no tick, and the form says why
+        $officer = $this->officer(UserLevel::Cluster);
+        $school = $this->schoolIn($officer->currentJurisdiction->cluster);
+        $school->update(['category_id' => $this->cat('upper_primary')]);
+        $i = $this->startInspection($officer, $school);
+        $step = $this->actingAs($officer)->get(route('inspections.step', [$i, 4]))->assertOk()->assertSee('id="tlm-none"', false);
+        $this->assertSame([], $step->viewData('tlmItems'));
+        $this->postJson(route('inspections.classrooms.store', $i), ['teacher_name' => 'Bijoy Das', 'class' => 'VII', 'subject' => 'Science', 'tlm_used' => 'yes', 'participation' => 'satisfactory'])->assertOk();
+
+        // the TLM master Add form starts with the lower-primary categories ticked
+        $html = $this->actingAs($this->admin())->get(route('admin.tlm.index'))->assertOk()->getContent();
+        foreach ($lower as $id) {
+            $this->assertMatchesRegularExpression('/id="tlm-cat-new-'.$id.'" checked/', $html);
+        }
+        $this->assertDoesNotMatchRegularExpression('/id="tlm-cat-new-'.$this->cat('secondary_only').'" checked/', $html);
+    }
+
     public function test_step_four_offers_only_the_items_of_the_school_category(): void
     {
         $primary = $this->cat('primary');
