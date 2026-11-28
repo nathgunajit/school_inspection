@@ -52,6 +52,10 @@
     /* School card */
     .sc { border: .6px solid #c9d8ee; border-left: 1.4mm solid #1565c0; border-radius: 1.6mm; margin-bottom: 1mm; }
     .sc-head { padding: 3mm 4mm 2.6mm; background: #f5f8fd; }
+    .sc-top td { vertical-align: top; padding: 0; }
+    .sc-top td.sc-qr { width: 25mm; text-align: center; padding-left: 3mm; }
+    .sc-qr img { width: 22mm; height: 22mm; background: #fff; border: .5px solid #cbd5e1; }
+    .sc-qr-cap { font-size: 6.2pt; color: #334155; line-height: 1.25; margin-top: .6mm; }
     .sc-label { font-size: 6.8pt; letter-spacing: 1.6pt; color: #1565c0; font-weight: bold; }
     .sc-name { font-size: 14.5pt; font-weight: bold; color: #0f172a; line-height: 1.2; margin-top: .6mm; }
     .sc-chip { display: inline-block; padding: .3mm 2mm; margin: 1.4mm 1.2mm 0 0; border-radius: 2mm; background: #fff; border: .5px solid #cbd5e1; color: #334155; font-size: 7.5pt; }
@@ -186,7 +190,7 @@
 
 {{-- School identity card --}}
 <div class="sc">
-    <div class="sc-head">
+    <div class="sc-head"><table class="sc-top"><tr><td>
         <div class="sc-label">SCHOOL</div>
         <div class="sc-name">{{ $s->name }}</div>
         <div>
@@ -195,7 +199,12 @@
             {{-- 23-11-2026: limited school data; school type, rural / urban and medium are not printed --}}
             <span class="sc-chip st">{{ $inspection->status->label() }}</span>
         </div>
-    </div>
+        </td>
+        {{-- 28-11-2026: scan to open this report online (public, view-only page; ReportController::qrData()) --}}
+        @if (! empty($qr))
+            <td class="sc-qr"><img src="{{ $qr }}" alt="QR code"><div class="sc-qr-cap">Scan to view this<br>report online</div></td>
+        @endif
+    </tr></table></div>
     <table class="sc-grid"><tr>
         <td class="c1"><div class="lbl">UDISE Code</div><div class="val mono">{{ $s->udise_code }}</div></td>
         <td class="c2"><div class="lbl">District</div><div class="val">{{ $s->district?->label ?? '—' }}</div></td>

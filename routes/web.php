@@ -27,6 +27,10 @@ Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'logi
 Route::get('/locations/{type}', LocationLookupController::class)->whereIn('type', ['districts', 'blocks', 'clusters'])
     ->middleware('throttle:120,1')->name('locations');
 
+// 28-11-2026: the QR on the inspection PDF opens this public, view-only page (random code, never a record ID)
+Route::get('/verify/{token}', [\App\Http\Controllers\InspectionVerifyController::class, 'show'])
+    ->where('token', '[A-Za-z0-9]{40}')->middleware('throttle:60,1')->name('inspections.verify');
+
 /* ---------------- Guest ---------------- */
 // 25-11-2026, one user per browser: the sign-in page is open while signed in too; it then shows who is signed in
 Route::get('/login', [LoginController::class, 'show'])->name('login');

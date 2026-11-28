@@ -91,6 +91,7 @@ class ReportController extends Controller
         // Official header logos (Modification V4), embedded so DomPDF needs no file or remote access
         $data['logos'] = \App\Support\PdfLogos::all();
         $data['generatedAt'] = now(); // shown as DD-MM-YYYY HH:MM in the footer
+        $data += self::qrData($inspection); // 28-11-2026: QR to the public, view-only page
 
         AuditLogger::log('inspection_pdf', $inspection);
         $name = str_replace('/', '-', $inspection->inspection_no ?: 'draft-'.$inspection->id).'.pdf';
@@ -118,7 +119,8 @@ class ReportController extends Controller
     {
         $this->authorize('view', $inspection);
         // 28-11-2026: the inspection report itself (every detail entered, no photos) ending with the Declaration section
-        $data = $this->reportData($inspection) + ['logos' => \App\Support\PdfLogos::all(), 'generatedAt' => now(), 'declaration' => true];
+        $data = $this->reportData($inspection) + ['logos' => \App\Support\PdfLogos::all(), 'generatedAt' => now(), 'declaration' => true]
+            + self::qrData($inspection);
 
         AuditLogger::log('network_declaration_downloaded', $inspection);
         $name = 'No-internet-declaration-'.($inspection->school?->udise_code ?? $inspection->id).'-'.substr((string) $inspection->inspection_date, 0, 10).'.pdf';
@@ -218,7 +220,24 @@ class ReportController extends Controller
         ]));
     }
 
-    private function reportData(Inspection $inspection): array
+    /**
+     * 28-11-2026: the QR printed on the inspection PDF and the declaration form: it opens the public, view-only page of
+     * this inspection (InspectionVerifyController). A cancelled inspection gets none.
+     *
+     * @return array{verifyUrl: ?string, qr: ?string}
+     */
+    public static function qrData(Inspection $inspection): array
+    {
+        if ($inspection->status === \App\Enums\InspectionStatus::Cancelled) {
+            return ['verifyUrl' => null, 'qr' => null];
+        }
+        $url = $inspection->verifyUrl();
+
+        return ['verifyUrl' => $url, 'qr' => \App\Support\QrCode::dataUri($url)];
+    }
+
+    /** The report data (web report, PDF, declaration form). */
+    public function reportData(Inspection $inspection): array
     {
         $inspection->load(['school.district', 'school.block', 'school.cluster', 'school.management', 'school.category', 'officer.designation',
             'answers', 'absentTeachers', 'classroomObservations.tlmItems', 'fundPositions', 'evidence.category', 'remarks', 'unlocker']);

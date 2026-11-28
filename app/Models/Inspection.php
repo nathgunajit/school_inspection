@@ -130,6 +130,30 @@ class Inspection extends Model
     }
 
     /** Distance in metres between a point and the school coordinates (haversine). */
+    /**
+     * 28-11-2026: the random code behind the QR on the PDF (public, view-only page). Made once, never a record ID.
+     */
+    public function verifyToken(): string
+    {
+        if (! $this->verify_token) {
+            do {
+                $token = \Illuminate\Support\Str::random(40);
+            } while (static::withTrashed()->where('verify_token', $token)->exists());
+            // written directly: no updated_at change and no model events (not an edit of the inspection)
+            \Illuminate\Support\Facades\DB::table($this->getTable())->where('id', $this->id)->update(['verify_token' => $token]);
+            $this->setAttribute('verify_token', $token);
+            $this->syncOriginalAttribute('verify_token');
+        }
+
+        return $this->verify_token;
+    }
+
+    /** Absolute link of the public, view-only page (the QR on the inspection PDF). */
+    public function verifyUrl(): string
+    {
+        return route('inspections.verify', $this->verifyToken());
+    }
+
     public function distanceFromSchool(?float $lat, ?float $lng): ?int
     {
         $school = $this->school;

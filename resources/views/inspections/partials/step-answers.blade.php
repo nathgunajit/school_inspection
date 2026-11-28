@@ -7,6 +7,7 @@
     $remarks ??= [];
     $skipBasic ??= false;
     $downloads ??= false;
+    $public ??= false; // 28-11-2026: public, view-only page (QR on the PDF): no file links, no photos
 @endphp
 @if ($n === 2)
     {{-- Figures: label + large number, with automatic totals --}}
@@ -68,7 +69,11 @@
                     @php $qDocs = $inspection->evidence->where('kind', 'document')->where('question_code', $q['code']); @endphp
                     <div class="qa-remark"><i class="bi bi-file-earmark-pdf text-danger"></i><span><b>{{ $q['document']['label'] ?? 'Document' }}:</b>
                         @forelse ($qDocs as $d)
-                            <a href="{{ route('evidence.show', [$d, 'download' => 1]) }}" download data-no-loader>{{ $d->original_name }}</a>@if (! $loop->last), @endif
+                            @if ($public)
+                                <span>attached ({{ $d->original_name }}){{ $loop->last ? '' : ',' }}</span>
+                            @else
+                                <a href="{{ route('evidence.show', [$d, 'download' => 1]) }}" download data-no-loader>{{ $d->original_name }}</a>{{ $loop->last ? '' : ',' }}
+                            @endif
                         @empty
                             <span class="text-danger">not attached</span>
                         @endforelse</span></div>
@@ -165,7 +170,7 @@
     @foreach ($suggestions as $i => $sg)
         <div class="review-line"><span class="sug-no">{{ $i + 1 }}</span><span>{{ $sg }}</span></div>
     @endforeach
-@elseif ($n === 7)
+@elseif ($n === 7 && ! $public)
     @php
         $byCat = $photos->groupBy(fn ($p) => $p->category?->code ?? 'other');
         $catLabels = $photoCategories->pluck('label', 'code');

@@ -3012,3 +3012,21 @@ $half-holiday: #0284c7;
     > i { color: $primary; margin-top: .1rem; }
     b { color: #0f172a; font-weight: 600; }
     .cov-how-title { color: $primary; } }
+
+// ---------- 28-11-2026: public, view-only inspection page (QR code on the PDF) ----------
+.verify-page { max-width: 980px; padding: 1rem 0 2rem; }
+.verify-card { border-radius: 1rem; padding: 1.1rem 1.25rem; border: 1px solid #e3e8f0; box-shadow: 0 10px 28px -22px rgba(13, 71, 161, .45); }
+.verify-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; justify-content: space-between; margin-bottom: .5rem;
+    .rp-status { border: 1px solid #d8dee8; } }
+.verify-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .75rem; border-radius: 999px; font-size: .78rem; font-weight: 600;
+    &.is-ok { background: #ecf8f0; color: #166534; border: 1px solid #b9dfc7; }
+    &.is-bad { background: #fdecec; color: #b42318; border: 1px solid #f5c2c0; } }
+.verify-school { font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: .25rem 0 .35rem; }
+.verify-meta { display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; color: #475569; font-size: .82rem; i { color: $primary; margin-right: .3rem; } }
+.verify-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .6rem; margin: .9rem 0 0;
+    > div { padding: .55rem .75rem; border-radius: .7rem; background: #f6f9fd; border: 1px solid #e6edf6; }
+    dt { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; font-weight: 600; }
+    dd { margin: .1rem 0 0; font-weight: 600; color: #0f172a; small { display: block; font-weight: 400; color: #64748b; font-size: .75rem; } } }
+.verify-note { display: flex; gap: .5rem; align-items: flex-start; margin-top: .9rem; padding: .6rem .8rem; border-radius: .6rem; font-size: .82rem;
+    &.is-warn { background: #fff7e6; border: 1px solid #f6d2a5; color: #7a4a00; }
+    &.is-bad { background: #fdecec; border: 1px solid #f5c2c0; color: #8a1c13; } }

@@ -3523,3 +3523,18 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - `map.js`: on lg and up the full-screen layout is held at `scrollTop = 0`, and a ResizeObserver on `#map` calls `invalidateSize()` while in full screen, as the map's height now follows the chips.
 - Files: resources/scss/app.scss, resources/js/map.js, CLAUDE.md.
 - Verification: `npm run build`; full suite 415 passed. Not yet checked in a browser.
+
+## 28-11-2026 · QR code on the inspection PDF → public, view-only page
+- The user asked for a QR code on the PDF; scanning it opens a web page that shows the data, view only. User choices: opens **without sign-in**; shows the **full report without photographs**.
+- **QR:** new package `chillerlan/php-qrcode` 6.0.1 (MIT; PNG drawn with GD). `App\Support\QrCode::dataUri()`. `ReportController::qrData()` puts the QR, with "Scan to view this report online", at the right of the school card of the inspection PDF and of the no-internet declaration form (none for a cancelled inspection).
+- **Link:** `/verify/{token}` (`inspections.verify`, outside the auth group, `throttle:60,1`). The token is a random 40-character `inspections.verify_token` (migration `2026_11_28_000004`, run on MySQL; `Inspection::verifyToken()` / `verifyUrl()`), made when the first PDF is generated and written without touching `updated_at`. It is never a record ID, so it cannot be guessed.
+- **Page:** `InspectionVerifyController` + `inspections/verify.blade.php` (portal layout, no menu, no buttons):
+  - shows the record card (status, school, UDISE, area, inspection ID, date, officer, submitted time), then every step's answers through `step-answers` with `public => true` (no photo gallery, no evidence / document links, file names only), and the last step only for the no-internet declaration;
+  - drafts / unlocked are marked "may still change"; a cancelled inspection shows only a notice; an unknown code shows "This QR code is not valid" (404);
+  - headers `X-Robots-Tag: noindex, nofollow` and `Cache-Control: private, no-store`; every view is audited `inspection_verified_view` (no user, with IP and browser).
+- Files: composer.json / composer.lock, app/Support/QrCode.php, app/Models/Inspection.php, app/Http/Controllers/{ReportController,InspectionVerifyController}.php, routes/web.php, database/migrations/2026_11_28_000004_add_verify_token_to_inspections.php, resources/views/inspections/{pdf,verify}.blade.php, resources/views/inspections/partials/step-answers.blade.php, resources/scss/app.scss, tests/Feature/InspectionVerifyTest.php, CLAUDE.md, Product Details/Installed_Packages_and_Libraries.md.
+- Verification:
+  - full suite 418 passed; `npm run build`;
+  - a real PDF rendered from local MySQL shows the QR in the school card;
+  - the verify URL fetched from `php artisan serve` while signed out: 200, noindex header, answers and declaration shown, no `/evidence/` links.
+  - Not yet scanned with a phone. The URL follows APP_URL / the request host, so set APP_URL to the public address in production.
