@@ -45,6 +45,19 @@
                         @if ($school->pc)<dt>Lok Sabha (PC)</dt><dd>{{ $school->pc->label }}</dd>@endif
                         <dt>Address</dt><dd>{{ $school->address ?: '—' }}@if ($school->pincode) <span class="text-secondary">· PIN {{ $school->pincode }}</span>@endif</dd>
                         <dt>Coordinates</dt><dd>{{ $school->hasCoordinates() ? number_format($school->latitude, 5).', '.number_format($school->longitude, 5) : 'Not available' }}</dd>
+                        {{-- 28-11-2026: internet connectivity recorded against the school (latest NET_01 answer, ConnectivitySurvey) --}}
+                        <dt>Internet</dt><dd>
+                            @if (($net['state'] ?? null) === 'no')
+                                <span class="net-pill net-no"><i class="bi bi-wifi-off"></i>No internet</span>
+                                <span class="text-sm text-secondary">reported {{ $net['reports'] }}× · last {{ \Illuminate\Support\Carbon::parse($net['last_date'])->format('d M Y') }}@if ($net['last_remark']) · “{{ $net['last_remark'] }}”@endif · signed declaration {{ $net['signed_pdf'] ? 'attached' : 'missing' }}</span>
+                            @elseif (($net['state'] ?? null) === 'ok')
+                                <span class="net-pill net-ok"><i class="bi bi-wifi"></i>Internet available</span>
+                                <span class="text-sm text-secondary">checked {{ \Illuminate\Support\Carbon::parse($net['last_checked'])->format('d M Y') }}@if ($net['reports']) · no internet reported {{ $net['reports'] }}× before @endif</span>
+                            @else
+                                <span class="net-pill net-none"><i class="bi bi-question-lg"></i>Not surveyed</span>
+                            @endif
+                            @can('view_reports')<a href="{{ route('map.index', ['colour' => 'net']) }}#mapCard" class="text-sm ms-1">Map</a>@endcan
+                        </dd>
                         <dt>Status</dt><dd><span class="badge-soft badge-soft-{{ $school->isActive() ? 'success' : 'secondary' }}">{{ ucfirst($school->status) }}</span></dd>
                     </dl>
                 </div>

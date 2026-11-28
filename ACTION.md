@@ -3538,3 +3538,15 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - a real PDF rendered from local MySQL shows the QR in the school card;
   - the verify URL fetched from `php artisan serve` while signed out: 200, noindex header, answers and declaration shown, no `/evidence/` links.
   - Not yet scanned with a phone. The URL follows APP_URL / the request host, so set APP_URL to the public address in production.
+
+## 28-11-2026 · Internet connectivity per school (Map View "Internet" colour, school page)
+- New `App\Services\ConnectivitySurvey`: each school's internet state comes from the NET_01 answers of the viewer's visible, not-cancelled inspections (`JurisdictionService::inspections()`, so jurisdiction and InspectionVisibility apply). The latest answer wins: `no` (no internet) or `ok`. Schools never asked are "not surveyed". It also gives the times reported without internet, the last date and remark, and that inspection's declaration tick and signed PDF (`NetworkIssueController::declarations()`).
+- Map View: a third colour switch, **Internet** (for every map user; `?colour=net` preselects it).
+  - School pins and clusters are coloured red / green / grey.
+  - Area circles and district fills are red when 50 % or more of the surveyed schools have no internet, orange from 25 %, green below that, and grey when no school was surveyed.
+  - Key bar counts (`net_no` / `net_ok` / `net_unknown`), a popup row, an Internet / No internet column in the list, and a "Colour: Internet" chip.
+  - Built by `MapDataService::areas()` / `schools()` / `totals()` / `schoolTotals()` / `netRow()`, for the period in view.
+- School page: an **Internet** row in the details list (all time), with a link to the map.
+- Fix found by the test: `before@endif` in `schools/show.blade.php` did not compile (Blade needs a non-word character before `@`).
+- Files: app/Services/{ConnectivitySurvey,MapDataService}.php, app/Http/Controllers/{MapController,SchoolController}.php, resources/js/map.js, resources/scss/app.scss, resources/views/{map/index,schools/show}.blade.php, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
+- Verification: `npm run build`; full suite 421 passed (new `ConnectivitySurveyTest`: latest answer decides, cancelled ignored, Cluster officer does not see a Block officer's answer, map JSON / page and school page). Not yet checked in a browser.

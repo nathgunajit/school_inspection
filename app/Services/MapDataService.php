@@ -151,8 +151,10 @@ class MapDataService
 
             $officers = $this->officerCounts($user, $level, $areas->pluck('id')->all());
             $ratings = $this->areaRatings($col, $areas->pluck('id')->all(), $filters, $user);
+            // 28-11-2026: schools with / without internet (ConnectivitySurvey, NET_01 of the inspections in the period)
+            $net = app(ConnectivitySurvey::class)->areaCounts($user, $col, $areas->pluck('id')->all(), $filters['from'], $filters['to']);
 
-            return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries, $ratings) {
+            return $areas->map(function ($a) use ($rows, $officers, $level, $boundaries, $ratings, $net) {
                 $r = $rows->get($a->id);
                 $total = (int) ($r->schools ?? 0);
                 $inspected = (int) ($r->inspected ?? 0);
@@ -177,6 +179,7 @@ class MapDataService
                     'boundary' => $level === 'district' ? $boundaries->nameFor($a) : null,
                     // V6 Module 9: average rating of the inspections submitted in the period
                     'rating' => $ratings[$a->id] ?? null,
+                    'net' => self::netRow($net[$a->id] ?? ['no' => 0, 'ok' => 0], $total),
                 ];
             })->values()->all();
         });
@@ -235,6 +238,9 @@ class MapDataService
                     ->where('status', InspectionStatus::Submitted)->groupBy('school_id'))
                 ->get(['id', 'school_id', 'inspection_no', 'inspection_date', 'officer_id'])->keyBy('school_id');
 
+            // 28-11-2026: internet connectivity of each school (latest NET_01 answer in the period)
+            $net = app(ConnectivitySurvey::class)->forSchools($user, $schools->pluck('id')->all(), $filters['from'], $filters['to']);
+
             return $schools->map(fn ($s) => [
                 'id' => $s->id,
                 'key' => $s->getRouteKey(), // V6 Module 4: encrypted token for URLs
@@ -256,6 +262,10 @@ class MapDataService
                 'rating' => ($l = $last->get($s->id)) && $l->rating?->score_percent !== null ? [
                     'score' => (float) $l->rating->score_percent, 'band' => $l->rating->band, 'color' => $l->rating->color,
                 ] : null,
+                'net' => ($n = $net[$s->id] ?? null) ? [
+                    'state' => $n['state'], 'reports' => $n['reports'], 'last_date' => $n['last_date'] ? \Illuminate\Support\Carbon::parse($n['last_date'])->format('d-m-Y') : null,
+                    'last_remark' => $n['last_remark'], 'checked' => \Illuminate\Support\Carbon::parse($n['last_checked'])->format('d-m-Y'), 'signed_pdf' => $n['signed_pdf'],
+                ] : ['state' => null],
             ])->values()->all();
         });
     }
@@ -344,6 +354,10 @@ class MapDataService
             'pending' => $sum('pending'),
             'no_gps' => $sum('no_gps'),
             'coverage' => $schools ? round($sum('inspected') * 100 / $schools, 1) : 0.0,
+            // 28-11-2026: internet connectivity
+            'net_no' => array_sum(array_map(fn ($r) => $r['net']['no'] ?? 0, $rows)),
+            'net_ok' => array_sum(array_map(fn ($r) => $r['net']['ok'] ?? 0, $rows)),
+            'net_unknown' => array_sum(array_map(fn ($r) => $r['net']['unknown'] ?? 0, $rows)),
         ];
     }
 
@@ -361,7 +375,18 @@ class MapDataService
             'pending' => $count('pending'),
             'no_gps' => count(array_filter($schools, fn ($s) => $s['lat'] === null || $s['lng'] === null)),
             'coverage' => $total ? round($count('inspected') * 100 / $total, 1) : 0.0,
+            'net_no' => count(array_filter($schools, fn ($s) => ($s['net']['state'] ?? null) === 'no')),
+            'net_ok' => count(array_filter($schools, fn ($s) => ($s['net']['state'] ?? null) === 'ok')),
+            'net_unknown' => count(array_filter($schools, fn ($s) => ($s['net']['state'] ?? null) === null)),
         ];
+    }
+
+    /** 28-11-2026: an area's connectivity counts (unknown = schools no inspection asked about). */
+    private static function netRow(array $n, int $schools): array
+    {
+        $surveyed = $n['no'] + $n['ok'];
+
+        return ['no' => $n['no'], 'ok' => $n['ok'], 'unknown' => max(0, $schools - $surveyed), 'no_pct' => $surveyed ? round($n['no'] * 100 / $surveyed, 1) : null];
     }
 
     // ------------------------------------------------------------------

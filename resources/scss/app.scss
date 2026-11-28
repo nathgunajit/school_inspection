@@ -1918,6 +1918,16 @@ $cov-mid: #e0a800;
     &.st-pending { background: $st-pending; }
     &.st-planned { background: $primary; }
     &.st-available { background: #64748b; } }
+// 28-11-2026: internet connectivity (Map View "Internet" colour, ConnectivitySurvey)
+$net-no: #d93025; $net-ok: #1e9b4b; $net-none: #94a3b8;
+.si-pin.net-no, .si-cluster.net-no, .dot.net-no { background: $net-no; }
+.si-pin.net-ok, .si-cluster.net-ok, .dot.net-ok { background: $net-ok; }
+.si-pin.net-none, .si-cluster.net-none, .dot.net-none { background: $net-none; }
+.net-pill { display: inline-flex; align-items: center; gap: .25rem; padding: .12rem .5rem; border-radius: 999px; font-size: .7rem; font-weight: 600; white-space: nowrap;
+    &.net-no { background: rgba($net-no, .12); color: #b3261e; border: 1px solid rgba($net-no, .3); }
+    &.net-ok { background: rgba($net-ok, .12); color: #146c36; border: 1px solid rgba($net-ok, .3); }
+    &.net-none { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; } }
+.map-chip.is-net { border-color: #f5c2c0; background: #fdecec; color: #8a1c13; }
 
 .map-pop { min-width: 13rem; font-size: .8rem;
     a.btn-primary, .btn-primary { color: #fff; }

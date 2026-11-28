@@ -269,7 +269,10 @@ class SchoolController extends Controller
             'school' => ['lat' => $school->latitude, 'lng' => $school->longitude, 'name' => $school->name],
         ] : null;
 
-        return view('schools.show', compact('school', 'today', 'history', 'start', 'mapConfig'));
+        // 28-11-2026: internet connectivity recorded against the school (all time, the viewer's visible inspections)
+        $net = app(\App\Services\ConnectivitySurvey::class)->forSchools($request->user(), [$school->id])[$school->id] ?? null;
+
+        return view('schools.show', compact('school', 'today', 'history', 'start', 'mapConfig', 'net'));
     }
 
     /**

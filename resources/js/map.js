@@ -62,6 +62,19 @@ if (el) {
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
     const ratingIcon = (r) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
         html: `<span class="si-pin rt-${esc(r?.color || 'none')}">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
+    // 28-11-2026: internet connectivity (ConnectivitySurvey): 'no' = no internet, 'ok' = available, null = not surveyed
+    const NET = { no: { label: 'No internet', icon: 'bi-wifi-off', cls: 'net-no' }, ok: { label: 'Internet OK', icon: 'bi-wifi', cls: 'net-ok' }, none: { label: 'Not surveyed', icon: 'bi-question-lg', cls: 'net-none' } };
+    const netOf = (s) => NET[s?.net?.state || 'none'];
+    const netIcon = (s) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
+        html: `<span class="si-pin ${netOf(s).cls}"><i class="bi ${netOf(s).icon}"></i></span>` });
+    const netPill = (s) => `<span class="net-pill ${netOf(s).cls}"><i class="bi ${netOf(s).icon}"></i>${netOf(s).label}</span>`;
+    // an area: red when half or more of the surveyed schools have no internet, orange from a quarter, green below, grey when none surveyed
+    const netColors = (n) => {
+        if (!n || n.no_pct === null || n.no_pct === undefined) return { fillColor: '#94a3b8', color: '#64748b' };
+        return n.no_pct >= 50 ? { fillColor: '#d93025', color: '#a8231b' } : n.no_pct >= 25 ? { fillColor: '#f39223', color: '#c96f0c' } : { fillColor: '#1e9b4b', color: '#167a3a' };
+    };
+    const areaColors = (r) => (colourBy === 'net' ? netColors(r.net) : coverageColors(r.coverage));
+    const pinIcon = (s) => (colourBy === 'rating' ? ratingIcon(s.rating) : colourBy === 'net' ? netIcon(s) : schoolIcon(s.status));
 
     function clusterIcon(children, count) {
         let cls;
@@ -71,6 +84,10 @@ if (el) {
             // the band of the school closest to the average score
             const near = avg === null ? null : rated.reduce((b, r) => (Math.abs(r.score - avg) < Math.abs(b.score - avg) ? r : b));
             cls = `rt-${near?.color || 'none'}`;
+        } else if (colourBy === 'net') {
+            const n = {};
+            children.forEach((m) => { const k = m.options.siNet || 'none'; n[k] = (n[k] || 0) + 1; });
+            cls = NET[Object.keys(n).sort((a, b) => n[b] - n[a])[0] || 'none'].cls;
         } else {
             const n = {};
             children.forEach((m) => { const s = m.options.siStatus || 'pending'; n[s] = (n[s] || 0) + 1; });
@@ -148,6 +165,9 @@ if (el) {
         key('inspected', t.inspected);
         key('in_progress', t.in_progress || 0);
         key('pending', t.pending);
+        key('net_no', t.net_no || 0); // 28-11-2026: internet connectivity
+        key('net_ok', t.net_ok || 0);
+        key('net_unknown', t.net_unknown || 0);
         const day = (v) => (v ? new Date(`${v}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '');
         $('mapKeyPeriod').textContent = `${day($('fFrom').value)} – ${day($('fTo').value)}`;
         $('mapNoGps').textContent = t.no_gps ? `${fmt(t.no_gps)} school(s) without GPS are counted but not drawn` : '';
@@ -196,6 +216,7 @@ if (el) {
                     <div class="mp-bar"><span class="${coverageClass(cov)}" style="width:${cov}%"></span></div></div>
                 ${showRating ? `<div class="mp-row"><i class="bi bi-star-half"></i><span>Average rating</span><span class="ms-auto">${r.rating ? ratingPill(r.rating) : '<span class="text-muted">Not rated</span>'}</span></div>
                 ${r.rating ? `<div class="mp-note">${fmt(r.rating.count)} rated inspection(s)</div>` : ''}` : ''}
+                ${r.net ? `<div class="mp-row"><i class="bi bi-wifi-off"></i><span>Internet</span><span class="ms-auto text-end"><b class="text-danger">${fmt(r.net.no)}</b> no · <b class="text-success">${fmt(r.net.ok)}</b> OK · ${fmt(r.net.unknown)} not surveyed</span></div>` : ''}
                 <div class="mp-row"><i class="bi bi-person-badge"></i><span>Officers</span><b class="ms-auto">${fmt(r.officers.total)}</b></div>
                 <button type="button" class="btn btn-primary btn-sm w-100 mt-2" data-drill="${r.id}"><i class="bi bi-zoom-in"></i>Open ${levelName[nextLevel[level]].toLowerCase()}s</button>
             </div></div>`;
@@ -229,7 +250,7 @@ if (el) {
             boundaries = L.geoJSON(geo.districts, {
                 style: (f) => {
                     const r = find(f.properties);
-                    return r ? { ...coverageColors(r.coverage), color: '#ffffff', weight: 0.6, fillOpacity: 0.4 }
+                    return r ? { ...areaColors(r), color: '#ffffff', weight: 0.6, fillOpacity: 0.4 }
                         : { fillColor: '#94a3b8', color: '#94a3b8', weight: 0.6, fillOpacity: 0.12 };
                 },
                 onEachFeature: (f, layer) => {
@@ -243,8 +264,10 @@ if (el) {
         rows.forEach((r) => {
             if (r.lat === null || r.lng === null) return;
             const radius = 10 + 18 * Math.sqrt(r.schools / max);
-            const m = L.circleMarker([r.lat, r.lng], { radius, ...coverageColors(r.coverage), weight: 2, fillOpacity: 0.6 })
-                .bindTooltip(`${esc(r.label ?? r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
+            const m = L.circleMarker([r.lat, r.lng], { radius, ...areaColors(r), weight: 2, fillOpacity: 0.6 })
+                .bindTooltip(colourBy === 'net' && r.net
+                    ? `${esc(r.label ?? r.name)} · ${fmt(r.net.no)} of ${fmt(r.net.no + r.net.ok)} surveyed: no internet`
+                    : `${esc(r.label ?? r.name)} · ${r.coverage} %${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`, { permanent: rows.length <= 40, direction: 'top', className: 'si-area-label' })
                 .bindPopup(areaPopup(r, level));
             m.addTo(areaLayer);
             markers.set(r.id, m);
@@ -328,7 +351,9 @@ if (el) {
                 <div class="min-w-0"><div class="mp-title">${esc(s.name)}</div><div class="mp-sub">UDISE ${esc(s.udise)}</div></div></div>
             <div class="mp-body">
                 <div class="mp-chips"><span class="mp-status st-${s.status}"><span class="dot st-${s.status}"></span>${status}</span>
-                    ${!showRating ? '' : s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}</div>
+                    ${!showRating ? '' : s.rating ? ratingPill(s.rating) : '<span class="mp-chip-muted">Not rated yet</span>'}${netPill(s)}</div>
+                ${s.net?.state === 'no' ? `<div class="mp-row"><i class="bi bi-wifi-off text-danger"></i><span>No internet reported ${fmt(s.net.reports)}× · last ${esc(s.net.last_date)}${s.net.last_remark ? ` · “${esc(s.net.last_remark)}”` : ''} · signed declaration ${s.net.signed_pdf ? 'attached' : 'missing'}</span></div>`
+                    : s.net?.state === 'ok' ? `<div class="mp-row"><i class="bi bi-wifi text-success"></i><span>Internet available (checked ${esc(s.net.checked)})</span></div>` : ''}
                 <div class="mp-row"><i class="bi bi-geo-alt"></i><span>${esc(s.area)}</span></div>
                 ${s.info ? `<div class="mp-row"><i class="bi bi-building"></i><span>${esc(s.info)}</span></div>` : ''}
                 ${s.address ? `<div class="mp-row"><i class="bi bi-signpost"></i><span>${esc(s.address)}</span></div>` : ''}
@@ -347,7 +372,7 @@ if (el) {
         const pts = [];
         rows.forEach((s) => {
             if (s.lat === null || s.lng === null) return;
-            const m = L.marker([s.lat, s.lng], { icon: colourBy === 'rating' ? ratingIcon(s.rating) : schoolIcon(s.status), title: s.name, siStatus: s.status, siRating: s.rating }).bindPopup(schoolPopup(s));
+            const m = L.marker([s.lat, s.lng], { icon: pinIcon(s), title: s.name, siStatus: s.status, siRating: s.rating, siNet: s.net?.state || 'none' }).bindPopup(schoolPopup(s));
             schoolLayer.addLayer(m);
             markers.set(s.id, m);
             pts.push([s.lat, s.lng]);
@@ -369,25 +394,27 @@ if (el) {
                 const o = officeOf('block', s.block_id);
                 return o && s.lat !== null && s.lng !== null ? fmtKm(haversineKm([o.lat, o.lng], [s.lat, s.lng])) : '—';
             };
-            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
+            head.innerHTML = '<tr><th>School</th><th>UDISE</th><th>Status</th>' + (showRating ? '<th>Rating</th>' : '') + '<th>Internet</th>' + (hasBlockOffice ? '<th class="text-end text-nowrap">Block office</th>' : '') + '<th class="d-none d-md-table-cell">Last inspection</th><th class="d-none d-md-table-cell">Officer</th></tr>';
             body.innerHTML = rows.length ? rows.map((s) => `<tr data-row="${s.id}" class="cursor-pointer">
                 <td>${esc(s.name)}${s.lat === null ? ' <span class="badge text-bg-light">no GPS</span>' : ''}</td><td>${esc(s.udise)}</td>
                 <td><span class="badge st-badge st-${s.status}">${{ inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status]}</span></td>
                 ${showRating ? `<td>${s.rating ? ratingPill(s.rating) : '—'}</td>` : ''}
+                <td>${netPill(s)}</td>
                 ${hasBlockOffice ? `<td class="text-end text-nowrap">${blockKm(s)}</td>` : ''}
                 <td class="d-none d-md-table-cell">${s.last ? esc(s.last.date) : '—'}</td><td class="d-none d-md-table-cell">${s.last ? esc(s.last.officer || '—') : '—'}</td></tr>`).join('')
-                : '<tr><td colspan="8" class="text-muted p-3">No schools match the filters.</td></tr>';
+                : '<tr><td colspan="9" class="text-muted p-3">No schools match the filters.</td></tr>';
         } else {
-            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}
+            head.innerHTML = `<tr><th>${levelName[level]}</th><th class="text-end">Schools</th><th class="text-end">Inspected</th><th class="text-end d-none d-sm-table-cell">In progress</th><th class="text-end">Pending</th><th class="text-end">Coverage</th>${showRating ? '<th class="text-end">Avg rating</th>' : ''}<th class="text-end" title="Schools with no internet (of the schools surveyed)">No internet</th>
                 <th class="text-end d-none d-md-table-cell">District officers</th><th class="text-end d-none d-md-table-cell">Block officers</th><th class="text-end d-none d-md-table-cell">Cluster officers</th><th class="text-end">Officers</th></tr>`;
             body.innerHTML = rows.length ? rows.map((r) => `<tr data-row="${r.id}" class="cursor-pointer">
                 <td><a href="#" data-drill="${r.id}">${esc(r.label ?? r.name)}</a></td><td class="text-end">${fmt(r.schools)}</td><td class="text-end">${fmt(r.inspected)}</td>
                 <td class="text-end d-none d-sm-table-cell">${fmt(r.in_progress)}</td><td class="text-end">${fmt(r.pending)}</td>
                 <td class="text-end"><span class="cov-pill ${coverageClass(r.coverage)}">${r.coverage} %</span></td>
                 ${showRating ? `<td class="text-end">${r.rating ? ratingPill(r.rating) : '—'}</td>` : ''}
+                <td class="text-end">${r.net ? `<span class="${r.net.no ? 'text-danger fw-semibold' : ''}">${fmt(r.net.no)}</span><span class="text-muted"> / ${fmt(r.net.no + r.net.ok)}</span>` : '—'}</td>
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.district)}</td><td class="text-end d-none d-md-table-cell">${fmt(r.officers.block)}</td>
                 <td class="text-end d-none d-md-table-cell">${fmt(r.officers.cluster)}</td><td class="text-end fw-semibold">${fmt(r.officers.total)}</td></tr>`).join('')
-                : '<tr><td colspan="11" class="text-muted p-3">No areas with schools here.</td></tr>';
+                : '<tr><td colspan="12" class="text-muted p-3">No areas with schools here.</td></tr>';
         }
     }
 
@@ -467,6 +494,7 @@ if (el) {
         colourBy = e.target.value;
         document.querySelectorAll('[data-legend]').forEach((l) => l.classList.toggle('d-none', l.dataset.legend !== colourBy));
         if (current.level === 'school') renderSchools(lastRows);
+        else renderAreas(lastRows, current.level); // 28-11-2026: area colours follow the switch (coverage / internet)
     }));
 
     $('fOffices')?.addEventListener('change', renderOffices);
@@ -510,7 +538,7 @@ if (el) {
         const changedDates = $('fFrom').value !== $('fFrom').defaultValue || $('fTo').value !== $('fTo').defaultValue;
         chips.push({ cls: 'period', label: 'Period', value: `${longDay($('fFrom').value)} – ${longDay($('fTo').value)}`,
             clear: changedDates ? () => { $('fFrom').value = $('fFrom').defaultValue; $('fTo').value = $('fTo').defaultValue; ['fFrom', 'fTo'].forEach((id) => $(id).dispatchEvent(new Event('fp-sync'))); load(current.level, current.parent); } : null });
-        if (colourBy === 'rating') chips.push({ cls: 'rating', label: 'Colour', value: 'Rating', clear: () => { const r = $('colourStatus'); if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } } });
+        if (colourBy === 'rating' || colourBy === 'net') chips.push({ cls: colourBy === 'net' ? 'net' : 'rating', label: 'Colour', value: colourBy === 'net' ? 'Internet' : 'Rating', clear: () => { const r = $('colourStatus'); if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } } });
         const anything = chips.some((c) => c.clear) || current.level !== start.level || current.parent !== start.parent;
         box.innerHTML = '<span class="map-chips-label"><i class="bi bi-funnel"></i>Showing</span>'
             + chips.map((c, i) => `<span class="map-chip is-${c.cls}"><span class="map-chip-k">${esc(c.label)}</span><b>${esc(c.value || '')}</b>${c.clear
@@ -521,7 +549,7 @@ if (el) {
             if (x) { chips[+x.dataset.chip]?.clear?.(); return; }
             if (e.target.closest('[data-chip-all]')) {
                 const r = $('colourStatus');
-                if (r && colourBy === 'rating') { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
+                if (r && colourBy !== 'status') { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
                 picked = null;
                 $('fReset').click();
             }

@@ -20,7 +20,12 @@ class MapController extends Controller
 
         return view('map.index', [
             'showRating' => $showRating,
-            'colour' => $showRating && $request->query('colour') === 'rating' ? 'rating' : 'status', // V13: Rating Report "Map view"
+            // V13: Rating Report "Map view"; 28-11-2026: ?colour=net = internet connectivity
+            'colour' => match (true) {
+                $showRating && $request->query('colour') === 'rating' => 'rating',
+                $request->query('colour') === 'net' => 'net',
+                default => 'status',
+            },
             'start' => $this->map->startView($user),
             'officers' => $this->map->officers($user, 'district', null),
             'bands' => app(\App\Services\RatingService::class)->activeScheme()->bands, // V6 Module 9: legend

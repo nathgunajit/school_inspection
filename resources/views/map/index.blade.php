@@ -37,16 +37,19 @@
                                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                                     <span class="fw-semibold text-xs text-uppercase text-muted">School markers</span>
                                     {{-- V6 Module 9: colour the school pins by inspection status or by rating band --}}
-                                    @if ($showRating) {{-- Modification V9: hidden unless RATING_DISPLAY=true; V13: always shown to the State Admin --}}
+                                    {{-- 28-11-2026: Internet (connectivity survey) for every map user; Rating only when shown (V9 / V13) --}}
                                     <div class="btn-group btn-group-sm" role="group" aria-label="Colour schools by">
                                         <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" @checked($colour === 'status')>
                                         <label class="btn btn-outline-primary" for="colourStatus">Status</label>
+                                        @if ($showRating)
                                         <input type="radio" class="btn-check" name="colourBy" id="colourRating" value="rating" @checked($colour === 'rating')>
                                         <label class="btn btn-outline-primary" for="colourRating">Rating</label>
+                                        @endif
+                                        <input type="radio" class="btn-check" name="colourBy" id="colourNet" value="net" @checked($colour === 'net')>
+                                        <label class="btn btn-outline-primary" for="colourNet" title="Internet connectivity at the schools"><i class="bi bi-wifi"></i>Internet</label>
                                     </div>
-                                    @endif
                                 </div>
-                                <div data-legend="status" class="{{ $colour === 'rating' ? 'd-none' : '' }}">
+                                <div data-legend="status" class="{{ $colour === 'status' ? '' : 'd-none' }}">
                                     <div><span class="dot st-inspected"></span>Inspected in the period</div>
                                     <div><span class="dot st-in_progress"></span>Inspection in progress</div>
                                     <div><span class="dot st-pending"></span>Not yet inspected</div>
@@ -54,6 +57,13 @@
                                 <div data-legend="rating" class="{{ $colour === 'rating' ? '' : 'd-none' }}">
                                     @foreach ($bands as $b)<div><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }} ({{ $b['min'] }} %+)</div>@endforeach
                                     <div><span class="dot rt-none"></span>Not rated yet</div>
+                                </div>
+                                {{-- 28-11-2026: internet connectivity (latest NET_01 answer of the school's inspections in the period) --}}
+                                <div data-legend="net" class="{{ $colour === 'net' ? '' : 'd-none' }}">
+                                    <div><span class="dot net-no"></span>No internet at the school</div>
+                                    <div><span class="dot net-ok"></span>Internet available</div>
+                                    <div><span class="dot net-none"></span>Not surveyed in the period</div>
+                                    <div class="text-xs text-muted mt-1">From the latest inspection that answered the internet question.</div>
                                 </div>
                                 {{-- 23-11-2026: District / Block offices (Location Master office location), with distances in the school popups.
                                      V14: shown only when the view has an office with a location; an office without one is never displayed. --}}
@@ -91,7 +101,7 @@
                     <div class="map-chips" id="mapChips" aria-live="polite" aria-label="Selected filters"></div>
                     {{-- Modification V8 item 2: colour key on top of the map, with the live counts of the current level --}}
                     <div class="map-keybar" aria-label="Map colour key">
-                        <div class="map-keybar-items {{ $colour === 'rating' ? 'd-none' : '' }}" data-legend="status">
+                        <div class="map-keybar-items {{ $colour === 'status' ? '' : 'd-none' }}" data-legend="status">
                             <span class="key st-inspected"><span class="dot st-inspected"></span>Inspected <b data-key="inspected">—</b></span>
                             <span class="key st-in_progress"><span class="dot st-in_progress"></span>In progress <b data-key="in_progress">—</b></span>
                             <span class="key st-pending"><span class="dot st-pending"></span>Not inspected <b data-key="pending">—</b></span>
@@ -99,6 +109,12 @@
                         <div class="map-keybar-items {{ $colour === 'rating' ? '' : 'd-none' }}" data-legend="rating">
                             @foreach ($bands as $b)<span class="key"><span class="dot rt-{{ $b['color'] }}"></span>{{ $b['label'] }}</span>@endforeach
                             <span class="key"><span class="dot rt-none"></span>Not rated</span>
+                        </div>
+                        {{-- 28-11-2026: internet connectivity, with the live counts of the current level --}}
+                        <div class="map-keybar-items {{ $colour === 'net' ? '' : 'd-none' }}" data-legend="net">
+                            <span class="key"><span class="dot net-no"></span>No internet <b data-key="net_no">—</b></span>
+                            <span class="key"><span class="dot net-ok"></span>Internet OK <b data-key="net_ok">—</b></span>
+                            <span class="key"><span class="dot net-none"></span>Not surveyed <b data-key="net_unknown">—</b></span>
                         </div>
                         <span class="key d-none" data-office-key><span class="office-dot office-district"><i class="bi bi-bank2"></i></span>District HQ <span class="office-dot office-block ms-1"><i class="bi bi-house-door-fill"></i></span>Block office</span>
                         <span class="map-keybar-period text-xs text-secondary" id="mapKeyPeriod"></span>
