@@ -140,6 +140,8 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/areas/{level}', [MapController::class, 'areas'])->middleware('throttle:120,1')->name('areas');
             Route::get('/schools', [MapController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
             Route::get('/net-schools', [MapController::class, 'netSchools'])->middleware('throttle:120,1')->name('net-schools'); // 28-11-2026
+            Route::get('/net-schools/export', [MapController::class, 'netSchoolsExport'])->middleware(['can:export_excel', 'throttle:6,1'])->name('net-schools.export');
+            Route::get('/net-schools/export-pdf', [MapController::class, 'netSchoolsPdf'])->middleware(['can:export_excel', 'throttle:6,1'])->name('net-schools.export-pdf');
         });
 
         /* ---------------- V14 (25-11-2026): holiday calendar ---------------- */

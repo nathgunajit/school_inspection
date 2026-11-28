@@ -385,8 +385,22 @@ if (el) {
 
     /* ---- 28-11-2026: Internet colour → the list is the surveyed schools of the area in view, No internet first ---- */
     let netSeq = 0;
+    // Excel / PDF of the list on screen (same level, parent and filters); hidden for the other colours
+    const netDownloads = (show, empty = false) => {
+        const box = document.querySelector('[data-net-downloads]');
+        if (!box) return;
+        box.classList.toggle('d-none', !show);
+        if (!show) return;
+        const q = qs({ level: current.level, parent: current.parent, ...filters() });
+        box.querySelectorAll('[data-net-dl]').forEach((a) => {
+            a.href = `${a.dataset.netDl === 'pdf' ? cfg.urls.netPdf : cfg.urls.netExport}?${q}`;
+            a.classList.toggle('disabled', empty);
+            a.setAttribute('aria-disabled', empty ? 'true' : 'false');
+        });
+    };
     async function renderNetTable() {
         const seq = ++netSeq;
+        netDownloads(true, true);
         const where = $('mapCrumbs').lastElementChild?.textContent?.trim() || 'this area';
         const head = $('mapTableHead');
         const body = $('mapTableBody');
@@ -401,6 +415,7 @@ if (el) {
             return;
         }
         if (seq !== netSeq || colourBy !== 'net') return; // a newer view or the colour changed meanwhile
+        netDownloads(true, !data.rows.length);
         $('mapTableTitle').innerHTML = `Schools surveyed for internet · ${esc(where)}
             <span class="text-xs text-muted fw-normal ms-1"><b class="text-danger">${fmt(data.no)}</b> no internet · <b class="text-success">${fmt(data.ok)}</b> OK${data.total > data.rows.length ? ` · showing the first ${fmt(data.rows.length)} of ${fmt(data.total)}` : ''}</span>`;
         const decl = (s) => (s.state !== 'no' && !s.last_date ? '—'
@@ -421,6 +436,7 @@ if (el) {
     function renderTable(rows, level) {
         if (colourBy === 'net') { renderNetTable(); return; }
         netSeq++; // drop a list still loading
+        netDownloads(false);
         $('mapTableTitle').textContent = level === 'school' ? 'Schools in this cluster' : `${levelName[level]}-wise coverage and registered officers`;
         const head = $('mapTableHead');
         const body = $('mapTableBody');

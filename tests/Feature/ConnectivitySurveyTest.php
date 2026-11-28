@@ -111,6 +111,36 @@ class ConnectivitySurveyTest extends TestCase
         $this->getJson(route('map.net-schools', ['level' => 'school', 'parent' => $cluster->id] + $period))->assertOk()->assertJsonPath('total', 2);
         $this->getJson(route('map.net-schools', ['level' => 'cluster', 'parent' => $this->otherCluster($cluster)->block_id]))->assertForbidden();
 
-        $this->actingAs($this->admin())->get(route('map.index'))->assertOk()->assertSee('map-colour-switch', false);
+        $this->actingAs($this->admin())->get(route('map.index'))->assertOk()->assertSee('map-colour-switch', false)->assertSee('data-net-downloads', false);
+    }
+
+    public function test_internet_list_downloads_as_excel_and_pdf(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        $school = $this->schoolIn($cluster);
+        $this->net($this->startInspection($officer, $school), 'yes', now()->toDateString(), 'No tower');
+        $q = ['level' => 'cluster', 'parent' => $cluster->block_id, 'from' => now()->subMonth()->toDateString(), 'to' => now()->toDateString()];
+
+        $this->actingAs($this->admin());
+        $xlsx = $this->get(route('map.net-schools.export', $q))->assertOk();
+        $this->assertStringContainsString('attachment', $xlsx->headers->get('content-disposition'));
+        $this->assertStringContainsString('internet-schools-', $xlsx->headers->get('content-disposition'));
+        $this->assertStringContainsString('.xlsx', $xlsx->headers->get('content-disposition'));
+
+        $pdf = $this->get(route('map.net-schools.export-pdf', $q))->assertOk();
+        $this->assertSame('application/pdf', $pdf->headers->get('content-type'));
+        $this->assertStringContainsString('attachment', $pdf->headers->get('content-disposition'));
+        $this->assertSame(2, \App\Models\AuditLog::where('action', 'net_schools_exported')->count());
+
+        // PDF row cap: a warning, no file
+        config(['inspection.master_pdf_max_rows' => 0]);
+        $this->from(route('map.index'))->get(route('map.net-schools.export-pdf', $q))->assertRedirect(route('map.index'))->assertSessionHas('warning');
+
+        // outside the officer's area
+        $this->actingAs($officer);
+        $other = ['level' => 'cluster', 'parent' => $this->otherCluster($cluster)->block_id];
+        $this->get(route('map.net-schools.export', $other))->assertForbidden();
+        $this->get(route('map.net-schools.export-pdf', $other))->assertForbidden();
     }
 }

@@ -2,9 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ArrayExport;
 use App\Models\User;
+use App\Services\AuditLogger;
+use App\Services\ConnectivitySurvey;
 use App\Services\MapDataService;
+use App\Support\MasterPdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 /** Interactive Map View (New Module 1): drill-down from the State to the schools of a cluster. */
 class MapController extends Controller
@@ -39,10 +46,13 @@ class MapController extends Controller
                     'areas' => route('map.areas', ['level' => '__L__']),
                     'schools' => route('map.schools'),
                     'netSchools' => route('map.net-schools'), // 28-11-2026: Internet colour list
+                    'netExport' => route('map.net-schools.export'),
+                    'netPdf' => route('map.net-schools.export-pdf'),
                     'school' => route('schools.show', ['school' => '__ID__']),
                     'report' => route('inspections.show', ['inspection' => '__ID__']),
                 ],
                 'canOpenSchool' => $user->can('conduct_inspections'),
+                'canExport' => $user->can('export_excel'), // 28-11-2026: Internet list downloads
                 'routing' => config('inspection.map.routing'), // V6 Module 8
                 'showRating' => $showRating, // Modification V9; V13: always for the State Admin
             ],
@@ -84,6 +94,50 @@ class MapController extends Controller
      */
     public function netSchools(Request $request)
     {
+        $s = $this->netScope($request);
+
+        return response()->json($this->netList($s));
+    }
+
+    /** 28-11-2026: the Internet school list as Excel (the list on screen: area, period, officer filter). */
+    public function netSchoolsExport(Request $request)
+    {
+        $s = $this->netScope($request);
+        $list = $this->netList($s, PHP_INT_MAX);
+        $this->netAudit($s, $list, 'excel');
+
+        return Excel::download(new ArrayExport(self::NET_HEADS, $this->netExportRows($list['rows'])), $this->netFileName($s, 'xlsx'));
+    }
+
+    /** 28-11-2026: the Internet school list as PDF, at most MasterPdf::maxRows() schools. */
+    public function netSchoolsPdf(Request $request)
+    {
+        $s = $this->netScope($request);
+        $max = MasterPdf::maxRows();
+        $list = $this->netList($s, $max);
+        if ($list['total'] > $max) {
+            return back()->with('warning', number_format($list['total']).' schools match. A PDF holds at most '.number_format($max).': choose a district or a shorter period, or download Excel.');
+        }
+        MasterPdf::prepare();
+        $this->netAudit($s, $list, 'pdf');
+        $f = $s['filters'];
+        $chips = array_values(array_filter([
+            'Area: '.$s['area'],
+            'From: '.Carbon::parse($f['from'])->format('d-m-Y'),
+            'To: '.Carbon::parse($f['to'])->format('d-m-Y'),
+            ($f['officer_id'] ?? null) ? 'Officer: '.User::whereKey($f['officer_id'])->value('name') : null,
+            'Schools surveyed: '.number_format($list['total']).' · No internet: '.number_format($list['no']).' · Internet OK: '.number_format($list['ok']),
+            'Downloaded by: '.$request->user()->name,
+        ]));
+
+        return MasterPdf::download('Internet Connectivity at Schools', self::NET_HEADS, $this->netExportRows($list['rows']), $chips, $this->netFileName($s, 'pdf'));
+    }
+
+    private const NET_HEADS = ['Sl', 'UDISE', 'School', 'Cluster · Block', 'Internet', 'Times reported without internet', 'Last reported', 'Remark', 'Declaration', 'Last checked'];
+
+    /** Level / parent / filters of the Internet list, with the same jurisdiction checks as areas() and schools(). */
+    private function netScope(Request $request): array
+    {
         $level = (string) $request->input('level');
         abort_unless(in_array($level, [...MapDataService::LEVELS, 'school'], true), 404);
         $user = $request->user();
@@ -96,12 +150,43 @@ class MapController extends Controller
         if ($parentType && $parent !== null) {
             abort_unless($this->map->canSeeArea($user, $parentType, $parent), 403, 'This area is outside your jurisdiction.');
         }
+        $crumbs = $this->map->breadcrumb($level, $parent);
 
-        $f = $this->filters($request);
-        $col = $parentType && $parent !== null ? $parentType.'_id' : null;
+        return [
+            'user' => $user, 'level' => $level, 'parent' => $parent,
+            'col' => $parentType && $parent !== null ? $parentType.'_id' : null,
+            'filters' => $this->filters($request),
+            'area' => (string) (end($crumbs)['name'] ?? 'Assam'),
+        ];
+    }
 
-        return response()->json(app(\App\Services\ConnectivitySurvey::class)
-            ->surveyedSchools($user, $col, $parent, $f['from'], $f['to'], $f['officer_id'] ?? null));
+    private function netList(array $s, int $limit = 500): array
+    {
+        $f = $s['filters'];
+
+        return app(ConnectivitySurvey::class)->surveyedSchools($s['user'], $s['col'], $s['parent'], $f['from'], $f['to'], $f['officer_id'] ?? null, $limit);
+    }
+
+    private function netExportRows(array $rows): array
+    {
+        return array_map(fn ($r, $n) => [
+            $n + 1, $r['udise'], $r['name'], $r['area'], ConnectivitySurvey::label($r['state']), $r['reports'],
+            $r['last_date'] ?? '—', $r['last_remark'] ?: '—',
+            // same rule as the list on screen (renderNetTable)
+            $r['state'] !== 'no' && ! $r['last_date'] ? '—' : ($r['signed_pdf'] ? 'Signed PDF' : ($r['declared'] ? 'Ticked, no PDF' : 'Missing')),
+            $r['checked'],
+        ], $rows, array_keys($rows));
+    }
+
+    private function netFileName(array $s, string $ext): string
+    {
+        return 'internet-schools-'.(Str::slug($s['area']) ?: 'area').'-'.$s['filters']['from'].'-to-'.$s['filters']['to'].'.'.$ext;
+    }
+
+    private function netAudit(array $s, array $list, string $format): void
+    {
+        AuditLogger::log('net_schools_exported', null, ['format' => $format, 'level' => $s['level'], 'parent' => $s['parent'],
+            'area' => $s['area'], 'filters' => array_filter($s['filters']), 'rows' => count($list['rows'])]);
     }
 
     /** Schools of a cluster (or a search across the user's jurisdiction). */

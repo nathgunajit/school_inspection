@@ -3559,3 +3559,14 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - New `map.net-schools` (`MapController::netSchools()`, throttle 120/min, the same parent / jurisdiction 403 checks as `map.areas`) → `ConnectivitySurvey::surveyedSchools()` (one schools query with cluster / block eager-loaded, at most 500 rows). `base()` now also takes the map's officer filter. The declaration lookup moved to `withDeclarations()`.
 - Files: app/Services/ConnectivitySurvey.php, app/Http/Controllers/MapController.php, routes/web.php, resources/js/map.js, resources/scss/app.scss, resources/views/map/index.blade.php, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 422 passed (new test: only surveyed schools, No internet first, counts, state level, Cluster officer own cluster 200 / other district 403, switch class rendered). Not yet checked in a browser.
+
+## 28-11-2026 · Map View Internet school list: Excel and PDF downloads
+- With the Internet colour, the list header has **Excel** and **PDF** buttons. They download the list on screen: same level / area, period and officer filter. They are disabled while the list loads or when it is empty, and hidden for the Status / Rating colours.
+- Routes `map.net-schools.export` (Excel, `ArrayExport`) and `map.net-schools.export-pdf` (`MasterPdf::download()`, title "Internet Connectivity at Schools"; chips: area, from / to, officer, surveyed / no internet / OK counts, downloaded by).
+  - Both `can:export_excel`, `throttle:6,1`, and listed in `QueuedExports::ROUTES` (background downloads).
+  - The PDF is capped by `master_pdf_max_rows` (warning, as for the other lists).
+  - File names `internet-schools-<area>-<from>-to-<to>`. Audited `net_schools_exported` with format, level, parent, area, filters and rows.
+- Columns: Sl, UDISE, School, Cluster · Block, Internet, Times reported without internet, Last reported, Remark, Declaration, Last checked.
+- `MapController::netScope()` now holds the jurisdiction checks shared by the list and both downloads.
+- Files: app/Http/Controllers/MapController.php, app/Support/QueuedExports.php, routes/web.php, resources/views/map/index.blade.php, resources/js/map.js, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
+- Verification: `npm run build`; full suite 423 passed (new test: xlsx and PDF attachments, two audit rows, PDF cap warning, 403 outside the officer's area). Not yet checked in a browser.

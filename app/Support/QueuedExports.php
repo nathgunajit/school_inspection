@@ -42,6 +42,8 @@ final class QueuedExports
         'reports.ratings.export-pdf' => 'Rating Report (PDF)',
         'inspections.export-pdf' => 'Inspections (PDF)',
         'reports.network.export-pdf' => 'Network Issues (PDF)',
+        'map.net-schools.export' => 'Internet Schools (Excel)', // 28-11-2026
+        'map.net-schools.export-pdf' => 'Internet Schools (PDF)',
         'reports.ranking.export' => 'District Ranking (Excel)', // 27-11-2026
         'reports.ranking.export-pdf' => 'District Ranking (PDF)',
     ];

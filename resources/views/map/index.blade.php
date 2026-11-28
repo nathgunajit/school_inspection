@@ -128,7 +128,16 @@
 
             {{-- District-, block-, cluster- or school-wise table of the current level (26-11-2026: below the map; hidden in Full screen) --}}
             <div class="card mt-3 map-list">
-                <div class="card-header bg-white fw-semibold" id="mapTableTitle">Areas</div>
+                <div class="card-header bg-white d-flex flex-wrap align-items-center gap-2">
+                    <div class="fw-semibold flex-grow-1 min-w-0" id="mapTableTitle">Areas</div>
+                    {{-- 28-11-2026: downloads of the Internet school list (shown with the Internet colour; hrefs set by map.js) --}}
+                    @can('export_excel')
+                        <div class="d-flex gap-2 d-none" data-net-downloads>
+                            <a href="#" class="btn btn-sm btn-soft-success" data-net-dl="excel" download data-no-loader><i class="bi bi-file-earmark-excel"></i>Excel</a>
+                            <a href="#" class="btn btn-sm btn-soft-danger" data-net-dl="pdf" download data-no-loader><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+                        </div>
+                    @endcan
+                </div>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0 map-table">
                         <thead id="mapTableHead"></thead>
