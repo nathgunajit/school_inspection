@@ -2983,6 +2983,17 @@ $half-holiday: #0284c7;
     &.is-gold { background: linear-gradient(135deg, #fde68a, #f59e0b); color: #78350f; }
     &.is-silver { background: linear-gradient(135deg, #f1f5f9, #94a3b8); color: #1e293b; }
     &.is-bronze { background: linear-gradient(135deg, #fed7aa, #c2410c); color: #fff; } }
+// 28-11-2026: Coverage and Rating rankings side by side (lg and up): compact tables so every column fits in half the width
+// (no sticky / 190 px District column from .cov-table; long district names wrap)
+@include media-breakpoint-up(md) {
+    .rank-table { table-layout: auto;
+        th, td { padding-left: .45rem; padding-right: .45rem; }
+        th:nth-child(1), td:nth-child(1) { position: static; width: 3.2rem; min-width: 0; }
+        th:nth-child(2), td:nth-child(2) { position: static; min-width: 0; box-shadow: none; white-space: normal; }
+        th { white-space: normal; }
+        td.c .cov-bar { max-width: 90px; }
+        .cov-area { white-space: normal; } }
+}
 .rank-band { display: inline-block; margin-left: .35rem; padding: .05rem .45rem; border-radius: 2rem; font-size: .7rem; font-weight: 600;
     color: var(--rb); background: color-mix(in srgb, var(--rb) 12%, #fff); border: 1px solid color-mix(in srgb, var(--rb) 35%, #fff); }
 

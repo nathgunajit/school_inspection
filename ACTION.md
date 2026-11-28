@@ -3481,3 +3481,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - The normal report PDF also ends with the Declaration section when NET_01 = Yes (tick and signed-PDF status, no blank signature boxes); the old line under step 1 was removed.
 - Files: app/Questionnaire/QuestionnaireDefinition.php, app/Http/Controllers/ReportController.php, database/migrations/2026_11_28_000001_move_net02_to_last_step.php, resources/views/inspections/{step,pdf}.blade.php, resources/views/inspections/partials/question.blade.php, resources/js/wizard.js, tests/Feature/NetworkDeclarationTest.php, CLAUDE.md, Product Details/INSPECTION_VALIDATION.md.
 - Verification: full suite 410 passed; `npm run build`; a real declaration PDF rendered from local MySQL data and checked page by page (5 pages, declaration and signature boxes on the last one). The wizard pages are not yet checked in a browser.
+
+## 28-11-2026 · District Ranking: Coverage and Rating rankings side by side
+- The user asked for the Coverage ranking on the left and the Rating ranking on the right. The two cards are now `col-lg-6` (side by side from 992 px; stacked on phones and small tablets). Officers who see only the Coverage ranking get it full width, as before.
+- To keep every column visible in half the width, `.rank-table` (md and up) drops the sticky 190 px District column from `.cov-table`, uses tighter cell padding, wraps long district names and headings, and narrows the bars (90 px). The inline `min-width: 140px` on the % columns is gone. A table that is still too wide scrolls inside its card (`cov-table-wrap`), never clipped.
+- Files: resources/views/reports/ranking/index.blade.php, resources/scss/app.scss.
+- Verification: `npm run build`; DistrictRankingTest and QueryBudgetTest pass. Not yet checked in a browser.
