@@ -34,6 +34,7 @@ class CoverageReportController extends Controller
             'cycle' => $this->report->cycle($f),
             'setting' => $this->report->setting($f),
             'radius' => $this->report->radius(),
+            'anyDistance' => $this->report->anyDistance(), // 28-11-2026: radius 0 = any distance
             'summary' => $this->report->summary($user, $f),
             'explain' => $this->report->explain($user, $f), // 26-11-2026: the figures in plain sentences
             'how' => $this->report->howCounted($f), // 27-11-2026: how the report is counted, for every user
@@ -133,7 +134,8 @@ class CoverageReportController extends Controller
             ? $row->custom_from->format('d M Y').' – '.$row->custom_to?->format('d M Y') : ($p['periods'][$row->period_type] ?? $row->periodLabel());
 
         return 'The report now opens on '.$period.'. A school counts as inspected when an inspection is submitted in the '
-            .strtolower($row->cycleLabel()).' cycle ('.($p['cycles'][$row->inspection_cycle] ?? '').').';
+            .strtolower($row->cycleLabel()).' cycle ('.($p['cycles'][$row->inspection_cycle] ?? '').').'
+            .($row->district_id === null ? ' '.app(\App\Services\CoverageReportService::class)->radiusSentence() : '');
     }
 
     public function updateSettings(Request $request)
@@ -147,7 +149,8 @@ class CoverageReportController extends Controller
             'custom_from' => ['nullable', 'date', 'required_if:period_type,custom'],
             'custom_to' => ['nullable', 'date', 'after_or_equal:custom_from', 'required_if:period_type,custom'],
             'inspection_cycle' => ['required_unless:reset,1', 'nullable', Rule::in(array_keys(CoverageSetting::CYCLES))],
-            'verify_radius_m' => ['nullable', 'integer', 'min:50', 'max:5000'],
+            'verify_any' => ['nullable', 'boolean'], // 28-11-2026: count a visit at any distance
+            'verify_radius_m' => ['nullable', 'exclude_if:verify_any,1', 'integer', 'min:50', 'max:5000'],
             'reset' => ['nullable', 'boolean'],
         ], [
             'custom_from.required_if' => 'Enter the start date of the custom range.',
@@ -181,7 +184,10 @@ class CoverageReportController extends Controller
             'updated_by' => $user->id,
         ];
         if ($districtId === null) {
-            $values['verify_radius_m'] = (int) ($data['verify_radius_m'] ?? CoverageSetting::state()->verify_radius_m);
+            // 0 = any distance; switching it off without a number goes back to the configured default
+            $old = (int) CoverageSetting::state()->verify_radius_m;
+            $values['verify_radius_m'] = ! empty($data['verify_any']) ? 0
+                : (int) ($data['verify_radius_m'] ?? ($old ?: config('inspection.coverage.verify_radius_m', 500)));
             $row = CoverageSetting::state();
             $row->update($values);
         } else {

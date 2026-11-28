@@ -47,12 +47,19 @@
                         <p class="cov-field-help">How often every school must have a <b>submitted</b> inspection. <b>Quarterly</b> = once every 3 months (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec); half-yearly and yearly follow the financial year (from 1 April).</p>
 
                         @if ($fm['withRadius'])
+                            @php $anyDist = (bool) old('verify_any', (int) $fm['row']->verify_radius_m === 0); @endphp
                             <label class="form-label">Visit verification radius <span class="opt">metres from the school</span></label>
-                            <input type="number" name="verify_radius_m" min="50" max="5000" step="10" value="{{ old('verify_radius_m', $fm['row']->verify_radius_m) }}" class="form-control mb-1 @error('verify_radius_m') is-invalid @enderror">
-                            <div class="form-text mb-3">How close the officer must be to the school for a visit to count: the start or submit location, or a photo location, must be within this distance. 500 m suits most schools; raise it where GPS is weak. It applies to every district.</div>
+                            <div class="form-check form-switch mb-2">
+                                <input type="hidden" name="verify_any" value="0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="verify_any" value="1" id="verify-any" data-cov-any @checked($anyDist)>
+                                <label class="form-check-label" for="verify-any"><b>Any distance</b>: count every visit, wherever the officer was</label>
+                            </div>
+                            <input type="number" name="verify_radius_m" min="50" max="5000" step="10" value="{{ old('verify_radius_m', $fm['row']->verify_radius_m ?: config('inspection.coverage.verify_radius_m', 500)) }}" class="form-control mb-1 @error('verify_radius_m') is-invalid @enderror" @disabled($anyDist)>
+                            @error('verify_radius_m')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text mb-3">How close the officer must be to the school for a visit to count: the start or submit location, or a photo location, must be within this distance. 500 m suits most schools; raise it where GPS is weak. With <b>Any distance</b> every started inspection counts, even without a location. It applies to every district.</div>
                         @endif
 
-                        <div class="cov-preview mb-3" data-cov-preview data-radius="{{ $fm['row']->verify_radius_m ?: $state->verify_radius_m }}" aria-live="polite"></div>
+                        <div class="cov-preview mb-3" data-cov-preview data-radius="{{ (int) $state->verify_radius_m }}" aria-live="polite"></div>
 
                         <div class="d-flex flex-wrap gap-2">
                             <button class="btn btn-primary"><i class="bi bi-check2"></i>Save</button>
@@ -112,7 +119,7 @@
             @endif
             <div class="alert alert-light border text-sm">
                 <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i>Period and cycle: what is the difference?</div>
-                <p class="mb-1"><b>Coverage period</b> → <b>Visit coverage</b>: was every school <b>visited</b> at least once in these dates? Any started inspection counts, if the officer was within the radius of the school.</p>
+                <p class="mb-1"><b>Coverage period</b> → <b>Visit coverage</b>: was every school <b>visited</b> at least once in these dates? Any started inspection counts, if the officer was within the radius of the school (or at any distance, when <b>Any distance</b> is on).</p>
                 <p class="mb-1"><b>Inspection cycle</b> → <b>Inspection coverage</b>: does every school have a <b>submitted</b> inspection in this cycle? Drafts do not count.</p>
                 <p class="mb-2"><i>Example: period Monthly, cycle Quarterly. In November the report shows which schools were visited in November, and which schools have a submitted inspection between 1 October and 31 December.</i></p>
                 <div class="fw-semibold mb-1"><i class="bi bi-diagram-3 me-1"></i>District settings</div>
@@ -134,14 +141,19 @@
                     const box = form.querySelector('[data-cov-preview]');
                     if (!box) return;
                     const cycle = form.querySelector('[name="inspection_cycle"]');
-                    const radius = form.querySelector('[name="verify_radius_m"]')?.value || box.dataset.radius;
+                    const anyBox = form.querySelector('[data-cov-any]');
+                    const radiusBox = form.querySelector('input[name="verify_radius_m"]');
+                    if (anyBox && radiusBox) radiusBox.disabled = anyBox.checked;
+                    const radius = anyBox ? (anyBox.checked ? '0' : radiusBox?.value) : box.dataset.radius;
+                    const radiusText = radius === '0' ? 'A visit counts at <b>any distance</b> from the school.'
+                        : 'A visit counts when the officer is within <b>' + String(radius ?? '').replace(/[&<>"]/g, '') + ' m</b> of the school.';
                     const period = v === 'custom'
                         ? fmt(form.querySelector('[name="custom_from"]').value) + ' – ' + fmt(form.querySelector('[name="custom_to"]').value)
                         : PREVIEW.periods[v];
                     const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
                     box.innerHTML = '<b>With these settings</b>The report opens on <b>' + esc(period) + '</b> and counts the visits made then. '
                         + 'A school counts as inspected when an inspection is submitted in the <b>' + esc(cycle.options[cycle.selectedIndex].text.toLowerCase())
-                        + '</b> cycle, now <b>' + esc(PREVIEW.cycles[cycle.value]) + '</b>. A visit counts when the officer is within <b>' + esc(radius) + ' m</b> of the school.';
+                        + '</b> cycle, now <b>' + esc(PREVIEW.cycles[cycle.value]) + '</b>. ' + radiusText;
                 };
                 form.addEventListener('input', sync);
                 form.addEventListener('change', sync);

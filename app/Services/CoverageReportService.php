@@ -110,9 +110,25 @@ class CoverageReportService
         return CoverageSetting::forDistrict($f['district_id']);
     }
 
+    /** Metres; 0 = any distance (28-11-2026: every not-cancelled visit counts, wherever the officer was). */
     public function radius(): int
     {
-        return max(50, (int) CoverageSetting::state()->verify_radius_m);
+        $m = (int) CoverageSetting::state()->verify_radius_m;
+
+        return $m === 0 ? 0 : max(50, $m);
+    }
+
+    public function anyDistance(): bool
+    {
+        return $this->radius() === 0;
+    }
+
+    /** The plain sentence about the radius (report, summary, downloads). */
+    public function radiusSentence(): string
+    {
+        return $this->anyDistance()
+            ? 'A visit counts at any distance from the school, wherever the officer was.'
+            : 'A visit counts when the officer is within '.$this->radius().' m of the school.';
     }
 
     /** The coverage period: the viewer's choice, else the configured type, around ?ref= (default today). */
@@ -224,7 +240,7 @@ class CoverageReportService
                     }
                     $points = array_values(array_filter($points, fn ($p) => $p[0] !== null && $p[1] !== null));
                     $schoolGps = $r->s_lat !== null && $r->s_lng !== null;
-                    $verified = $points && (! $schoolGps || collect($points)->contains(
+                    $verified = $radius === 0 || $points && (! $schoolGps || collect($points)->contains(
                         fn ($p) => Inspection::haversine((float) $p[0], (float) $p[1], (float) $r->s_lat, (float) $r->s_lng) <= $radius));
 
                     $s = $perSchool[$r->school_id] ??= ['cluster_id' => (int) $r->cluster_id, 'verified' => 0, 'unverified' => 0, 'last' => null, 'officers' => [], 'last_officer' => null];
@@ -539,7 +555,7 @@ class CoverageReportService
             'visit' => $n($s['visited']).' of '.$schools($s['schools']).' ('.$pct($s['visit_pct']).') in '.$area
                 .' had at least one visit '.$when.'. '
                 .($s['not_visited'] ? $schools($s['not_visited']).' had no visit. ' : 'Every school had a visit. ')
-                .'A visit counts only if the officer was within '.$this->radius().' m of the school.',
+                .($this->anyDistance() ? 'A visit counts at any distance from the school.' : 'A visit counts only if the officer was within '.$this->radius().' m of the school.'),
             'inspection' => $n($s['inspected']).' of '.$schools($s['schools']).' ('.$pct($s['insp_pct']).') '.($s['inspected'] === 1 ? 'has' : 'have')
                 .' a submitted inspection in the '.strtolower($setting->cycleLabel()).' cycle ('.$cycle->from->format('d M Y').' to '.$cycle->to->format('d M Y').'). '
                 .($s['due'] ? $schools($s['due']).' '.$needs($s['due']).'.' : 'Every school has one.'),
@@ -585,6 +601,7 @@ class CoverageReportService
             'cycle_name' => mb_strtolower($this->setting($f)->cycleLabel()),
             'cycle_dates' => $cycle->from->format('d M Y').' – '.$cycle->to->format('d M Y'),
             'radius' => $this->radius(),
+            'any_distance' => $this->anyDistance(),
         ];
     }
 
@@ -593,7 +610,7 @@ class CoverageReportService
     {
         $h = $this->howCounted($f);
 
-        return "It shows {$h['period_name']} ({$h['period_dates']}) and counts the visits made then. A school counts as inspected when an inspection is submitted in the {$h['cycle_name']} cycle, now {$h['cycle_dates']}. A visit counts when the officer is within {$h['radius']} m of the school.";
+        return "It shows {$h['period_name']} ({$h['period_dates']}) and counts the visits made then. A school counts as inspected when an inspection is submitted in the {$h['cycle_name']} cycle, now {$h['cycle_dates']}. ".$this->radiusSentence();
     }
 
     private function summaryRows(User $user, array $f): array
@@ -612,7 +629,7 @@ class CoverageReportService
             ['Coverage period', $period->label().' ('.$period->from->format('d-m-Y').' to '.$period->to->format('d-m-Y').')', 'Visits made between these dates are counted for Visit coverage.'],
             ['Configured period type', $setting->periodLabel().($setting->district_id ? ' (district setting)' : ' (state default)'), 'The period the report opens on, from Coverage Settings.'],
             ['Inspection cycle', $setting->cycleLabel().': '.$cycle->from->format('d-m-Y').' to '.$cycle->to->format('d-m-Y'), 'Every school should have one submitted inspection between these dates.'],
-            ['Verification radius', $this->radius().' m', 'A visit counts only when the officer was this close to the school.'],
+            ['Verification radius', $this->anyDistance() ? 'Any distance' : $this->radius().' m', $this->anyDistance() ? 'Every visit counts, wherever the officer was.' : 'A visit counts only when the officer was this close to the school.'],
             ['Schools in this area', $s['schools'], 'Active schools in the School Master.'],
             ['Schools visited', $s['visited'], 'Schools with at least one counted visit in the period.'],
             ['Visit coverage %', $pct($s['visit_pct']), 'Schools visited ÷ schools in this area × 100.'],

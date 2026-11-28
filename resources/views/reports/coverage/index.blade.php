@@ -144,7 +144,7 @@
     {{-- ============ KPIs (hover or tap a tile for its meaning) ============ --}}
     <div class="row g-2 g-md-3 mb-3">
         <div class="col-6 col-xl-2"><x-stat-card wrap label="Schools in this area" :value="number_format($s['schools'])" icon="bi-buildings" tone="primary" hint="active schools" data-bs-toggle="tooltip" tabindex="0" title="Active schools of this area in the School Master. Both percentages are out of this number." /></div>
-        <div class="col-6 col-xl-2"><x-stat-card wrap label="Schools visited" :value="number_format($s['visited'])" icon="bi-geo-alt" tone="accent" hint="at least one counted visit" data-bs-toggle="tooltip" tabindex="0" :title="'Schools that got at least one visit in the period with the officer\'s location within '.$radius.' m of the school. A school visited 3 times counts once.'" /></div>
+        <div class="col-6 col-xl-2"><x-stat-card wrap label="Schools visited" :value="number_format($s['visited'])" icon="bi-geo-alt" tone="accent" hint="at least one counted visit" data-bs-toggle="tooltip" tabindex="0" :title="'Schools that got at least one visit in the period'.($anyDistance ? ' (any distance counts)' : ' with the officer\'s location within '.$radius.' m of the school').'. A school visited 3 times counts once.'" /></div>
         <div class="col-6 col-xl-2">
             <div class="card stat-card stat-card-wrap tone-edge-{{ $s['band']['tone'] }} h-100" data-bs-toggle="tooltip" tabindex="0" title="Schools visited ÷ schools in this area. It shows how many schools were seen at least once in the period."><div class="card-body d-flex align-items-center gap-3">
                 {!! $ring($s['visit_pct'], $s['band']['tone']) !!}
@@ -232,7 +232,7 @@
         <section class="card cov-card mb-3">
             <div class="cov-card-head"><h3 class="cov-title"><i class="bi bi-building"></i>Schools · {{ $areaTitle }}</h3>
                 <span class="cov-order">{{ $schools->where('verified', 0)->count() }} not visited · {{ $schools->where('inspected', false)->count() }} not inspected this cycle</span></div>
-            <p class="cov-note"><i class="bi bi-info-circle"></i>Schools not visited are listed first. "Visit not counted" means the officer went, but the location was missing or more than {{ $radius }} m from the school.</p>
+            <p class="cov-note"><i class="bi bi-info-circle"></i>Schools not visited are listed first. @if ($anyDistance)Every visit counts, at any distance from the school.@else"Visit not counted" means the officer went, but the location was missing or more than {{ $radius }} m from the school.@endif</p>
             <div class="rv-table-wrap cov-table-wrap">
                 <table class="rv-table cov-table">
                     <thead><tr><th>Sl.</th><th>School</th><th class="c">Visit in the period</th><th class="c">Counted visits</th><th class="c">Last visit</th><th class="c">Inspection this cycle</th></tr></thead>
@@ -267,7 +267,11 @@
         <dl>
             <dt>Which schools are counted?</dt><dd>The <b>active</b> schools of the area in the School Master. Both percentages are out of this number.</dd>
             <dt>What is a visit?</dt><dd>Any inspection the officer started at the school (draft or submitted, not cancelled). <i>Example: an officer starts an inspection at a school on 10 Nov; the school counts as visited in November, even if the form is finished later.</i></dd>
+            @if ($anyDistance)
+            <dt>When is a visit not counted?</dt><dd>Only when the inspection was cancelled. The State Admin has set <b>Any distance</b>, so every started inspection counts, wherever the officer was and even without a location.</dd>
+            @else
             <dt>When is a visit not counted?</dt><dd>When neither the start location, the submit location nor a photo location is within <b>{{ $radius }} m</b> of the school (for example GPS was off, or the form was started from the office). A school with no GPS in the School Master accepts any captured location.</dd>
+            @endif
             <dt>What is the coverage period?</dt><dd>The dates the visits are counted for: <b>{{ $period->label() }}</b> ({{ $period->from->format('d M Y') }} – {{ $period->to->format('d M Y') }}). Use Daily, Weekly, Monthly, Quarterly or Custom above, or the arrows for the previous / next period.</dd>
             <dt>What is the inspection cycle?</dt><dd>How often every school must have a <b>submitted</b> inspection: <b>{{ strtolower($setting->cycleLabel()) }}</b>, now {{ $cycle->from->format('d M Y') }} – {{ $cycle->to->format('d M Y') }}. A school without one is <b>not inspected yet</b> (due). Drafts do not count here.</dd>
             <dt>Why are the two percentages different?</dt><dd>Visit coverage looks at the period and counts any visit; Inspection coverage looks at the whole cycle and counts only submitted forms. <i>Example: a school visited in October and submitted then is not "visited" in November, but is "inspected" for the October–December quarter.</i></dd>

@@ -166,6 +166,40 @@ class CoverageReportTest extends TestCase
         $this->assertSame(1, $this->summary($admin, ['cluster_id' => $this->north->id])['visited']);
     }
 
+    /** 28-11-2026: State Admin "Any distance" (stored radius 0): every not-cancelled visit counts, even far or without a location. */
+    public function test_any_distance_counts_every_visit(): void
+    {
+        [$s1, $s2] = $this->schools();
+        $o = $this->officer(UserLevel::Cluster, $this->north);
+        $this->visit($s1, $o, '2026-11-03', 'draft', [(float) $s1->latitude + 1, (float) $s1->longitude]); // 100+ km away
+        $this->visit($s2, $o, '2026-11-04', 'submitted', [null, null]);                                     // no location
+        $admin = $this->admin();
+        $q = ['cluster_id' => $this->north->id];
+        $this->assertSame(0, $this->summary($admin, $q)['visited']);
+
+        $this->actingAs($admin)->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly', 'verify_any' => '1', 'verify_radius_m' => ''])
+            ->assertRedirect()->assertSessionHas('success', fn ($m) => str_contains($m, 'any distance'));
+        $this->assertSame(0, CoverageSetting::state()->verify_radius_m);
+        $s = $this->summary($admin, $q);
+        $this->assertSame([2, 0], [$s['visited'], $s['unverified']]);
+
+        $svc = app(CoverageReportService::class);
+        $this->assertTrue($svc->anyDistance());
+        $this->assertStringEndsWith('A visit counts at any distance from the school, wherever the officer was.', $svc->howCountedText(['type' => null, 'ref' => null, 'from' => null, 'to' => null, 'district_id' => null]));
+        $this->get(route('reports.coverage'))->assertOk()->assertSee('any distance');
+        $this->get(route('reports.coverage.settings'))->assertOk()->assertSee('name="verify_any" value="1" id="verify-any" data-cov-any checked', false);
+
+        // switched off again: a number is saved; off without a number goes back to the default
+        $this->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly', 'verify_any' => '0', 'verify_radius_m' => 700])->assertRedirect();
+        $this->assertSame(700, CoverageSetting::state()->verify_radius_m);
+        CoverageSetting::state()->update(['verify_radius_m' => 0]);
+        $this->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly', 'verify_any' => '0'])->assertRedirect();
+        $this->assertSame(500, CoverageSetting::state()->verify_radius_m);
+
+        // a District Programmer cannot set it (district rows have no radius)
+        $this->actingAs($this->districtProgrammer())->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly', 'verify_any' => '1'])->assertForbidden();
+    }
+
     public function test_area_rows_list_every_area_sorted_by_unique_visits(): void
     {
         $o = $this->officer(UserLevel::Cluster, $this->north);
@@ -257,7 +291,7 @@ class CoverageReportTest extends TestCase
         $this->assertSame('01 Oct 2026 – 31 Dec 2026', $preview['cycles']['quarterly']);
         $this->assertSame('01 Apr 2026 – 31 Mar 2027', $preview['cycles']['yearly']);
         $this->actingAs($admin)->put(route('reports.coverage.settings.update'), ['scope' => 'state', 'period_type' => 'monthly', 'inspection_cycle' => 'quarterly'])
-            ->assertSessionHas('success', 'Coverage settings saved. The report now opens on this month (01 Nov 2026 – 30 Nov 2026). A school counts as inspected when an inspection is submitted in the quarterly cycle (01 Oct 2026 – 31 Dec 2026).');
+            ->assertSessionHas('success', 'Coverage settings saved. The report now opens on this month (01 Nov 2026 – 30 Nov 2026). A school counts as inspected when an inspection is submitted in the quarterly cycle (01 Oct 2026 – 31 Dec 2026). A visit counts when the officer is within 500 m of the school.');
     }
 
     /** 26-11-2026: the running quarter with a monthly cycle used December (not started yet), so Inspection coverage was 0 %. */
