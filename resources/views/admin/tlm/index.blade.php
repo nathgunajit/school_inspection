@@ -35,7 +35,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0 tlm-table">
                             <thead class="table-light">
-                                <tr><th style="width:3rem">Sl.</th><th>List</th><th>Class / group</th><th>Name of item</th><th>Serial no / Code</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr>
+                                <tr><th style="width:3rem">Sl.</th><th>List</th><th>Class / group</th><th>Name of item</th><th>Serial no / Code</th><th>School categories</th><th class="text-end"><span class="visually-hidden">Actions</span></th></tr>
                             </thead>
                             <tbody>
                                 @foreach ($items as $item)
@@ -46,6 +46,8 @@
                                         <td class="fw-semibold">{{ $item->name }}@unless ($item->is_active) <span class="badge-soft badge-soft-secondary ms-1">Inactive</span>@endunless
                                             @if ($item->remarks)<div class="text-xs text-secondary fw-normal">{{ $item->remarks }}</div>@endif</td>
                                         <td class="font-monospace text-nowrap">{{ $item->code ?: 'NA' }}</td>
+                                        <td class="text-xs" style="min-width: 160px">{{-- 28-11-2026 --}}
+                                            @forelse ((array) ($item->category_ids ?? []) as $cid)<span class="badge text-bg-light me-1 mb-1 text-wrap text-start">{{ $categories[$cid] ?? '#'.$cid }}</span>@empty<span class="text-secondary">All categories</span>@endforelse</td>
                                         <td class="text-end">
                                             {{-- V12 item 7: the three-dot menu holds only actions; Edit opens a window (the form no longer sits inside the dropdown) --}}
                                             <div class="dropdown">
@@ -116,6 +118,8 @@
                                     <div class="col-6"><label class="form-label">Order</label><input name="sort" value="{{ $v('sort', $item->sort) }}" type="number" min="0" class="form-control"></div>
                                     <div class="col-12"><label class="form-label">Remarks <span class="opt">optional</span></label>
                                         <input name="remarks" value="{{ $v('remarks', $item->remarks) }}" class="form-control" maxlength="200"></div>
+                                    <div class="col-12">@include('admin.tlm.partials.categories', ['idp' => 'tlm-cat-'.$item->id,
+                                        'selected' => $mine ? old('category_ids', []) : ($item->category_ids ?? []), 'error' => $err->first('category_ids.*')])</div>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -161,11 +165,12 @@
                         </div>
                         <label class="form-label">Remarks <span class="opt">optional</span></label>
                         <input name="remarks" value="{{ $addOld('remarks') }}" maxlength="200" class="form-control mb-3" placeholder="e.g. One copy per child">
+                        <div class="mb-3">@include('admin.tlm.partials.categories', ['idp' => 'tlm-cat-new', 'selected' => $addOld('category_ids', []), 'error' => old('_edit') ? null : $errors->first('category_ids.*')])</div>
                         <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i>Add</button>
                     </form>
                 </div>
             </div>
-            <div class="alert alert-light border text-sm mt-3"><i class="bi bi-info-circle me-1"></i>Officers see the FLN and the ECCE lists on Step 4 (Classroom performance) when "Use of TLM by teacher" is Yes. FLN items are grouped by class, ECCE items by group. Items are not deleted: make them inactive instead, so older reports keep them.</div>
+            <div class="alert alert-light border text-sm mt-3"><i class="bi bi-info-circle me-1"></i>Officers see the FLN and the ECCE lists on Step 4 (Classroom performance) when "Use of TLM by teacher" is Yes. FLN items are grouped by class, ECCE items by group. An item with school categories is shown only for schools of those categories (none ticked = every school). Items are not deleted: make them inactive instead, so older reports keep them.</div>
         </div>
     </div>
 </x-layouts.app>

@@ -2676,6 +2676,9 @@ $ecce: #f39223; $ecce-dk: #9a4a00; $ecce-soft: #fff4e6;
     label:hover { border-color: var(--tl); }
     .btn-check:checked + label { background: var(--tl-soft); border-color: var(--tl); box-shadow: 0 0 0 .15rem rgba(15, 23, 42, .05);
         > i { background: var(--tl); border-color: var(--tl); } } }
+// 28-11-2026: TLM master, school categories tick boxes
+.tlm-cats { border: 1px solid #e3e8f0; border-radius: .6rem; padding: .6rem .75rem; margin: 0; }
+.tlm-cat-grid { display: grid; grid-template-columns: 1fr; gap: .15rem .75rem; max-height: 220px; overflow-y: auto; }
 .tlm-list-badge { font-weight: 700; letter-spacing: .04em;
     &.is-fln { background: $fln-soft; color: $fln-dk; }
     &.is-ecce { background: $ecce-soft; color: $ecce-dk; } }

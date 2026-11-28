@@ -185,7 +185,7 @@ Demo officers (`DemoUserSeeder`, non-production only; password `Demo@1234` for a
   - Absent rows must be **equal to** Total teachers − Present (`InspectionValidator::absentLimit()`, since 21-11-2026; was ≤). This is blocking, and `addAbsentTeacher` refuses a new row past it; a replay of a saved `row_uid` is let through.
   - Fund details are optional. Amounts are formatted on blur (`.2` → `0.20`, `formatLakh()` in `wizard.js`).
 - FLN TLM (`Documents/FLN TLM list_2026-27.docx`) and, since V10, ECCE TLM (`Documents/TLM -2025-26-ECCE (1).docx`), step 4: when `tlm_used = yes`, the officer ticks the TLM items used.
-  - Every active item is offered, grouped by class in `renderTlm()` (`SI.tlmClasses`), whatever class is observed.
+  - Every active item is offered, grouped by class in `renderTlm()` (`SI.tlmClasses`), whatever class is observed. **By school category** (28-11-2026): `tlm_items.category_ids` (JSON of `master_values` ids, type `category`; null / empty = every category; migration `2026_11_28_000002`) is set with tick boxes in the TLM master Add form and Edit window (partial `admin/tlm/partials/categories`, column "School categories"); step 4 offers only `TlmItem::offeredFor($school->category_id)` (`appliesTo()`; a school without a category gets every item), and `classroomData()` refuses another item (422) while a row keeps items it already has.
   - At least one tick is required when TLM = Yes (`InspectionController::classroomData()`). Ticks are stored in `inspection_classroom_tlm`, synced on add, update and replay.
   - The master is `tlm_items` (`Admin\TlmItemController`, `/admin/tlm-items`, `manage_masters`, audited).
   - Items are never deleted, only made inactive. A row keeps an inactive item it already has.

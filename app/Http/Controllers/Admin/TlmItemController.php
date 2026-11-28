@@ -38,7 +38,14 @@ class TlmItemController extends Controller
             'items' => $items, 'class' => $class, 'list' => $list, 'counts' => $counts, 'total' => $counts->sum(),
             'listCounts' => $all->countBy('list'), 'lists' => TlmItem::LISTS,
             'classes' => InspectionClassroomObservation::CLASSES,
+            'categories' => self::categories(), // 28-11-2026: school categories an item is offered for
         ]);
+    }
+
+    /** School categories (School Master values), id => label, in their order. */
+    public static function categories(): \Illuminate\Support\Collection
+    {
+        return \App\Models\MasterValue::where('type', 'category')->orderBy('sort')->orderBy('label')->pluck('label', 'id');
     }
 
     public function store(Request $request)
@@ -82,7 +89,15 @@ class TlmItemController extends Controller
             'variety' => ['nullable', 'integer', 'min:1', 'max:999'],
             'remarks' => ['nullable', 'string', 'max:200'],
             'sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
-        ], ['class.required' => 'Select the class.', 'class.in' => 'Select a class from the list.']);
+            // 28-11-2026: school categories; none ticked = every category
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', Rule::exists('master_values', 'id')->where('type', 'category')],
+        ], ['class.required' => 'Select the class.', 'class.in' => 'Select a class from the list.',
+            'category_ids.*.exists' => 'Tick school categories from the list shown.', 'category_ids.*.integer' => 'Tick school categories from the list shown.']);
+
+        $cats = array_values(array_unique(array_map('intval', $data['category_ids'] ?? [])));
+        sort($cats);
+        $data['category_ids'] = $cats ?: null;
 
         $data['list'] = $data['list'] ?? ($item?->list ?? 'fln');
         $data['section'] = isset($data['section']) && trim($data['section']) !== '' ? trim($data['section']) : null;

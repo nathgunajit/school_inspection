@@ -14,11 +14,29 @@ class TlmItem extends Model
     /** The TLM lists, in the order they are shown on step 4. */
     public const LISTS = ['fln' => 'FLN TLM (2026-27)', 'ecce' => 'ECCE TLM (2025-26)'];
 
-    protected $fillable = ['list', 'class', 'section', 'name', 'code', 'variety', 'remarks', 'sort', 'is_active'];
+    protected $fillable = ['list', 'class', 'section', 'category_ids', 'name', 'code', 'variety', 'remarks', 'sort', 'is_active'];
 
     protected $attributes = ['list' => 'fln'];
 
-    protected $casts = ['is_active' => 'boolean', 'variety' => 'integer', 'sort' => 'integer'];
+    protected $casts = ['is_active' => 'boolean', 'variety' => 'integer', 'sort' => 'integer', 'category_ids' => 'array'];
+
+    /**
+     * 28-11-2026: is this item used for schools of this category? No category ticked = every category;
+     * a school without a category gets every item.
+     */
+    public function appliesTo(?int $categoryId): bool
+    {
+        $ids = array_map('intval', (array) ($this->category_ids ?? []));
+
+        return $categoryId === null || $ids === [] || in_array($categoryId, $ids, true);
+    }
+
+    /** Active items offered on step 4 for a school category, in the step 4 order (FLN, then ECCE). */
+    public static function offeredFor(?int $categoryId): \Illuminate\Support\Collection
+    {
+        return static::active()->orderByRaw("list = 'ecce'")->orderByRaw('class is null')->orderBy('sort')->orderBy('name')->get()
+            ->filter(fn (self $i) => $i->appliesTo($categoryId))->values();
+    }
 
     public function scopeActive(Builder $q): Builder
     {
