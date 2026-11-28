@@ -34,11 +34,12 @@
                             <button type="button" class="btn btn-light btn-sm" id="fReset"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
 
                             <div class="map-legend mt-2">
-                                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                                    <span class="fw-semibold text-xs text-uppercase text-muted">School markers</span>
+                                <div class="mb-2">
+                                    <div class="fw-semibold text-xs text-uppercase text-muted mb-1">School markers</div>
                                     {{-- V6 Module 9: colour the school pins by inspection status or by rating band --}}
-                                    {{-- 28-11-2026: Internet (connectivity survey) for every map user; Rating only when shown (V9 / V13) --}}
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Colour schools by">
+                                    {{-- 28-11-2026: Internet (connectivity survey) for every map user; Rating only when shown (V9 / V13).
+                                         Own full-width row, equal buttons (they were squeezed beside the heading). --}}
+                                    <div class="btn-group btn-group-sm w-100 map-colour-switch" role="group" aria-label="Colour schools by">
                                         <input type="radio" class="btn-check" name="colourBy" id="colourStatus" value="status" @checked($colour === 'status')>
                                         <label class="btn btn-outline-primary" for="colourStatus">Status</label>
                                         @if ($showRating)

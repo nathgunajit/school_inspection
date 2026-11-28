@@ -38,6 +38,7 @@ class MapController extends Controller
                 'urls' => [
                     'areas' => route('map.areas', ['level' => '__L__']),
                     'schools' => route('map.schools'),
+                    'netSchools' => route('map.net-schools'), // 28-11-2026: Internet colour list
                     'school' => route('schools.show', ['school' => '__ID__']),
                     'report' => route('inspections.show', ['inspection' => '__ID__']),
                 ],
@@ -75,6 +76,32 @@ class MapController extends Controller
             'totals' => $this->map->totals($rows, count($this->map->officers($user, $level, $parent))),
             'offices' => $this->map->offices($user, $level, $parent), // 23-11-2026: District / Block offices
         ]);
+    }
+
+    /**
+     * 28-11-2026: with the Internet colour, the list below the map shows the surveyed schools of the area in view
+     * (level + parent as for areas(), 'school' = a cluster), No internet first.
+     */
+    public function netSchools(Request $request)
+    {
+        $level = (string) $request->input('level');
+        abort_unless(in_array($level, [...MapDataService::LEVELS, 'school'], true), 404);
+        $user = $request->user();
+        $parent = $request->filled('parent') ? (int) $request->input('parent') : null;
+        $parentType = $this->map->parentType($level);
+
+        if ($parentType && $parent === null && ! $user->level->isStateWide()) {
+            abort(403, 'Choose an area inside your jurisdiction.');
+        }
+        if ($parentType && $parent !== null) {
+            abort_unless($this->map->canSeeArea($user, $parentType, $parent), 403, 'This area is outside your jurisdiction.');
+        }
+
+        $f = $this->filters($request);
+        $col = $parentType && $parent !== null ? $parentType.'_id' : null;
+
+        return response()->json(app(\App\Services\ConnectivitySurvey::class)
+            ->surveyedSchools($user, $col, $parent, $f['from'], $f['to'], $f['officer_id'] ?? null));
     }
 
     /** Schools of a cluster (or a search across the user's jurisdiction). */

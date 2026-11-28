@@ -3550,3 +3550,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Fix found by the test: `before@endif` in `schools/show.blade.php` did not compile (Blade needs a non-word character before `@`).
 - Files: app/Services/{ConnectivitySurvey,MapDataService}.php, app/Http/Controllers/{MapController,SchoolController}.php, resources/js/map.js, resources/scss/app.scss, resources/views/{map/index,schools/show}.blade.php, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 421 passed (new `ConnectivitySurveyTest`: latest answer decides, cancelled ignored, Cluster officer does not see a Block officer's answer, map JSON / page and school page). Not yet checked in a browser.
+
+## 28-11-2026 · Map View: colour buttons tidied; Internet shows the surveyed-schools list
+- Design: Status / Rating / Internet were squeezed beside "School markers" in the filter panel. They now sit on their own full-width row with equal buttons (`.map-colour-switch`).
+- With Internet selected, the list below the map holds only the **surveyed schools** of the area in view (state, district, block or cluster), No internet first, instead of the area table (user choice: surveyed schools only).
+  - Columns: School + UDISE, Area, Internet, times reported, last reported, remark, declaration (Signed PDF / Ticked, no PDF / Missing), last checked.
+  - The title shows the no internet / OK counts. A row click opens the school on the map. Switching back to Status / Rating brings the usual table back.
+- New `map.net-schools` (`MapController::netSchools()`, throttle 120/min, the same parent / jurisdiction 403 checks as `map.areas`) → `ConnectivitySurvey::surveyedSchools()` (one schools query with cluster / block eager-loaded, at most 500 rows). `base()` now also takes the map's officer filter. The declaration lookup moved to `withDeclarations()`.
+- Files: app/Services/ConnectivitySurvey.php, app/Http/Controllers/MapController.php, routes/web.php, resources/js/map.js, resources/scss/app.scss, resources/views/map/index.blade.php, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
+- Verification: `npm run build`; full suite 422 passed (new test: only surveyed schools, No internet first, counts, state level, Cluster officer own cluster 200 / other district 403, switch class rendered). Not yet checked in a browser.

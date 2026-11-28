@@ -1928,6 +1928,9 @@ $net-no: #d93025; $net-ok: #1e9b4b; $net-none: #94a3b8;
     &.net-ok { background: rgba($net-ok, .12); color: #146c36; border: 1px solid rgba($net-ok, .3); }
     &.net-none { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; } }
 .map-chip.is-net { border-color: #f5c2c0; background: #fdecec; color: #8a1c13; }
+// 28-11-2026: Status / Rating / Internet on their own row, equal widths, never squeezed or wrapped
+.map-colour-switch .btn { flex: 1 1 0; min-width: 0; white-space: nowrap; padding-inline: .35rem; display: inline-flex; align-items: center; justify-content: center; gap: .25rem; }
+.map-net-remark { max-width: 16rem; white-space: normal; }
 
 .map-pop { min-width: 13rem; font-size: .8rem;
     a.btn-primary, .btn-primary { color: #fff; }

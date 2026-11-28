@@ -139,6 +139,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/', [MapController::class, 'index'])->name('index');
             Route::get('/areas/{level}', [MapController::class, 'areas'])->middleware('throttle:120,1')->name('areas');
             Route::get('/schools', [MapController::class, 'schools'])->middleware('throttle:120,1')->name('schools');
+            Route::get('/net-schools', [MapController::class, 'netSchools'])->middleware('throttle:120,1')->name('net-schools'); // 28-11-2026
         });
 
         /* ---------------- V14 (25-11-2026): holiday calendar ---------------- */

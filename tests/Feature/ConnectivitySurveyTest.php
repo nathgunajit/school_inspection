@@ -86,4 +86,31 @@ class ConnectivitySurveyTest extends TestCase
         $other = School::where('cluster_id', $cluster->id)->where('id', '!=', $school->id)->orderBy('id')->firstOrFail();
         $this->get(route('schools.show', $other))->assertOk()->assertSee('Not surveyed');
     }
+
+    public function test_internet_list_shows_only_surveyed_schools_no_internet_first(): void
+    {
+        $officer = $this->officer(UserLevel::Cluster);
+        $cluster = $officer->currentJurisdiction->cluster;
+        [$a, $b, $never] = School::where('cluster_id', $cluster->id)->orderBy('id')->take(3)->get()->all();
+        $this->net($this->startInspection($officer, $a), 'no', now()->toDateString());
+        $this->net($this->startInspection($officer, $b), 'yes', now()->subDay()->toDateString(), 'No tower');
+
+        $period = ['from' => now()->subMonth()->toDateString(), 'to' => now()->toDateString()];
+        $this->actingAs($this->admin());
+        $json = $this->getJson(route('map.net-schools', ['level' => 'cluster', 'parent' => $cluster->block_id] + $period))->assertOk()->json();
+        $this->assertSame([$b->id, $a->id], array_column($json['rows'], 'id'), 'no internet first, never-asked school left out');
+        $this->assertNotContains($never->id, array_column($json['rows'], 'id'));
+        $this->assertSame([1, 1, 2], [$json['no'], $json['ok'], $json['total']]);
+        $this->assertSame('No tower', $json['rows'][0]['last_remark']);
+        $this->assertNotEmpty($json['rows'][0]['key']);
+        // state level (no parent) for the State Admin
+        $this->getJson(route('map.net-schools', ['level' => 'district'] + $period))->assertOk()->assertJsonPath('total', 2);
+
+        // a Cluster officer: their own cluster yes, another district's block no
+        $this->actingAs($officer);
+        $this->getJson(route('map.net-schools', ['level' => 'school', 'parent' => $cluster->id] + $period))->assertOk()->assertJsonPath('total', 2);
+        $this->getJson(route('map.net-schools', ['level' => 'cluster', 'parent' => $this->otherCluster($cluster)->block_id]))->assertForbidden();
+
+        $this->actingAs($this->admin())->get(route('map.index'))->assertOk()->assertSee('map-colour-switch', false);
+    }
 }

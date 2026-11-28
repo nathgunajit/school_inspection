@@ -383,7 +383,44 @@ if (el) {
         }
     }
 
+    /* ---- 28-11-2026: Internet colour → the list is the surveyed schools of the area in view, No internet first ---- */
+    let netSeq = 0;
+    async function renderNetTable() {
+        const seq = ++netSeq;
+        const where = $('mapCrumbs').lastElementChild?.textContent?.trim() || 'this area';
+        const head = $('mapTableHead');
+        const body = $('mapTableBody');
+        $('mapTableTitle').textContent = `Schools surveyed for internet · ${where}`;
+        head.innerHTML = '<tr><th>School</th><th class="d-none d-md-table-cell">Area</th><th>Internet</th><th class="text-end" title="Times reported without internet">Reported</th><th class="text-nowrap">Last reported</th><th class="d-none d-lg-table-cell">Remark</th><th>Declaration</th><th class="text-nowrap d-none d-sm-table-cell">Last checked</th></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="text-muted p-3">Loading…</td></tr>';
+        let data;
+        try {
+            data = await getJson(cfg.urls.netSchools + '?' + qs({ level: current.level, parent: current.parent, ...filters() }));
+        } catch (e) {
+            if (seq === netSeq) body.innerHTML = `<tr><td colspan="8" class="text-danger p-3">${esc(e.message)}</td></tr>`;
+            return;
+        }
+        if (seq !== netSeq || colourBy !== 'net') return; // a newer view or the colour changed meanwhile
+        $('mapTableTitle').innerHTML = `Schools surveyed for internet · ${esc(where)}
+            <span class="text-xs text-muted fw-normal ms-1"><b class="text-danger">${fmt(data.no)}</b> no internet · <b class="text-success">${fmt(data.ok)}</b> OK${data.total > data.rows.length ? ` · showing the first ${fmt(data.rows.length)} of ${fmt(data.total)}` : ''}</span>`;
+        const decl = (s) => (s.state !== 'no' && !s.last_date ? '—'
+            : s.signed_pdf ? '<span class="badge text-bg-success">Signed PDF</span>'
+                : s.declared ? '<span class="badge text-bg-warning">Ticked, no PDF</span>' : '<span class="badge text-bg-light">Missing</span>');
+        body.innerHTML = data.rows.length ? data.rows.map((s) => `<tr data-net-school="${s.id}" data-cluster="${s.cluster_id}" class="cursor-pointer">
+            <td><div class="fw-semibold">${esc(s.name)}</div><div class="text-xs text-muted">UDISE ${esc(s.udise)}</div></td>
+            <td class="d-none d-md-table-cell text-sm">${esc(s.area)}</td>
+            <td>${netPill({ net: s })}</td>
+            <td class="text-end">${fmt(s.reports)}</td>
+            <td class="text-nowrap">${s.last_date ? esc(s.last_date) : '—'}</td>
+            <td class="d-none d-lg-table-cell map-net-remark text-sm">${s.last_remark ? esc(s.last_remark) : '—'}</td>
+            <td>${decl(s)}</td>
+            <td class="text-nowrap d-none d-sm-table-cell">${esc(s.checked)}</td></tr>`).join('')
+            : '<tr><td colspan="8" class="text-muted p-3">No school in this area was asked about internet in the period.</td></tr>';
+    }
+
     function renderTable(rows, level) {
+        if (colourBy === 'net') { renderNetTable(); return; }
+        netSeq++; // drop a list still loading
         $('mapTableTitle').textContent = level === 'school' ? 'Schools in this cluster' : `${levelName[level]}-wise coverage and registered officers`;
         const head = $('mapTableHead');
         const body = $('mapTableBody');
@@ -495,6 +532,7 @@ if (el) {
         document.querySelectorAll('[data-legend]').forEach((l) => l.classList.toggle('d-none', l.dataset.legend !== colourBy));
         if (current.level === 'school') renderSchools(lastRows);
         else renderAreas(lastRows, current.level); // 28-11-2026: area colours follow the switch (coverage / internet)
+        renderTable(lastRows, current.level); // 28-11-2026: Internet → surveyed schools list, else the usual table
     }));
 
     $('fOffices')?.addEventListener('change', renderOffices);
@@ -508,6 +546,17 @@ if (el) {
     $('mapTableBody').addEventListener('click', (e) => {
         const a = e.target.closest('[data-drill]');
         if (a) { e.preventDefault(); drill(+a.dataset.drill); return; }
+        // 28-11-2026: a surveyed school (Internet list) opens on the map, like a school picked in the search
+        const ns = e.target.closest('[data-net-school]');
+        if (ns) {
+            const id = +ns.dataset.netSchool;
+            document.getElementById('mapCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const m = current.level === 'school' && markers.get(id);
+            if (m) { schoolLayer.zoomToShowLayer(m, () => m.openPopup()); return; }
+            picked = { id, name: ns.querySelector('.fw-semibold')?.textContent || '' };
+            load('school', +ns.dataset.cluster, id);
+            return;
+        }
         const tr = e.target.closest('[data-row]');
         const m = tr && markers.get(+tr.dataset.row);
         if (!m) return;
