@@ -3585,3 +3585,12 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
   - Areas, school pins (name · status / rating / internet) and offices show a tooltip on hover and the details popup on click. No permanent labels.
 - Files: resources/js/map.js, resources/scss/app.scss, CLAUDE.md.
 - Verification: `npm run build` (`bi-buildings` in the icon subset); full suite 423 passed. Not yet checked in a browser.
+
+## 28-11-2026 · Map View: small, standard-size icons
+- The user asked for small icons of one standard size. Before, areas were 26–40 px (by school count), school pins 30 px, groups 38 / 44 / 50 px (by count) and offices 34 px.
+- Map View now uses one set (constants in `map.js`): school pins 24 px (status, rating, internet), areas 26 px, grouped schools 30 px (count in a smaller badge, `.si-cluster-std`), District HQ / Block offices 26 px.
+  - Anchors, popup and tooltip offsets follow the sizes.
+- `schoolIcon(status, label, px = 30)` and `officeIcon(type, px = 34)` (map-common.js) take an optional size, passed as `--pin`. `.si-pin` / `.si-office` scale their width, height and icon from it.
+  - With the default sizes the output is the same as before, so the planner, schedule and school-page maps are unchanged.
+- Files: resources/js/map.js, resources/js/map-common.js, resources/scss/app.scss, CLAUDE.md.
+- Verification: `npm run build`; full suite 423 passed. Not yet checked in a browser.

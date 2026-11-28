@@ -10,13 +10,14 @@ export function createMap(el, cfg) {
 }
 
 /** Map pin coloured by inspection status (inspected / in_progress / pending), optionally numbered. */
-export function schoolIcon(status, label = '') {
+export function schoolIcon(status, label = '', px = 30) {
+    // 28-11-2026: optional size (Map View uses a small standard pin; other maps keep 30 px)
     return L.divIcon({
         className: '',
-        html: `<span class="si-pin st-${status}">${label ? `<b>${label}</b>` : '<i class="bi bi-building"></i>'}</span>`,
-        iconSize: [30, 38],
-        iconAnchor: [15, 36],
-        popupAnchor: [0, -32],
+        html: `<span class="si-pin st-${status}"${px !== 30 ? ` style="--pin:${px}px"` : ''}>${label ? `<b>${label}</b>` : '<i class="bi bi-building"></i>'}</span>`,
+        iconSize: [px, px + 8],
+        iconAnchor: [px / 2, px + 6],
+        popupAnchor: [0, -(px + 2)],
     });
 }
 
@@ -95,14 +96,14 @@ export const OFFICE = {
     block: { name: 'Block office', short: 'Block office', icon: 'bi-house-door-fill', badge: 'B' },
 };
 
-export function officeIcon(type) {
+export function officeIcon(type, px = 34) {
     const o = OFFICE[type] || OFFICE.block;
     return L.divIcon({
         className: '',
-        html: `<span class="si-office office-${type}" title="${o.name}"><i class="bi ${o.icon}"></i><b>${o.badge}</b></span>`,
-        iconSize: [34, 40],
-        iconAnchor: [17, 38],
-        popupAnchor: [0, -34],
+        html: `<span class="si-office office-${type}"${px !== 34 ? ` style="--pin:${px}px"` : ''} title="${o.name}"><i class="bi ${o.icon}"></i><b>${o.badge}</b></span>`,
+        iconSize: [px, px + 6],
+        iconAnchor: [px / 2, px + 4],
+        popupAnchor: [0, -px],
     });
 }
 

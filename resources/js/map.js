@@ -60,13 +60,16 @@ if (el) {
     const showRating = cfg.showRating !== false; // Modification V9: ratings hidden unless RATING_DISPLAY=true
     const pct = (v) => `${Number(v).toFixed(1).replace(/\.0$/, '')}%`;
     const ratingPill = (r) => (r ? `<span class="rating-pill rating-${esc(r.color || 'none')}">${pct(r.score ?? r.avg)} · ${esc(r.band || '')}</span>` : '');
-    const ratingIcon = (r) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
-        html: `<span class="si-pin rt-${esc(r?.color || 'none')}">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
+    // 28-11-2026: one small standard size for every Map View marker
+    const PIN = 24; const AREA = 26; const GROUP = 30; const OFFICE_PX = 26;
+    const pinBox = { iconSize: [PIN, PIN + 8], iconAnchor: [PIN / 2, PIN + 6], popupAnchor: [0, -(PIN + 2)] };
+    const ratingIcon = (r) => L.divIcon({ className: '', ...pinBox,
+        html: `<span class="si-pin rt-${esc(r?.color || 'none')}" style="--pin:${PIN}px">${r ? `<b>${Math.round(r.score)}</b>` : '<i class="bi bi-dash"></i>'}</span>` });
     // 28-11-2026: internet connectivity (ConnectivitySurvey): 'no' = no internet, 'ok' = available, null = not surveyed
     const NET = { no: { label: 'No internet', icon: 'bi-wifi-off', cls: 'net-no' }, ok: { label: 'Internet OK', icon: 'bi-wifi', cls: 'net-ok' }, none: { label: 'Not surveyed', icon: 'bi-question-lg', cls: 'net-none' } };
     const netOf = (s) => NET[s?.net?.state || 'none'];
-    const netIcon = (s) => L.divIcon({ className: '', iconSize: [30, 38], iconAnchor: [15, 36], popupAnchor: [0, -32],
-        html: `<span class="si-pin ${netOf(s).cls}"><i class="bi ${netOf(s).icon}"></i></span>` });
+    const netIcon = (s) => L.divIcon({ className: '', ...pinBox,
+        html: `<span class="si-pin ${netOf(s).cls}" style="--pin:${PIN}px"><i class="bi ${netOf(s).icon}"></i></span>` });
     const netPill = (s) => `<span class="net-pill ${netOf(s).cls}"><i class="bi ${netOf(s).icon}"></i>${netOf(s).label}</span>`;
     // an area: red when half or more of the surveyed schools have no internet, orange from a quarter, green below, grey when none surveyed
     const netColors = (n) => {
@@ -74,10 +77,10 @@ if (el) {
         return n.no_pct >= 50 ? { fillColor: '#d93025', color: '#a8231b' } : n.no_pct >= 25 ? { fillColor: '#f39223', color: '#c96f0c' } : { fillColor: '#1e9b4b', color: '#167a3a' };
     };
     // 28-11-2026: an area (district / block / cluster) is a round icon in its coverage / internet colour, no text
-    const areaIcon = (colour, size) => L.divIcon({ className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
-        html: `<span class="si-area-pin" style="--c:${esc(colour)};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px"><i class="bi bi-buildings"></i></span>` });
+    const areaIcon = (colour) => L.divIcon({ className: '', iconSize: [AREA, AREA], iconAnchor: [AREA / 2, AREA / 2],
+        html: `<span class="si-area-pin" style="--c:${esc(colour)};width:${AREA}px;height:${AREA}px"><i class="bi bi-buildings"></i></span>` });
     const areaColors = (r) => (colourBy === 'net' ? netColors(r.net) : coverageColors(r.coverage));
-    const pinIcon = (s) => (colourBy === 'rating' ? ratingIcon(s.rating) : colourBy === 'net' ? netIcon(s) : schoolIcon(s.status));
+    const pinIcon = (s) => (colourBy === 'rating' ? ratingIcon(s.rating) : colourBy === 'net' ? netIcon(s) : schoolIcon(s.status, '', PIN));
 
     function clusterIcon(children, count) {
         let cls;
@@ -96,11 +99,10 @@ if (el) {
             children.forEach((m) => { const s = m.options.siStatus || 'pending'; n[s] = (n[s] || 0) + 1; });
             cls = `st-${Object.keys(n).sort((a, b) => n[b] - n[a])[0] || 'pending'}`;
         }
-        const size = count < 10 ? 'sm' : count < 100 ? 'md' : 'lg';
-        const px = { sm: 38, md: 44, lg: 50 }[size];
+        // 28-11-2026: one standard size for every group; the count is in the badge
         return L.divIcon({
-            className: '', iconSize: [px, px], iconAnchor: [px / 2, px / 2],
-            html: `<span class="si-cluster si-cluster-${size} ${cls}" title="${count} schools"><i class="bi bi-building"></i><b>${count.toLocaleString('en-IN')}</b></span>`,
+            className: '', iconSize: [GROUP, GROUP], iconAnchor: [GROUP / 2, GROUP / 2],
+            html: `<span class="si-cluster si-cluster-std ${cls}" title="${count} schools"><i class="bi bi-building"></i><b>${count.toLocaleString('en-IN')}</b></span>`,
         });
     }
 
@@ -234,7 +236,6 @@ if (el) {
         markers.clear();
         if (boundaries) { map.removeLayer(boundaries); boundaries = null; }
         const pts = [];
-        const max = Math.max(1, ...rows.map((r) => r.schools));
 
         // District polygons (from `php artisan map:boundaries`), coloured by the coverage of the matching District Master row
         let matched = null;
@@ -267,13 +268,12 @@ if (el) {
         rows.forEach((r) => {
             if (r.lat === null || r.lng === null) return;
             // 28-11-2026: icons only; the name / figures show on hover (tooltip) and the details on click (popup)
-            const size = Math.round(26 + 14 * Math.sqrt(r.schools / max));
-            const m = L.marker([r.lat, r.lng], { icon: areaIcon(areaColors(r).fillColor, size), alt: r.label ?? r.name, riseOnHover: true })
+            const m = L.marker([r.lat, r.lng], { icon: areaIcon(areaColors(r).fillColor), alt: r.label ?? r.name, riseOnHover: true })
                 .bindTooltip(colourBy === 'net' && r.net
                     ? `${esc(r.label ?? r.name)} · ${fmt(r.net.no)} of ${fmt(r.net.no + r.net.ok)} surveyed: no internet`
                     : `${esc(r.label ?? r.name)} · ${fmt(r.inspected)} of ${fmt(r.schools)} inspected (${r.coverage} %)${r.rating ? ` · ★ ${pct(r.rating.avg)}` : ''}`,
-                { direction: 'top', offset: [0, -size / 2], className: 'si-area-label' })
-                .bindPopup(areaPopup(r, level), { offset: [0, -size / 2 + 6] });
+                { direction: 'top', offset: [0, -AREA / 2], className: 'si-area-label' })
+                .bindPopup(areaPopup(r, level), { offset: [0, -AREA / 2 + 6] });
             m.addTo(areaLayer);
             markers.set(r.id, m);
             pts.push([r.lat, r.lng]);
@@ -315,7 +315,7 @@ if (el) {
         if (note) note.textContent = offices.length ? `${offices.length} office(s) in this view` : '';
         if (!on) return;
         offices.forEach((o) => {
-            L.marker([o.lat, o.lng], { icon: officeIcon(o.type), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
+            L.marker([o.lat, o.lng], { icon: officeIcon(o.type, OFFICE_PX), pane: 'offices', title: `${officeName(o)} · ${o.label}` })
                 .bindTooltip(`${OFFICE[o.type].short} · ${esc(o.name)}`, { direction: 'bottom', offset: [0, 4], className: `si-office-label office-${o.type}` })
                 .bindPopup(officePopup(o))
                 .addTo(officeLayer);
@@ -382,7 +382,7 @@ if (el) {
                 : colourBy === 'rating' ? (s.rating ? `${pct(s.rating.score)} · ${s.rating.band || ''}` : 'Not rated yet')
                     : { inspected: 'Inspected', in_progress: 'In progress', pending: 'Not inspected' }[s.status];
             const m = L.marker([s.lat, s.lng], { icon: pinIcon(s), alt: s.name, siStatus: s.status, siRating: s.rating, siNet: s.net?.state || 'none' })
-                .bindTooltip(`${esc(s.name)} · ${esc(hint || '')}`, { direction: 'top', offset: [0, -32], className: 'si-area-label' })
+                .bindTooltip(`${esc(s.name)} · ${esc(hint || '')}`, { direction: 'top', offset: [0, -(PIN + 2)], className: 'si-area-label' })
                 .bindPopup(schoolPopup(s));
             schoolLayer.addLayer(m);
             markers.set(s.id, m);

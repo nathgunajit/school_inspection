@@ -1910,8 +1910,8 @@ $cov-mid: #e0a800;
     &.st-pending { background: rgba($st-pending, .12); color: #b3261e; } }
 
 // school pins (divIcon)
-.si-pin { position: relative; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); color: #fff; font-size: .8rem;
+.si-pin { position: relative; display: grid; place-items: center; width: var(--pin, 30px); height: var(--pin, 30px); border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); color: #fff; font-size: calc(var(--pin, 30px) * .37); // 28-11-2026: --pin = size (Map View 24 px)
     > i, > b { transform: rotate(45deg); line-height: 1; }
     &.st-inspected { background: $st-inspected; }
     &.st-in_progress { background: $st-progress; }
@@ -2845,7 +2845,7 @@ body.bars-hidden {
 // apart from the school status / rating colours
 $office-district: #6a1b9a;
 $office-block: #00838f;
-.si-office { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #fff; font-size: 1rem;
+.si-office { position: relative; display: grid; place-items: center; width: var(--pin, 34px); height: var(--pin, 34px); border-radius: calc(var(--pin, 34px) * .26); color: #fff; font-size: calc(var(--pin, 34px) * .41);
     border: 2px solid #fff; box-shadow: 0 4px 12px -2px rgba(15, 23, 42, .45);
     &::after { content: ''; position: absolute; left: 50%; bottom: -7px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: inherit; }
     b { position: absolute; top: -8px; right: -8px; min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px; background: #fff; font-size: .62rem; line-height: 17px; text-align: center; font-weight: 800; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); }
@@ -3057,3 +3057,14 @@ $half-holiday: #0284c7;
 .verify-note { display: flex; gap: .5rem; align-items: flex-start; margin-top: .9rem; padding: .6rem .8rem; border-radius: .6rem; font-size: .82rem;
     &.is-warn { background: #fff7e6; border: 1px solid #f6d2a5; color: #7a4a00; }
     &.is-bad { background: #fdecec; border: 1px solid #f5c2c0; color: #8a1c13; } }
+
+// 28-11-2026: Map View markers in one small standard size (map.js: PIN 24, AREA 26, GROUP 30, OFFICE 26 px)
+.si-pin[style*="--pin"] { border-width: 1.5px; box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    > b { font-size: .6rem; } }
+.si-office[style*="--pin"] { border-width: 1.5px;
+    &::after { bottom: -5px; margin-left: -4px; border-width: 4px; border-bottom: 0; }
+    b { top: -6px; right: -6px; min-width: 13px; height: 13px; padding: 0 2px; font-size: .5rem; line-height: 13px; } }
+.si-cluster.si-cluster-std { border-width: 2px; box-shadow: 0 1px 5px rgba(0, 0, 0, .35), 0 0 0 3px rgba(255, 255, 255, .35);
+    > i { font-size: .8rem; }
+    > b { top: -7px; right: -9px; min-width: 18px; height: 16px; padding: 0 4px; font-size: .6rem; line-height: 13px; border-width: 1.5px; } }
+.si-area-pin { font-size: 12px; }
