@@ -137,6 +137,43 @@ class TodaySchoolsV15Test extends TestCase
         $this->actingAs($crcc)->get(route('today.index', ['date' => $after]))->assertOk()->assertSee('made ahead')->assertDontSee('aria-label="Not visited"', false);
     }
 
+    /** 28-11-2026: a district holiday added after the next-day notice takes that list back and moves the notice on. */
+    public function test_a_district_holiday_added_after_the_notice_moves_the_list_to_the_next_working_day(): void
+    {
+        $crcc = $this->crcc();
+        $district = $this->cluster->block->district_id;
+        $tomorrow = today()->addDay()->toDateString();
+        $after = today()->addDays(2)->toDateString();
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk();
+        $this->artisan('today:notify', ['--now' => today()->format('Y-m-d').' 18:05'])->expectsOutputToContain('Next-day notices: 1')->assertSuccessful();
+        $this->assertSame(4, $this->rows($crcc, $tomorrow)->count());
+        $this->assertSame(1, $crcc->notifications()->where('type', NextDaySchools::class)->count());
+
+        // the District Programmer declares tomorrow a local holiday of the district
+        $dp = $this->districtProgrammer($this->cluster);
+        $this->actingAs($dp)->post(route('holidays.store'), ['date' => $tomorrow, 'name' => 'Local fair', 'type' => 'gazetted', 'district_id' => $district])
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $this->rows($crcc, $tomorrow)->count(), 'no list on the new holiday');
+        $this->assertNull(app(DailySchoolListService::class)->dayMarker($crcc, $tomorrow));
+        $this->assertSame(4, $this->rows($crcc, $after)->count(), 'made for the real next working day');
+        $alerts = $crcc->notifications()->where('type', NextDaySchools::class)->get();
+        $this->assertCount(1, $alerts, 'the stale alert for the holiday is gone, the new one is there');
+        $this->assertStringContainsString('date='.$after, $alerts->first()->data['url']);
+        $this->actingAs($crcc)->get(route('today.index'))->assertOk()->assertSee(route('today.index', ['date' => $after]), false);
+        $this->get(route('today.index', ['date' => $tomorrow]))->assertOk()->assertSee('Local fair');
+
+        // another district's officer is not touched
+        $other = $this->officer(UserLevel::Cluster, $this->otherCluster($this->cluster));
+        $this->assertSame(0, \App\Models\AuditLog::where('action', 'daily_list_holiday_recheck')->where('user_id', $other->id)->count());
+
+        // the holiday is removed again: tomorrow is a working day, so it gets its list and notice (today's notice time has passed)
+        $holiday = Holiday::where('date', $tomorrow)->where('district_id', $district)->firstOrFail();
+        $this->actingAs($dp)->delete(route('holidays.destroy', $holiday))->assertRedirect();
+        $this->assertGreaterThan(0, $this->rows($crcc, $tomorrow)->count());
+        $this->assertTrue($crcc->notifications()->where('type', NextDaySchools::class)->get()->contains(fn ($n) => str_contains($n->data['url'], 'date='.$tomorrow)));
+    }
+
     public function test_after_the_notice_a_visit_or_skip_today_updates_the_next_list(): void
     {
         $crcc = $this->crcc();

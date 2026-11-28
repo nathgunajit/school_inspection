@@ -41,8 +41,18 @@ class Holiday extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => \App\Services\HolidayCalendar::flush());
-        static::deleted(fn () => \App\Services\HolidayCalendar::flush());
+        // 28-11-2026: a holiday from tomorrow on may take back a list made ahead (AheadListRecheck); the old date too when moved
+        static::saved(function (self $h) {
+            \App\Services\HolidayCalendar::flush();
+            \App\Support\AheadListRecheck::touch($h->date, $h->district_id);
+            if ($h->wasChanged(['date', 'district_id'])) {
+                \App\Support\AheadListRecheck::touch($h->getOriginal('date'), $h->getOriginal('district_id'));
+            }
+        });
+        static::deleted(function (self $h) {
+            \App\Services\HolidayCalendar::flush();
+            \App\Support\AheadListRecheck::touch($h->date, $h->district_id);
+        });
     }
 
     public function district() { return $this->belongsTo(District::class); }

@@ -14,8 +14,13 @@ class HolidayWithdrawal extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => \App\Services\HolidayCalendar::flush());
-        static::deleted(fn () => \App\Services\HolidayCalendar::flush());
+        // 28-11-2026: withdrawing / restoring a state holiday for a district changes that district's working days
+        $recheck = function (self $w) {
+            \App\Services\HolidayCalendar::flush();
+            \App\Support\AheadListRecheck::touch(Holiday::whereKey($w->holiday_id)->value('date'), (int) $w->district_id);
+        };
+        static::saved($recheck);
+        static::deleted($recheck);
     }
 
     public function holiday() { return $this->belongsTo(Holiday::class); }

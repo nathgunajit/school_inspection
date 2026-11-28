@@ -111,6 +111,8 @@ return [
     'daily_list' => [
         // V16 (27-11-2026): with no scheduler seen, page views run today:notify (at most every 5 minutes)
         'alert_fallback' => (bool) env('TODAY_ALERT_FALLBACK', true),
+        // 28-11-2026: a holiday change from tomorrow on takes back lists made ahead and moves the next-day notice on
+        'holiday_recheck' => (bool) env('TODAY_HOLIDAY_RECHECK', true),
         'issue_answers' => [
             'CND_03' => ['no'], // Functional Toilet for Girls
             'CND_05' => ['no'], // Functional Toilet for Boys

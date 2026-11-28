@@ -89,19 +89,7 @@ class TodayNotify extends Command
 
     private function notice(DailySchoolListService $lists, User $officer, \Carbon\CarbonInterface $day): bool
     {
-        $d = $day->toDateString();
-        if ($lists->dayMarker($officer, $d)?->notified_at) {
-            return false;
-        }
-        $rows = $lists->prepare($officer, $day);
-        if ($rows === null || $rows->isEmpty()) {
-            return false;
-        }
-        $carried = $rows->where('source', 'carried')->count();
-        $officer->notify(new NextDaySchools($d, $carried, $rows->count() - $carried, $rows->map(fn ($r) => $r->school?->name)->filter()->values()->all()));
-        DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $d)->update(['notified_at' => now()]);
-
-        return true;
+        return $lists->sendNextDayNotice($officer, $day); // 28-11-2026: shared with the holiday recheck
     }
 
     private function remind(DailySchoolListService $lists, User $officer, string $today): bool

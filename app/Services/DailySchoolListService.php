@@ -521,6 +521,73 @@ class DailySchoolListService
     }
 
     /**
+     * The next-day notice (bell) for one officer and working day: makes the list ahead and sends NextDaySchools once
+     * (marker notified_at). Used by today:notify and after a holiday change (recheckAhead()).
+     */
+    public function sendNextDayNotice(User $officer, \Carbon\CarbonInterface $day): bool
+    {
+        $d = $day->toDateString();
+        if ($this->dayMarker($officer, $d)?->notified_at) {
+            return false;
+        }
+        $rows = $this->prepare($officer, $day);
+        if ($rows === null || $rows->isEmpty()) {
+            return false;
+        }
+        $carried = $rows->where('source', 'carried')->count();
+        $officer->notify(new \App\Notifications\NextDaySchools($d, $carried, $rows->count() - $carried, $rows->map(fn ($r) => $r->school?->name)->filter()->values()->all()));
+        DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $d)->update(['notified_at' => now()]);
+
+        return true;
+    }
+
+    /**
+     * 28-11-2026: a holiday (state or the officer's district, incl. a withdrawal) was added, changed or removed.
+     * - A list made ahead for a day that is no longer a working day is taken back: its untouched automatic / carried
+     *   rows and the day marker are deleted, and the unread "next day" alert for that day is removed.
+     * - When that day's notice had been sent, or today's notice time has passed ($noticeRan), the officer gets the
+     *   list and the notice for the real next working day (district holidays and weekly off included).
+     *
+     * @return array{dropped: string[], noticed: ?string}
+     */
+    public function recheckAhead(User $officer, bool $noticeRan = false): array
+    {
+        $setting = $this->settingFor($officer);
+        $district = $this->calendar->districtOf($officer);
+        $dropped = [];
+        $hadNotice = false;
+        $days = DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', '>', today()->toDateString())
+            ->get(['list_date', 'notified_at', 'locked_at']);
+        foreach ($days as $m) {
+            $day = substr((string) $m->list_date, 0, 10);
+            if (! $this->calendar->offReason($day, $district, $setting->weekly_off)) {
+                continue;
+            }
+            $hadNotice = $hadNotice || $m->notified_at !== null;
+            DB::transaction(function () use ($officer, $day) {
+                DailySchoolList::where('officer_id', $officer->id)->where('list_date', $day)->where('status', 'pending')->whereIn('source', ['auto', 'carried'])->delete();
+                DB::table('daily_school_list_days')->where('officer_id', $officer->id)->where('list_date', $day)->delete();
+            });
+            $officer->unreadNotifications()->get()
+                ->filter(fn ($n) => ($n->data['kind'] ?? null) === 'next_day_schools' && str_contains((string) ($n->data['url'] ?? ''), 'date='.$day))
+                ->each->delete();
+            $dropped[] = $day;
+        }
+
+        $noticed = null;
+        if (($hadNotice || $noticeRan) && DailyDisplaySetting::state()->notify_enabled && $this->appliesTo($officer, $setting)
+            && ($next = $this->calendar->nextWorkingDay(today(), $district, $setting->weekly_off))
+            && $this->sendNextDayNotice($officer, $next)) {
+            $noticed = $next->toDateString();
+        }
+        if ($dropped || $noticed) {
+            AuditLogger::log('daily_list_holiday_recheck', null, ['officer_id' => $officer->id, 'dropped' => $dropped, 'noticed' => $noticed], $officer);
+        }
+
+        return ['dropped' => $dropped, 'noticed' => $noticed];
+    }
+
+    /**
      * Settings changed (item 8): a list made ahead is made again with the new settings. Assigned rows stay; the
      * untouched automatic and carried rows are dropped and picked again. The 'notice sent' mark is kept.
      */

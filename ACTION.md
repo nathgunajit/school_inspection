@@ -3604,3 +3604,16 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Offices (District HQ / Block office) on Map View: 20 px, icon only. `officeIcon(type, px, badge = false)` drops the "HQ" / "B" text and the duplicate title, and the name shows on hover. The defaults are unchanged for the other maps.
 - Files: app/Services/ConnectivitySurvey.php, resources/js/map.js, resources/js/map-common.js, resources/scss/app.scss, tests/Feature/ConnectivitySurveyTest.php, CLAUDE.md.
 - Verification: `npm run build`; full suite 423 passed (the test checks `lat` on the list rows). Not yet checked in a browser.
+
+## 28-11-2026 · Fix: next-day Today's Schools list and notice ignored holidays added later (local district holidays)
+- Problem: the next-day notice (`today:notify`) made tomorrow's list and sent the alert. If a district (or state) holiday was added for that day afterwards, the list and the "Tomorrow: n schools to visit" alert stayed, and no list or notice went to the real next working day. Removing or withdrawing a holiday after the notice time also left the new working day without a list or notice.
+- The checks when the list is made were already right (`offReason()` / `nextWorkingDay()` with the officer's district). The gap was that holiday changes only flushed the calendar cache.
+- Fix:
+  - `Holiday` / `HolidayWithdrawal` model events call `App\Support\AheadListRecheck::touch()` (only for days from tomorrow to 8 days ahead, old and new date on a move). Once per request it runs `App\Jobs\RecheckAheadLists` for the district, or for everyone on a state holiday. It is queued with a worker, otherwise it runs at the end of the request.
+  - `DailySchoolListService::recheckAhead()`: a day that is no longer a working day loses its untouched auto / carried rows, its marker and the unread next-day alert. If that day had been notified, or today's notice already ran, the list and notice are made for the real next working day.
+  - The notice logic moved from `TodayNotify` to `DailySchoolListService::sendNextDayNotice()` (used by both). Audited `daily_list_holiday_recheck`. Switch `TODAY_HOLIDAY_RECHECK` (default on).
+- Files: app/Services/DailySchoolListService.php, app/Console/Commands/TodayNotify.php, app/Jobs/RecheckAheadLists.php, app/Support/AheadListRecheck.php, app/Models/{Holiday,HolidayWithdrawal}.php, config/inspection.php, tests/Feature/TodaySchoolsV15Test.php, CLAUDE.md.
+- Verification:
+  - new test: notice for tomorrow, then the District Programmer adds a local holiday tomorrow. Tomorrow's list and alert are gone, the list and alert are for the day after, another district's officer is untouched, and deleting the holiday gives tomorrow its list and notice again;
+  - the same test fails with the switch off (4 schools left on the holiday);
+  - full suite 424 passed.
