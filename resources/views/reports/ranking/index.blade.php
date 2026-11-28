@@ -65,11 +65,11 @@
 
     <div id="rk-results" class="row g-3" data-filter-region data-filter-results data-loader-text="Ranking districts…">
         {{-- ============ Coverage ranking ============ --}}
-        <div class="{{ $showRating ? 'col-xl-6' : 'col-12' }}">
+        <div class="{{ $showRating ? 'col-xxl-6' : 'col-12' }}">
             <section class="card h-100">
                 <div class="card-header d-flex align-items-center gap-2"><i class="bi bi-patch-check text-primary"></i><span>Coverage ranking</span>
                     <span class="ms-auto text-xs text-secondary">by Inspection coverage %</span></div>
-                <div class="rv-table-wrap">
+                <div class="rv-table-wrap cov-table-wrap">
                     <table class="rv-table cov-table rank-table">
                         <thead><tr><th class="c">Rank</th><th>District</th><th class="c">Schools</th><th class="c">Inspected</th><th class="c" style="min-width:140px">Inspection %</th><th class="c">Visit %</th></tr></thead>
                         <tbody>
@@ -97,11 +97,11 @@
 
         {{-- ============ Rating ranking (State Admin, like the Rating Report) ============ --}}
         @if ($showRating)
-        <div class="col-xl-6">
+        <div class="col-xxl-6">
             <section class="card h-100">
                 <div class="card-header d-flex align-items-center gap-2"><i class="bi bi-star-half text-warning"></i><span>Rating ranking</span>
                     <span class="ms-auto text-xs text-secondary">by average rating %</span></div>
-                <div class="rv-table-wrap">
+                <div class="rv-table-wrap cov-table-wrap">
                     <table class="rv-table cov-table rank-table">
                         <thead><tr><th class="c">Rank</th><th>District</th><th class="c">Rated inspections</th><th class="c">Schools</th><th class="c" style="min-width:140px">Average rating %</th></tr></thead>
                         <tbody>

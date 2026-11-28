@@ -3454,3 +3454,9 @@ Reviewed `Documents/SchoolMaster_UDISE 202526.xlsx`: 1 sheet, 44,197 schools, 21
 - Wording follows the setting: the "How this report is counted" line, the Coverage page tooltip, notes and Q&A, the Excel / PDF Summary ("Verification radius: Any distance"), the settings preview, and the save message (which now also names the radius).
 - Code: `CoverageReportService::radius()` (0 = any), `anyDistance()`, `radiusSentence()`, visit loop; `CoverageReportController` (`verify_any`, `exclude_if` on the radius, `anyDistance` to the view); views `reports/coverage/settings`, `index`, `partials/how-counted`.
 - Tests: `CoverageReportTest::test_any_distance_counts_every_visit`; the save-message assertion updated. Full suite: 407 passed. Not yet checked in a browser.
+
+## 28-11-2026 · District Ranking: every column visible
+- Problem: on the District Ranking page the right-hand columns (Visit %, and Average rating % with its band) were cut off. The tables used `.rv-table-wrap` (`overflow: hidden`) without `cov-table-wrap`, and two six-column tables sat side by side from the `xl` breakpoint, so the cards were too narrow.
+- Fix: both tables now use `rv-table-wrap cov-table-wrap`, as on the Coverage page (they scroll sideways when needed, and Rank + District stay in view). The Coverage and Rating cards sit side by side only from `xxl` (1400 px) and are stacked full width below that.
+- Files: resources/views/reports/ranking/index.blade.php.
+- Verification: DistrictRankingTest, QueryBudgetTest and IconSubsetTest pass. Not yet checked in a browser.
