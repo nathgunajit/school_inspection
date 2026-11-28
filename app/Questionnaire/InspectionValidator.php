@@ -15,6 +15,7 @@ class InspectionValidator
     private array $remarks;
     private array $uploadedByQuestion = [];
     private array $uploadedByCategory = [];
+    private array $docsByQuestion = [];
 
     public function __construct(private Inspection $inspection)
     {
@@ -23,6 +24,9 @@ class InspectionValidator
         $this->remarks = $inspection->remarksMap();
 
         foreach ($inspection->evidence as $e) {
+            if ($e->kind === 'document' && $e->question_code && $e->status === EvidenceStatus::Uploaded) {
+                $this->docsByQuestion[$e->question_code] = ($this->docsByQuestion[$e->question_code] ?? 0) + 1;
+            }
             if ($e->kind !== 'photo' || $e->status !== EvidenceStatus::Uploaded) {
                 continue;
             }
@@ -112,6 +116,14 @@ class InspectionValidator
         return false;
     }
 
+    /** 28-11-2026: a document must be attached to this answer (e.g. NET_02: the signed declaration PDF). */
+    public static function documentRequired(array $q, mixed $value): bool
+    {
+        $rule = $q['document'] ?? null;
+
+        return is_array($rule) && isset($rule['required_if']) && self::isFilled($value) && self::matches($value, $rule['required_if']);
+    }
+
     private static function matches(mixed $value, array $values): bool
     {
         foreach ((array) $value as $v) {
@@ -163,6 +175,9 @@ class InspectionValidator
                 }
                 if (self::isFilled($value) && self::photoRequired($q, $value) && empty($this->uploadedByQuestion[$q['code']])) {
                     $add($step, $q['code'], $q['label'].': photograph required');
+                }
+                if (self::documentRequired($q, $value) && empty($this->docsByQuestion[$q['code']])) {
+                    $add($step, $q['code'], 'Attach the declaration signed by the Block / District officer (PDF)');
                 }
             }
         }

@@ -63,6 +63,16 @@
                 @if (! empty($remarks[$q['code']]))
                     <div class="qa-remark"><i class="bi bi-chat-left-text"></i><span><b>Remarks:</b> {{ $remarks[$q['code']] }}</span></div>
                 @endif
+                {{-- 28-11-2026: the document attached to this answer (NET_02: signed declaration PDF) --}}
+                @if (is_array($q['document'] ?? null) && $has)
+                    @php $qDocs = $inspection->evidence->where('kind', 'document')->where('question_code', $q['code']); @endphp
+                    <div class="qa-remark"><i class="bi bi-file-earmark-pdf text-danger"></i><span><b>{{ $q['document']['label'] ?? 'Document' }}:</b>
+                        @forelse ($qDocs as $d)
+                            <a href="{{ route('evidence.show', [$d, 'download' => 1]) }}" download data-no-loader>{{ $d->original_name }}</a>@if (! $loop->last), @endif
+                        @empty
+                            <span class="text-danger">not attached</span>
+                        @endforelse</span></div>
+                @endif
             </div>
         @endforeach
     </div>

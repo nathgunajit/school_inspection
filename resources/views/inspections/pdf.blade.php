@@ -249,7 +249,9 @@
                 @if ($i === $lead)</table></div>@php $open = false; @endphp<table class="qa">@endif
                 <tr class="{{ $i % 2 ? 'z' : '' }}">
                     <td class="no">{{ $i + 1 }}</td>
-                    <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif</td>
+                    <td>{{ $q['label'] }}@if (! empty($remarks[$q['code']]))<div class="rem">Remarks: {{ $remarks[$q['code']] }}</div>@endif
+                        @if (is_array($q['document'] ?? null) && V::isFilled($a))@php $qDocs = $inspection->evidence->where('kind', 'document')->where('question_code', $q['code']); @endphp
+                            <div class="rem">{{ $q['document']['label'] ?? 'Document' }}: {{ $qDocs->isNotEmpty() ? 'attached ('.$qDocs->pluck('original_name')->implode(', ').')' : 'not attached' }}</div>@endif</td>
                     <td class="v">@if ($tone)<span class="d {{ $tone }}">●</span>@endif{{ QD::optionLabel($q['code'], $a) }}</td>
                 </tr>
             @endforeach

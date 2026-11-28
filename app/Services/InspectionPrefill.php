@@ -21,7 +21,7 @@ use App\Questionnaire\QuestionnaireDefinition as Q;
 class InspectionPrefill
 {
     /** Asked fresh every visit: students present / absent, teachers present, network problem today. */
-    public const FRESH = ['TSI_01', 'TSI_02', 'TSI_09', 'NET_01'];
+    public const FRESH = ['TSI_01', 'TSI_02', 'TSI_09', 'NET_01', 'NET_02'];
 
     /** Steps whose answers are copied (the banner also shows on step 4, whose rows are copied). */
     public const STEPS = [1, 2, 5, 6];

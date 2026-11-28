@@ -54,8 +54,19 @@ class EvidenceController extends Controller
             return response()->json($existing->load('category')->toClientArray());
         }
 
-        if (! empty($data['question_code']) && ! QuestionnaireDefinition::find($data['question_code'])) {
+        $question = ! empty($data['question_code']) ? QuestionnaireDefinition::find($data['question_code']) : null;
+        if (! empty($data['question_code']) && ! $question) {
             throw ValidationException::withMessages(['question_code' => 'This photo belongs to a question that is not in the form. Reload the page and take it again.']);
+        }
+        // 28-11-2026: a document attached to a question (NET_02 signed declaration) must be one the question asks for
+        if ($question && $data['kind'] === 'document') {
+            $rule = $question['document'] ?? null;
+            if (! is_array($rule)) {
+                throw ValidationException::withMessages(['question_code' => 'This question does not take a document. Attach it under Supporting documents instead.']);
+            }
+            if (! empty($rule['pdf_only']) && $request->file('file')?->getMimeType() !== 'application/pdf') {
+                throw ValidationException::withMessages(['file' => 'Attach the signed declaration as a PDF file. Scan the signed paper as PDF, then attach it again.']);
+            }
         }
 
         // 26-11-2026: the count is checked with the inspection row locked, so two uploads at once cannot pass the limit

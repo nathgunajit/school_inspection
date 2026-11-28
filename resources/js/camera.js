@@ -83,18 +83,25 @@ function render() {
     });
 
     // Documents
-    const docs = $('#doc-list');
-    if (docs) {
-        const list = SI.evidence.filter((e) => e.kind === 'document');
-        docs.innerHTML = list.length ? list.map((d) => `<div class="list-item py-2" data-uid="${d.evidence_uid}">
+    // 28-11-2026: documents attached to a question (NET_02 signed declaration) are listed under that question only
+    const docRow = (d) => `<div class="list-item py-2" data-uid="${d.evidence_uid}">
             <i class="bi bi-file-earmark-${d.original_name?.toLowerCase().endsWith('.pdf') ? 'pdf text-danger' : 'image text-primary'} fs-5"></i>
             <div class="flex-grow-1 min-w-0 text-sm text-truncate">${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.original_name)}</a>` : esc(d.original_name)}</div>
             ${d.status === 'pending' ? '<span class="spinner-border spinner-border-sm text-warning"></span>' : ''}
             ${d.status === 'failed' && d.refused ? `<span class="text-xs text-danger">${esc(d.error)} Remove it and attach the file again.</span>` : ''}
             ${d.status === 'failed' && !d.refused ? `<button type="button" class="btn btn-sm btn-soft-primary" data-retry="${d.evidence_uid}">Retry</button>` : ''}
             <button type="button" class="btn btn-sm btn-light btn-icon" data-remove="${d.evidence_uid}" aria-label="Remove document"><i class="bi bi-trash text-danger"></i></button>
-        </div>`).join('') : '<div class="text-sm text-secondary p-3">No documents attached.</div>';
+        </div>`;
+    const allDocs = SI.evidence.filter((e) => e.kind === 'document');
+    const docs = $('#doc-list');
+    if (docs) {
+        const list = allDocs.filter((e) => !e.question_code);
+        docs.innerHTML = list.length ? list.map(docRow).join('') : '<div class="text-sm text-secondary p-3">No documents attached.</div>';
     }
+    $$('[data-doc-list][data-question]').forEach((box) => {
+        const list = allDocs.filter((e) => e.question_code === box.dataset.question);
+        box.innerHTML = list.length ? list.map(docRow).join('') : '<div class="text-sm text-secondary p-3">Not attached yet.</div>';
+    });
 }
 
 /* ---------------- Upload with retry ---------------- */
@@ -186,6 +193,26 @@ $('#doc-input')?.addEventListener('change', async (e) => {
     if (file.size > 5 * 1024 * 1024) return window.toast('The document is larger than 5 MB. Choose a smaller file, or scan it at a lower quality.', 'danger');
     if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) return window.toast('Only PDF, JPG or PNG documents are allowed. Save the file in one of these formats.', 'danger');
     const item = { evidence_uid: uuid(), kind: 'document', blob: file, filename: file.name, original_name: file.name, sha256: await sha256(file), status: 'pending' };
+    SI.evidence.push(item);
+    upload(item);
+});
+
+// 28-11-2026: a document attached to a question (NET_02: the declaration signed by the Block / District officer, PDF only)
+document.addEventListener('change', async (e) => {
+    const input = e.target.closest?.('input[data-doc-question]');
+    if (!input) return;
+    const file = input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (SI.evidence.filter((x) => x.kind === 'document' && !x.refused).length >= (SI.maxDocuments || 5)) {
+        return window.toast(`You already added ${SI.maxDocuments || 5} documents, the most allowed. Remove one to add another.`, 'warning');
+    }
+    const pdfOnly = input.dataset.pdfOnly === '1';
+    if (pdfOnly && !/\.pdf$/i.test(file.name)) return window.toast('Attach the signed declaration as a PDF file. Scan the signed paper as PDF, then attach it again.', 'danger');
+    if (!/\.(pdf|jpe?g|png)$/i.test(file.name)) return window.toast('Only PDF, JPG or PNG documents are allowed. Save the file in one of these formats.', 'danger');
+    if (file.size > 5 * 1024 * 1024) return window.toast('The file is larger than 5 MB. Scan it at a lower quality and attach it again.', 'danger');
+    const item = { evidence_uid: uuid(), kind: 'document', question_code: input.dataset.docQuestion, blob: file, filename: file.name,
+        original_name: file.name, sha256: await sha256(file), status: 'pending' };
     SI.evidence.push(item);
     upload(item);
 });

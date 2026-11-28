@@ -38,7 +38,7 @@
     <div class="card">
         <div class="table-responsive">
             <table class="table align-middle mb-0">
-                <thead><tr><th>Date</th><th>School</th><th>Block / District</th><th>Officer</th><th>Problem reported</th><th></th></tr></thead>
+                <thead><tr><th>Date</th><th>School</th><th>Block / District</th><th>Officer</th><th>Problem reported</th><th>Declaration</th><th></th></tr></thead>
                 <tbody>
                 @forelse ($rows as $i)
                     <tr>
@@ -47,13 +47,18 @@
                         <td class="text-sm">{{ $i->block?->label }}<div class="text-xs text-secondary">{{ $i->district?->label }}</div></td>
                         <td class="text-sm">{{ $i->officer->name }}</td>
                         <td class="text-sm" style="min-width: 220px">{!! filled($remarks[$i->id] ?? null) ? e($remarks[$i->id]) : '<span class="text-secondary">No remark</span>' !!}</td>
+                        @php $dc = $declarations[$i->id] ?? null; @endphp
+                        <td class="text-sm text-nowrap">{{-- 28-11-2026: declaration ticked + signed PDF --}}
+                            @if ($dc && $dc['ticked'])<span class="rs-chip ok"><i class="bi bi-check2"></i>Declared</span>@else<span class="rs-chip bad"><i class="bi bi-x-circle"></i>Not declared</span>@endif
+                            <div class="mt-1">@forelse ($dc['docs'] ?? [] as $d)<a href="{{ route('evidence.show', [$d, 'download' => 1]) }}" download data-no-loader class="text-xs"><i class="bi bi-file-earmark-pdf text-danger"></i> Signed PDF</a>@empty<span class="text-xs text-danger">Signed PDF missing</span>@endforelse</div>
+                        </td>
                         <td class="text-end text-nowrap">
                             @if ($i->status->value === 'draft')<x-status-badge :status="$i->status" />
                             @else<a href="{{ route('inspections.show', $i) }}" class="btn btn-sm btn-soft-primary">View</a>@endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6"><x-empty-state icon="bi-wifi" title="No network issues reported" text="Officers report them on step 1 of the inspection." /></td></tr>
+                    <tr><td colspan="7"><x-empty-state icon="bi-wifi" title="No network issues reported" text="Officers report them on step 1 of the inspection." /></td></tr>
                 @endforelse
                 </tbody>
             </table>

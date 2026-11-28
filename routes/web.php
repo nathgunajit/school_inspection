@@ -96,6 +96,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::post('/evidence', [EvidenceController::class, 'store'])->middleware('throttle:uploads')->name('evidence.store');
             Route::get('/', [ReportController::class, 'show'])->name('inspections.show');
             Route::get('/pdf', [ReportController::class, 'pdf'])->name('inspections.pdf');
+            Route::get('/network-declaration', [ReportController::class, 'networkDeclaration'])->middleware('throttle:30,1')->name('inspections.network-declaration'); // 28-11-2026
         });
 
         Route::get('/evidence/{evidence}', [EvidenceController::class, 'show'])->name('evidence.show');

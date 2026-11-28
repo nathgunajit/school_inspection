@@ -37,6 +37,7 @@ class NetworkIssueController extends Controller
         return view('reports.network.index', [
             'rows' => $rows,
             'remarks' => $remarks,
+            'declarations' => self::declarations($rows->pluck('id')->all()), // 28-11-2026
             'total' => $query->clone()->count(),
             'schools' => $query->clone()->distinct('school_id')->count('school_id'),
             'districts' => $user->level->isStateWide() ? District::orderBy('name')->get(['id', 'code', 'name']) : collect(), // others see their own area only
@@ -60,9 +61,11 @@ class NetworkIssueController extends Controller
         $list = $query->clone()->with(['school:id,udise_code,name', 'officer:id,name', 'district:id,code,name', 'block:id,code,name'])
             ->latest('inspection_date')->latest('id')->get();
         $remarks = InspectionAnswer::whereIn('inspection_id', $list->pluck('id'))->where('question_code', 'NET_01')->pluck('remarks', 'inspection_id');
+        $decl = self::declarations($list->pluck('id')->all());
         $rows = $list->values()->map(fn ($i, $n) => [
             $n + 1, $i->inspection_date->format('d-m-Y'), $i->school->udise_code, $i->school->name, $i->block?->label, $i->district?->label,
             $i->officer->name, $i->status->label(), filled($remarks[$i->id] ?? null) ? $remarks[$i->id] : 'No remark',
+            self::declarationText($decl[$i->id] ?? null),
         ])->all();
 
         $chips = array_values(array_filter([
@@ -75,8 +78,40 @@ class NetworkIssueController extends Controller
         AuditLogger::log('network_issues_exported', null, ['format' => 'pdf', 'filters' => array_filter($f), 'rows' => count($rows)]);
 
         return MasterPdf::download('Network Issues at Schools',
-            ['Sl', 'Date', 'UDISE', 'School', 'Block', 'District', 'Officer', 'Status', 'Problem reported'],
+            ['Sl', 'Date', 'UDISE', 'School', 'Block', 'District', 'Officer', 'Status', 'Problem reported', 'Declaration'],
             $rows, $chips, 'network-issues-'.now()->format('Y-m-d').'.pdf');
+    }
+
+    /**
+     * 28-11-2026: the no-internet declaration of each inspection: NET_02 ticked, and the signed PDFs (document evidence
+     * with question_code NET_02). Two queries for the whole page.
+     *
+     * @return array<int, array{ticked: bool, docs: \Illuminate\Support\Collection}>
+     */
+    public static function declarations(array $ids): array
+    {
+        if (! $ids) {
+            return [];
+        }
+        $ticked = InspectionAnswer::whereIn('inspection_id', $ids)->where('question_code', 'NET_02')->get(['inspection_id', 'value'])
+            ->filter(fn ($a) => in_array('agree', (array) $a->value, true))->pluck('inspection_id')->flip();
+        $docs = \App\Models\InspectionEvidence::whereIn('inspection_id', $ids)->where('kind', 'document')->where('question_code', 'NET_02')
+            ->where('status', \App\Enums\EvidenceStatus::Uploaded)->get()->groupBy('inspection_id');
+        $out = [];
+        foreach ($ids as $id) {
+            $out[$id] = ['ticked' => $ticked->has($id), 'docs' => $docs->get($id, collect())];
+        }
+
+        return $out;
+    }
+
+    public static function declarationText(?array $d): string
+    {
+        if (! $d || (! $d['ticked'] && $d['docs']->isEmpty())) {
+            return 'Missing';
+        }
+
+        return ($d['ticked'] ? 'Declared' : 'Not declared').' · '.($d['docs']->isNotEmpty() ? 'Signed PDF attached' : 'Signed PDF missing');
     }
 
     private function filters(Request $request): array

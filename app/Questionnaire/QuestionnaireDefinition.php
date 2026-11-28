@@ -13,7 +13,8 @@ namespace App\Questionnaire;
  *  code, label, type (radio|multi|select|text|textarea|number|date),
  *  options [value => label], required (bool),
  *  show_if [code, [values]], enable_if [code, [values]] (shown but disabled otherwise), required_if [code, [values]], required_unless [code, [values]],
- *  remarks_if [values] (remarks box shown; required unless remarks_optional), photo 'required'|'optional'|['required_if' => [values]], photo_category
+ *  remarks_if [values] (remarks box shown; required unless remarks_optional), photo 'required'|'optional'|['required_if' => [values]], photo_category,
+ *  document ['required_if' => [values], 'pdf_only' => bool, 'label' => string] (a document evidence row with this question_code, 28-11-2026)
  *
  * Steps 3–5 and 7 are repeating sections / evidence handled outside the question list.
  */
@@ -94,6 +95,13 @@ class QuestionnaireDefinition
                 ['code' => 'NET_01', 'label' => 'Internet / network problem at the school during this inspection', 'type' => 'radio', 'required' => false,
                     'options' => self::YN, 'remarks_if' => ['yes'], 'remarks_optional' => true,
                     'hint' => 'Optional · if Yes, you may describe the problem (no signal, slow data, …)'],
+                // 28-11-2026: on Yes the officer ticks a declaration and attaches the declaration signed by the
+                // Block / District officer as a PDF (document evidence with question_code NET_02). Never pre-filled.
+                ['code' => 'NET_02', 'label' => 'Declaration: there was no internet / network at the school during this inspection, and the declaration signed by the Block / District officer is attached',
+                    'type' => 'multi', 'options' => ['agree' => 'I declare'],
+                    'show_if' => ['NET_01', ['yes']], 'required_if' => ['NET_01', ['yes']],
+                    'document' => ['required_if' => ['agree'], 'pdf_only' => true, 'label' => 'Signed declaration (PDF)'],
+                    'hint' => 'Download the declaration form, get it signed by the Block / District officer, then attach the scanned PDF'],
             ],
 
             2 => [

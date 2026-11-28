@@ -111,6 +111,34 @@ class ReportController extends Controller
     }
 
     /**
+     * 28-11-2026: the no-internet declaration form (NET_01 = Yes / NET_02), pre-filled with the school, the inspection and
+     * the officer. The officer prints it, gets it signed by the Block / District officer and attaches the scanned PDF.
+     */
+    public function networkDeclaration(Inspection $inspection)
+    {
+        $this->authorize('view', $inspection);
+        $inspection->loadMissing(['school.district:id,code,name', 'school.block:id,code,name', 'school.cluster:id,code,name', 'officer.designation']);
+        $remark = $inspection->answers()->where('question_code', 'NET_01')->value('remarks');
+
+        $pdf = Pdf::loadView('inspections.network-declaration', [
+            'inspection' => $inspection,
+            'school' => $inspection->school,
+            'officer' => $inspection->officer,
+            'remark' => $remark,
+            'logos' => \App\Support\PdfLogos::all(),
+        ])->setPaper('a4');
+
+        AuditLogger::log('network_declaration_downloaded', $inspection);
+        $name = 'No-internet-declaration-'.($inspection->school?->udise_code ?? $inspection->id).'-'.substr((string) $inspection->inspection_date, 0, 10).'.pdf';
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$name.'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /**
      * 23-11-2026: Inspections / My Inspections as a PDF list, one row per inspection (the full answers are in each report).
      * Same scope and filters as the list, at most config('inspection.master_pdf_max_rows') rows.
      */

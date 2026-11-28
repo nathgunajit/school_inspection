@@ -79,6 +79,27 @@
         </div>
     @endif
 
+    {{-- 28-11-2026: a document attached to the answer (NET_02: the declaration signed by the Block / District officer, PDF) --}}
+    @if (is_array($q['document'] ?? null))
+        @php $docOn = V::documentRequired($q, $val); $pdfOnly = ! empty($q['document']['pdf_only']); @endphp
+        <div class="q-extra q-docs {{ $docOn ? '' : 'd-none' }}" data-q-docs="{{ $code }}">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                <span class="text-sm fw-semibold"><i class="bi bi-file-earmark-pdf text-danger me-1"></i>{{ $q['document']['label'] ?? 'Document' }}
+                    <span class="text-danger">required</span></span>
+                <div class="d-flex flex-wrap gap-2">
+                    @if ($code === 'NET_02' && isset($inspection))
+                        <a href="{{ route('inspections.network-declaration', $inspection) }}" class="btn btn-sm btn-light" download data-no-loader><i class="bi bi-download"></i>Download declaration form</a>
+                    @endif
+                    <label class="btn btn-sm btn-soft-primary mb-0"><i class="bi bi-paperclip"></i>Attach signed PDF
+                        <input type="file" class="d-none" data-doc-question="{{ $code }}" data-pdf-only="{{ $pdfOnly ? '1' : '0' }}"
+                               accept="{{ $pdfOnly ? '.pdf,application/pdf' : '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png' }}"></label>
+                </div>
+            </div>
+            <div class="list-card" data-doc-list data-question="{{ $code }}"></div>
+            <div class="form-text">Print the form, get it signed and sealed by the Block / District officer, scan it as a PDF (max 5 MB) and attach it here.</div>
+        </div>
+    @endif
+
     {{-- Linked photographs --}}
     @if ($photoRule)
         <div class="q-extra q-photos {{ $photoOn ? '' : 'd-none' }}">
